@@ -40,14 +40,23 @@ jobs:
         run: |
           set -euo pipefail
           # Страница обновляется не мгновенно; ждём до двух минут и сверяем
-          # заголовок. Молчаливый успех здесь означал бы «выложили» о том,
-          # чего никто не увидит.
-          want=$(grep -o '<title>[^<]*</title>' public/index.html)
+          # обе точки входа. Проверка только `/` не заметит, если новый `/ru/`
+          # не попал в subtree или GitHub Pages продолжает отдавать старый билд.
+          want_root=$(grep -o '<title>[^<]*</title>' public/index.html)
+          want_ru=$(grep -o '<title>[^<]*</title>' public/ru/index.html)
           for i in $(seq 1 12); do
-            got=$(curl -s --max-time 10 https://theasder.github.io/orakul/ \
-                  | grep -o '<title>[^<]*</title>' || true)
-            if [ "$got" = "$want" ]; then echo "отдаётся: $got"; exit 0; fi
+            got_root=$(curl -s --max-time 10 https://theasder.github.io/orakul/ \
+                       | grep -o '<title>[^<]*</title>' || true)
+            got_ru=$(curl -s --max-time 10 https://theasder.github.io/orakul/ru/ \
+                     | grep -o '<title>[^<]*</title>' || true)
+            if [ "$got_root" = "$want_root" ] && [ "$got_ru" = "$want_ru" ]; then
+              echo "отдаётся /: $got_root"
+              echo "отдаётся /ru/: $got_ru"
+              exit 0
+            fi
             sleep 10
           done
-          echo "страница так и не обновилась; последнее, что отдавалось: ${got:-пусто}"
+          echo "страницы так и не обновились"
+          echo "последнее /: ${got_root:-пусто}"
+          echo "последнее /ru/: ${got_ru:-пусто}"
           exit 1

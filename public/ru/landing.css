@@ -1,0 +1,777 @@
+
+    /* v3: the headline's nowrap forced a 390px viewport wider than itself and
+       clipped the lead. Keep the one-line treatment where it fits. */
+    @media (min-width: 720px) { .hero h1 .grad-text { white-space: nowrap; } }
+
+
+    :root {
+      /* palette sampled from the brand cover — true black, moodier neon */
+      --bg: #050409;
+      --bg-2: #0C0A16;
+      --glass: rgba(255, 255, 255, 0.04);
+      --glass-2: rgba(255, 255, 255, 0.065);
+      --glass-border: rgba(150, 120, 235, 0.20);
+      --ink: #EDEAF6;
+      --ink-2: #ADA6C6;
+      --ink-3: #857EA0;
+
+      --violet: #9A6BFF;
+      --magenta: #D24BC0;
+      --cyan: #4FBBEA;
+      --wine: #B04A66;
+      --lav: #C6C4EC;
+      --grad: linear-gradient(100deg, #7C4DD8 0%, #D24BC0 48%, #46B6E8 100%);
+      --grad-quiet: linear-gradient(100deg, #7C4DD8 0%, #46B6E8 100%);
+      --glow-v: rgba(124, 77, 216, 0.42);
+      --glow-c: rgba(70, 182, 232, 0.32);
+      --glow-m: rgba(210, 75, 192, 0.38);
+
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.0625rem);
+      --text-lead: clamp(1.125rem, 1rem + 0.6vw, 1.35rem);
+      --text-h2: clamp(1.7rem, 1.15rem + 2vw, 2.7rem);
+      --text-hero: clamp(2.5rem, 1.2rem + 5.4vw, 4.9rem);
+
+      --space-section: clamp(2rem, 1.2rem + 2.6vw, 3.5rem);
+      /* The space ABOVE a screen, tripled against the base token (+200%,
+         founder's call): a scroll should land on one idea, not on the seam
+         between two. Bottom stays at the base — the gap belongs to the
+         section it introduces, not to the one it follows. */
+      --space-section-top: calc(var(--space-section) * 4.5);
+      --radius: 14px;
+      --radius-lg: 22px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+      /* deepened icon system — state hues + dark-glass tile fabric (from the mark) */
+      --amber: #F59E0B; --green: #5AE08A; --glow-a: rgba(245, 158, 11, 0.30);
+      --r-tile: 34% / 38%;
+      --tile-body: linear-gradient(160deg, #14101F 0%, #0A0812 60%, #070510 100%);
+      --tile-rim: linear-gradient(155deg, rgba(255,255,255,0.30), rgba(255,255,255,0.05) 42%, rgba(0,0,0,0.35));
+      --tile-glare: linear-gradient(180deg, rgba(255,255,255,0.22), transparent 42%);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    /* overflow-x: clip, not hidden — same sideways-wobble guard (the hero's
+       ::before smoke bleeds -8%/-8% past the viewport and widened the layout
+       on phones), but clip creates no scroll container, so position: sticky
+       and scroll-margin keep working. */
+    html, body { overflow-x: clip; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+      font-size: var(--text-base);
+      line-height: 1.62;
+      -webkit-font-smoothing: antialiased;
+      /* NO overflow-x here. `html, body { overflow-x: clip }` above is the
+         sideways-wobble guard; repeating it as `hidden` makes body a scroll
+         container, and a scroll container is what stops `header.site` from
+         sticking. That is why the header scrolled away. */
+    }
+    /* Ambient neon glows — deep violet left, cyan right, wine + magenta bloom (from the cover) */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+      background:
+        radial-gradient(52rem 30rem at 10% -8%, rgba(124,77,216,0.20), transparent 60%),
+        radial-gradient(46rem 28rem at 94% 6%, rgba(70,182,232,0.13), transparent 60%),
+        radial-gradient(44rem 30rem at 74% 26%, rgba(176,74,102,0.11), transparent 62%),
+        radial-gradient(40rem 30rem at 48% 46%, rgba(210,75,192,0.10), transparent 65%);
+    }
+    /* Edge vignette — darkens the frame like the cover, kills banding */
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+      box-shadow: inset 0 0 300px 90px rgba(0,0,0,0.62);
+    }
+    h1, h2, h3 { font-family: "Space Grotesk", system-ui, sans-serif; font-weight: 600; line-height: 1.06; letter-spacing: -0.02em; margin: 0; }
+    p { margin: 0; }
+    a { color: inherit; text-decoration: none; }
+    :focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 6px; }
+    .wrap { width: min(1140px, 92vw); margin-inline: auto; }
+    .eyebrow { font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); }
+    .muted { color: var(--ink-2); }
+    .grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.95rem; padding: 0.72rem 1.3rem; border-radius: 999px; border: 1px solid transparent; cursor: pointer; transition: transform 0.15s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease); }
+    .btn-primary { background: var(--grad); color: #fff; box-shadow: 0 8px 30px -8px var(--glow-m), 0 0 0 1px rgba(255,255,255,0.08) inset; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 40px -8px var(--glow-m), 0 0 22px -4px var(--glow-v); }
+    .btn-ghost { background: var(--glass); color: var(--ink); border-color: var(--glass-border); backdrop-filter: blur(8px); }
+    .btn-ghost:hover { background: var(--glass-2); transform: translateY(-1px); }
+
+    /* Header */
+    header.site { position: sticky; top: 0; z-index: 30; backdrop-filter: saturate(1.3) blur(12px); background: rgba(5,4,9,0.66); border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.62rem 0; }
+    .brand { display: inline-flex; align-items: center; gap: 0.6rem; font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; }
+    .mark { width: 30px; height: 30px; border-radius: 9px; display: block; filter: drop-shadow(0 0 14px var(--glow-v)); }
+    .nav-links { display: flex; align-items: center; gap: 1.05rem; font-size: 0.85rem; white-space: nowrap; }
+    .nav-links a.link { color: var(--ink-2); position: relative; }
+    .nav-links a.link::after { content: ""; position: absolute; left: 0; bottom: -4px; height: 2px; width: 100%; background: var(--grad); border-radius: 2px; transform: scaleX(0); transform-origin: left; transition: transform 0.24s var(--ease); }
+    .nav-links a.link:hover { color: var(--ink); }
+    .nav-links a.link:hover::after { transform: scaleX(1); }
+    .nav-cta { display: flex; align-items: center; gap: 0.9rem; }
+    @media (max-width: 1080px) { .nav-links .link { display: none; } }
+
+    /* Hero */
+    /* The first screen has to clear a 78px sticky header AND the browser's own
+       chrome. Measured at 1728x888 it ran 167px past the fold, so the section
+       rhythm is tightened here rather than page-wide: the hero's bottom gap
+       does not need the full between-sections space, since the logo strip
+       already separates it from what follows. */
+    .hero { position: relative; isolation: isolate; padding-top: clamp(5.2rem, 2.6rem + 6.76vw, 9.1rem); padding-bottom: clamp(1.75rem, 1rem + 2vw, 3rem); }
+    /* Ethereal smoke bloom behind the hero — echoes the cover's flowing ribbon */
+    .hero::before {
+      content: ""; position: absolute; left: -8%; right: -8%; top: -4%; height: 60%; z-index: -1; pointer-events: none;
+      background:
+        radial-gradient(40% 62% at 28% 46%, rgba(124,77,216,0.26), transparent 70%),
+        radial-gradient(36% 56% at 58% 40%, rgba(210,75,192,0.18), transparent 70%),
+        radial-gradient(32% 52% at 80% 56%, rgba(70,182,232,0.16), transparent 72%);
+      filter: blur(46px); animation: smoke 26s ease-in-out infinite alternate;
+    }
+    @keyframes smoke { from { transform: translate3d(-2%,0,0) scale(1); } to { transform: translate3d(2%,-2%,0) scale(1.06); } }
+    .hero-grid { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 1rem + 4vw, 4rem); align-items: center; }
+    @media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; } }
+    .hero h1 { font-size: var(--text-hero); font-weight: 700; margin: 0.75rem 0 0.85rem; }
+    /* Wider measure = fewer wrapped lines. Cheaper than cutting the message,
+       and 52ch still reads comfortably at this size. */
+    .hero .lead { font-size: var(--text-lead); color: var(--ink-2); max-width: 52ch; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.4rem; }
+    /* Reassurance, not decoration: one thin line, grey glyphs, no boxes — it must
+       read as a footnote to the button, never as a second row of buttons. */
+    .hero-ticks { list-style: none; display: flex; flex-wrap: wrap; gap: 0.35rem 1.15rem; margin: 0.85rem 0 0; padding: 0; font-size: 0.82rem; color: var(--ink-3); }
+    .hero-ticks li { display: inline-flex; align-items: center; gap: 0.38rem; }
+    .hero-ticks svg { width: 13px; height: 13px; flex: none; color: var(--ink-2); }
+    .hero-note { margin-top: 0.75rem; font-size: 0.85rem; color: var(--ink-3); max-width: 64ch; }
+
+    /* Neon waveform motif — softened toward smoke */
+    .wave { position: absolute; left: 0; right: 0; top: 9%; width: 100%; height: 44%; z-index: -1; opacity: 0.72; animation: drift 24s ease-in-out infinite alternate; }
+    @keyframes drift { from { transform: translateX(-1.6%); } to { transform: translateX(1.6%); } }
+    @media (max-width: 940px) { .wave { height: 26%; top: 2%; } }
+
+    /* Glass product panel */
+    .shot { position: relative; min-height: clamp(240px, 24vw, 330px); }
+    @media (max-width: 940px) { .shot { display: none; } }
+    /* SHORT viewports are the binding case, not narrow ones: the width-based
+       clamps already shrink on a small screen, but a 13" laptop still only has
+       ~710px of usable height after browser chrome and the 78px sticky header.
+       Trimmed here rather than globally so large monitors keep the full scale. */
+    @media (max-height: 880px) and (min-width: 941px) {
+      .hero { padding-top: 3.9rem; padding-bottom: 1.5rem; }
+      .hero h1 { font-size: clamp(2.2rem, 1rem + 3.6vw, 3.6rem); margin: 0.6rem 0 0.7rem; }
+      .hero .lead { font-size: 1.05rem; }
+      .hero-actions { margin-top: 1.1rem; }
+      .hero-ticks { margin-top: 0.65rem; font-size: 0.78rem; }
+      .hero-note { margin-top: 0.6rem; font-size: 0.8rem; }
+      .shot { min-height: clamp(200px, 20vw, 260px); }
+      .strip { padding-top: 0.9rem; }
+    }
+    /* Screen-reader-only. The demo is decorative to the eye and load-bearing to
+       the meaning, so the meaning is written out for anyone who cannot see it. */
+    .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+    /* ============================================================
+       Deepened dark-glass icon system — recognized from the brand mark.
+       One light source (top-left); hue = meaning. Three elevation tiers:
+       .chip = hero float · .ico = resting tile · .ico.e1 = inline.
+       Glyph strokes reference url(#cx-*) gradients in the <defs> sprite. */
+    .ico {
+      --lane: var(--violet); --lane-glow: var(--glow-v);
+      position: relative; display: grid; place-items: center; isolation: isolate;
+      width: 46px; height: 46px; border-radius: var(--r-tile);
+      background: var(--tile-body);
+      background:
+        radial-gradient(130% 120% at 30% 20%, color-mix(in oklab, var(--lane) 22%, transparent), transparent 55%),
+        radial-gradient(150% 150% at 50% 120%, rgba(0,0,0,0.55), transparent 60%),
+        var(--tile-body);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), inset 0 -12px 22px -16px rgba(0,0,0,0.7),
+        0 0 22px -8px var(--lane-glow), 0 14px 34px -20px rgba(0,0,0,0.85);
+      transition: transform 0.18s var(--ease), box-shadow 0.2s var(--ease); }
+    .ico::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+      background: var(--tile-rim);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+    .ico::after { content: ""; position: absolute; inset: 0; border-radius: inherit;
+      background: var(--tile-glare); mix-blend-mode: screen; pointer-events: none; }
+    .ico > svg { width: 22px; height: 22px; color: var(--lane);
+      filter: drop-shadow(0 0 5px color-mix(in oklab, var(--lane) 70%, transparent)); }
+    .ico.h-violet { --lane: var(--violet); --lane-glow: var(--glow-v); }
+    .ico.h-cyan { --lane: var(--cyan); --lane-glow: var(--glow-c); }
+    .ico.h-magenta { --lane: var(--magenta); --lane-glow: var(--glow-m); }
+    .ico.h-amber { --lane: var(--amber); --lane-glow: var(--glow-a); }
+    .ico:hover { transform: translateY(-2px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), 0 0 40px -8px var(--lane-glow), 0 20px 44px -20px rgba(0,0,0,0.9); }
+    .ico.e1 { width: 30px; height: 30px; border-radius: 9px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.14); }
+    .ico.e1::after { opacity: 0.4; } .ico.e1::before { opacity: 0.55; }
+    .ico.e1 > svg { width: 16px; height: 16px; filter: none; }
+    .glyph { flex: none; width: 18px; height: 18px; }
+
+    /* The floating hero tiles. These came back with the icon-first first screen;
+       the markup without these rules is four unstyled spans stacked in the
+       corner, which is exactly how the layout broke. */
+    .chip { position: absolute; width: 68px; height: 68px; display: grid; place-items: center; isolation: isolate;
+      --lane: var(--violet); --lane-glow: var(--glow-v);
+      border-radius: var(--r-tile); backdrop-filter: blur(10px);
+      background: var(--tile-body);
+      background:
+        radial-gradient(130% 120% at 30% 20%, color-mix(in oklab, var(--lane) 24%, transparent), transparent 55%),
+        radial-gradient(150% 150% at 50% 120%, rgba(0,0,0,0.5), transparent 60%),
+        var(--tile-body);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), 0 0 32px -8px var(--lane-glow), 0 22px 46px -18px rgba(0,0,0,0.85);
+      animation: floaty 7s var(--ease) infinite; }
+    .chip::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+      background: var(--tile-rim); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+    .chip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--tile-glare); mix-blend-mode: screen; pointer-events: none; }
+    .chip svg { width: 30px; height: 30px; filter: drop-shadow(0 0 6px color-mix(in oklab, var(--lane) 72%, transparent)); }
+    .chip.h-violet { --lane: var(--violet); --lane-glow: var(--glow-v); }
+    .chip.h-cyan { --lane: var(--cyan); --lane-glow: var(--glow-c); }
+    .chip.h-magenta { --lane: var(--magenta); --lane-glow: var(--glow-m); }
+    /* riding the waveform left→right: capture → crux → log → co-pilot */
+    .chip.a { top: 40%; left: 1%; --r: -6deg; animation-delay: -1s; }
+    .chip.c { top: 9%; left: 31%; --r: 8deg; animation-delay: -2s; }
+    .chip.b { top: 46%; left: 58%; --r: -5deg; animation-delay: -3.4s; }
+    .chip.d { top: 11%; right: 1%; --r: 6deg; animation-delay: -4.5s; }
+    @media (max-width: 940px) { .chip { display: none; } }
+    @keyframes floaty { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-9px) rotate(var(--r,0deg)); } }
+    @media (prefers-reduced-motion: reduce) { .hero::before, .wave, .copilot, .chip, .copilot .tag::before { animation: none; } .chip { transform: rotate(var(--r,0deg)); } .ico, .ico:hover { transition: none; transform: none; } }
+
+    /* Trust bar. The five things a buyer checks before reading a feature list,
+       on one hairline band. Deliberately unlike the integrations strip below it:
+       hairline rules and hue-tinted glyphs rather than pills, so the two bands
+       under the hero read as different kinds of statement. */
+    .trustbar { position: relative; z-index: 1; margin-top: clamp(1.6rem, 1rem + 2vw, 2.6rem); border-block: 1px solid rgba(255,255,255,0.08); }
+    .trustbar ul { list-style: none; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.7rem 1.6rem; margin: 0; padding: 0.85rem 0; }
+    .trustbar li { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--ink-2); }
+    .trustbar svg { width: 16px; height: 16px; flex: none; color: var(--lane, var(--cyan)); filter: drop-shadow(0 0 5px color-mix(in oklab, var(--lane, var(--cyan)) 45%, transparent)); }
+    .trustbar li.h-violet { --lane: var(--violet); }
+    .trustbar li.h-magenta { --lane: var(--magenta); }
+    .trustbar li.h-amber { --lane: var(--amber); }
+    .trustbar em { font-style: normal; color: var(--ink-3); }
+    @media (max-width: 700px) { .trustbar ul { justify-content: flex-start; gap: 0.55rem 1.2rem; } .trustbar li { font-size: 0.8rem; } }
+
+    /* Integrations strip */
+    .strip { position: relative; z-index: 1; padding: 1.1rem 0 0; }
+    .strip p { text-align: center; font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 0.6rem; }
+    .strip ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 0.6rem; justify-content: center; color: var(--ink-2); font-weight: 500; }
+    /* Glass pills with a category glyph. The marks are deliberately GENERIC —
+       what kind of tool it is, not the vendor's logo — so the page carries no
+       third-party trademark artwork. */
+    .strip li { display: inline-flex; align-items: center; gap: 0.42rem; padding: 0.34rem 0.8rem; font-size: 0.875rem; border: 1px solid var(--glass-border); border-radius: 999px; background: rgba(255,255,255,0.04); }
+    .strip li svg { width: 14px; height: 14px; flex: none; opacity: 0.75; }
+    @media (max-width: 560px) { .strip li { font-size: 0.8rem; padding: 0.28rem 0.62rem; } }
+
+    /* Social proof — early-access quotes + what the assistants say.
+       Deliberately NOT a logo wall: this page's own trust section promises "no
+       fabricated logos, metrics, or demo numbers", and a wall of customer logos
+       we do not have would break that promise on the way to earning it. */
+    .quotes { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin: 0; padding: 0; }
+    @media (max-width: 940px) { .quotes { grid-template-columns: 1fr; } }
+    .quote { display: flex; flex-direction: column; gap: 0.9rem; }
+    .quote blockquote { margin: 0; font-size: 1.02rem; line-height: 1.55; color: var(--ink); }
+    .quote blockquote::before { content: "“"; font-family: "Space Grotesk", sans-serif; font-size: 2.4rem; line-height: 0; color: var(--violet); margin-right: 0.15rem; vertical-align: -0.35rem; }
+    .quote figcaption { margin-top: auto; font-size: 0.85rem; color: var(--ink-3); }
+    .quote figcaption strong { display: block; color: var(--ink-2); font-weight: 600; }
+    .verdicts { margin-top: clamp(2rem, 1rem + 3vw, 3.2rem); }
+    .verdict-head { display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem; align-items: baseline; }
+    .verdict-prompt { font-size: 0.82rem; color: var(--ink-3); }
+    .verdict-prompt code { padding: 2px 7px; border-radius: 6px; background: rgba(255,255,255,0.06); font-size: 0.95em; color: var(--ink-2); }
+    .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-top: 1.2rem; }
+    @media (max-width: 940px) { .verdict-grid { grid-template-columns: 1fr; } }
+    .verdict .kicker { color: var(--magenta); }
+    .verdict p { color: var(--ink-2); font-size: 0.92rem; margin-top: 0.5rem; }
+    .verdict small { display: block; margin-top: 0.8rem; color: var(--ink-3); font-size: 0.75rem; }
+
+    /* Sections */
+    section { padding-block: var(--space-section-top) var(--space-section); }
+    /* #film and #integrations used to carry a doubled top pad of their own.
+       The 4.5x base above (3x, then +50% on request) already exceeds it, so
+       the special case is gone rather than left as a rule that quietly
+       SHRINKS those two screens. */
+    .section-head { max-width: 52ch; margin-bottom: clamp(2rem, 1rem + 3vw, 3.5rem); }
+    .section-head h2 { font-size: var(--text-h2); margin: 0 0 0.9rem; }
+
+    /* Cards / pillars */
+    .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; }
+    .billing-toggle { display: inline-flex; gap: 0.25rem; padding: 0.25rem; margin-bottom: 1.4rem;
+      border: 1px solid var(--hairline, rgba(255,255,255,0.14)); border-radius: 999px; }
+    .billing-toggle button { appearance: none; border: 0; background: transparent; color: inherit;
+      font: inherit; font-size: 0.9rem; padding: 0.4rem 1rem; border-radius: 999px; cursor: pointer;
+      opacity: 0.7; transition: background 150ms, opacity 150ms; }
+    .billing-toggle button.is-on { background: var(--accent, #6c5cff); color: #fff; opacity: 1; }
+    .billing-toggle .hint { font-size: 0.8rem; opacity: 0.85; margin-left: 0.35rem; }
+    .price .save { margin: 0.2rem 0 0; font-size: 0.8rem; font-weight: 600; color: var(--accent-text, #a99bff); }
+    .prices { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.1rem; }
+    @media (max-width: 1080px) { .prices { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 860px) { .pillars { grid-template-columns: 1fr; } }
+    @media (max-width: 620px) { .prices { grid-template-columns: 1fr; } }
+    .card { position: relative; background: var(--glass); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 1.6rem; backdrop-filter: blur(8px); transition: transform 0.18s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s var(--ease); }
+    .card:hover { transform: translateY(-3px); border-color: var(--glass-border); box-shadow: 0 24px 60px -34px rgba(0,0,0,0.8), 0 0 40px -18px var(--glow-v); }
+    /* pillar + bento tiles use the global .ico system; keep only their spacing */
+    .card .ico { margin-bottom: 1rem; }
+    /* "Under the hood" (bento) tiles a touch larger for presence */
+    .bento .ico { width: 54px; height: 54px; margin-bottom: 1.1rem; }
+    .bento .ico > svg { width: 26px; height: 26px; }
+    .bento .ico.ico-lg { width: 64px; height: 64px; }
+    .bento .ico.ico-lg > svg { width: 31px; height: 31px; }
+    .card h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+    .card p { color: var(--ink-2); font-size: 0.95rem; }
+    .tagnow { display: inline-block; margin-top: 0.7rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 999px; background: rgba(79,187,234,0.12); color: var(--cyan); border: 1px solid rgba(79,187,234,0.3); }
+    .tagsoon { display: inline-block; margin-top: 0.7rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; padding: 2px 9px; border-radius: 999px; background: rgba(176,74,102,0.14); color: #E79BB0; border: 1px solid rgba(176,74,102,0.34); }
+
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; counter-reset: step; }
+    @media (max-width: 980px) { .steps { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+    .step { padding-top: 1.2rem; border-top: 1px solid rgba(255,255,255,0.12); position: relative; }
+    .step::after { content: ""; position: absolute; top: -1px; left: 0; width: 46px; height: 2px; background: var(--grad); box-shadow: 0 0 12px 0 var(--glow-v); }
+    .step .n { counter-increment: step; font-family: "Space Grotesk", sans-serif; font-size: 1.3rem; font-weight: 700; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .step .n::before { content: "0" counter(step); }
+    /* semantic lane hue per step: capture=cyan · crux=violet · log/audit=magenta */
+    .steps .step:nth-child(1) .n { background: none; color: var(--cyan); -webkit-text-fill-color: var(--cyan); }
+    .steps .step:nth-child(2) .n { background: none; color: var(--violet); -webkit-text-fill-color: var(--violet); }
+    .steps .step:nth-child(3) .n, .steps .step:nth-child(4) .n { background: none; color: var(--magenta); -webkit-text-fill-color: var(--magenta); }
+    .steps .step:nth-child(1)::after { background: var(--cyan); box-shadow: 0 0 12px 0 var(--glow-c); }
+    .steps .step:nth-child(2)::after { background: var(--violet); box-shadow: 0 0 12px 0 var(--glow-v); }
+    .steps .step:nth-child(3)::after, .steps .step:nth-child(4)::after { background: var(--magenta); box-shadow: 0 0 12px 0 var(--glow-m); }
+    .step h3 { font-size: 1.1rem; margin: 0.5rem 0 0.4rem; }
+    .step p { color: var(--ink-2); font-size: 0.92rem; }
+
+    /* Bento */
+    .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1.1rem; }
+    .bento .s3 { grid-column: span 3; }
+    .bento .s2 { grid-column: span 2; }
+    .bento .s6 { grid-column: span 6; }
+    @media (max-width: 860px) { .bento { grid-template-columns: 1fr; } .bento .s3, .bento .s2, .bento .s6 { grid-column: auto; } }
+    .kicker { color: var(--cyan); font-weight: 600; font-size: 0.76rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .bento h3 { font-size: 1.18rem; margin: 0.45rem 0 0.5rem; }
+    .bento.s6-banner { display: flex; }
+
+    /* Blind spots. The left column is a specimen of the thing itself, not a
+       diagram of it: the same fields the app renders, in the same order, so the
+       claim underneath ("it quotes you or it does not exist") is checkable
+       against the card sitting above it rather than taken on trust. */
+    .bs-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 1.3rem; align-items: start; }
+    @media (max-width: 900px) { .bs-layout { grid-template-columns: 1fr; } }
+    .bs-card { border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: var(--glass); backdrop-filter: blur(8px); padding: 1.15rem 1.25rem 1.25rem; }
+    .bs-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+    .bs-kind { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--lav); border: 1px solid rgba(154,107,255,0.45); background: rgba(154,107,255,0.12); }
+    .bs-meta { color: var(--ink-2); font-size: 0.8rem; }
+    .bs-card h3 { font-size: 1.16rem; margin: 0.7rem 0 0.45rem; }
+    .bs-card p { color: var(--ink-2); font-size: 0.94rem; }
+    .bs-quote { margin: 0.9rem 0 0; padding: 0.55rem 0 0.55rem 0.9rem; border-left: 2px solid var(--cyan); }
+    .bs-quote p { color: var(--ink); font-style: italic; }
+    .bs-quote cite { display: block; margin-top: 0.35rem; font-style: normal; font-size: 0.78rem; color: var(--ink-2); }
+    .bs-fields { margin: 1rem 0 0; display: grid; gap: 0.55rem; }
+    .bs-fields div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.6rem; }
+    @media (max-width: 560px) { .bs-fields div { grid-template-columns: 1fr; gap: 0.15rem; } }
+    .bs-fields dt { color: var(--cyan); font-size: 0.76rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding-top: 0.15rem; }
+    .bs-fields dd { margin: 0; color: var(--ink-2); font-size: 0.92rem; }
+    .bs-note { margin-top: 1rem; font-size: 0.8rem; color: var(--ink-2); }
+    .bs-proof { display: grid; gap: 1.1rem; }
+
+    /* Recording types. The picker is the app's own chip row, not a diagram of
+       one: real radio inputs, so it is keyboard-operable, findable in-page, and
+       works with JS off. The swap runs on :has() — and where :has() is missing
+       every card simply stays visible, which is a longer page rather than a
+       broken one. */
+    .rt-pick { display: flex; flex-wrap: wrap; gap: 0.55rem; margin: 0 0 1.5rem; padding: 0; border: 0; }
+    .rt-pick label { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.46rem 0.9rem; font-size: 0.9rem; font-weight: 500; color: var(--ink-2); border: 1px solid rgba(255,255,255,0.10); border-radius: 999px; background: rgba(255,255,255,0.035); cursor: pointer; transition: color 0.18s var(--ease), border-color 0.18s var(--ease), background 0.18s var(--ease), transform 0.18s var(--ease), box-shadow 0.2s var(--ease); }
+    .rt-pick label svg { width: 15px; height: 15px; flex: none; opacity: 0.72; }
+    .rt-pick label:hover { color: var(--ink); border-color: var(--glass-border); transform: translateY(-1px); }
+    .rt-pick label:active { transform: translateY(0); }
+    .rt-pick input:focus-visible + label { outline: 2px solid var(--violet); outline-offset: 3px; }
+    .rt-pick input:checked + label { color: var(--ink); border-color: rgba(154,107,255,0.55); background: linear-gradient(180deg, rgba(154,107,255,0.20), rgba(154,107,255,0.07)); box-shadow: 0 0 24px -9px var(--glow-v); }
+    .rt-pick input:checked + label svg { opacity: 1; color: var(--lav); }
+    /* Eight pills stack to four rows on a phone at the desktop size. Tightened
+       rather than made horizontally scrollable: a scroll strip hides the type
+       someone came looking for. */
+    @media (max-width: 620px) {
+      .rt-pick { gap: 0.4rem; }
+      .rt-pick label { padding: 0.38rem 0.72rem; font-size: 0.84rem; }
+      .rt-pick label svg { width: 14px; height: 14px; }
+    }
+    .rt-card { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: clamp(1.2rem, 1rem + 2vw, 2.8rem); padding: clamp(1.3rem, 1rem + 1.4vw, 2rem); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)); backdrop-filter: blur(10px); box-shadow: 0 30px 70px -46px rgba(0,0,0,0.85); animation: sbIn 0.32s var(--ease) both; }
+    @media (max-width: 860px) { .rt-card { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { .rt-card { animation: none; } }
+    .rt-card h3 { font-family: "Space Grotesk", sans-serif; font-size: 1.18rem; margin-bottom: 0.55rem; }
+    .rt-card p { color: var(--ink-2); font-size: 0.95rem; }
+    .rt-never { display: flex; gap: 0.55rem; margin-top: 0.9rem; font-size: 0.88rem; color: var(--ink-3); }
+    .rt-never svg { width: 16px; height: 16px; flex: none; margin-top: 0.28rem; color: var(--wine); }
+    .rt-prompts { list-style: none; margin: 0.75rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.42rem; }
+    .rt-prompts li { font-size: 0.82rem; padding: 0.3rem 0.7rem; border-radius: 9px; color: var(--ink-2); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+    .rt-notes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.1rem; margin-top: 1.2rem; }
+    @media (max-width: 860px) { .rt-notes { grid-template-columns: 1fr; } }
+    .rt-notes .card { padding: 1.2rem 1.3rem; }
+    .rt-notes h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+    .rt-notes p { font-size: 0.9rem; }
+    @supports selector(:has(*)) {
+      .rtypes .rt-card { display: none; }
+      .rtypes:has(#rt-meeting:checked) [data-type="meeting"],
+      .rtypes:has(#rt-lecture:checked) [data-type="lecture"],
+      .rtypes:has(#rt-podcast:checked) [data-type="podcast"],
+      .rtypes:has(#rt-tutorial:checked) [data-type="tutorial"],
+      .rtypes:has(#rt-interview:checked) [data-type="interview"],
+      .rtypes:has(#rt-presentation:checked) [data-type="presentation"],
+      .rtypes:has(#rt-custom:checked) [data-type="custom"] { display: grid; }
+    }
+
+    /* Sandbox preview. Hidden without JS, like the calculator: a Play button that
+       does nothing is worse than no Play button. */
+    .sb-stage { padding: 14px; display: grid; gap: 10px; }
+    .sb-transcript { min-height: 240px; max-height: 320px; overflow-y: auto; display: grid; gap: 10px; align-content: start; scroll-behavior: smooth; }
+    .sb-transcript:empty::before { content: "Press play — the transcript arrives here, line by line."; color: var(--ink-3); font-size: 0.86rem; }
+    .sb-bar { height: 3px; border-radius: 999px; background: linear-gradient(90deg, var(--cyan) var(--played, 0%), rgba(255,255,255,0.10) var(--played, 0%)); transition: background 0.2s linear; }
+    .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; margin-top: 1.1rem; }
+    .sb-controls .btn[aria-pressed="true"] { filter: saturate(0.8); }
+    .sb-side { display: grid; gap: 0.9rem; }
+    .sb-side [hidden] { display: none; }
+    .sb-card { padding: 1rem 1.1rem; border: 1px solid var(--glass-border); border-radius: var(--radius); background: rgba(255,255,255,0.035); animation: sbIn 0.45s var(--ease) both; }
+    @keyframes sbIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .sb-card { animation: none; } .sb-bar { transition: none; } }
+    .sb-card h4 { font-family: "Space Grotesk", sans-serif; font-size: 0.98rem; margin: 0.35rem 0 0.3rem; }
+    .sb-card p { font-size: 0.87rem; color: var(--ink-2); }
+    .sb-card small { display: block; margin-top: 0.55rem; font-size: 0.78rem; color: var(--ink-3); }
+    .sb-honesty { margin-top: 1rem; font-size: 0.8rem; color: var(--ink-3); max-width: 60ch; }
+
+    /* Comparison matrix. Scrolls inside its own container rather than pushing the
+       page sideways, and the criterion column stays put while the vendors move. */
+    .cmp-scroll { overflow-x: auto; border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); background: var(--glass); backdrop-filter: blur(8px); }
+    .cmp { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 0.92rem; }
+    .cmp caption { caption-side: bottom; padding: 1rem 1.2rem; text-align: left; font-size: 0.8rem; color: var(--ink-3); }
+    .cmp th, .cmp td { padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: center; vertical-align: middle; }
+    .cmp thead th { font-family: "Space Grotesk", sans-serif; font-size: 0.86rem; font-weight: 600; color: var(--ink-2); letter-spacing: 0.01em; }
+    .cmp tbody th { text-align: left; font-weight: 500; color: var(--ink); position: sticky; left: 0; background: linear-gradient(90deg, #0A0812 82%, rgba(10,8,18,0.86)); min-width: 260px; }
+    .cmp tbody tr:last-child th, .cmp tbody tr:last-child td { border-bottom: 0; }
+    /* The product's own column is a lane, not a highlight box: one tinted stripe
+       running the height of the table, so the eye reads down it. */
+    .cmp .own { background: linear-gradient(180deg, rgba(124,77,216,0.14), rgba(210,75,192,0.07)); }
+    .cmp thead .own { color: var(--ink); border-top-left-radius: 10px; border-top-right-radius: 10px; }
+    .cmp .own strong { font-family: "Space Grotesk", sans-serif; font-size: 1rem; }
+    .yes { color: var(--green); font-weight: 600; }
+    .no { color: var(--ink-3); }
+    .part { color: var(--amber); font-size: 0.84rem; }
+    .cmp td small { display: block; color: var(--ink-3); font-size: 0.82rem; line-height: 1.4; margin-top: 3px; }
+
+    /* Tracks */
+    .tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+    @media (max-width: 860px) { .tracks { grid-template-columns: 1fr; } }
+    .track { border-radius: var(--radius-lg); padding: 1.9rem; border: 1px solid rgba(255,255,255,0.09); backdrop-filter: blur(8px); }
+    .track.smb { background: var(--glass); }
+    .track.ent { background: linear-gradient(160deg, rgba(124,77,216,0.16), rgba(70,182,232,0.08)); border-color: var(--glass-border); box-shadow: 0 0 60px -30px var(--glow-v); }
+    .track h3 { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .track ul { list-style: none; margin: 1.1rem 0 0; padding: 0; display: grid; gap: 0.6rem; }
+    .track li { display: flex; gap: 0.6rem; font-size: 0.95rem; color: var(--ink-2); }
+    .track li svg { flex: none; width: 18px; height: 18px; margin-top: 2px; color: var(--cyan); }
+
+    /* Pricing */
+    .price { background: var(--glass); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-lg); padding: 1.7rem; backdrop-filter: blur(8px); }
+    .price.feature { border-color: var(--glass-border); box-shadow: 0 0 60px -26px var(--glow-m); position: relative; background: linear-gradient(180deg, rgba(210,75,192,0.08), rgba(124,77,216,0.05)); }
+    .price .badge { position: absolute; top: -11px; left: 1.7rem; background: var(--grad); color: #fff; font-size: 0.78rem; font-weight: 600; padding: 3px 11px; border-radius: 999px; }
+    .price h3 { font-size: 1.2rem; }
+    .price .amt { font-family: "Space Grotesk", sans-serif; font-size: 2.4rem; margin: 0.4rem 0; font-weight: 700; }
+    .price .amt span { font-family: Inter, sans-serif; font-size: 0.95rem; color: var(--ink-3); font-weight: 500; }
+    .price ul { list-style: none; margin: 1.1rem 0 1.4rem; padding: 0; display: grid; gap: 0.55rem; font-size: 0.92rem; color: var(--ink-2); }
+    .price ul li::before { content: "→"; color: var(--magenta); margin-right: 0.55rem; }
+    /* Cards stretch to equal height in the grid, but their CONTENT did not, so
+       each CTA sat wherever that card's feature list happened to end and the
+       buttons stepped down across the row. A column layout plus an auto top
+       margin pins every button to the bottom edge regardless of list length.
+       The feature card nests its content under .price-body (its badge is
+       absolutely positioned), so that wrapper has to be the column there. */
+    .price { display: flex; flex-direction: column; }
+    .price-body { display: flex; flex-direction: column; flex: 1; }
+    .price .btn { width: 100%; justify-content: center; margin-top: auto; }
+    .price-note { margin-top: 1rem; color: var(--ink-2); font-size: 0.82rem; }
+    .addon-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1.1rem; margin-top: 2rem; }
+    .addon { padding: 1.3rem 1.4rem; border-top: 1px solid rgba(255,255,255,0.12); }
+    .addon h3 { font-size: 1rem; margin-bottom: 0.45rem; }
+    .addon p { color: var(--ink-2); font-size: 0.88rem; }
+    .addon strong { color: var(--ink); font-weight: 600; }
+    /* Availability marker on an engine that is not GA yet — muted, not a badge
+       that competes with the heading it qualifies. */
+    .tag-soon {
+      display: inline-block; margin-left: 0.45rem; padding: 0.1rem 0.42rem;
+      border: 1px solid rgba(255,255,255,0.22); border-radius: 999px;
+      font-size: 0.62rem; font-weight: 600; letter-spacing: 0.04em;
+      text-transform: uppercase; color: var(--ink-2); vertical-align: middle;
+      white-space: nowrap;
+    }
+    .business-pricing { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-top: 1.3rem; }
+    .business-price { padding: 1.25rem 1.4rem; border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); background: rgba(255,255,255,0.025); }
+    .business-price h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+    .business-price p { color: var(--ink-2); font-size: 0.88rem; }
+    @media (max-width: 760px) { .addon-grid, .business-pricing { grid-template-columns: 1fr; } }
+
+    /* Plan calculator. Hidden without JS — a pair of sliders that compute nothing
+       is worse than no calculator, and the pricing cards above already answer the
+       question in full. */
+    .calc { display: none; }
+    .js .calc { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(1.4rem, 1rem + 2vw, 2.6rem); margin-top: 2rem; padding: clamp(1.4rem, 1rem + 1.5vw, 2rem); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: linear-gradient(160deg, rgba(124,77,216,0.10), rgba(70,182,232,0.05)); backdrop-filter: blur(8px); }
+    @media (max-width: 860px) { .js .calc { grid-template-columns: 1fr; } }
+    .calc h3 { font-size: 1.15rem; margin-bottom: 0.4rem; }
+    .calc-controls { display: grid; gap: 1.3rem; align-content: start; }
+    .calc-row label { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: 0.9rem; color: var(--ink-2); margin-bottom: 0.5rem; }
+    .calc-row output { font-family: "Space Grotesk", sans-serif; font-size: 1.05rem; font-weight: 600; color: var(--ink); }
+    .calc input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 999px; background: linear-gradient(90deg, var(--violet) var(--fill, 0%), rgba(255,255,255,0.12) var(--fill, 0%)); cursor: pointer; }
+    .calc input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); border: 3px solid var(--violet); box-shadow: 0 0 14px -2px var(--glow-v); cursor: grab; }
+    .calc input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--ink); border: 3px solid var(--violet); box-shadow: 0 0 14px -2px var(--glow-v); cursor: grab; }
+    .calc input[type="range"]:focus-visible { outline: 2px solid var(--cyan); outline-offset: 6px; }
+    .calc-result { display: flex; flex-direction: column; gap: 0.5rem; padding: 1.3rem; border: 1px solid rgba(255,255,255,0.10); border-radius: var(--radius); background: rgba(255,255,255,0.03); }
+    .calc-plan { font-family: "Space Grotesk", sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+    .calc-total { font-family: "Space Grotesk", sans-serif; font-size: 2.1rem; font-weight: 700; }
+    .calc-total span { font-family: Inter, sans-serif; font-size: 0.9rem; font-weight: 500; color: var(--ink-3); }
+    .calc-why { font-size: 0.86rem; color: var(--ink-2); }
+    .calc-note { font-size: 0.8rem; color: var(--ink-3); }
+    .calc-result .btn { margin-top: auto; justify-content: center; }
+
+    /* FAQ. <details>/<summary> rather than a scripted accordion: keyboard support,
+       find-in-page and open-by-default-without-JS all come free, and the page has
+       no state worth a component here. */
+    .faq { display: grid; gap: 0.7rem; max-width: 74ch; }
+    .faq details { border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); background: var(--glass); transition: border-color 0.2s var(--ease), background 0.2s var(--ease); }
+    .faq details[open] { border-color: var(--glass-border); background: var(--glass-2); }
+    .faq summary { display: flex; align-items: center; gap: 0.8rem; padding: 1.05rem 1.2rem; cursor: pointer; font-family: "Space Grotesk", sans-serif; font-size: 1.02rem; font-weight: 600; letter-spacing: -0.01em; list-style: none; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after {
+      content: ""; margin-left: auto; flex: none; width: 10px; height: 10px;
+      border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3);
+      transform: rotate(45deg) translateY(-2px); transition: transform 0.2s var(--ease), border-color 0.2s var(--ease);
+    }
+    .faq summary:hover::after { border-color: var(--cyan); }
+    .faq details[open] summary::after { transform: rotate(-135deg) translateY(-2px); border-color: var(--cyan); }
+    .faq .answer { padding: 0 1.2rem 1.2rem; color: var(--ink-2); font-size: 0.95rem; }
+    .faq .answer p + p { margin-top: 0.7rem; }
+    .faq .answer strong { color: var(--ink); font-weight: 600; }
+    .faq .answer a { color: var(--cyan); }
+    @media (prefers-reduced-motion: reduce) { .faq summary::after, .faq details { transition: none; } }
+
+    /* Trust */
+    .trust { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(1.5rem, 1rem + 3vw, 3.5rem); align-items: center; }
+    @media (max-width: 860px) { .trust { grid-template-columns: 1fr; } }
+    .trust-list { list-style: none; margin: 1.3rem 0 0; padding: 0; display: grid; gap: 0.8rem; }
+    .trust-list li { display: flex; gap: 0.6rem; color: var(--ink-2); font-size: 0.95rem; }
+    .trust-list svg { flex: none; width: 18px; height: 18px; color: var(--cyan); margin-top: 3px; }
+    /* Security blocks — decomposed into scannable cards */
+    .trust-blocks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.1rem; margin-top: clamp(1.8rem, 1rem + 2.5vw, 3rem); }
+    @media (max-width: 860px) { .trust-blocks { grid-template-columns: 1fr; } }
+    .tblock-head { display: flex; align-items: center; gap: 0.55rem; margin: 0 0 1rem; font-size: 1.02rem; }
+    .tblock-head svg { flex: none; width: 20px; height: 20px; color: var(--cyan); }
+    .tbl { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    .tbl li { position: relative; padding-left: 1.05rem; font-size: 0.9rem; line-height: 1.5; color: var(--ink-2); }
+    .tbl li strong { color: var(--ink); font-weight: 600; }
+    .tbl li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 5px; height: 5px; border-radius: 50%; background: var(--dot, var(--cyan)); box-shadow: 0 0 8px 0 var(--dot, var(--cyan)); }
+    .tbl-soon { --dot: var(--amber); }
+    .tbl-honest { --dot: var(--magenta); }
+    .tbl-violet { --dot: var(--violet); }
+    .tblock-note { display: inline-block; margin-top: 0.9rem; font-size: 0.72rem; color: var(--ink-3); font-style: italic; }
+
+    /* CTA */
+    .cta { position: relative; text-align: center; border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: clamp(2.5rem, 1.5rem + 4vw, 4.5rem) 1.5rem; overflow: hidden; background: linear-gradient(160deg, rgba(124,77,216,0.16), rgba(70,182,232,0.08)); box-shadow: 0 0 80px -40px var(--glow-v); }
+    .cta h2 { font-size: var(--text-h2); margin-bottom: 0.8rem; }
+    .cta p { color: var(--ink-2); max-width: 48ch; margin: 0 auto 1.7rem; }
+
+    /* Lead form + demo modal (HubSpot) */
+    /* Consent banner + form ticks. Decline is styled exactly as prominently as
+       Accept — a visually demoted refusal is not freely given consent. */
+    #cw-consent { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; padding: 16px 20px; background: rgba(11,8,23,0.97); border-top: 1px solid rgba(255,255,255,0.12); }
+    #cw-consent p { margin: 0; font-size: 0.9rem; max-width: 62ch; }
+    .cw-consent-actions { display: flex; gap: 10px; }
+    .cw-consent-actions .btn { padding: 9px 18px; font-size: 0.9rem; }
+    .consent { display: flex; gap: 9px; align-items: flex-start; font-size: 0.86rem; text-align: left; flex: 1 1 100%; }
+    .consent input { margin-top: 3px; flex: 0 0 auto; }
+    .privacy-note { font-size: 0.8rem; opacity: 0.7; max-width: 62ch; margin: 12px auto 0; }
+    .purpose { max-width: 62ch; margin: 1.1rem 0 0; font-size: 1rem; line-height: 1.6; }
+    .hero-tagline { font-size: clamp(1.4rem, 1rem + 2vw, 2.6rem); font-weight: 700; line-height: 1.15; margin: 0.2em 0 0; }
+    .lead-form { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; max-width: 540px; margin: 0 auto; }
+    .lead-form input[data-hs-field] { flex: 1 1 190px; min-width: 0; padding: 0.72rem 1.05rem; font: inherit; font-size: 0.95rem; color: var(--ink); background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 999px; outline: none; transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease); }
+    .lead-form input::placeholder { color: var(--ink-3); }
+    .lead-form input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(154,107,255,0.18); }
+    .lead-form .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+    .lead-status { min-height: 1.2em; margin: 0.9rem 0 0; font-size: 0.9rem; color: var(--ink-3); }
+    .lead-status[data-state="ok"] { color: var(--cyan); }
+    .lead-status[data-state="err"] { color: #FF8FA3; }
+    .cta-alt { margin-top: 1.1rem; font-size: 0.9rem; color: var(--ink-3); display: flex; gap: 0.6rem; align-items: center; justify-content: center; }
+
+    .modal[hidden] { display: none; }
+    .modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 1.2rem; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(4,3,10,0.72); backdrop-filter: blur(6px); }
+    .modal-card { position: relative; width: min(720px, 96vw); max-height: 90vh; overflow: auto; background: var(--bg-2); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); box-shadow: 0 40px 100px -30px rgba(0,0,0,0.85), 0 0 80px -30px var(--glow-v); padding: 14px; }
+    .modal-close { position: absolute; top: 10px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--glass-border); background: var(--glass-2); color: var(--ink); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+    .modal-close:hover { background: var(--glass); }
+    .meetings-host { min-height: 640px; }
+
+    /* The booking calendar is now the only path to a demo, so it gets real
+       sizing rather than the widget's default inline height. Calendly renders
+       an iframe it cannot measure across origins: too short and the month grid
+       scrolls inside a scrolling page, which on touch is close to unusable.
+       Height is reserved up front so the embed does not shift the page when it
+       loads — this block sits below the fold, and a late reflow here is a CLS
+       hit for anyone already reading further down. */
+    .calendly-inline-widget {
+      min-width: 320px;
+      width: 100%;
+      /* Tall enough for the grid plus the timezone row at every breakpoint;
+         the mobile layout stacks date and time pickers, hence the wide range. */
+      height: clamp(660px, 78vh, 780px);
+      border-radius: 14px;
+      overflow: hidden;
+      background: var(--bg);
+      /* The iframe paints its own background only once loaded; without this the
+         reserved space flashes as a bright block on a dark page. */
+      box-shadow: inset 0 0 0 1px rgba(154, 107, 255, 0.16);
+    }
+    @media (max-width: 640px) {
+      /* Calendly switches to a stacked layout below ~640px and needs the room;
+         capping by viewport height here would clip the time list. */
+      .calendly-inline-widget { height: 1020px; border-radius: 10px; }
+    }
+
+    /* Footer */
+    footer.site { border-top: 1px solid rgba(255,255,255,0.07); padding: 2.5rem 0 3rem; }
+    .foot { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: space-between; align-items: center; }
+    .foot nav { display: flex; flex-wrap: wrap; gap: 1.3rem; font-size: 0.9rem; color: var(--ink-2); }
+    .foot small { color: var(--ink-3); font-size: 0.8rem; }
+    .disclaimer { margin-top: 1.2rem; font-size: 0.78rem; color: var(--ink-3); max-width: 78ch; }
+
+    /* Product film — the second screen. 16:9, first-party, lazy. */
+    .film-frame {
+      position: relative; aspect-ratio: 16 / 9;
+      border: 1px solid rgba(150,120,235,0.22); border-radius: 18px;
+      overflow: hidden; background: #05040b;
+      box-shadow: 0 30px 90px rgba(0,0,0,0.55), 0 0 120px rgba(124,77,216,0.10);
+    }
+    .film-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+    .film-note { margin: 1rem 0 0; font-size: 0.9rem; color: var(--ink-3); }
+    .film-note a { color: var(--cyan); }
+    /* Full column width, like every other block on the page.
+       This used to be sized by HEIGHT — the lesser of the column and what the
+       viewport could show — so heading, film and note landed inside one screen
+       on a 13-inch laptop. The cost was a film narrower than the section above
+       it at almost every desktop size (about 1060px against the column's
+       1140px), which reads as a misaligned page rather than as a considered
+       fit. Matching the column wins: the film is what people came to watch, and
+       a page that scrolls is ordinary where a ragged edge is not. Short and
+       landscape viewports keep their own rules below. */
+    .film-frame { width: 100%; margin-inline: auto; }
+    /* Short screens (any laptop under ~1000 CSS px tall): the section header
+       and two wrapped rows of tabs eat the height budget before the film gets
+       any. Compress everything around the frame so heading, tabs, film and
+       note land inside ONE screen: smaller heading, one scrollable tab row,
+       tighter margins, and a frame cap that reflects the now-smaller chrome. */
+    @media (max-height: 1000px) and (min-width: 761px) {
+      /* Tripled with the rest of the screens (+200%, founder's call). Still
+         viewport-relative so heading, tabs, film and note keep landing in
+         one screen on a 13" laptop — the reason this override exists. */
+      #film { padding-top: clamp(9.6rem, 18vh, 14.4rem); padding-bottom: 1rem; scroll-margin-top: 72px; }
+      #film .section-head { margin-bottom: 0.9rem; }
+      #film .section-head h2 { font-size: clamp(1.5rem, 2.6vh + 0.8rem, 2.2rem); margin: 0 0 0.4rem; }
+      #film .section-head p { font-size: 0.92rem; margin: 0; }
+      /* Wrap onto as many rows as needed rather than scrolling sideways: a
+         horizontal scroller hides the later personas behind a gesture nobody
+         performs, so "For tech leads" was effectively invisible. */
+      #film .film-tabs { flex-wrap: wrap; margin: 0.9rem 0 0.8rem; }
+      #film .film-tabs [role="tab"] { white-space: nowrap; flex: none; }
+      /* The chrome around the film still compresses on a short screen, but the
+         frame itself keeps the column width — a narrower film was the visible
+         misalignment, and it is a laptop height (~900px) that triggered this
+         query, not an unusually small one. */
+      #film .film-note { margin-top: 0.7rem; font-size: 0.82rem; }
+    }
+
+    .film-poster { position: absolute; inset: 0; display: block; }
+    .film-poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .film-poster .film-play {
+      position: absolute; inset: 0; margin: auto; width: 84px; height: 84px;
+      border-radius: 50%; background: rgba(8,6,16,0.72);
+      border: 1px solid rgba(150,120,235,0.4); backdrop-filter: blur(8px);
+    }
+    .film-poster .film-play::after {
+      content: ""; position: absolute; inset: 0; margin: auto;
+      width: 0; height: 0; margin-left: 34px;
+      border-left: 24px solid rgba(237,234,246,0.95);
+      border-top: 15px solid transparent; border-bottom: 15px solid transparent;
+    }
+    .film-poster:hover .film-play { background: rgba(24,18,40,0.86); }
+
+
+    /* Scroll reveal (only active when JS is on) */
+    .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+    .js .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .js .reveal { opacity: 1; transform: none; transition: none; } }
+
+
+    #integrations .strip { padding: 0; }
+    #integrations .strip li { font-size: calc(1.3rem - 6px); padding: 0.55rem 1.25rem; gap: 0.6rem; }
+    #integrations .strip li svg { width: 21px; height: 21px; }
+    .strip-label { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.55rem;
+      margin: 0 0 0.9rem; font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em;
+      text-align: left; }
+    .strip-label span { font-weight: 400; font-size: 0.85rem; color: var(--muted); letter-spacing: 0; }
+    @media (max-width: 560px) { .strip-label { font-size: 0.88rem; } .strip-label span { font-size: 0.78rem; } }
+    #integrations .strip ul { gap: 0.75rem 0.9rem; }
+    /* Ten pills, then a toggle: forty-one is six or seven rows before the next
+       section even on a wide screen. The ten are ordered by what the build can
+       actually do — the direct connectors first, then the apps whose audio is
+       captured — so the part everyone sees is the part that is true. With JS
+       off the list renders complete rather than truncated with no way out. */
+    .js #integrations .strip ul:not(.is-expanded) > li:nth-child(n+11):not(.strip-more) { display: none; }
+    #integrations .strip-more { display: none; }
+    .js #integrations .strip-more { display: inline-flex; }
+    #integrations .strip-more button {
+      all: unset; cursor: pointer; color: var(--cyan); font-weight: 600;
+      padding: 0.42rem 0.9rem; border: 1px dashed rgba(150,120,235,0.45);
+      border-radius: 999px; line-height: 1.2;
+    }
+    #integrations .strip-more button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+    @media (max-width: 560px) {
+      #integrations .strip li { font-size: 0.82rem; padding: 0.42rem 0.9rem; }
+    }
+    /* Same padding as the comparison table's caption (.cmp caption) so the two
+       footnotes under this section sit on one visual rhythm. */
+    .compare-note { margin: 0.9rem 0 0; padding: 1rem 1.2rem; font-size: 0.8rem; color: var(--ink-3); line-height: 1.55; max-width: 74ch; }
+    .film-tabs { display: flex; gap: 0.5rem; margin: 1.4rem 0 1rem; flex-wrap: wrap; }
+    .film-tabs [role="tab"] {
+      background: var(--glass); color: var(--ink-2);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 999px;
+      padding: 0.5rem 1.1rem; font: 500 0.9rem "Space Grotesk", sans-serif;
+      cursor: pointer; transition: border-color 0.2s, color 0.2s;
+    }
+    .film-tabs [role="tab"]:hover:not([disabled]) { color: var(--ink); border-color: rgba(150,120,235,0.4); }
+    .film-tabs [role="tab"][disabled] { opacity: 0.45; cursor: default; }
+    .film-tabs [role="tab"][aria-selected="true"] {
+      color: var(--ink); background: rgba(154, 107, 255, 0.14);
+      border-color: rgba(150, 120, 235, 0.5);
+    }
+    /* v3: on a phone the film mounts its vertical story cut (see embed.js
+       data-format-mobile) — give it the story's own 9:16 frame, centred,
+       capped by viewport height so the whole phone frame is on screen. */
+    @media (max-width: 720px) {
+      .film-frame { aspect-ratio: 1080 / 1450; width: min(100%, 50vh); margin-inline: auto; }
+    }
+
+    /* Russian developer route: the design system stays shared with the live
+       landing, while the route-specific details remain deliberately small. */
+    .language-link {
+      color: var(--ink-2); font: 600 0.78rem "Space Grotesk", sans-serif;
+      letter-spacing: 0.08em; padding: 0.45rem 0.2rem;
+    }
+    .language-link:hover { color: var(--ink); }
+    .hero .eyebrow { margin-bottom: 0.6rem; }
+    #film .section-head .eyebrow,
+    #integrations .section-head .eyebrow,
+    #how .section-head .eyebrow,
+    #compare .section-head .eyebrow,
+    #pricing .section-head .eyebrow,
+    #faq .section-head .eyebrow { display: block; margin-bottom: 0.7rem; }
+    #integrations .strip li:not(.strip-more) { min-height: 2.45rem; }
+    .cta-actions { justify-content: center; margin-top: 0; }
+    footer.site .legal {
+      max-width: 92ch; margin: 1.4rem 0 0; color: var(--ink-3);
+      font-size: 0.76rem; line-height: 1.55;
+    }
+    @media (max-width: 620px) {
+      .nav-cta { gap: 0.55rem; }
+      .nav-cta .btn { padding-inline: 0.95rem; }
+      .hero .lead { max-width: 34ch; }
+    }
