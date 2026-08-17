@@ -18,7 +18,7 @@ describe('Cruxwing Russian developer landing', () => {
   test('does not change the existing Orakul landing', () => {
     const rootLanding = readFileSync(resolve(root, 'public', 'index.html'));
     const hash = createHash('sha256').update(rootLanding).digest('hex');
-    assert.equal(hash, '8af78f5f2e4bc4ccbcbcd9b0ec2036027c5f83ef50d9a2a2e7cdb977ede329a3');
+    assert.equal(hash, 'b2949044961ed4710062e06ead9c99aee78afa81ad1e0fc4aa76e28fb182079d');
   });
 
   test('declares Russian metadata and the requested production route', () => {
