@@ -1247,7 +1247,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | A live check by other hands (issue #1); until then a caveat in README, not silence |
+| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea and Redmine were checked that way 2026-08-19 |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
@@ -1301,6 +1301,31 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Two connectors stopped being built from documentation — 2026-08-19.** The
+admission rule wants a run against a live service, and that had been reading as
+«wait for somebody with an account». For a service you install yourself, no
+account exists to wait for: `scripts/zhivaya-proba.sh` starts it in a container,
+creates three issues (two containing the word, one not), searches, and removes
+the container. The search token is created separately from the seeding token and
+is **read-only**, so a missing scope is found by the script rather than by a
+person.
+
+Gitea 1.22.6 answered correctly: both matching issues, not the third, regardless
+of case.
+
+Redmine 5 answered — and returned **one of the two**. The cause is not ours and
+is worth writing down: the official image runs on SQLite, whose `LIKE` folds
+case for ASCII only, so «Тарифы» and «тарифы» are different words to it.
+Confirmed against Redmine's own API rather than inferred — `q=тарифы` returns
+#1, `q=Тарифы` returns #3. On PostgreSQL or MySQL with an ordinary collation
+this does not happen. So on a small default install, Russian search is
+case-sensitive; that belongs to the person operating it, not to the connector,
+and it is now in the manifest note where somebody debugging «it only found half»
+will find it.
+
+Nothing about this was visible from the documentation, and both connectors had
+been passing their suites for a week.
 
 **A login page is the cheapest way to cut someone off.** Not `401` — a form.
 An expired single-sign-on session, a hotel captive portal, and a service that
