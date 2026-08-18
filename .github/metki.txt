@@ -1,0 +1,15 @@
+# Снят 2026-08-18 командой scripts/snimok-metok.sh — руками не править.
+# Метки, которые есть в репозитории на самом деле.
+accessibility
+bug
+documentation
+duplicate
+enhancement
+good first issue
+help wanted
+invalid
+question
+wontfix
+нужен доступ
+первая правка
+ошибка

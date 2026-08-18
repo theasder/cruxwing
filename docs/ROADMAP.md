@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 258 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 260 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 565 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -308,13 +308,27 @@ clear task, not for code.
   `нужен доступ` exist as repository labels (`gh label list`), not as one-off
   strings on three issues.
 
-  One label is **not** real, and it is declared: `oshibka.yml` carries
-  `labels: ["ошибка"]`, and no such label exists — the repo has `bug`. GitHub
-  drops an unknown label silently, so every bug report arrives unlabelled and
-  the form looks like it worked. Fix is one command,
-  `gh label create "ошибка" --description "Что-то работает не так, как написано"`,
-  or point the form at `bug`. Until then the connector form below declares no
-  label at all, and a check keeps it that way.
+  **The declared-but-missing one is fixed — 2026-08-18.** `oshibka.yml` carried
+  `labels: ["ошибка"]` against a repository that only had `bug`. GitHub drops an
+  unknown label silently, so every bug report arrived unlabelled and the form
+  looked like it had worked. The label now exists (`gh label create "ошибка"`),
+  matching the two Russian labels already there rather than switching the form
+  to English.
+
+  The interesting part is not the label but that nothing could have caught it.
+  Silence is the whole failure mode: no error, no rejected submission, just a
+  missing tag nobody was looking for. `.github/metki.txt` is now a snapshot of
+  the repository's real labels, taken by `scripts/snimok-metok.sh` from `gh`
+  rather than typed, and `test/metki.test.mjs` compares every label declared by
+  every form against it — byte for byte, because «ошибка» with a Latin «o»
+  looks exactly the same and is a different label. The snapshot must not be
+  hand-written, and a hand-written one is caught.
+
+  This retired the older check that forbade the connector form from declaring
+  any label at all. That ban was never a rule; it was an admission that nothing
+  could verify one. The replacement is stricter about what matters (a declared
+  label must exist) and permits what is legitimate (declaring a label that
+  does).
 - **A «new connector» form — shipped 2026-08-17.**
   `.github/ISSUE_TEMPLATE/konnektor.yml` asks the four things §4 gates on —
   vendor docs link, method and host, search parameter, response shape — and all
