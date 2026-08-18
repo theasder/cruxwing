@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 18 own connectors, 11 western via MCP.
+Total: 19 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -596,7 +596,8 @@ setting.
 | **Slack** | `GET https://slack.com/api/search.messages`, a **personal user token** plus the `search:read` scope, response `{ok, messages:{matches:[…]}}`; the method is marked legacy[^slack] | A personal token changes the promise: not a bot with narrow rights but access to a person's whole correspondence. A product decision, not a technical one; if «yes», say it plainly in the interface |
 | **Plane**, open, self-hosted | **Connected 2026-08-18** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `state.name`[^plane] | Nothing blocking. Open: whether a live workspace confirms the cursor format `perPage:page:is_prev` — the connector is built from the docs, not from a live install |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
-| **BookStack, Wiki.js, Nextcloud** | Open knowledge bases, self-hosted | Search method and response shape for each. High value: Outline already showed an open wiki returns the text around the match — exactly what the prompt needs (plan §2.0) |
+| **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
+| **Wiki.js, Nextcloud** | Open knowledge bases, self-hosted | Search method and response shape for each. High value, and BookStack now shows why: its search returns the sentence around the match, which is what a prompt can quote |
 | **Local notes: Obsidian and any `.md` directory** | No API at all, files on the same disk | The only source promising nothing to the network, and it fits «everything is computed on the device» without caveats. The question is how a person points at the directory and what to do with large vaults |
 
 The western layer already covers eleven MCP servers, and adding there is one
@@ -874,6 +875,8 @@ lives for years and spends other people's time.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
+[^bookstack]: BookStack: `GET /api/search`, parameters `query` (required), `page` (min 1), `count` (min 1, **max 100**, default 20); auth `Authorization: Token <token_id>:<token_secret>`; 180 requests a minute per user by default; response `{data: [{id, name, slug, type, url, preview_html: {name, content}, tags, book, chapter}], total}` with the match wrapped in `<strong>` inside `preview_html`. read 2026-08-18 from the vendor's docs — https://demo.bookstackapp.com/api/docs — and confirmed against their own source and tests: `app/Search/SearchApiController.php` and `tests/Api/SearchApiTest.php`
+
 [^plane]: Plane, list work items: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, query `cursor` / `per_page` (default 20, max 100) / `expand` / `fields` / `order_by` / `external_id` / `external_source` — **no text search parameter**; response `total_count`, `next_page_results`, `results[]` with `name`, `description`, `sequence_id`, `state.name`; re-read 2026-08-18: https://developers.plane.so/api-reference/issue/list-issues
 [^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer` or `token`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, paging `page` / `per_page` (max 100); the issue **list** is documented as returning pull requests only — «На данный момент содержит только запросы на слияние (Pull Requests)», entry 13 in the repositories section, re-read 2026-08-18: https://gitverse.ru/docs/public-api/repositories/ and https://gitverse.ru/docs/developers/public-api/
 [^gitflic]: GitFlic: base `api.gitflic.ru` (self-hosted `host:8080/rest-api`), auth `Authorization: token <access token>`, 500 requests an hour — https://docs.gitflic.ru/latest/api/intro/; issue list `GET /project/{ownerAlias}/{projectAlias}/issue` with `_embedded.issueModelList[]` carrying `title`, `description`, `localId`, `status.title` — https://docs.gitflic.ru/api/issue/; paging `page` from zero and `size` (default 10), response `page` object with `size`, `totalElements`, `totalPages`, `number` — https://docs.gitflic.ru/api/pagination/. All three read 2026-08-18

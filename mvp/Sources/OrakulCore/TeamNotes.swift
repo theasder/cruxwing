@@ -41,11 +41,12 @@ public struct TeamNotes {
     }
 
     public enum Service: String, CaseIterable, Sendable {
-        case outline
+        case outline, bookstack
 
         public var title: String {
             switch self {
             case .outline: return "Outline"
+            case .bookstack: return "BookStack"
             }
         }
 
@@ -53,20 +54,34 @@ public struct TeamNotes {
             switch self {
             case .outline:
                 return "Токен из «Settings → API tokens». Адрес нужен, только если вики поднята у вас; для облака оставьте поле пустым"
+            case .bookstack:
+                return "Токен из профиля: «API Tokens → Create Token» даёт две половины, вставьте их через двоеточие — id:секрет. Нужен и адрес вашего сервера: облака у BookStack нет"
             }
         }
 
         public var hostPrompt: String {
             switch self {
             case .outline: return "адрес, если сервер свой — например wiki.company.ru"
+            case .bookstack: return "адрес вашего BookStack, например wiki.company.ru"
             }
         }
 
-        /// Пустой адрес — это облако сервиса, а не ошибка: Outline бывает и
-        /// облачным, и поднятым у себя, и оба случая рабочие.
-        func host(_ raw: String?) -> String {
+        /// Облачный адрес — там, где облако есть.
+        ///
+        /// У Outline оно есть, и пустое поле означает «облако», а не ошибку. У
+        /// BookStack облака нет вовсе: сервис ставят себе. Пустой адрес там —
+        /// именно незаполненная настройка, и подставить ему чужой домен значило
+        /// бы слать токен неизвестно куда.
+        var cloudHost: String? {
+            switch self {
+            case .outline: return "https://app.getoutline.com"
+            case .bookstack: return nil
+            }
+        }
+
+        func host(_ raw: String?) -> String? {
             guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !value.isEmpty else { return "https://app.getoutline.com" }
+                  !value.isEmpty else { return cloudHost }
             return value.hasPrefix("http") ? value : "https://\(value)"
         }
     }
@@ -126,6 +141,7 @@ public struct TeamNotes {
     /// бы не пускать тех, у кого Outline облачный.
     public var isConfigured: Bool {
         !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && service.host(hostValue) != nil
     }
 
     /// Поиск по манифесту, если он есть. Переключено 2026-08-18.
@@ -171,7 +187,7 @@ public struct TeamNotes {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let host = service.host(hostValue)
+        guard let host = service.host(hostValue) else { throw ConnectorError.notConfigured }
         if let hits = try await manifestSearch(trimmed, host: host) { return hits }
         return try await legacySearch(trimmed, host: host)
     }

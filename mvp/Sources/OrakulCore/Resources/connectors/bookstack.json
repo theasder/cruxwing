@@ -1,0 +1,26 @@
+{
+  "id": "bookstack",
+  "title": "BookStack",
+  "docs": "https://demo.bookstackapp.com/api/docs",
+  "verifiedOn": "2026-08-18",
+  "note": "Поиск по слову настоящий, перечисление не нужно: GET /api/search с обязательным query, count до 100 (по умолчанию 20). Проверено 2026-08-18 по документации и по исходникам вендора (SearchApiController, SearchApiTest): в выдаче лежат полки, книги, главы и страницы, каждая строка с type и url. Заголовок «Authorization: Token <id>:<секрет>» — две половины через двоеточие, это одна строка, а не логин с паролем. Слова вокруг совпадения приходят в preview_html.content с подсветкой <strong>, поэтому stripTags: разметку человеку на звонке не читают. Заголовок берётся из name, а не из preview_html.name, по той же причине. Ограничение сервиса — 180 запросов в минуту на пользователя.",
+  "request": {
+    "method": "GET",
+    "path": "/api/search",
+    "query": [
+      { "name": "query", "value": "{query}" },
+      { "name": "count", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Token {token}" }
+    ]
+  },
+  "response": {
+    "list": ["data"],
+    "title": ["name"],
+    "context": ["preview_html", "content"],
+    "key": ["id"],
+    "state": [],
+    "stripTags": true
+  }
+}

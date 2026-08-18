@@ -90,14 +90,19 @@ private struct TeamNoteRow: View {
         .onAppear(perform: load)
     }
 
-    /// Достаточно токена: пустой адрес означает облако сервиса.
+    /// Правило спрашивается у ядра: у Outline пустой адрес значит облако, у
+    /// BookStack облака нет и адрес обязателен. Второй список условий здесь
+    /// разъехался бы с первым молча — кнопка доступна, сохранение проходит, а
+    /// вопросы отвечают «база знаний не подключена».
     private var canSave: Bool {
-        !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        TeamNotes(service: service, token: token, host: host,
+                  http: { _ in (Data(), HTTPURLResponse()) }).isConfigured
     }
 
     private func load() {
-        isConfigured = store.notesToken(for: service) != nil
         host = store.notesHost(for: service) ?? ""
+        isConfigured = store.notesClient(for: service,
+                                         http: { _ in (Data(), HTTPURLResponse()) }) != nil
     }
 
     private func save() {

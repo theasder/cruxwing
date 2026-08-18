@@ -309,10 +309,38 @@ public struct ManifestConnector {
         return rows
     }
 
+    /// Текст без разметки: `<strong>кот</strong>` — «кот».
+    ///
+    /// Разбор простой намеренно: снимается всё между угловыми скобками и
+    /// раскрываются четыре сущности, которые ставит подсветка. Полноценный
+    /// разбор HTML здесь не нужен — на входе кусок текста с подсветкой, а не
+    /// страница, — и он же был бы новой зависимостью в ядре без зависимостей.
+    static func withoutTags(_ text: String) -> String {
+        var result = ""
+        var insideTag = false
+        for character in text {
+            switch character {
+            case "<": insideTag = true
+            case ">": insideTag = false
+            default: if !insideTag { result.append(character) }
+            }
+        }
+        return result
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+    }
+
     /// Строка ответа в выдачу. `nil` — строке нечего сказать человеку.
     func item(from row: [String: Any]) -> Item? {
-        let title = Self.string(at: manifest.response.title, in: row)
-        let context = manifest.response.context.map { Self.string(at: $0, in: row) } ?? ""
+        let clean = { (text: String) in
+            manifest.response.stripTags == true ? Self.withoutTags(text) : text
+        }
+        let title = clean(Self.string(at: manifest.response.title, in: row))
+        let context = manifest.response.context.map { clean(Self.string(at: $0, in: row)) } ?? ""
         // Строка, где нет ни заголовка, ни слов вокруг совпадения, не
         // сообщает человеку ничего. Пропускаем её, а не выдачу целиком.
         guard !title.isEmpty || !context.isEmpty else { return nil }

@@ -28,7 +28,7 @@ import OrakulCore
 ///     swift test --filter LiveConnectorProbe
 ///
 /// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, matrix,
-/// gitlab, gitea, redmine, plane, gitflic, outline.
+/// gitlab, gitea, redmine, plane, gitflic, outline, bookstack.
 ///
 /// У Plane и GitFlic, кроме токена и адреса, спрашиваются поля из манифеста:
 /// `ORAKUL_FIELD_workspace` и `ORAKUL_FIELD_project` у первого,
@@ -123,7 +123,8 @@ struct LiveConnectorProbeTests {
     @Test("документация набора называет существующие сервисы")
     func documentedServicesExist() {
         let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip",
-                                       "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline"]
+                                       "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline",
+                                       "bookstack"]
         let real = Set(WorkMessengers.Service.allCases.map(\.rawValue))
             .union(SelfHostedTrackers.Service.allCases.map(\.rawValue))
             .union(TeamNotes.Service.allCases.map(\.rawValue))
