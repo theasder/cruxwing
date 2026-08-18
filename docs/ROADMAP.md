@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 262 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 570 | README, maintainer run |
+| App and core tests | 2833 and 575 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1272,6 +1272,30 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**HTTP 200 is not an answer.** GraphQL replies 200 to everything and puts the
+refusal in `errors`, and its normal shape for a refusal is not «no list» but
+«the list is here, it is empty, and there is a complaint beside it»:
+
+    {"data": {"pages": {"search": {"results": [], "totalHits": 0}}},
+     "errors": [{"message": "rate limit exceeded"}]}
+
+The engine read the complaint only when the list container was missing entirely
+(`rows == nil`). With an empty list present, that branch was skipped, and the
+answer became «searched, found nothing» — a conclusion about the person's own
+wiki rather than about our connector. They will not go and check it. Wiki.js,
+Linear and Fireflies itself all answer this way; the connector this was found
+in, Wiki.js, ships with `errorMessage` declared and it still could not fire.
+
+The over-correction is the more likely mistake and is guarded too: a check that
+shouts «refused» at every empty answer lies more often than the bug did, because
+empty answers vastly outnumber refusals. An empty list with no complaint, and an
+empty list with an empty `errors: []`, both stay an ordinary empty result.
+
+**Considered and not done:** a `.partial` coverage case for results arriving
+*alongside* an error. Every manifest here queries a single search field, so
+rows-plus-error cannot occur — it would be a case that can never fire, which is
+the defect §13 already tracks.
 
 **A guard that fires too late is not a guard.** The eight-megabyte response
 limit had been in place since the hostile-vendor exercise, and it was checked
