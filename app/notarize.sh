@@ -74,6 +74,17 @@ echo ">> signing identity: $SIGN_ID"
 # --- Fresh staging build (not installed) ---
 MEETGPT_DIST=1 MEETGPT_NO_INSTALL=1 MEETGPT_ARCH="$ARCH" MEETGPT_SIGN_ID="$SIGN_ID" "$ROOT/build.sh"
 
+# --- Секреты в собранном файле: проверяется ЗДЕСЬ, до подписи ---
+#
+# Раньше обе проверки стояли только на пути в App Store (appstore.sh) и на
+# Intel-сборке. То есть образ, который люди скачивают, не проверялся вообще —
+# ровно тот артефакт, ради которого правило и существует. Найдено 2026-08-18
+# чтением вызовов, а не отказом: отказать было нечему.
+#
+# Порядок: до codesign. Подписанная сборка с секретом — это подписанный секрет.
+bash "$ROOT/assert-no-baked-secrets.sh" "$APP"
+bash "$ROOT/assert-no-env-values.sh" "$APP"
+
 # --- Re-sign with the hardened runtime (required by notarization) ---
 echo ">> codesign (hardened runtime)"
 codesign --force --deep --options runtime --timestamp \

@@ -42,6 +42,9 @@ fi
 
 codesign --verify --deep --strict "$APP"
 bash "$ROOT/assert-no-baked-secrets.sh" "$APP"
+# И дословная сверка с .env: предыдущая проверка знает формы известных
+# ключей, эта — сами значения, каким бы путём они в сборку ни попали.
+bash "$ROOT/assert-no-env-values.sh" "$APP"
 
 mkdir -p "$DIST"
 rm -f "$ZIP"

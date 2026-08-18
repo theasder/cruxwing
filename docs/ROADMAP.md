@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 249 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 252 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2822 and 521 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -195,6 +195,21 @@ which shows up on the first launch.
 `SECRET_VARS` stays in the file as a list of known secrets for a reader, and no
 longer decides anything — said in a comment beside it, because a list that looks
 operative and is not is its own trap.
+
+**Second guard, on the artefact rather than the generator.**
+`app/assert-no-env-values.sh` compares the built file with `.env` literally: if a
+value from there occurs in the binary, it shipped, and by which route is a
+detail. Two things it refuses to do — search via `strings` (that skips UTF-8, and
+the first version reported «clean» about a planted Cyrillic value) and print the
+value it found (a check that leaks a secret into the build log opens the hole it
+is looking for).
+
+Finding it exposed a bigger gap than the one it was written for. Both binary
+checks ran only on the App Store lane and the Intel build; `notarize.sh` — the
+path that produces the DMG people download — called neither. There was nothing
+to fail, so this surfaced by reading the call sites, not by a red run. Both now
+run there, **before** `codesign`: a signed build with a secret is a signed
+secret. A check holds every release path to calling both.
 
 **How it is proved.** `test/secrets.test.mjs` lifts the `sw` function straight
 out of `build.sh` and runs it under `bash` with `DIST=1` against a planted
@@ -1017,7 +1032,7 @@ scripts and refuses exactly this contradiction.
 | A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | A live check by other hands (issue #1); until then a caveat in README, not silence |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
-| A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. What remains is not a naming gap but a build one — the check applies to values passing through `sw`, so anything a future path bakes in another way needs its own guard |
+| A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
 
 ---
 

@@ -73,6 +73,9 @@ MEETGPT_DIST=1 MEETGPT_NO_INSTALL=1 "$ROOT/build.sh"
 # --- FAIL-SAFE secret gate (M12): the store binary MUST be keyless. Aborts the
 #     whole lane if any provider/org key shape is present in the binary. ---
 bash "$ROOT/assert-no-baked-secrets.sh" "$APP"
+# И дословная сверка с .env: предыдущая проверка знает формы известных
+# ключей, эта — сами значения, каким бы путём они в сборку ни попали.
+bash "$ROOT/assert-no-env-values.sh" "$APP"
 
 if [ "$DRY_RUN" = "1" ]; then
     echo ">> DRY RUN complete: keyless build + secret gate passed. Stopping before signing."

@@ -15,8 +15,9 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync, existsSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { join } from 'node:path';
 import { resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -280,5 +281,81 @@ describe('учётные данные', () => {
     } finally {
       rmSync(envFile, { force: true });
     }
+  });
+
+
+  test('в собранном файле не остаётся значений из .env — проверено дословно', () => {
+    // Остаток, записанный в §11: `sw` закрывает генерацию Secrets.swift, но
+    // значение, попавшее в сборку другим путём (новый файл, ресурс, plist),
+    // минует ту проверку целиком. Здесь путей нет: сравнивается отгружаемое с
+    // тем, что лежит в .env.
+    const script = resolve(repo, 'app', 'assert-no-env-values.sh');
+    const dir = mkdtempSync(join(tmpdir(), 'orakul-env-scan-'));
+    const env = join(dir, 'probe.env');
+    // Секрет ASCII, как настоящий, и второй — с кириллицей: `strings` его не
+    // видит, и первая версия проверки докладывала «чисто» о заражённой сборке.
+    writeFileSync(env, [
+      'OPENAI_API_KEY=sk-live-ASCIISECRET1234567',
+      'CONFLUENCE_SITE=компания.atlassian.net',
+      'DEFAULT_TIER=team',
+      'TRANSCRIPTION_ENGINE=local',
+    ].join('\n') + '\n');
+
+    const run = (contents) => {
+      const binary = join(dir, `bin-${Math.random().toString(36).slice(2)}`);
+      writeFileSync(binary, contents);
+      try {
+        execFileSync('bash', [script, binary, env], { stdio: 'pipe' });
+        return 0;
+      } catch (error) {
+        return error.status;
+      }
+    };
+
+    // Публичные настройки в сборке — норма: они и должны там быть.
+    assert.equal(run('код\nteam\nlocal\n'), 0, 'проверка ругается на исправную сборку');
+    assert.equal(run('код\nsk-live-ASCIISECRET1234567\n'), 1, 'ASCII-секрет не найден');
+    assert.equal(run('код\nкомпания.atlassian.net\n'), 1, 'значение с кириллицей не найдено');
+
+    // И главное свойство отчёта: имя переменной — да, значение — никогда.
+    const binary = join(dir, 'leaky');
+    writeFileSync(binary, 'код\nsk-live-ASCIISECRET1234567\n');
+    let output = '';
+    try {
+      execFileSync('bash', [script, binary, env], { stdio: 'pipe' });
+    } catch (error) {
+      output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+    }
+    assert.match(output, /OPENAI_API_KEY/, 'отчёт не называет переменную — чинить нечего');
+    assert.ok(!output.includes('sk-live-ASCIISECRET1234567'),
+      'проверка напечатала сам секрет в журнал сборки — то есть открыла ту дыру, которую ищет');
+
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+
+  test('каждый путь выпуска зовёт обе проверки собранного файла', () => {
+    // Проверка существует не зря: обе проверки стояли на пути в App Store и на
+    // Intel-сборке, а notarize.sh — тот самый путь, которым делается
+    // скачиваемый образ, — не звал ни одной. Отказать было нечему, поэтому
+    // нашлось это чтением, а не падением.
+    for (const script of ['notarize.sh', 'appstore.sh', 'build-intel.sh']) {
+      const source = readFileSync(resolve(repo, 'app', script), 'utf8')
+        .split('\n').filter((line) => !line.trimStart().startsWith('#')).join('\n');
+      for (const guard of ['assert-no-baked-secrets.sh', 'assert-no-env-values.sh']) {
+        assert.ok(source.includes(guard),
+          `${script} не зовёт ${guard}: артефакт этого пути уедет непроверенным`);
+      }
+    }
+  });
+
+  test('проверка значений стоит до подписи, а не после', () => {
+    // Подписанная сборка с секретом — это подписанный секрет: подпись придаёт
+    // ей вид проверенной ровно в тот момент, когда проверять уже поздно.
+    const source = readFileSync(resolve(repo, 'app', 'notarize.sh'), 'utf8');
+    const scan = source.indexOf('assert-no-env-values.sh');
+    const sign = source.indexOf('codesign --force');
+    assert.ok(scan > 0 && sign > 0, 'в notarize.sh пропала проверка или подпись');
+    assert.ok(scan < sign, 'проверка значений стоит после подписи');
   });
 });
