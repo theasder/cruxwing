@@ -93,15 +93,30 @@ public struct ManifestConnector {
     let values: [String: String]
     let http: HTTP
 
+    /// Кэш приходит снаружи, и по умолчанию он СВОЙ, а не общий.
+    ///
+    /// Общий по умолчанию — это глобальное изменяемое состояние: первый же
+    /// прогон показал, как соседние проверки начали получать чужие ответы
+    /// вместо запросов, которые они проверяли. Тот же капкан, что с
+    /// настройками процесса, только тише.
+    ///
+    /// Кэш принадлежит СЕАНСУ, а не запросу: повторяется вопрос на звонке, и
+    /// знает об этом приложение. Поэтому `ConnectorCache.shared` передаёт
+    /// именно оно, а командная строка и наборы работают без общего кэша —
+    /// одиночный вопрос кэшировать не от чего.
+    let cache: ConnectorCache
+
     public init(manifest: ConnectorManifest,
                 token: String,
                 host: String,
                 values: [String: String] = [:],
+                cache: ConnectorCache = ConnectorCache(),
                 http: @escaping HTTP) {
         self.manifest = manifest
         self.token = token
         self.host = host
         self.values = values
+        self.cache = cache
         self.http = http
     }
 
@@ -175,9 +190,39 @@ public struct ManifestConnector {
         guard !trimmed.isEmpty else {
             return Outcome(items: [], coverage: manifest.scan == nil ? .searched : .wholeList(scanned: 0))
         }
-        if let scan = manifest.scan { return try await walk(scan, query: trimmed, limit: limit) }
-        return Outcome(items: try parse(try await fetch(query: trimmed, limit: limit)),
-                       coverage: .searched)
+
+        // Тот же вопрос за последние полторы минуты — это тот же вопрос. На
+        // звонке «что решили по срокам» спрашивают трижды за час, и три
+        // одинаковых запроса к чужому серверу мы создавали сами: троттлинг,
+        // на который потом жалуются, отчасти наш собственный.
+        if let cached = await cache.fresh(service: manifest.id, host: host, query: trimmed) {
+            return cached
+        }
+
+        do {
+            let outcome: Outcome
+            if let scan = manifest.scan {
+                outcome = try await walk(scan, query: trimmed, limit: limit)
+            } else {
+                outcome = Outcome(items: try parse(try await fetch(query: trimmed, limit: limit)),
+                                  coverage: .searched)
+            }
+            await cache.store(outcome, service: manifest.id, host: host, query: trimmed)
+            return outcome
+        } catch ConnectorError.rateLimited(let retryAfter) {
+            // Сервис просит подождать. Выбор здесь не между свежим и старым, а
+            // между старым и никаким: молчащий источник на звонке — это
+            // «ничего не нашлось» в чужих словах.
+            //
+            // Возраст едет вместе с ответом. Подставить старую выдачу молча
+            // значило бы пообещать свежесть, которой нет, — а продукт держится
+            // на том, что цитата названа вместе с источником.
+            guard let stale = await cache.stale(service: manifest.id, host: host, query: trimmed) else {
+                throw ConnectorError.rateLimited(retryAfter: retryAfter)
+            }
+            return Outcome(items: stale.outcome.items,
+                           coverage: .cached(seconds: stale.age, under: .service))
+        }
     }
 
     /// Один запрос: отправить, разобрать коды, отдать байты.

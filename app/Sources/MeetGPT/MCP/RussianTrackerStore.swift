@@ -119,7 +119,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = token(for: service), isConfigured(service) else { return nil }
         return RussianTrackers(service: service, token: token,
                                secondary: secondary(for: service),
-                               destination: destination(for: service), http: http)
+                               destination: destination(for: service), cache: .shared, http: http)
     }
 
     /// Сервисы, готовые отвечать на запрос. Это и есть список, который видит
@@ -254,7 +254,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = notesToken(for: service) else { return nil }
         let client = TeamNotes(service: service, token: token,
                                host: notesHost(for: service),
-                               values: notesFields(for: service), http: http)
+                               values: notesFields(for: service), cache: .shared, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -346,7 +346,7 @@ struct RussianTrackerStore: Sendable {
         let client = SelfHostedTrackers(service: service, token: token,
                                         host: selfHostedHost(for: service),
                                         values: selfHostedFields(for: service),
-                                        http: http)
+                                        cache: .shared, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -412,7 +412,7 @@ struct RussianTrackerStore: Sendable {
                        http: @escaping WesternTrackers.HTTP) -> WesternTrackers? {
         guard let token = westernToken(for: service) else { return nil }
         let client = WesternTrackers(service: service, token: token,
-                                     values: westernFields(for: service), http: http)
+                                     values: westernFields(for: service), cache: .shared, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -500,7 +500,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = messengerToken(for: service) else { return nil }
         let client = WorkMessengers(service: service, token: token,
                                     secondary: messengerSecondary(for: service),
-                                    scope: messengerScope(for: service), http: http)
+                                    scope: messengerScope(for: service), cache: .shared, http: http)
         return client.isConfigured ? client : nil
     }
 

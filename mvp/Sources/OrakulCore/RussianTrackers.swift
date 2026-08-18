@@ -201,10 +201,15 @@ public struct RussianTrackers {
     /// Куда класть заведённую задачу: очередь, доска или колонка. Для чтения не
     /// нужна, поэтому необязательна — трекер можно подключить только на чтение.
     let destination: String?
+    /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
+    /// это приложение (см. ConnectorCache).
+    let cache: ConnectorCache
     let http: HTTP
 
     public init(service: Service, token: String, secondary: String? = nil,
-                destination: String? = nil, http: @escaping HTTP) {
+                destination: String? = nil,
+                cache: ConnectorCache = ConnectorCache(),
+                http: @escaping HTTP) {
         self.service = service
         // Битрикс показывает вебхук одной строкой целиком. Человек копирует её
         // целиком — это нормальное поведение, а не ошибка ввода. Требовать
@@ -214,6 +219,7 @@ public struct RussianTrackers {
         self.token = parsed.token
         self.secondary = parsed.host ?? secondary
         self.destination = destination
+        self.cache = cache
         self.http = http
     }
 

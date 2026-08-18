@@ -1063,6 +1063,32 @@ the new path is the one on the mind. All four now refuse a response where **no**
 row can be read, and each has its own attack test — the fourth was added after a
 mutation showed the guard was there but unproven.
 
+**Throttling was the move with no answer at all, and now it has one
+(2026-08-18).** A block is visible and arguable; answering 429 to every third
+request is neither, and it reads to the user as «their thing is flaky». Before,
+one 429 meant that source stayed silent for the rest of the call.
+
+Two halves, and the second is the honest one:
+
+* **The load was partly ours.** On a call the same question is asked three times
+  in an hour — «что решили по срокам» — and each repeat was a fresh request to
+  somebody else's server. Answers now live in memory for 90 seconds, keyed by
+  service, host and question, so a repeat costs nothing and gives an aggressive
+  rate limiter less to work with.
+* **When the service does ask us to wait**, the answer comes from memory rather
+  than not at all — carrying its age. `Coverage.cached(seconds:)` puts «это
+  ответ 120 с назад» in front of the person instead of a silent substitution. A
+  product that promises a quote with its source cannot lie about *when* the
+  source said it: a stale truth and a fresh truth answer different questions.
+  Past fifteen minutes nothing is served at all, because «what did we decide»
+  can otherwise outlive the decision.
+
+The cache belongs to a **session**, not to a request: the app passes the shared
+one, the command line and the tests get their own. That distinction was not
+foresight — a shared default made neighbouring tests receive each other's
+answers within minutes of being written, which is the same global-state trap
+this repository keeps stepping into.
+
 What this audit does **not** claim. It covers connectors described by manifests
 and the shared engine, plus the four hand-written parsers named above. A vendor can still do things nothing here detects —
 returning plausible but wrong rows, silently filtering results by who is asking,

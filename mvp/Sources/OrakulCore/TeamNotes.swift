@@ -148,17 +148,22 @@ public struct TeamNotes {
     let hostValue: String?
     /// Значения полей из `service.fields`: у Nextcloud это «где искать».
     let values: [String: String]
+    /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
+    /// это приложение (см. ConnectorCache).
+    let cache: ConnectorCache
     let http: HTTP
 
     public init(service: Service,
                 token: String,
                 host: String?,
                 values: [String: String] = [:],
+                cache: ConnectorCache = ConnectorCache(),
                 http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.hostValue = host
         self.values = values
+        self.cache = cache
         self.http = http
     }
 
@@ -190,7 +195,7 @@ public struct TeamNotes {
         else { return nil }
 
         let connector = ManifestConnector(manifest: manifest, token: token, host: host,
-                                          values: values, http: http)
+                                          values: values, cache: cache, http: http)
         do {
             return try await connector.search(query).map {
                 Hit(title: $0.title.isEmpty ? "Без названия" : $0.title,

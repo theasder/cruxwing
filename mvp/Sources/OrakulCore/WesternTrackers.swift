@@ -108,15 +108,20 @@ public struct WesternTrackers: Sendable {
     let service: Service
     let token: String
     let values: [String: String]
+    /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
+    /// это приложение (см. ConnectorCache).
+    let cache: ConnectorCache
     let http: HTTP
 
     public init(service: Service,
                 token: String,
                 values: [String: String] = [:],
+                cache: ConnectorCache = ConnectorCache(),
                 http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.values = values
+        self.cache = cache
         self.http = http
     }
 
@@ -145,7 +150,7 @@ public struct WesternTrackers: Sendable {
         }
 
         let connector = ManifestConnector(manifest: manifest, token: token,
-                                          host: service.host, values: values, http: http)
+                                          host: service.host, values: values, cache: cache, http: http)
         do {
             let outcome = try await connector.run(trimmed, limit: limit)
             return (outcome.items.map {

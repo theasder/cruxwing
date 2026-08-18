@@ -216,14 +216,20 @@ public struct WorkMessengers {
     let token: String
     let secondary: String?
     let scope: String?
+    /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
+    /// это приложение (см. ConnectorCache).
+    let cache: ConnectorCache
     let http: HTTP
 
     public init(service: Service, token: String, secondary: String? = nil,
-                scope: String? = nil, http: @escaping HTTP) {
+                scope: String? = nil,
+                cache: ConnectorCache = ConnectorCache(),
+                http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.secondary = secondary
         self.scope = scope
+        self.cache = cache
         self.http = http
     }
 
@@ -275,7 +281,7 @@ public struct WorkMessengers {
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
-        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host, cache: cache, http: http)
         do {
             return try await connector.search(query).map {
                 Hit(author: $0.author.isEmpty ? nil : $0.author, text: $0.title, service: service)

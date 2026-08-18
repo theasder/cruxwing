@@ -15,6 +15,13 @@ public enum SearchCoverage: Equatable, Sendable {
     case searched
     case wholeList(scanned: Int)
     case latest(scanned: Int, total: Int?)
+    /// Ответ из памяти, потому что сервис просит обращаться реже.
+    ///
+    /// Отдельный случай, а не молчаливая подстановка: выдача без пометки
+    /// «минутной давности» — это обещание свежести, которого никто не давал.
+    /// Возраст в секундах, чтобы человек решал сам: для «что решили в марте»
+    /// минута роли не играет, для «что только что сказали» — играет всю.
+    case cached(seconds: Int, under: Subject)
 
     /// О чём речь: о чужом сервисе или о папке на этом компьютере. От этого
     /// зависит не форма, а причина — почему отбирали мы, а не он.
@@ -30,6 +37,8 @@ public enum SearchCoverage: Equatable, Sendable {
             ? "сервис не ищет по слову, отбирали у себя"
             : "искали по файлам на этом компьютере"
         switch self {
+        case .cached(let seconds, _):
+            return "сервис просит обращаться реже — это ответ \(seconds) с назад, из памяти"
         case .searched:
             return ""
         case .wholeList(let scanned):
