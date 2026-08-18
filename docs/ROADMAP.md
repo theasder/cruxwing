@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 19 own connectors, 11 western via MCP.
+Total: 21 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -597,7 +597,8 @@ setting.
 | **Plane**, open, self-hosted | **Connected 2026-08-18** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `state.name`[^plane] | Nothing blocking. Open: whether a live workspace confirms the cursor format `perPage:page:is_prev` — the connector is built from the docs, not from a live install |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
 | **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
-| **Wiki.js, Nextcloud** | Open knowledge bases, self-hosted | Search method and response shape for each. High value, and BookStack now shows why: its search returns the sentence around the match, which is what a prompt can quote |
+| **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
+| **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | No API at all, files on the same disk | The only source promising nothing to the network, and it fits «everything is computed on the device» without caveats. The question is how a person points at the directory and what to do with large vaults |
 
 The western layer already covers eleven MCP servers, and adding there is one
@@ -875,6 +876,10 @@ lives for years and spends other people's time.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
+[^wikijs]: Wiki.js: GraphQL at `POST /graphql`, token from Administration → API Access passed as `Authorization: Bearer`; `PageQuery.search(query: String!, path: String, locale: String): PageSearchResponse!` returning `results: [PageSearchResult]` of `{id: String!, title: String!, description: String!, path: String!, locale: String!}`, plus `suggestions` and `totalHits`; refusals arrive with HTTP 200 and an `errors` array. read 2026-08-18 from the vendor's docs — https://docs.requarks.io/dev/api — and their schema, `server/graph/schemas/page.graphql`
+
+[^nextcloud]: Nextcloud unified search: `GET /ocs/v2.php/search/providers/{providerId}/search?term=…&limit=…`, provider list at `GET /ocs/v2.php/search/providers`; headers `OCS-APIRequest: true` and `Accept: application/json`; authentication is Basic with a username and an app password (Bearer only with OIDC); response `{ocs: {meta, data: {name, isPaginated, entries: [{thumbnailUrl, title, subline, resourceUrl, icon, rounded, attributes}], cursor}}}`. read 2026-08-18 from the developer manual — https://docs.nextcloud.com/server/stable/developer_manual/digging_deeper/search.html — and the response types in `core/ResponseDefinitions.php`
+
 [^bookstack]: BookStack: `GET /api/search`, parameters `query` (required), `page` (min 1), `count` (min 1, **max 100**, default 20); auth `Authorization: Token <token_id>:<token_secret>`; 180 requests a minute per user by default; response `{data: [{id, name, slug, type, url, preview_html: {name, content}, tags, book, chapter}], total}` with the match wrapped in `<strong>` inside `preview_html`. read 2026-08-18 from the vendor's docs — https://demo.bookstackapp.com/api/docs — and confirmed against their own source and tests: `app/Search/SearchApiController.php` and `tests/Api/SearchApiTest.php`
 
 [^plane]: Plane, list work items: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, query `cursor` / `per_page` (default 20, max 100) / `expand` / `fields` / `order_by` / `external_id` / `external_source` — **no text search parameter**; response `total_count`, `next_page_results`, `results[]` with `name`, `description`, `sequence_id`, `state.name`; re-read 2026-08-18: https://developers.plane.so/api-reference/issue/list-issues

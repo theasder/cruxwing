@@ -209,9 +209,38 @@ struct RussianTrackerStore: Sendable {
         store.set(Data(trimmed.utf8), for: notesHostAccount(service))
     }
 
+    /// Ключ поля базы знаний: `notes.nextcloud.field.provider`.
+    private func notesFieldAccount(_ service: TeamNotes.Service, _ name: String) -> String {
+        "notes.\(service.rawValue).field.\(name)"
+    }
+
+    func notesField(_ name: String, for service: TeamNotes.Service) -> String? {
+        guard let data = store.get(notesFieldAccount(service, name)),
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else { return nil }
+        return value
+    }
+
+    func setNotesField(_ value: String, name: String, for service: TeamNotes.Service) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return store.delete(notesFieldAccount(service, name)) }
+        store.set(Data(trimmed.utf8), for: notesFieldAccount(service, name))
+    }
+
+    func notesFields(for service: TeamNotes.Service) -> [String: String] {
+        service.fields.reduce(into: [:]) { result, field in
+            result[field.name] = notesField(field.name, for: service)
+        }
+    }
+
     func removeNotes(_ service: TeamNotes.Service) {
         store.delete(notesAccount(service))
         store.delete(notesHostAccount(service))
+        // И поля: оставленное «где искать» пережило бы отключение и досталось
+        // бы следующему токену — возможно, чужому.
+        for field in service.fields {
+            store.delete(notesFieldAccount(service, field.name))
+        }
     }
 
     var configuredNotes: [TeamNotes.Service] {
@@ -224,7 +253,8 @@ struct RussianTrackerStore: Sendable {
                      http: @escaping TeamNotes.HTTP) -> TeamNotes? {
         guard let token = notesToken(for: service) else { return nil }
         let client = TeamNotes(service: service, token: token,
-                               host: notesHost(for: service), http: http)
+                               host: notesHost(for: service),
+                               values: notesFields(for: service), http: http)
         return client.isConfigured ? client : nil
     }
 

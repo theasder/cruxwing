@@ -41,12 +41,14 @@ public struct TeamNotes {
     }
 
     public enum Service: String, CaseIterable, Sendable {
-        case outline, bookstack
+        case outline, bookstack, wikijs, nextcloud
 
         public var title: String {
             switch self {
             case .outline: return "Outline"
             case .bookstack: return "BookStack"
+            case .wikijs: return "Wiki.js"
+            case .nextcloud: return "Nextcloud"
             }
         }
 
@@ -56,6 +58,10 @@ public struct TeamNotes {
                 return "Токен из «Settings → API tokens». Адрес нужен, только если вики поднята у вас; для облака оставьте поле пустым"
             case .bookstack:
                 return "Токен из профиля: «API Tokens → Create Token» даёт две половины, вставьте их через двоеточие — id:секрет. Нужен и адрес вашего сервера: облака у BookStack нет"
+            case .wikijs:
+                return "Токен из «Администрирование → API Access» с правом read:pages и адрес вашей вики. Облака у Wiki.js нет — её ставят себе"
+            case .nextcloud:
+                return "Имя пользователя и пароль приложения через двоеточие — «ivan:xxxxx-xxxxx», обычный пароль лучше не вставлять. Нужен адрес сервера и место поиска: «talk-message» ищет по сообщениям в Talk, «files» — по именам файлов"
             }
         }
 
@@ -63,6 +69,8 @@ public struct TeamNotes {
             switch self {
             case .outline: return "адрес, если сервер свой — например wiki.company.ru"
             case .bookstack: return "адрес вашего BookStack, например wiki.company.ru"
+            case .wikijs: return "адрес вашей Wiki.js, например wiki.company.ru"
+            case .nextcloud: return "адрес вашего Nextcloud, например cloud.company.ru"
             }
         }
 
@@ -75,8 +83,13 @@ public struct TeamNotes {
         var cloudHost: String? {
             switch self {
             case .outline: return "https://app.getoutline.com"
-            case .bookstack: return nil
+            case .bookstack, .wikijs, .nextcloud: return nil
             }
+        }
+
+        /// Поля, которые человек заполняет сам, — из манифеста, а не из кода.
+        public var fields: [ConnectorManifest.Field] {
+            (try? ConnectorManifest.bundled().first { $0.id == rawValue })?.parameters ?? []
         }
 
         func host(_ raw: String?) -> String? {
@@ -128,20 +141,31 @@ public struct TeamNotes {
     let service: Service
     let token: String
     let hostValue: String?
+    /// Значения полей из `service.fields`: у Nextcloud это «где искать».
+    let values: [String: String]
     let http: HTTP
 
-    public init(service: Service, token: String, host: String?, http: @escaping HTTP) {
+    public init(service: Service,
+                token: String,
+                host: String?,
+                values: [String: String] = [:],
+                http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.hostValue = host
+        self.values = values
         self.http = http
     }
 
-    /// Адрес не обязателен — в отличие от GitLab и Gitea. Требовать его значило
-    /// бы не пускать тех, у кого Outline облачный.
+    /// Адрес обязателен не у всех: у Outline пустое поле значит облако. А поля,
+    /// которые сервис требует помимо токена, обязательны всегда — без них
+    /// адрес не собрать.
     public var isConfigured: Bool {
         !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && service.host(hostValue) != nil
+            && service.fields.allSatisfy {
+                !(values[$0.name] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
     }
 
     /// Поиск по манифесту, если он есть. Переключено 2026-08-18.
@@ -160,7 +184,8 @@ public struct TeamNotes {
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
-        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host,
+                                          values: values, http: http)
         do {
             return try await connector.search(query).map {
                 Hit(title: $0.title.isEmpty ? "Без названия" : $0.title,

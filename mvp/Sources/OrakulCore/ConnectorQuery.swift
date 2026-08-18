@@ -25,7 +25,7 @@ public enum ConnectorQuery {
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip",
-           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "github"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github"]
 
     public struct Settings {
         public let service: String
@@ -137,7 +137,7 @@ public enum ConnectorQuery {
             if let service = TeamNotes.Service(rawValue: settings.service) {
                 let hits = try await TeamNotes(
                     service: service, token: settings.token, host: settings.host,
-                    http: notesHTTP).search(trimmed)
+                    values: settings.values, http: notesHTTP).search(trimmed)
                 return render(service.title, hits.map { "\($0.title): \($0.context)" })
             }
         } catch {

@@ -298,6 +298,16 @@ public struct ManifestConnector {
             }
             rows = node as? [[String: Any]]
         }
+        if rows == nil, let path = manifest.response.errorMessage,
+           let object = root as? [String: Any] {
+            // Списка нет, зато есть слова сервиса о том, почему. У GraphQL это
+            // единственный способ узнать причину: код ответа всегда 200.
+            let message = Self.scalar(at: path, in: object)
+            if !message.isEmpty {
+                let code = manifest.response.errorCode.map { Self.scalar(at: $0, in: object) } ?? ""
+                throw ConnectorError.vendor(code: code, description: message)
+            }
+        }
         if rows == nil, let marker = manifest.response.emptyMarker,
            let object = root as? [String: Any],
            !Self.scalar(at: marker, in: object).isEmpty {
@@ -360,18 +370,33 @@ public struct ManifestConnector {
     /// Mattermost — строкой. Требовать в манифесте тип поля значило бы
     /// описывать формат JSON вместо сервиса.
     static func scalar(at path: [String], in row: [String: Any]) -> String {
-        var node: Any? = row
-        for step in path { node = (node as? [String: Any])?[step] }
+        let node = follow(path, from: row)
         if let text = node as? String { return text }
         if let number = node as? Int { return String(number) }
         return ""
     }
 
+    /// Шаг пути: ключ словаря или, если шаг — число, элемент массива.
+    ///
+    /// Массивы понадобились из-за GraphQL: Wiki.js отвечает кодом 200 и кладёт
+    /// отказ в `errors[0].message`. Без индекса единственным доступным ответом
+    /// было бы наше «непонятный ответ» — то есть ровно то, что правило §2.2
+    /// плана запрещает: пересказ вместо слов сервиса.
+    static func follow(_ path: [String], from root: Any?) -> Any? {
+        var node = root
+        for step in path {
+            if let index = Int(step), let array = node as? [Any] {
+                node = index >= 0 && index < array.count ? array[index] : nil
+            } else {
+                node = (node as? [String: Any])?[step]
+            }
+        }
+        return node
+    }
+
     /// Значение по пути: `["document","title"]` — на уровень глубже строки.
     static func string(at path: [String], in row: [String: Any]) -> String {
-        var node: Any? = row
-        for step in path { node = (node as? [String: Any])?[step] }
-        return (node as? String) ?? ""
+        follow(path, from: row) as? String ?? ""
     }
 
     private func fill(_ template: String, query: String, limit: Int, page: Int = 0) -> String {
@@ -379,6 +404,13 @@ public struct ManifestConnector {
             .replacingOccurrences(of: "{query}", with: query)
             .replacingOccurrences(of: "{limit}", with: String(limit))
             .replacingOccurrences(of: "{token}", with: token)
+            // `{basic}` — тот же токен, но в base64, для заголовка
+            // «Authorization: Basic …». Нужен там, где сервер принимает только
+            // Basic: у Nextcloud это пара «имя:пароль приложения», и человек
+            // вписывает её одной строкой. Считать base64 в манифесте нельзя,
+            // а требовать от человека закодировать пароль руками — значит
+            // получать в поле то, что он закодировал неправильно.
+            .replacingOccurrences(of: "{basic}", with: Data(token.utf8).base64EncodedString())
             .replacingOccurrences(of: "{page}", with: String(page))
             .replacingOccurrences(of: "{perPage}", with: String(manifest.scan?.perPage ?? limit))
         for (name, value) in values {

@@ -1,0 +1,30 @@
+{
+  "id": "nextcloud",
+  "title": "Nextcloud",
+  "docs": "https://docs.nextcloud.com/server/stable/developer_manual/digging_deeper/search.html",
+  "verifiedOn": "2026-08-18",
+  "note": "Единый поиск OCS: GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…, заголовки «OCS-APIRequest: true» и «Accept: application/json». Проверено 2026-08-18 по руководству разработчика и по описанию ответов в исходниках (core/ResponseDefinitions.php): ocs.data.entries[] с title, subline и resourceUrl. Кого спрашивать, выбирает человек: провайдер стоит в адресе, «files» ищет по именам файлов, «talk-message» — по тексту сообщений в Talk. Авторизация только Basic: имя и пароль приложения одной строкой через двоеточие, в base64 их переводит движок ({basic}). Bearer сервер принимает лишь с OIDC, чего у обычной установки нет.",
+  "parameters": [
+    { "name": "provider", "title": "Где искать", "example": "talk-message" }
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/ocs/v2.php/search/providers/{provider}/search",
+    "query": [
+      { "name": "term", "value": "{query}" },
+      { "name": "limit", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Basic {basic}" },
+      { "name": "OCS-APIRequest", "value": "true" },
+      { "name": "Accept", "value": "application/json" }
+    ]
+  },
+  "response": {
+    "list": ["ocs", "data", "entries"],
+    "title": ["title"],
+    "context": ["subline"],
+    "key": [],
+    "state": []
+  }
+}

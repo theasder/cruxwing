@@ -28,12 +28,15 @@ import OrakulCore
 ///     swift test --filter LiveConnectorProbe
 ///
 /// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, matrix,
-/// gitlab, gitea, redmine, plane, gitflic, outline, bookstack.
+/// gitlab, gitea, redmine, plane, gitflic, outline, bookstack, wikijs,
+/// nextcloud.
 ///
-/// У Plane и GitFlic, кроме токена и адреса, спрашиваются поля из манифеста:
+/// У Plane, GitFlic и Nextcloud, кроме токена и адреса, спрашиваются поля из
+/// манифеста:
 /// `ORAKUL_FIELD_workspace` и `ORAKUL_FIELD_project` у первого,
-/// `ORAKUL_FIELD_owner` и `ORAKUL_FIELD_project` у второго. Без них проба
-/// скажет «не подключён», а не уйдёт по адресу с подстановками.
+/// `ORAKUL_FIELD_owner` и `ORAKUL_FIELD_project` у второго,
+/// `ORAKUL_FIELD_provider` у третьего. Без них проба скажет «не подключён», а
+/// не уйдёт по адресу с подстановками.
 @Suite("Живая проверка коннектора")
 struct LiveConnectorProbeTests {
 
@@ -99,7 +102,11 @@ struct LiveConnectorProbeTests {
         }
 
         if let notes = TeamNotes.Service(rawValue: service) {
+            let notesValues = notes.fields.reduce(into: [String: String]()) { result, field in
+                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+            }
             let hits = try await TeamNotes(service: notes, token: token, host: host,
+                                           values: notesValues,
                                            http: TeamNotes.live).search(query)
             print("[\(notes.title)] найдено документов: \(hits.count)")
             for hit in hits.prefix(3) {
@@ -124,7 +131,7 @@ struct LiveConnectorProbeTests {
     func documentedServicesExist() {
         let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip",
                                        "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline",
-                                       "bookstack"]
+                                       "bookstack", "wikijs", "nextcloud"]
         let real = Set(WorkMessengers.Service.allCases.map(\.rawValue))
             .union(SelfHostedTrackers.Service.allCases.map(\.rawValue))
             .union(TeamNotes.Service.allCases.map(\.rawValue))

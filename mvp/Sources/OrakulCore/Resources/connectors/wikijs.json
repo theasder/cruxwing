@@ -1,0 +1,26 @@
+{
+  "id": "wikijs",
+  "title": "Wiki.js",
+  "docs": "https://docs.requarks.io/dev/api",
+  "verifiedOn": "2026-08-18",
+  "note": "Только GraphQL: один адрес /graphql и POST с запросом в теле, параметров у запроса нет. Проверено 2026-08-18 по документации и по схеме вендора (server/graph/schemas/page.graphql): search(query: String!) отдаёт PageSearchResponse с results[{id, title, description, path, locale}], suggestions и totalHits. Токен из «Administration → API Access», заголовок Bearer. Ограничение выдачи задаёт сам сервис: параметра limit у search нет, поэтому {limit} в запросе не участвует. Отказ приходит кодом 200 с errors[0].message — оттуда и берутся слова для человека. id у страницы строковый, поэтому номера в выдаче нет: у вики его роль играет заголовок.",
+  "request": {
+    "method": "POST",
+    "path": "/graphql",
+    "query": [],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ],
+    "body": "{\"query\": \"{ pages { search(query: \\\"{query}\\\") { results { id title description path locale } totalHits } } }\"}"
+  },
+  "response": {
+    "list": ["data", "pages", "search", "results"],
+    "title": ["title"],
+    "context": ["description"],
+    "key": [],
+    "state": [],
+    "errorMessage": ["errors", "0", "message"],
+    "errorCode": ["errors", "0", "extensions", "code"]
+  }
+}
