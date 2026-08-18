@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 270 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 273 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 597 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1301,6 +1301,25 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Forty-five commits, none pushed, and CI is what checks the second platform.**
+The Linux breakage went four days undetected not because the job is wrong — it
+would have caught both errors on the first run — but because the job runs on
+push. Between writing code and hearing from CI there was no step at all, so the
+answer is a step: `scripts/proverka-linux.sh` runs the same commands, in the
+same `swift:6.0` image, in about forty seconds.
+
+It is checked against the real bug rather than trusted: putting
+`waitsForConnectivity` back gives a clean macOS build with zero errors and an
+exit code of 1 from the script, quoting «cannot assign to property». That is
+the four-day defect, found in forty seconds.
+
+Two lists of the same steps drift, and this repository has now watched that
+happen with form labels and with published directories, so
+`test/proverka-linux.test.mjs` holds the script against the `linux-core` job:
+a step added to CI and missing from the script fails the suite, as does a
+different container image. Otherwise «green locally» quietly starts meaning less
+than it says.
 
 **The size limit does not work on Linux, and now says so.** The delegate that
 replaced `bytes(for:)` was new and load-bearing, so it was pushed the way a
