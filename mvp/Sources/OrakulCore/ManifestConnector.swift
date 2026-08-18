@@ -318,8 +318,12 @@ public struct ManifestConnector {
             .replacingOccurrences(of: "&nbsp;", with: " ")
     }
 
-    /// Строка ответа в выдачу. `nil` — строке нечего сказать человеку.
+    /// Строка ответа в выдачу. `nil` — строке нечего сказать человеку либо она
+    /// отброшена по условию манифеста (`skipWhen`).
     func item(from row: [String: Any]) -> Item? {
+        for condition in manifest.response.skipWhen ?? [] {
+            if Self.follow(condition.path, from: row) as? Bool == condition.equals { return nil }
+        }
         let clean = { (text: String) in
             manifest.response.stripTags == true ? Self.withoutTags(text) : text
         }

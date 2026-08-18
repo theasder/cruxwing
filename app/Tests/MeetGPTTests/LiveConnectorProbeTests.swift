@@ -27,7 +27,7 @@ import OrakulCore
 ///     ORAKUL_PROBE_QUERY=тарифы \
 ///     swift test --filter LiveConnectorProbe
 ///
-/// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, matrix,
+/// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, slack, matrix,
 /// gitlab, gitea, redmine, plane, gitflic, outline, bookstack, wikijs,
 /// nextcloud, linear, trello.
 ///
@@ -145,7 +145,7 @@ struct LiveConnectorProbeTests {
     /// первого же переименования или нового коннектора.
     @Test("документация набора называет существующие сервисы")
     func documentedServicesExist() {
-        let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip",
+        let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip", "slack",
                                        "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline",
                                        "bookstack", "wikijs", "nextcloud",
                                        "linear", "trello"]

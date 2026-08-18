@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 24 own connectors, 11 western via MCP.
+Total: 25 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -638,7 +638,7 @@ setting.
 
 | Service | Known | To decide or learn |
 |---|---|---|
-| **Slack** | `GET https://slack.com/api/search.messages`, a **personal user token** plus the `search:read` scope, response `{ok, messages:{matches:[…]}}`; the method is marked legacy[^slack] | A personal token changes the promise: not a bot with narrow rights but access to a person's whole correspondence. A product decision, not a technical one; if «yes», say it plainly in the interface |
+| **Slack** | **Connected 2026-08-18 — see the decision below**[^slack] | Open: the method is marked legacy and the vendor points at `assistant.search.context`. Moving there waits until it is clear what scopes it demands |
 | **Plane**, open, self-hosted | **Connected 2026-08-18** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `state.name`[^plane] | Nothing blocking. Open: whether a live workspace confirms the cursor format `perPage:page:is_prev` — the connector is built from the docs, not from a live install |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
 | **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
@@ -674,6 +674,33 @@ and could not be read from the vendor's own pages — so the one thing that woul
 make it a search is unverified. Notion's search returns a page's title inside
 `properties` under a key that varies per database, which a path-described
 manifest cannot address; that is a shape problem, not a documentation one.
+
+**Slack: a personal token, decided 2026-08-18.**
+
+Slack does not let a bot search messages. `search.messages` takes a **user
+token** with `search:read`, which grants exactly what that person can read —
+their DMs included. That is why §7.4 called this a product decision rather than
+a technical one.
+
+**Decision: connect it, on two conditions.**
+
+1. **Private conversations do not reach the answer.** Slack offers no «public
+   channels only» filter, so the filtering is ours: matches from private
+   channels and group DMs are dropped before anything reaches the prompt. The
+   manifest says so in data (`skipWhen`), and a test drops a mixed response
+   through the whole path — engine and messenger layer — to prove nothing but
+   the public channel survives.
+2. **The interface says what the token really grants.** Not in small print: the
+   credential hint states that the token is personal, that Slack allows no bot
+   here, that it covers everything that person can see including DMs, and that
+   orakul discards the private part. A test pins those words, because this is
+   the one screen where a person decides whether to hand that over.
+
+What honesty requires naming: condition 1 is about what reaches the model and
+the screen, not about what crosses the network. The private messages were
+already fetched into memory — the API returns them and there is no way to ask it
+not to. Claiming otherwise would be the exact kind of promise this file exists
+to prevent.
 
 The western layer also covers eleven MCP servers, and adding there is one
 line in the catalog (plan §2.2). The shortage sits elsewhere: sources that work
@@ -949,7 +976,7 @@ but checkable plan gets fixed by one edit, while a wrong and uncheckable one
 lives for years and spends other people's time.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
-[^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
+[^slack]: Slack, `search.messages`: **user token only** with the `search:read` scope — no bot token is accepted; arguments `query` (required), `count` (max 100, default 20), `page`, `cursor`, `sort`, `sort_dir`; response `{ok, query, messages: {total, matches: [{type, channel: {id, name, is_private, is_mpim}, text, username, ts, permalink}], pagination}}`; refusals arrive with HTTP 200 and `{"ok": false, "error": …}`; rate limit tier 2; marked legacy, with `assistant.search.context` named as the replacement. read 2026-08-18: https://docs.slack.dev/reference/methods/search.messages
 [^linear]: Linear: single GraphQL endpoint `POST https://api.linear.app/graphql`; personal API keys go in `Authorization` with **no** `Bearer` prefix (OAuth tokens use `Bearer`); `searchIssues(term: String!, first: Int)` returns `nodes` of `{id, identifier, title, description, url, state {name}}`; refusals arrive with HTTP 200 and an `errors` array. read 2026-08-18: https://linear.app/developers/graphql
 
 [^trello]: Trello: `GET https://api.trello.com/1/search`, `query` required (min 1 char), `modelTypes` (default all), `cards_limit` (max 1000, default 10), `partial` (default **false** — whole-word matching), `card_fields`; authorisation as query parameters or as `Authorization: OAuth oauth_consumer_key="{key}", oauth_token="{token}"`; response `{cards: [{id, name, desc, idShort, idBoard, closed}], boards, members}`. read 2026-08-18: https://developer.atlassian.com/cloud/trello/rest/api-group-search/ and https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization/

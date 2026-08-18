@@ -52,13 +52,14 @@ public struct WorkMessengers {
     }
 
     public enum Service: String, CaseIterable, Sendable {
-        case pachca, mattermost, rocketChat, zulip, matrix
+        case pachca, mattermost, rocketChat, zulip, matrix, slack
 
         public var title: String {
             switch self {
             case .pachca:     return "Пачка"
             case .mattermost: return "Mattermost"
             case .rocketChat: return "Rocket.Chat"
+            case .slack:      return "Slack"
             case .zulip:      return "Zulip"
             case .matrix:     return "Matrix / Element"
             }
@@ -67,6 +68,10 @@ public struct WorkMessengers {
         /// Что человек должен раздобыть у себя, чтобы подключение заработало.
         public var credentialHint: String {
             switch self {
+            case .slack:
+                // Прямо здесь, а не мелким шрифтом: это единственное место,
+                // где человек решает, отдавать ли доступ ко всей переписке.
+                return "ЛИЧНЫЙ токен (user token) с правом search:read. Ботом Slack искать по сообщениям не даёт, поэтому токен даёт доступ ко всему, что видите вы, — включая личные сообщения. orakul отбрасывает личные переписки и закрытые каналы до того, как что-то попадёт в подсказку, но выдаётся токен на всё"
             case .pachca:
                 return "Персональный токен из «Автоматизации → API» с правом search:messages"
             case .mattermost:
@@ -85,6 +90,8 @@ public struct WorkMessengers {
         public var secondaryPrompt: String? {
             switch self {
             case .pachca:     return nil
+            // Slack облачный: адрес один и тот же, спрашивать нечего.
+            case .slack:      return nil
             case .mattermost: return "адрес сервера, например chat.company.ru"
             case .rocketChat: return "адрес сервера, например chat.company.ru"
             case .zulip:      return "адрес сервера, например zulip.company.ru"
@@ -102,6 +109,9 @@ public struct WorkMessengers {
         public var scopePrompt: String? {
             switch self {
             case .pachca:     return nil
+            // Slack ищет по всей доступной человеку переписке сразу; сузить
+            // область нечем, и поэтому лишнее отбрасывается уже в выдаче.
+            case .slack:      return nil
             case .mattermost: return "идентификатор команды (team_id)"
             case .rocketChat: return "идентификатор комнаты (roomId)"
             // Zulip и Matrix ищут по всему, что видит человек: сужать не нужно.
@@ -122,6 +132,7 @@ public struct WorkMessengers {
         /// исправный ключ вместо того, чтобы дописать вторую половину.
         public var pairedTokenPrompt: String? {
             switch self {
+            case .slack:      return nil
             case .rocketChat: return "токен и идентификатор пользователя через двоеточие"
             case .zulip:      return "почта и ключ API через двоеточие"
             case .pachca, .mattermost, .matrix: return nil
@@ -133,6 +144,8 @@ public struct WorkMessengers {
         /// Пачка живёт в облаке; у остальных адрес даёт пользователь.
         func host(secondary: String?) -> String? {
             switch self {
+            case .slack:
+                return "https://slack.com"
             case .pachca:
                 return "https://api.pachca.com"
             case .mattermost, .rocketChat, .zulip, .matrix:
@@ -307,6 +320,10 @@ public struct WorkMessengers {
     private func makeRequest(host: String, query: String) throws -> URLRequest {
         let place = scope?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         switch service {
+        // Запасного пути у Slack нет и не будет: он описан манифестом сразу.
+        // Пропавшее описание — поломка сборки, а не повод сказать человеку
+        // «сервис недоступен».
+        case .slack: throw ConnectorError.unreadable
         case .pachca:
             var components = URLComponents(string: "\(host)/api/shared/v1/search/messages")
             components?.queryItems = [
@@ -401,6 +418,8 @@ public struct WorkMessengers {
             throw ConnectorError.unreadable
         }
         switch service {
+        // Разбор у Slack тоже в манифесте — см. makeRequest выше.
+        case .slack: throw ConnectorError.unreadable
         case .pachca:
             // `{ "data": [Message], "meta": … }`. Поля Message обязательны по
             // спецификации: id, chat_id, content, user_id, created_at.

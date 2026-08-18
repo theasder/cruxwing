@@ -1,0 +1,32 @@
+{
+  "id": "slack",
+  "title": "Slack",
+  "docs": "https://docs.slack.dev/reference/methods/search.messages",
+  "verifiedOn": "2026-08-18",
+  "note": "GET search.messages, обязательный query, count до 100. Проверено 2026-08-18. Токен только личный (user token) с правом search:read: бот искать по переписке не может, и это не наше ограничение, а устройство Slack. Отсюда решение §7.4: строки из личных сообщений и закрытых каналов отбрасываются нами (skipWhen) до того, как попадут в подсказку, — сам сервис фильтра «только общие каналы» не предлагает. Отказ приходит кодом 200 с ok:false, поэтому requireTrue. Метод помечен вендором как устаревший, замена — assistant.search.context из Real-time Search API; переезжать туда, когда станет ясно, каких прав она требует.",
+  "request": {
+    "method": "GET",
+    "path": "/api/search.messages",
+    "query": [
+      { "name": "query", "value": "{query}" },
+      { "name": "count", "value": "{limit}" },
+      { "name": "sort", "value": "timestamp" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" }
+    ]
+  },
+  "response": {
+    "list": ["messages", "matches"],
+    "title": ["text"],
+    "author": ["username"],
+    "key": [],
+    "state": [],
+    "requireTrue": ["ok"],
+    "errorCode": ["error"],
+    "skipWhen": [
+      { "path": ["channel", "is_private"], "equals": true },
+      { "path": ["channel", "is_mpim"], "equals": true }
+    ]
+  }
+}
