@@ -105,4 +105,84 @@ import FoundationNetworking
             _ = try await connector.run("лимиты")
         }
     }
+
+    // MARK: - Разборы, написанные руками
+
+    /// Тот же приём против кода, который не проходит через движок манифестов.
+    /// Разбор руками ошибается ровно так же, а покрытие у него было меньше:
+    /// первый разбор этой темы кончился на манифестах, и это было половиной
+    /// работы.
+
+    @Test("GitHub: переименованный номер — поломка, а не пустая выдача")
+    func gitHubRenamedField() async throws {
+        // `number` → `id`. Строки есть, читать нечего.
+        let renamed = Data(#"""
+        {"items":[{"id":42,"title":"Поднять лимиты","html_url":"https://github.com/a/b/issues/42"}]}
+        """#.utf8)
+        let connector = GitHubConnector(token: "т", repositories: ["a/b"],
+                                        http: { request in
+            (renamed, HTTPURLResponse(url: request.url!, statusCode: 200,
+                                      httpVersion: nil, headerFields: [:])!)
+        })
+        await #expect(throws: GitHubConnector.ConnectorError.unreadable) {
+            _ = try await connector.search("лимиты")
+        }
+    }
+
+    @Test("трекер на своём сервере: переименованный заголовок — поломка")
+    func selfHostedRenamedField() async throws {
+        let renamed = Data(#"[{"iid":42,"heading":"Поднять лимиты","state":"opened"}]"#.utf8)
+        let tracker = SelfHostedTrackers(service: .gitlab, token: "т", host: "git.example.com",
+                                         http: { request in
+            (renamed, HTTPURLResponse(url: request.url!, statusCode: 200,
+                                      httpVersion: nil, headerFields: [:])!)
+        })
+        await #expect(throws: SelfHostedTrackers.ConnectorError.unreadable) {
+            _ = try await tracker.legacySearch("лимиты", host: "https://git.example.com")
+        }
+    }
+
+    @Test("база знаний: переименованные поля — поломка")
+    func teamNotesRenamedFields() async throws {
+        let renamed = Data(#"{"data":[{"heading":"Тарифы","excerpt":"текст"}]}"#.utf8)
+        let notes = TeamNotes(service: .outline, token: "т", host: nil,
+                              http: { request in
+            (renamed, HTTPURLResponse(url: request.url!, statusCode: 200,
+                                      httpVersion: nil, headerFields: [:])!)
+        })
+        await #expect(throws: TeamNotes.ConnectorError.unreadable) {
+            _ = try await notes.legacySearch("тарифы", host: "https://app.getoutline.com")
+        }
+    }
+
+    @Test("честно пустой ответ у разборов руками остаётся ответом")
+    func handWrittenEmptyStaysAnAnswer() async throws {
+        // Обратная сторона, без которой защита превратилась бы в вечную ошибку
+        // на проекте, где просто ничего не нашлось.
+        let tracker = SelfHostedTrackers(service: .gitlab, token: "т", host: "git.example.com",
+                                         http: { request in
+            (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                              httpVersion: nil, headerFields: [:])!)
+        })
+        #expect(try await tracker.legacySearch("лимиты", host: "https://git.example.com").isEmpty)
+    }
+
+    @Test("российский трекер: переименованные поля — поломка, а не пустая выдача")
+    func russianTrackerRenamedFields() throws {
+        // Kaiten отдаёт задачи в массиве верхнего уровня. Переименовали и
+        // заголовок, и ключ — читать нечего, а строки есть.
+        let renamed = Data(#"[{"identifier":"K-1","heading":"Поднять лимиты"}]"#.utf8)
+        let tracker = RussianTrackers(service: .kaiten, token: "т", secondary: "команда",
+                                      http: { _ in (Data(), stubHTTPResponse()) })
+        #expect(throws: RussianTrackers.TrackerError.unreadable(.kaiten)) {
+            _ = try tracker.parse(renamed)
+        }
+    }
+
+    @Test("российский трекер: пустой массив остаётся ответом")
+    func russianTrackerEmptyStaysAnAnswer() throws {
+        let tracker = RussianTrackers(service: .kaiten, token: "т", secondary: "команда",
+                                      http: { _ in (Data(), stubHTTPResponse()) })
+        #expect(try tracker.parse(Data("[]".utf8)).isEmpty)
+    }
 }

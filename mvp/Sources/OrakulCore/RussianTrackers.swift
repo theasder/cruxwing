@@ -622,7 +622,7 @@ public struct RussianTrackers {
             throw TrackerError.unreadable(service)
         }
 
-        return rows.compactMap { row in
+        let items: [Issue] = rows.compactMap { row in
             // Битрикс отдаёт поля прописными: ID, TITLE. Строчные варианты
             // остаются первыми — у четырёх остальных сервисов они и приходят.
             let key = (row["key"] as? String)
@@ -637,6 +637,12 @@ public struct RussianTrackers {
             guard !key.isEmpty else { return nil }
             return Issue(key: key, title: title, url: Self.link(row["url"]))
         }
+        // Строки пришли, а прочитать не удалось ни одну — это смена формата, а
+        // не пустая выдача. То же правило, что в движке манифестов: разбор,
+        // написанный руками, ошибается ровно так же, и «ничего не нашлось»
+        // здесь было бы враньём на каждый вопрос.
+        if items.isEmpty && !rows.isEmpty { throw TrackerError.unreadable(service) }
+        return items
     }
 
     /// Some APIs return a syntactically successful envelope with a vendor-level

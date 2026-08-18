@@ -130,7 +130,7 @@ public struct GitHubConnector: Sendable {
             if root["message"] != nil { throw ConnectorError.unreadable }
             return []
         }
-        return rows.compactMap { row in
+        let items: [Item] = rows.compactMap { row in
             guard let number = row["number"] as? Int else { return nil }
             let link = (row["html_url"] as? String).flatMap(URL.init(string:))
             // `owner/repo` вытаскивается из ссылки: в ответе поиска его нет
@@ -146,5 +146,11 @@ public struct GitHubConnector: Sendable {
                         url: link,
                         state: (row["state"] as? String) ?? "open")
         }
+        // Строки пришли, а прочитать не удалось ни одну — это смена формата, а
+        // не пустая выдача. То же правило, что в движке манифестов: разбор,
+        // написанный руками, ошибается ровно так же, и «ничего не нашлось»
+        // здесь было бы враньём на каждый вопрос.
+        if items.isEmpty && !rows.isEmpty { throw ConnectorError.unreadable }
+        return items
     }
 }

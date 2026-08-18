@@ -338,7 +338,7 @@ public struct SelfHostedTrackers {
             }
             rows = array
         }
-        return rows.compactMap { row in
+        let items: [Item] = rows.compactMap { row in
             guard let title = row["title"] as? String, !title.isEmpty else { return nil }
             // GitLab зовёт номер `iid`, Gitea — `number`, Redmine — `id`.
             let number = (row["iid"] as? Int) ?? (row["number"] as? Int)
@@ -350,5 +350,11 @@ public struct SelfHostedTrackers {
             let state = (row["state"] as? String) ?? ""
             return Item(key: key, title: title, state: state, service: service)
         }
+        // Строки пришли, а прочитать не удалось ни одну — это смена формата, а
+        // не пустая выдача. То же правило, что в движке манифестов: разбор,
+        // написанный руками, ошибается ровно так же, и «ничего не нашлось»
+        // здесь было бы враньём на каждый вопрос.
+        if items.isEmpty && !rows.isEmpty { throw ConnectorError.unreadable }
+        return items
     }
 }

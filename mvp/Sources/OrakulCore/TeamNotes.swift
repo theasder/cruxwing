@@ -256,12 +256,18 @@ public struct TeamNotes {
               let rows = root["data"] as? [[String: Any]] else {
             throw ConnectorError.unreadable
         }
-        return rows.compactMap { row in
+        let hits: [Hit] = rows.compactMap { row in
             let context = (row["context"] as? String) ?? ""
             let title = ((row["document"] as? [String: Any])?["title"] as? String) ?? ""
             guard !context.isEmpty || !title.isEmpty else { return nil }
             return Hit(title: title.isEmpty ? "Без названия" : title,
                        context: context, service: service)
         }
+        // Строки пришли, а прочитать не удалось ни одну — это смена формата, а
+        // не пустая выдача. То же правило, что в движке манифестов: разбор,
+        // написанный руками, ошибается ровно так же, и «ничего не нашлось»
+        // здесь было бы враньём на каждый вопрос.
+        if hits.isEmpty && !rows.isEmpty { throw ConnectorError.unreadable }
+        return hits
     }
 }

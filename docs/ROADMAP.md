@@ -1053,8 +1053,18 @@ body (`requireTrue`), a refusal in a GraphQL `errors` array, an HTML login page
 instead of JSON, a byte-per-second response (the 8-second deadline), and a
 narrowed scope arriving as 403 with its own message rather than «bad token».
 
+**The first pass covered half the code, which is worth recording as a finding
+of its own.** The rename attack was played against the manifest engine and
+stopped there — while four hand-written parsers (GitHub, the self-hosted
+trackers, the knowledge bases, the Russian trackers) map rows exactly the same
+way and dropped unreadable ones just as silently. A defence that covers the
+newest code path and not the older ones is the shape most defences take, because
+the new path is the one on the mind. All four now refuse a response where **no**
+row can be read, and each has its own attack test — the fourth was added after a
+mutation showed the guard was there but unproven.
+
 What this audit does **not** claim. It covers connectors described by manifests
-and the shared engine. A vendor can still do things nothing here detects —
+and the shared engine, plus the four hand-written parsers named above. A vendor can still do things nothing here detects —
 returning plausible but wrong rows, silently filtering results by who is asking,
 or shipping a subtly different corpus to us than to a browser. Those are not
 caught by parsing rules; they are caught by somebody comparing the answer with
