@@ -325,4 +325,101 @@ import FoundationNetworking
         #expect(answer.text.contains("Поднять лимиты"))
         #expect(!answer.text.contains("отбирали у себя"))
     }
+
+    // MARK: - GitFlic: список в конверте, которого при нуле задач нет
+
+    /// Ответ, собранный из примеров документации GitFlic (читана 2026-08-18):
+    /// конверт `_embedded.issueModelList`, номер в `localId`, состояние —
+    /// `status.title` по-русски, размер выдачи — в `page`.
+    static func gitflicPage(_ rows: [String], size: Int, total: Int, number: Int) -> Data {
+        Data(#"""
+        {"_embedded":{"issueModelList":[\#(rows.joined(separator: ","))]},
+         "page":{"size":\#(size),"totalElements":\#(total),"totalPages":2,"number":\#(number)}}
+        """#.utf8)
+    }
+
+    static func gitflicRow(_ localId: Int, _ title: String, description: String = "",
+                           status: String = "Завершена") -> String {
+        #"""
+        {"id":"522d58b6-aaaa-aaaa-aaaa-a3ccba39032b","localId":\#(localId),
+         "description":"\#(description)","title":"\#(title)",
+         "status":{"id":"COMPLETED","title":"\#(status)","hexColor":"28A745","isDeleted":false},
+         "projectAlias":"backend","userAlias":"moya-komanda"}
+        """#
+    }
+
+    static func gitflic() throws -> ConnectorManifest {
+        try #require(try ConnectorManifest.bundled().first { $0.id == "gitflic" })
+    }
+
+    @Test("GitFlic разбирается по своему же примеру из документации")
+    func gitflicParsesTheVendorSample() async throws {
+        let page = Self.gitflicPage([Self.gitflicRow(19, "Поднять лимиты", description: "Обсуждали на созвоне")],
+                                    size: 50, total: 1, number: 0)
+        let connector = ManifestConnector(manifest: try Self.gitflic(), token: "токен",
+                                          host: "https://api.gitflic.ru",
+                                          values: ["owner": "moya-komanda", "project": "backend"],
+                                          http: Self.stub([page]))
+        let outcome = try await connector.run("лимиты")
+        let item = try #require(outcome.items.first)
+        #expect(item.key == "#19", "номер задачи — localId, а не UUID")
+        #expect(item.title == "Поднять лимиты")
+        #expect(item.state == "Завершена")
+        #expect(item.context == "Обсуждали на созвоне")
+        #expect(outcome.coverage == .wholeList(scanned: 1))
+    }
+
+    @Test("проект без задач — это пустая выдача, а не непонятный ответ")
+    func gitflicEmptyProjectIsAnAnswer() async throws {
+        // Spring не присылает `_embedded`, когда список пуст. Без разбора этого
+        // случая человек с новым проектом получил бы «сервис ответил непонятным
+        // образом» и пошёл чинить исправный сервер.
+        let empty = Data(#"{"page":{"size":50,"totalElements":0,"totalPages":0,"number":0}}"#.utf8)
+        let connector = ManifestConnector(manifest: try Self.gitflic(), token: "токен",
+                                          host: "https://api.gitflic.ru",
+                                          values: ["owner": "moya-komanda", "project": "backend"],
+                                          http: Self.stub([empty]))
+        let outcome = try await connector.run("лимиты")
+        #expect(outcome.items.isEmpty)
+        #expect(outcome.coverage == .wholeList(scanned: 0))
+    }
+
+    @Test("мусор вместо ответа остаётся отказом")
+    func gitflicGarbageIsStillRefused() async throws {
+        // Послабление про пустой конверт не должно превращаться в «принимаем
+        // что угодно»: без `page` ответ не узнан.
+        let connector = ManifestConnector(manifest: try Self.gitflic(), token: "токен",
+                                          host: "https://api.gitflic.ru",
+                                          values: ["owner": "moya-komanda", "project": "backend"],
+                                          http: Self.stub([Data(#"{"сообщение":"обслуживание"}"#.utf8)]))
+        await #expect(throws: ManifestConnector.ConnectorError.unreadable) {
+            _ = try await connector.run("лимиты")
+        }
+    }
+
+    @Test("GitFlic шлёт «token», а не «Bearer», и нумерует страницы с нуля")
+    func gitflicRequestMatchesTheDocs() throws {
+        let connector = ManifestConnector(manifest: try Self.gitflic(), token: "секрет",
+                                          host: "https://api.gitflic.ru",
+                                          values: ["owner": "moya-komanda", "project": "backend"],
+                                          http: Self.stub([Data("{}".utf8)]))
+        let request = try connector.makeRequest(query: "лимиты", limit: 10, page: 0)
+        #expect(request.url?.path == "/project/moya-komanda/backend/issue")
+        // С «Bearer» GitFlic отвечает отказом, неотличимым от плохого токена.
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "token секрет")
+        let query = request.url?.query ?? ""
+        #expect(query.contains("page=0"), "первая страница у GitFlic — нулевая")
+        #expect(query.contains("size=50"))
+    }
+
+    @Test("граница GitFlic укладывается в лимит запросов сервиса")
+    func gitflicBoundFitsTheRateLimit() throws {
+        // 500 запросов в час на gitflic.ru. Пять страниц на вопрос — один
+        // процент часового лимита; поднять границу означало бы тратить чужую
+        // квоту на «а вдруг найдётся».
+        let scan = try #require(try Self.gitflic().scan)
+        #expect(scan.pages * scan.perPage <= 500,
+                "за один вопрос выкачивается \(scan.pages * scan.perPage) задач")
+        #expect(scan.pages <= ManifestConnector.scanPageLimit)
+    }
 }

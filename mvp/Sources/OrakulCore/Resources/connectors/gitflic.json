@@ -1,0 +1,37 @@
+{
+  "id": "gitflic",
+  "title": "GitFlic",
+  "docs": "https://docs.gitflic.ru/latest/api/intro/",
+  "verifiedOn": "2026-08-18",
+  "note": "Поиска по слову в документации нет — есть только список задач проекта, поэтому перечисление с границей (§7.2). Проверено 2026-08-18: заголовок «Authorization: token <токен>», а не Bearer; адрес api.gitflic.ru, у своей сборки — host:8080/rest-api. Страницы нумеруются с нуля, размер задаётся size (по умолчанию 10), максимум в документации не назван — поэтому 50, а не 100: пятьсот запросов в час на gitflic.ru, и пять страниц по пятьдесят это один процент лимита на вопрос. Список лежит в _embedded.issueModelList; при нуле задач Spring не присылает _embedded вовсе, и понятым ответ делает page.totalElements. Состояние — status.title, по-русски («Завершена»).",
+  "parameters": [
+    { "name": "owner", "title": "Владелец проекта", "example": "moya-komanda" },
+    { "name": "project", "title": "Проект", "example": "backend" }
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/project/{owner}/{project}/issue",
+    "query": [],
+    "headers": [
+      { "name": "Authorization", "value": "token {token}" }
+    ]
+  },
+  "scan": {
+    "pages": 5,
+    "perPage": 50,
+    "page": [
+      { "name": "page", "value": "{page}" },
+      { "name": "size", "value": "{perPage}" }
+    ],
+    "match": [["title"], ["description"]],
+    "total": ["page", "totalElements"]
+  },
+  "response": {
+    "list": ["_embedded", "issueModelList"],
+    "title": ["title"],
+    "context": ["description"],
+    "key": ["localId"],
+    "state": ["status", "title"],
+    "emptyMarker": ["page", "totalElements"]
+  }
+}

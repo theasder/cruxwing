@@ -19,10 +19,10 @@ describe('Cruxwing Russian developer landing', () => {
     // Слепок, а не список правил: страница orakul — чужой продукт для этой
     // работы, и любое её изменение обязано быть намеренным. Обновлять слепок
     // руками — это и есть «намеренно». Последний раз обновлён 2026-08-18:
-    // на страницу добавился чип Plane.
+    // на страницу добавились чипы Plane и GitFlic.
     const rootLanding = readFileSync(resolve(root, 'public', 'index.html'));
     const hash = createHash('sha256').update(rootLanding).digest('hex');
-    assert.equal(hash, '2cec2540a6875ced7b212a1b89da5d4452d88a4256af3bb3bd6536d5991ac21b');
+    assert.equal(hash, '5dc68a4dd072d02df72a21aa9a99b4f0d124d5e05b1e106a2983fb6f9134d5fe');
   });
 
   test('declares Russian metadata and the requested production route', () => {

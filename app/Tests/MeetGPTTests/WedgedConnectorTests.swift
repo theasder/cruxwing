@@ -14,23 +14,37 @@ import OrakulCore
 @Suite("Зависший коннектор")
 struct WedgedConnectorTests {
 
+    /// Сколько висит подставной сервер. От этого числа считается потолок ниже.
+    private static let hangSeconds: TimeInterval = 60
+
     /// HTTP, который никогда не отвечает.
     private static let hanging: @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse) = { _ in
-        try await Task.sleep(nanoseconds: 60_000_000_000)   // минута — дольше любого срока
+        try await Task.sleep(nanoseconds: UInt64(hangSeconds * 1_000_000_000))
         throw URLError(.timedOut)
     }
 
     @Test("срок обрывает зависший поиск, а не ждёт его")
     func deadlineCutsTheHang() async {
+        // `scope` обязателен: Mattermost требует team_id, и без него `search`
+        // отказывает мгновенно, не дойдя до HTTP. Проверка от этого проходила
+        // всегда — `nil` возвращался не сроком, а отказом «не подключён».
+        // Найдено мутацией: срок, удлинённый в тысячу раз, ничего не сломал.
         let began = Date()
         let result = await withMCPDeadline(seconds: 0.3) {
             try await WorkMessengers(service: .mattermost, token: "t", secondary: "host",
-                                     scope: nil, http: Self.hanging).search("тарифы")
+                                     scope: "команда", http: Self.hanging).search("тарифы")
         }
         let elapsed = Date().timeIntervalSince(began)
 
         #expect(result == nil, "зависший коннектор вернул результат — срок не сработал")
-        #expect(elapsed < 5,
+        // Потолок — шестая часть зависания, а не круглое число. Проверяется
+        // «не дождались сервера», и с этим числом это ровно то, что проверяется.
+        //
+        // Было пять секунд, и на полном прогоне пришло 5.24: срок сработал, а
+        // набор упал. Разница между 0.3 и 60 не требует такой точности, а вот
+        // измерять на нагруженной машине доли секунды — требует, и этого здесь
+        // никто не обещал.
+        #expect(elapsed < Self.hangSeconds / 6,
                 "ждали \(String(format: "%.1f", elapsed)) с вместо 0.3 — срок не ограничивает вызов")
     }
 

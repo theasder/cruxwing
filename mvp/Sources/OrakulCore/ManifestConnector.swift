@@ -298,6 +298,13 @@ public struct ManifestConnector {
             }
             rows = node as? [[String: Any]]
         }
+        if rows == nil, let marker = manifest.response.emptyMarker,
+           let object = root as? [String: Any],
+           !Self.scalar(at: marker, in: object).isEmpty {
+            // Контейнера списка нет, но ответ узнан: сервис прислал своё поле
+            // с размером выдачи. Это пустой список, а не непонятный ответ.
+            return []
+        }
         guard let rows else { throw ConnectorError.unreadable }
         return rows
     }

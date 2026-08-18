@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 17 own connectors, 11 western via MCP.
+Total: 18 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -511,6 +511,25 @@ the whole. On a small team's tracker — three hundred tasks, not forty thousand
 `.wholeList` is a complete answer and says so, which is why a flat «no» was
 costing real coverage.
 
+**Second service under it, shipped 2026-08-18: GitFlic.** Everything was read
+that day and none of it assumed: host `api.gitflic.ru` (self-hosted installs
+answer on `host:8080/rest-api`), header `Authorization: token <access token>` —
+**not** `Bearer`, which GitFlic refuses indistinguishably from a bad token —
+list `GET /project/{ownerAlias}/{projectAlias}/issue`, paging `page` (**counted
+from zero**) and `size` (default 10, maximum undocumented), response
+`_embedded.issueModelList[]` with `title`, `description`, `localId`,
+`status.title` in Russian, and `page.totalElements`[^gitflic]. Five pages of
+fifty per question: gitflic.ru allows 500 requests an hour, so the bound is one
+percent of somebody's hourly quota, and a test keeps it there.
+
+It also forced one engine change, and the change is narrow on purpose. Spring
+omits `_embedded` entirely when a list is empty, so a project with no tasks
+answered «сервис ответил непонятным образом» — sending a person to fix a working
+server. A manifest can now name an `emptyMarker`: a path that must be present
+for a missing container to count as an empty list. GitFlic's is
+`page.totalElements`, which arrives even at zero. Garbage without it is still a
+refusal, and a test mutates exactly that.
+
 **First manifest written under it: Plane** (`mvp/…/connectors/plane.json`).
 Read 2026-08-18: the list method documents `cursor`, `per_page`, `expand`,
 `fields`, `order_by`, `external_id`, `external_source` — and no text
@@ -564,8 +583,8 @@ setting.
 | Service | Known | Unknown, and how to learn it |
 |---|---|---|
 | **Yonote**, knowledge base | Checked 2026-08-18 and **still blocked**. The vendor's own developer pages return navigation without method reference (`/developers`, `/developers?v=2`, `docs.yonote.ru`). Third-party MCP clients agree on base `app.yonote.ru/api` and token auth[^yonote] | Whether a **search** method exists. One community client exposes only `documents_list` / `documents_info` — listing, which §7.2 does not accept as search. Unblocked by public method documentation, or by an account where the call can be made and its answer seen. Until then this is not «nearly written»: that phrasing was an assumption, and checking removed it |
-| **GitVerse**, code | Base `https://api.gitverse.ru/`, `Authorization: Bearer`, mandatory `Accept: application/vnd.gitverse.object+json;version=1`, issues under `/repos/{owner}/{repo}/issues`[^gitverse] | Whether a text search parameter exists — **looked for again 2026-08-18, still not documented**. Paths match Gitea by shape, but the version header is their own, so «point the Gitea connector at this host» gets verified, not assumed. Same class as GitFlic and Plane: see §7.2 |
-| **GitFlic**, code | `GET /project/{ownerAlias}/{projectAlias}/issue`, response `{_embedded:{issueModelList:[…]}, page:{…}}`, accessToken access[^gitflic] | The search parameter is absent from the docs. See §7.2 |
+| **GitVerse**, code | **Closed 2026-08-18, see §7.5** — the list method exists and returns the wrong things |
+| **GitFlic**, code | **Connected 2026-08-18** under §7.2 — see there for the whole shape[^gitflic] | Nothing blocking. Open: the maximum `size` is undocumented, so 50 is a guess a live install would confirm or correct |
 | **Compass**, messenger with an on-premise install | A bot API exists | Whether message search exists and whether the bot sees other people's conversation. The Telegram path ended exactly here (plan §8.1) — question first, code after |
 | **Аспро.Cloud** | No method reference found from outside (plan §2.0.3) | Task list method, search parameter, response shape. Unblocked by somebody's account — issue [#2](https://github.com/theasder/orakul/issues/2) |
 | **Битрикс24** | Connected **from the docs**, not against a live portal (plan §2.0.1) | Whether `TITLE` pattern search works. One command, a portal needed — issue [#1](https://github.com/theasder/orakul/issues/1) |
@@ -592,6 +611,21 @@ certificate requirement do not agree), search across the whole Telegram history
 (Bot API does not serve it, MTProto demands a personal account), connectors to
 the four ВКС platforms (plan §11), SaluteJazz (needs our backend, which will not
 exist).
+
+**GitVerse — closed 2026-08-18, and not for the reason expected.** The search
+parameter is indeed undocumented, which §7.2 would now forgive. What cannot be
+forgiven is what the list returns: the vendor's own reference says of
+`GET /repos/{owner}/{repo}/issues` — «Возвращает список задач (issues)
+репозитория. **На данный момент содержит только запросы на слияние (Pull
+Requests)**»[^gitverse]. Scanning it would search merge requests while answering
+about tasks, so «ничего не нашлось» would be wrong on a repository that has the
+task open in front of you. A connector whose emptiness cannot be trusted is
+worse than none: this product's whole claim is that an answer is either quoted
+or refused.
+
+Reopening needs one new fact — that endpoint listing issues. Everything else is
+ready: `page`/`per_page` (max 100), `Authorization: Bearer` or `token`, and the
+mandatory `Accept: application/vnd.gitverse.object+json;version=1`.
 
 Every «no» is dated and recorded in the plan with a cause. Reopening is allowed,
 but only with a new fact — the way WEEEK returned when the vendor published the
@@ -841,6 +875,6 @@ lives for years and spends other people's time.
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
 [^plane]: Plane, list work items: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, query `cursor` / `per_page` (default 20, max 100) / `expand` / `fields` / `order_by` / `external_id` / `external_source` — **no text search parameter**; response `total_count`, `next_page_results`, `results[]` with `name`, `description`, `sequence_id`, `state.name`; re-read 2026-08-18: https://developers.plane.so/api-reference/issue/list-issues
-[^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, read 2026-08-17: https://gitverse.ru/docs/developers/public-api/
-[^gitflic]: GitFlic, issue methods: `GET /project/{ownerAlias}/{projectAlias}/issue`, response with `_embedded.issueModelList`, read 2026-08-17: https://docs.gitflic.ru/api/issue/
+[^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer` or `token`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, paging `page` / `per_page` (max 100); the issue **list** is documented as returning pull requests only — «На данный момент содержит только запросы на слияние (Pull Requests)», entry 13 in the repositories section, re-read 2026-08-18: https://gitverse.ru/docs/public-api/repositories/ and https://gitverse.ru/docs/developers/public-api/
+[^gitflic]: GitFlic: base `api.gitflic.ru` (self-hosted `host:8080/rest-api`), auth `Authorization: token <access token>`, 500 requests an hour — https://docs.gitflic.ru/latest/api/intro/; issue list `GET /project/{ownerAlias}/{projectAlias}/issue` with `_embedded.issueModelList[]` carrying `title`, `description`, `localId`, `status.title` — https://docs.gitflic.ru/api/issue/; paging `page` from zero and `size` (default 10), response `page` object with `size`, `totalElements`, `totalPages`, `number` — https://docs.gitflic.ru/api/pagination/. All three read 2026-08-18
 [^yonote]: Yonote, developer page (API v1 and v2 preview), read 2026-08-17: https://yonote.ru/developers
