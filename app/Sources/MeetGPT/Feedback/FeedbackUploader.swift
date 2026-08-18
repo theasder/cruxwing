@@ -24,9 +24,24 @@ enum FeedbackUploader {
     /// Returns true only when the server accepted it. Safe to call on every
     /// launch: with nothing queued it makes no request at all.
     @discardableResult
-    static func flush(session: URLSession = .shared) async -> Bool {
+    static func flush(session: URLSession = .shared,
+                      baseURL: String = Config.backendBaseURL) async -> Bool {
         guard let pending = FirstMeetingPrompt.unsent else { return false }
-        guard let url = URL(string: "\(backendRoot)/api/feedback") else { return false }
+        // Нет адреса — некуда слать, и это рабочее состояние orakul, а не сбой:
+        // сервера у него нет.
+        //
+        // Проверка выглядит лишней рядом со строкой ниже — и не является ею.
+        // `URL(string: "/api/feedback")` возвращает НЕ nil: это правильный
+        // относительный адрес. Запрос собирался, уходил в URLSession и падал
+        // там же — то есть отзыв не отправлялся по случайности, а не по
+        // решению. Стоило появиться адресу сервера, и в тот же момент ушли бы
+        // оценка, заметка и почта: слова человека о его собственной встрече.
+        //
+        // Очередь при этом не трогается: ответ остаётся на диске и не
+        // помечается отправленным.
+        let root = backendRoot(baseURL)
+        guard !root.isEmpty else { return false }
+        guard let url = URL(string: "\(root)/api/feedback") else { return false }
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -77,8 +92,11 @@ enum FeedbackUploader {
         return false
     }
 
-    private static var backendRoot: String {
-        let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// Адрес приходит параметром — так же, как у воронки. Иначе проверить
+    /// «с адресом отправляет, без адреса нет» можно только на машине, где адрес
+    /// случайно есть.
+    private static func backendRoot(_ raw: String) -> String {
+        let base = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         return base.hasSuffix("/") ? String(base.dropLast()) : base
     }
 

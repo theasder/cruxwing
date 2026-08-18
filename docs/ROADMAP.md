@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 253 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2824 and 554 | README, maintainer run |
+| App and core tests | 2828 and 557 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -91,13 +91,29 @@ id is refused even with credentials.
 |---|---|---|
 | Nothing paid | `NoTariffsTests` | subscriptions, team tiers, pro version |
 | No server of ours | `build.sh` halts on a non-empty `backendBaseURL` **in the generated `Secrets.swift`**; `NoBackendPromisesTests` | cloud sync, accounts, SaluteJazz connector (plan §11) |
-| Data stays on the machine | button catalog fails to load when a button needs network | telemetry, «send us the transcript for analysis» |
+| Data stays on the machine | `build.sh` halts on a non-empty `backendBaseURL`; `OffDeviceTrafficTests` holds every file that calls our server to checking the address first | telemetry, «send us the transcript for analysis» |
 | Claim nothing that is absent | CONTRIBUTING, `LiveConnectorProbe`, census plan §2.0.3 | a «Connect» button before vendor docs are read |
 | Russian first | `contributing.test.mjs` | an interface where Russian arrives later as translation |
 | Apache 2.0 | `LICENSE` plus three checks in docs and page | licence swap to fend off clouds |
 
 Not values talk: every line breaks a build or a run when violated. A plan that
 needs them cancelled is a bad plan, not a bold one.
+
+**A second line had a hole of its own, found the same way.** «Data stays on the
+machine» rested on one test of one call (`claimDeviceTrial`) while nineteen files
+mention our server's address — so the border held because each author
+remembered, not because anything checked. `OffDeviceTrafficTests` now holds all
+of them as a class: a file that talks to our server must first check that an
+address exists.
+
+It found one that did not. `FeedbackUploader` built `URL(string:
+"/api/feedback")` — and with an empty address that is **not** nil, it is a valid
+relative URL. The request was assembled and failed later inside `URLSession`, so
+feedback went unsent by accident rather than by decision. Had an address ever
+appeared, the rating, the note and the email would have gone with it — a
+person's own words about their own meeting. The guard is explicit now, the
+address is injectable so the two branches can be tested at all, and the queued
+answer stays on disk untouched.
 
 **One of these lines was not true until 2026-08-18, and the way it failed is
 worth keeping.** The server halt read `sw BACKEND_URL` — while `sw` blanks that

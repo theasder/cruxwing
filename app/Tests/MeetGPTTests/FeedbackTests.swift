@@ -189,7 +189,7 @@ struct FeedbackTests {
         func noQueueNoRequest() async {
             // Every launch after delivery takes this path, so it must not cost
             // a request.
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(!sent)
             #expect(FeedbackStubProtocol.requestCount == 0)
         }
@@ -197,7 +197,7 @@ struct FeedbackTests {
         @Test("delivers a queued answer and marks it sent")
         func deliversAndMarks() async {
             FirstMeetingPrompt.record(rating: .good, note: "worked", email: nil)
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
 
             #expect(sent)
             #expect(FirstMeetingPrompt.unsent == nil)
@@ -208,7 +208,7 @@ struct FeedbackTests {
         func sendsExpectedFields() async {
             FirstMeetingPrompt.record(
                 rating: .bad, note: "missed the decision", email: "someone@example.com")
-            _ = await FeedbackUploader.flush(session: session)
+            _ = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
 
             #expect(FeedbackStubProtocol.lastBody?["rating"] as? String == "bad")
             #expect(FeedbackStubProtocol.lastBody?["note"] as? String == "missed the decision")
@@ -221,14 +221,14 @@ struct FeedbackTests {
             // The server stamps its own. A queued answer can be delivered days
             // late, so a device clock would be wrong exactly when it differs.
             FirstMeetingPrompt.record(rating: .good, note: nil, email: nil)
-            _ = await FeedbackUploader.flush(session: session)
+            _ = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(FeedbackStubProtocol.lastBody?["at"] == nil)
         }
 
         @Test("omits absent optional fields rather than sending null")
         func omitsEmptyOptionals() async {
             FirstMeetingPrompt.record(rating: .good, note: nil, email: nil)
-            _ = await FeedbackUploader.flush(session: session)
+            _ = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
 
             #expect(FeedbackStubProtocol.lastBody?["note"] == nil)
             #expect(FeedbackStubProtocol.lastBody?["email"] == nil)
@@ -240,7 +240,7 @@ struct FeedbackTests {
             FirstMeetingPrompt.record(rating: .good, note: "on a plane", email: nil)
             FeedbackStubProtocol.status = nil
 
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(!sent)
             #expect(FirstMeetingPrompt.unsent != nil,
                     "an offline answer must survive to the next launch")
@@ -252,7 +252,7 @@ struct FeedbackTests {
             FirstMeetingPrompt.record(rating: .bad, note: "broke", email: nil)
             FeedbackStubProtocol.status = 500
 
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(!sent)
             #expect(FirstMeetingPrompt.unsent != nil)
         }
@@ -263,7 +263,7 @@ struct FeedbackTests {
             FirstMeetingPrompt.record(rating: .good, note: nil, email: nil)
             FeedbackStubProtocol.status = 429
 
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(!sent)
             #expect(FirstMeetingPrompt.unsent != nil)
         }
@@ -275,7 +275,7 @@ struct FeedbackTests {
             FirstMeetingPrompt.record(rating: .good, note: "kept locally", email: nil)
             FeedbackStubProtocol.status = 400
 
-            let sent = await FeedbackUploader.flush(session: session)
+            let sent = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(!sent)
             #expect(FirstMeetingPrompt.unsent == nil, "a permanent rejection must stop retrying")
             #expect(FirstMeetingPrompt.stored?.note == "kept locally",
@@ -285,10 +285,10 @@ struct FeedbackTests {
         @Test("a delivered answer is not sent twice")
         func doesNotResend() async {
             FirstMeetingPrompt.record(rating: .good, note: "worked", email: nil)
-            _ = await FeedbackUploader.flush(session: session)
+            _ = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             let after = FeedbackStubProtocol.requestCount
 
-            _ = await FeedbackUploader.flush(session: session)
+            _ = await FeedbackUploader.flush(session: session, baseURL: "https://feedback.test")
             #expect(FeedbackStubProtocol.requestCount == after,
                     "a second launch must not re-post")
         }
