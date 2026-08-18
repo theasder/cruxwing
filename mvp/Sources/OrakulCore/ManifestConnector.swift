@@ -36,6 +36,14 @@ public struct ManifestConnector {
         /// советовать заведомо бесполезное действие. Разницу поймал набор
         /// Пачки, когда движок ответил на 403 «неподходящий токен».
         case forbidden
+        /// Сервис просит подождать: 429. Отдельно от `http` намеренно.
+        ///
+        /// «Ошибка 429» отправляет человека перевыпускать токен — он видит
+        /// слово «ошибка» и делает единственное, что умеет. А чинить тут
+        /// нечего: надо подождать, и сервис обычно говорит сколько.
+        /// Недружелюбному сервису дешевле придушить, чем заблокировать, так что
+        /// это норма работы, а не сбой.
+        case rateLimited(retryAfter: Int?)
         case http(Int)
         /// Сервис ответил отказом СВОИМИ словами — они и передаются дальше.
         case vendor(code: String, description: String)
@@ -177,6 +185,11 @@ public struct ManifestConnector {
         let (data, response) = try await http(makeRequest(query: query, limit: limit, page: page))
         if response.statusCode == 401 { throw ConnectorError.unauthorised }
         if response.statusCode == 403 { throw ConnectorError.forbidden }
+        if response.statusCode == 429 {
+            let header = response.value(forHTTPHeaderField: "Retry-After")
+                ?? response.value(forHTTPHeaderField: "retry-after")
+            throw ConnectorError.rateLimited(retryAfter: header.flatMap { Int($0) })
+        }
         guard (200..<300).contains(response.statusCode) else {
             throw ConnectorError.http(response.statusCode)
         }
@@ -217,8 +230,18 @@ public struct ManifestConnector {
 
             if let more = scan.more {
                 let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
-                var node: Any? = object
-                for step in more { node = (node as? [String: Any])?[step] }
+                let node = Self.follow(more, from: object)
+                // Признак объявлен, но его в ответе НЕТ — это смена формата, и
+                // «конец списка» отсюда не следует. Второй приём вендора:
+                // убрать поле, по которому мы понимаем, что дальше есть ещё.
+                // Откат на «страница короче размера» дал бы на полной странице
+                // «просмотрены все» — то есть часть, выданную за целое, ровно
+                // там, где §7.2 это запрещает.
+                //
+                // Отказом это не делается намеренно: выдача годная, неизвестна
+                // только её полнота. Поэтому охват остаётся `.latest`, и
+                // человек читает «просмотрены последние N», а не «все».
+                guard node != nil else { break }
                 if node as? Bool != true { exhausted = true; break }
             } else if rows.count < scan.perPage {
                 exhausted = true
@@ -256,7 +279,20 @@ public struct ManifestConnector {
             }
         }
 
-        return try rows(in: data).compactMap(item(from:))
+        let rows = try rows(in: data)
+        let items = rows.compactMap(item(from:))
+        // Строки пришли, а прочитать не удалось НИ ОДНУ — это смена формата, а
+        // не пустая выдача.
+        //
+        // Приём недружелюбного вендора, против которого это написано:
+        // переименовать поле. Отказа нет, форма ответа узнаётся, строки на
+        // месте — и orakul бодро отвечает «ничего не нашлось» до конца времён.
+        // Человек делает вывод про свои данные, а не про наш коннектор.
+        //
+        // Мягкое чтение при этом остаётся: одна пустая строка среди годных
+        // по-прежнему пропускается. Разница ровно в слове «ни одной».
+        if items.isEmpty && !rows.isEmpty { throw ConnectorError.unreadable }
+        return items
     }
 
     /// Строки ответа по манифесту. Незнакомая форма — отказ, а не пустая выдача.

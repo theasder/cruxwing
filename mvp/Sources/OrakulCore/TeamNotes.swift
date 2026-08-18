@@ -106,6 +106,8 @@ public struct TeamNotes {
         /// 502 от обратного прокси — это живой сервер и внятный
         /// ответ, а прежний текст советовал проверить ВЕРСИЮ, то
         /// есть отправлял человека не туда.
+        /// Сервис просит подождать: 429. Чинить нечего, надо переждать.
+        case rateLimited(retryAfter: Int?)
         case http(Int)
         case unreadable
 
@@ -121,6 +123,9 @@ public struct TeamNotes {
                 return "База знаний не подключена. Откройте «Настройки → Подключённые приложения» и вставьте токен."
             case .unauthorised:
                 return "База знаний не приняла токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+            case .rateLimited(let retryAfter):
+                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
+                return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "База знаний ответила ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
             case .unreadable:
@@ -197,6 +202,8 @@ public struct TeamNotes {
             case .unauthorised:  throw ConnectorError.unauthorised
             // У этих сервисов 403 и 401 человек чинит одинаково — новым токеном.
             case .forbidden:     throw ConnectorError.unauthorised
+            case .rateLimited(let retryAfter):
+                throw ConnectorError.rateLimited(retryAfter: retryAfter)
             case .http(let code): throw ConnectorError.http(code)
             // Свои слова сервиса у этих трёх в отдельный случай не выделены:
             // их отказы приходят кодом HTTP, а не телом с флагом. Если такой

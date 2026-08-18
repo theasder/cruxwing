@@ -1032,6 +1032,37 @@ scripts and refuses exactly this contradiction.
 
 ---
 
+## 10.1 If the vendor is not neutral — audit 2026-08-18
+
+Every connector here reads somebody else's API, and several of those somebodies
+sell a competing product. They cannot touch this repository; they can change
+their own service, legally and without notice. So the question is not «will they
+block us» — a block is visible — but **which hostile change leaves orakul
+answering cheerfully while being wrong**.
+
+Played as the attacker against the real code. What landed:
+
+| Move | What it did before | Now |
+|---|---|---|
+| Rename a response field (`title` → `heading`) | Rows arrive, shape is recognised, every row yields nothing, and the answer is «ничего не нашлось» — forever, for every question | Rows present but **none** readable is a format change, not an empty result: refused loudly. One unreadable row among good ones is still skipped |
+| Drop the «there is more» field | The scan fell back to «short page means the end», so a full page read as `.wholeList` — part presented as whole, exactly what §7.2 forbids | A declared marker that is absent means unknown, so coverage stays `.latest` and the answer says «last N», never «all» |
+| Throttle instead of blocking (429) | «Трекер ответил ошибкой 429» — the word «ошибка» sends a person to reissue a token that is fine | Its own case, with `Retry-After` when the service sends it, and the text says the token is not the problem |
+
+What already held, and why it is worth naming: HTTP 200 with an error in the
+body (`requireTrue`), a refusal in a GraphQL `errors` array, an HTML login page
+instead of JSON, a byte-per-second response (the 8-second deadline), and a
+narrowed scope arriving as 403 with its own message rather than «bad token».
+
+What this audit does **not** claim. It covers connectors described by manifests
+and the shared engine. A vendor can still do things nothing here detects —
+returning plausible but wrong rows, silently filtering results by who is asking,
+or shipping a subtly different corpus to us than to a browser. Those are not
+caught by parsing rules; they are caught by somebody comparing the answer with
+what they know, which is why «quote the line, name the source» is the product's
+first rule rather than a feature.
+
+---
+
 ## 11. Risks
 
 | Risk | How we learn it fired | What we do |

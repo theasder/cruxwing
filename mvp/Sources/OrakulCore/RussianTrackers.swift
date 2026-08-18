@@ -155,6 +155,8 @@ public struct RussianTrackers {
     public enum TrackerError: Error, Equatable, LocalizedError {
         case notConfigured(Service)
         case unauthorised(Service)
+        /// Сервис просит обращаться реже: 429. Чинить нечего, надо переждать.
+        case rateLimited(Service, retryAfter: Int?)
         case http(Service, Int)
         /// Сервис ответил успехом, а внутри — отказ.
         ///
@@ -174,6 +176,9 @@ public struct RussianTrackers {
         /// отказал. При трёх подключённых это делает сообщение бесполезным.
         public var errorDescription: String? {
             switch self {
+            case .rateLimited(let service, let retryAfter):
+                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
+                return "\(service.title) просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .notConfigured(let service):
                 return "\(service.title) не подключён. Вставьте токен в «Настройки → Подключённые приложения»."
             case .unauthorised(let service):
@@ -272,6 +277,8 @@ public struct RussianTrackers {
             switch error {
             case .notConfigured:  throw TrackerError.notConfigured(service)
             case .unauthorised, .forbidden: throw TrackerError.unauthorised(service)
+            case .rateLimited(let retryAfter):
+                throw TrackerError.rateLimited(service, retryAfter: retryAfter)
             case .http(let code): throw TrackerError.http(service, code)
             // Слова сервиса доходят до человека как есть: «invalid_token —
             // Token revoked» объясняет причину, а наше «непонятный ответ» нет.
