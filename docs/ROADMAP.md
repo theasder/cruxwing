@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 248 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 249 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2822 and 521 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1041,17 +1041,37 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` checks what rots first in a document like this:
+`test/roadmap.test.mjs` holds **18 checks** against this file. They fall into
+four kinds, and the kinds matter more than the list:
 
-- sections numbered and in order;
-- a service called connected here exists in the code — and the reverse;
-- a service closed in the plan with a cause is not promised here as work;
-- Russian service names spelled the way the code spells them;
-- every external claim carries a footnote with an address and a read date.
+**Structure** — sections numbered and in order; every `plan §N` reference
+resolves to a section that exists; every footnote is defined, used, and carries
+an address and a read date; README points here.
+
+**Counts measured, not remembered** — own connectors, page-and-doc tests, the
+ceiling on English strings in the interface, the numbers §5.2 quotes about
+`build.sh`. Each is recomputed from code on every run, so «measured on the 17th»
+cannot quietly become a memory.
+
+**Claims against code** — a service called connected exists in the code and the
+reverse; a manifest is unreachable exactly when this file says it is; the scan
+bound here equals the engine's; §8's package promises hold against the packaging
+scripts; a queue row shows what it depends on.
+
+**Contradictions inside one section** — a system the §8 table calls working
+cannot be called untested three lines below, and something closed with cause in
+the plan is not promised here as work. This kind was added after both had
+happened.
 
 The check does not make the plan right. It makes it **checkable** — and a wrong
 but checkable plan gets fixed by one edit, while a wrong and uncheckable one
 lives for years and spends other people's time.
+
+The number above is itself checked. This section listed five checks while the
+file ran seventeen — the section whose job is preventing staleness had gone stale
+first, because nothing counted it. Adding a check now fails the suite until this
+paragraph is updated, which is the cheapest possible way to keep a document
+honest about itself.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: **user token only** with the `search:read` scope — no bot token is accepted; arguments `query` (required), `count` (max 100, default 20), `page`, `cursor`, `sort`, `sort_dir`; response `{ok, query, messages: {total, matches: [{type, channel: {id, name, is_private, is_mpim}, text, username, ts, permalink}], pagination}}`; refusals arrive with HTTP 200 and `{"ok": false, "error": …}`; rate limit tier 2; marked legacy, with `assistant.search.context` named as the replacement. read 2026-08-18: https://docs.slack.dev/reference/methods/search.messages
