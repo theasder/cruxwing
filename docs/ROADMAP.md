@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 270 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 588 | README, maintainer run |
+| App and core tests | 2833 and 594 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,40 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The defences met a real socket, and the first thing they refuted was their own
+comment.** Everything written against a hostile service had been tested through a
+stubbed `http` closure — which never touches URLSession, and therefore cannot
+tell «the rule is correct» from «the rule is applied». A perfect redirect policy
+with an unwired delegate passes exactly the same. `scripts/vrazhdebnyj-server.py`
+now plays the hostile vendor and, on a second port, the stranger it tries to
+hand the request to; `scripts/vrazhdebnaya-proba.sh` runs the suite against it.
+
+The comment on `RedirectPolicy` claimed that `URLSession` carries the
+`Authorization` header to the foreign host. Measured, it depends on the system,
+and nobody had ever run it:
+
+| | Follows the redirect | Sends `Authorization` to the stranger |
+|---|---|---|
+| macOS | yes | **no** — Foundation strips it |
+| Linux, corelibs 6.0.3 | yes | **yes** — the collector got `Bearer секретный-ключ` |
+
+So the claim was right on Linux and wrong on macOS, and «Foundation protects
+you» is not a thing that exists. The command line runs on Linux (§6.1), which
+makes this delegate the only thing between a tracker token and an address the
+vendor picked. Verified in a container with the delegate in place: the response
+is the 302 itself and the collector's counter stays at zero.
+
+The rule stays «do not follow», not «strip the header», for a reason the
+measurement makes concrete: on both systems the **request itself** still reaches
+the stranger, and a connector's query parameter holds the word the person is
+searching for — the content of their call. And header-stripping is another
+library's behaviour, promised by nobody here, absent on one of the two systems
+we ship.
+
+The trap is checked before it is trusted: the default session must reach the
+collector, or «nobody reached the stranger» would be green with a broken
+collector.
 
 **Two connectors stopped being built from documentation — 2026-08-19.** The
 admission rule wants a run against a live service, and that had been reading as
