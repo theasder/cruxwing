@@ -6,10 +6,12 @@ enum Secrets {
     static let googleAIAPIKey  = ""
     static let deepgramAPIKey  = ""
     static let assemblyAIAPIKey = ""
+    // Local/test builds may use the gitignored .env Desktop OAuth client.
+    // MEETGPT_DIST=1 blanks both values: sw() пропускает только публичные настройки.
     static let googleClientID  = ""
-    // A native OAuth client cannot keep this credential confidential. Local/test
-    // builds may inject it from app/.env; MEETGPT_DIST=1 scrubs it and the client
-    // ID so public builds cannot accidentally reuse a private test project.
+    // A native OAuth client cannot keep this credential confidential. Local and
+    // tester builds may inject it from the gitignored .env; public distribution
+    // builds still scrub it so they cannot accidentally reuse a private project.
     static let googleClientSecret = ""
     static let backendBaseURL  = ""
     static let backendCertPins = ""

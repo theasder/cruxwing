@@ -358,4 +358,48 @@ describe('учётные данные', () => {
     assert.ok(scan > 0 && sign > 0, 'в notarize.sh пропала проверка или подпись');
     assert.ok(scan < sign, 'проверка значений стоит после подписи');
   });
+
+
+  test('останов на адресе сервера может сработать — и срабатывает', () => {
+    // §3 роадмапа обещает: «каждая строка ломает сборку или запуск, когда её
+    // нарушают». Для строки про сервер это было неправдой. Проверка читала
+    // `sw BACKEND_URL`, а тот же `sw` двадцатью строками выше стирает эту
+    // переменную в dist-ветке — значит останов не мог сработать НИКОГДА, а
+    // «сервер не задан — так и задумано» печаталось как доказательство.
+    //
+    // Здесь проверяется главное свойство сторожа: что он умеет падать.
+    const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+    // Строка берётся целиком: внутри неё есть свои скобки, и «до первой
+    // закрывающей» вырезает половину команды — первая версия этой проверки так
+    // и сделала и упала на исправном стороже.
+    const line = build.split('\n').find((text) => text.includes('DIST_BACKEND='));
+    assert.ok(line, 'останов больше не читает Secrets.swift');
+    assert.ok(!/sw BACKEND_URL/.test(line),
+      'останов снова читает функцию вместо сгенерированного файла');
+
+    const dir = mkdtempSync(join(tmpdir(), 'orakul-backend-'));
+    const run = (contents) => {
+      const secrets = join(dir, `Secrets-${Math.random().toString(36).slice(2)}.swift`);
+      writeFileSync(secrets, contents);
+      const script = [
+        'set -u',
+        `SECRETS=${JSON.stringify(secrets)}`,
+        line.trim(),
+        'if [ -n "$DIST_BACKEND" ]; then echo "останов"; exit 1; fi',
+        'echo "проход"',
+      ].join('\n');
+      try {
+        return { code: 0, out: execFileSync('bash', ['-c', script], { encoding: 'utf8' }) };
+      } catch (error) {
+        return { code: error.status, out: `${error.stdout ?? ''}` };
+      }
+    };
+
+    const empty = 'struct Secrets {\n    static let backendBaseURL  = ""\n}\n';
+    const filled = 'struct Secrets {\n    static let backendBaseURL  = "https://api.orakul.ai"\n}\n';
+    assert.equal(run(empty).code, 0, 'останов сработал на пустом адресе — сборка встанет всегда');
+    assert.equal(run(filled).code, 1, 'адрес сервера в Secrets.swift не остановил сборку');
+
+    rmSync(dir, { recursive: true, force: true });
+  });
 });

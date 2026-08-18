@@ -29,8 +29,8 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 252 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2822 and 521 | README, maintainer run |
+| Page and doc checks | 253 tests, all green | `npm test`, run 2026-08-18 |
+| App and core tests | 2824 and 554 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -90,7 +90,7 @@ id is refused even with credentials.
 | Border | Enforced by | What it deletes from any plan |
 |---|---|---|
 | Nothing paid | `NoTariffsTests` | subscriptions, team tiers, pro version |
-| No server of ours | `build.sh` halts the build on non-empty `BACKEND_URL`; `NoBackendPromisesTests` | cloud sync, accounts, SaluteJazz connector (plan §11) |
+| No server of ours | `build.sh` halts on a non-empty `backendBaseURL` **in the generated `Secrets.swift`**; `NoBackendPromisesTests` | cloud sync, accounts, SaluteJazz connector (plan §11) |
 | Data stays on the machine | button catalog fails to load when a button needs network | telemetry, «send us the transcript for analysis» |
 | Claim nothing that is absent | CONTRIBUTING, `LiveConnectorProbe`, census plan §2.0.3 | a «Connect» button before vendor docs are read |
 | Russian first | `contributing.test.mjs` | an interface where Russian arrives later as translation |
@@ -98,6 +98,20 @@ id is refused even with credentials.
 
 Not values talk: every line breaks a build or a run when violated. A plan that
 needs them cancelled is a bad plan, not a bold one.
+
+**One of these lines was not true until 2026-08-18, and the way it failed is
+worth keeping.** The server halt read `sw BACKEND_URL` — while `sw` blanks that
+same variable twenty lines above, inside the same dist branch. The variable was
+therefore empty always, the halt could not fire under any circumstances, and
+«сервер не задан — так и задумано» printed on every build as if it were
+evidence. A guard that cannot fail is worse than no guard: it occupies the place
+where a real one would go, and it reports success.
+
+It now reads the **generated** `Secrets.swift`, so any route by which an address
+could reach the file — a removed blanking, a second write, a hand edit — stops
+the build. `test/secrets.test.mjs` proves it can fail: an empty address passes,
+a filled one exits 1. That distinction is the whole point of the border table,
+and it is now checked rather than asserted.
 
 ---
 
