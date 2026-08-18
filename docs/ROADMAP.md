@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 262 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 266 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 575 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -596,7 +596,7 @@ consent a condition of entry rather than a promise.
 
 ### 6.4 Russian strings to the end
 
-Measured 2026-08-18: of 441 string literals in `Views/` and `Onboarding/`, 23
+Measured 2026-08-18: of 446 string literals in `Views/` and `Onboarding/`, 23
 carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
 not a work list**: what is left is names (`GitHub`, `orakul`), bare
 interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
@@ -616,15 +616,33 @@ reads: `Refining…`, `Detach`, `Settings (⌘,)`, `Remove all N meetings`,
 accessibility labels beside them, which are the half that usually stays English
 because nobody sees it.
 
-Command to reproduce:
+Command to reproduce — useful at a terminal, and **not** what guards this:
 
 ```bash
 cd app/Sources/MeetGPT && grep -rhoE '(Text|Label|Button|Toggle|\.help|\.navigationTitle|Section)\(\s*"[^"]{4,}"' Views Onboarding \
   | grep -oE '"[^"]+"' | sort -u | grep -vc "[а-яА-ЯёЁ]"
 ```
 
-CONTRIBUTING already calls this a ready newcomer task. The missing pieces: the
-number inside the repo, and a check that stops it growing.
+`grep` reads one line at a time, and a call split over two lines is invisible to
+it:
+
+```swift
+Label(
+    "Определить самому · \(detected.displayLabel)",
+```
+
+That is a real line in `BrainstormPanel.swift`, and it is why the denominator
+above was 441 for a day while the truth was 446. The consequence is not the
+arithmetic: an English string written in that shape would grow the bound and the
+command would report no growth at all. Its Cyrillic class also depends on the
+locale, which is not the same in the macOS and Linux jobs.
+
+**Both missing pieces are closed — 2026-08-18.** `test/russkie-stroki.test.mjs`
+does the scan itself, across whole files rather than lines, and pins both
+numbers to the ones written above: growth fails the suite, and a drop fails it
+too, because a ceiling nobody lowers stops meaning anything. CONTRIBUTING
+already calls this a ready newcomer task, and the newcomer now gets told the
+exact number their patch has to move.
 
 ---
 
