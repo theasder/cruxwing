@@ -64,6 +64,17 @@ public enum ConnectorSession {
         // дольше разговора им негде. Своя недолгая память — в ConnectorCache.
         configuration.urlCache = nil
         configuration.httpCookieStorage = nil
+        // Сервису не обязательно отвечать, чтобы навредить: достаточно не
+        // закрывать соединение. `timeoutIntervalForRequest` считает ПАУЗЫ, и
+        // байт раз в двадцать секунд обнуляет его вечно. По умолчанию у второго
+        // предела стоит СЕМЬ СУТОК — то есть его нет.
+        //
+        // Здесь ограничен весь обмен целиком: минута на ответ, дальше отказ.
+        // Поиск по трекеру, который идёт минуту, — это уже сломанный поиск.
+        configuration.timeoutIntervalForRequest = 30
+        configuration.timeoutIntervalForResource = 60
+        // Ожидание доступной сети не должно превращаться в вечное ожидание.
+        configuration.waitsForConnectivity = false
         return URLSession(configuration: configuration,
                           delegate: guardDelegate,
                           delegateQueue: nil)
@@ -71,18 +82,33 @@ public enum ConnectorSession {
 
     /// То, что подставляется коннекторам как `live`.
     public static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await session.data(for: request)
+        let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
-        // Тот же предел, что у движка, — но здесь он закрывает коннекторы,
-        // написанные руками: они разбирают ответ сами и до движка не доходят.
-        //
-        // Сжатие тут учтено само собой: URLSession отдаёт уже распакованное,
-        // поэтому мегабайт, разворачивающийся в гигабайт, считается гигабайтом.
-        guard data.count <= ManifestConnector.maximumResponseBytes else {
-            throw URLError(.dataLengthExceedsMaximum)
-        }
+        let data = try await collect(bytes, limit: ManifestConnector.maximumResponseBytes)
         return (data, http)
+    }
+
+    /// Складывает ответ, останавливаясь на пределе.
+    ///
+    /// Предел стоял и раньше, но проверялся ПОСЛЕ `session.data(for:)`, а тот
+    /// сначала складывает в память весь ответ целиком. Сервис, отдающий десять
+    /// гигабайт, съедал память до последнего байта, и только потом сторож
+    /// сообщал, что ответ великоват. Сторож был, срабатывать ему было уже не по
+    /// чему.
+    ///
+    /// Сжатие учтено само собой: `URLSession` отдаёт уже распакованное, поэтому
+    /// килобайт, разворачивающийся в гигабайт, считается гигабайтом — и здесь
+    /// обрывается на восьмом мегабайте, а не после гигабайта.
+    static func collect<Bytes: AsyncSequence>(_ bytes: Bytes, limit: Int) async throws -> Data
+    where Bytes.Element == UInt8 {
+        var data = Data()
+        for try await byte in bytes {
+            data.append(byte)
+            // Строго больше: ответ ровно в предел — законный ответ.
+            if data.count > limit { throw URLError(.dataLengthExceedsMaximum) }
+        }
+        return data
     }
 }

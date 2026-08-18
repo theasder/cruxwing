@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 260 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 565 | README, maintainer run |
+| App and core tests | 2833 and 570 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1259,6 +1259,26 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**A guard that fires too late is not a guard.** The eight-megabyte response
+limit had been in place since the hostile-vendor exercise, and it was checked
+after `session.data(for:)` returned — a call that buffers the entire body in
+memory first. A service answering with ten gigabytes was therefore allowed to
+allocate ten gigabytes, and only then told that its answer was rather large.
+The limit was real, the check ran, and the machine was already dead. It now
+streams and stops on the byte that crosses the line.
+
+The test measures **bytes actually consumed**, not that an error was thrown:
+«it threw» is equally green whether the limit fired at eight megabytes or after
+a gigabyte sat in memory, which is precisely how the old version passed for
+weeks.
+
+A service does not have to send anything to do damage — it can simply not close
+the connection. `timeoutIntervalForRequest` counts *gaps* between bytes, so one
+byte every twenty seconds resets it forever, and the second limit,
+`timeoutIntervalForResource`, defaults to **seven days**: effectively absent.
+The whole exchange is now bounded to a minute. A tracker search that takes a
+minute is already a broken search.
 
 **The protocol the person typed.** A service address is filled in by hand, and
 the token travels to whatever address that is. `http://git.company.ru`, copied
