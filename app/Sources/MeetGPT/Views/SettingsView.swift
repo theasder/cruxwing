@@ -15,6 +15,27 @@ enum SettingsTab: String, Hashable, CaseIterable {
 /// Privacy (sign-in, deletion, consent, data routing). Each tab sizes itself;
 /// the window adapts per tab as macOS users expect.
 struct SettingsView: View {
+
+    /// Строка, которую человек копирует в сообщение об ошибке.
+    ///
+    /// Имя, версия и хеш исходников: по первым двум понятно, что человек
+    /// запускал, по третьему — из какого кода это собрано. Хеш ставит сборка
+    /// (`OrakulSourceHash`), и он отличает две сборки одного коммита, чего
+    /// номер коммита не умеет.
+    static var buildSignature: String { buildSignature(from: Bundle.main.infoDictionary ?? [:]) }
+
+    /// Отдельно от `Bundle.main`, чтобы это можно было проверить набором: под
+    /// тестами `Bundle.main` — это раннер, а не приложение, и штампа там нет.
+    static func buildSignature(from info: [String: Any]) -> String {
+        let name = (info["CFBundleDisplayName"] as? String)
+            ?? (info["CFBundleName"] as? String) ?? "orakul"
+        let version = (info["CFBundleShortVersionString"] as? String) ?? ""
+        let source = (info["OrakulSourceHash"] as? String) ?? ""
+        // Имя и версия — через пробел, штамп исходников — за точкой: она
+        // отделяет то, что человек и так знает, от того, что нужно нам.
+        let head = [name, version].filter { !$0.isEmpty }.joined(separator: " ")
+        return source.isEmpty ? head : "\(head) · \(source)"
+    }
     @EnvironmentObject var state: AppState
 
     var body: some View {
@@ -24,6 +45,7 @@ struct SettingsView: View {
     }
 
     @ViewBuilder private var trackedBody: some View {
+        VStack(spacing: 0) {
         TabView(selection: $state.selectedSettingsTab) {
             GeneralSettingsTab()
                 .tabItem { Label("Общее", systemImage: "gearshape") }
@@ -40,6 +62,24 @@ struct SettingsView: View {
             AccountPrivacyTab()
                 .tabItem { Label("Аккаунт и приватность", systemImage: "person.badge.key") }
                 .tag(SettingsTab.accountPrivacy)
+        }
+        // Версия — под вкладками, чтобы её было видно с любой из них.
+        // Раньше её не было нигде: сборка штампует `OrakulSourceHash` в
+        // Info.plist, но человек туда не заглянет, и сообщение «не работает»
+        // приходило без ответа на первый же вопрос — какую сборку он проверял.
+        // `ДЛЯ-ТЕСТИРОВЩИКА.md` пункт 4 просит прислать эту строку, поэтому
+        // она выделяется мышью.
+        //
+        // Показывается то, что есть: у сборки разработчика штампа нет, и
+        // выдумывать его нельзя — тестировщик перепишет выдумку как факт.
+        Text(SettingsView.buildSignature)
+            .font(Typo.caption)
+            .foregroundStyle(Theme.inkTertiary)
+            .textSelection(.enabled)
+            .accessibilityIdentifier("settings.build-signature")
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Space.xl)
+            .padding(.bottom, Space.m)
         }
         .background(Theme.canvas)
     }
