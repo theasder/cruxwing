@@ -78,7 +78,11 @@ struct ConnectorSessionLimitTests {
         let configuration = ConnectorSession.session.configuration
         #expect(configuration.timeoutIntervalForResource == 60)
         #expect(configuration.timeoutIntervalForRequest == 30)
+        // Только на Apple: у corelibs это свойство на чтение, и требовать от
+        // него значения значит требовать несуществующего.
+        #if canImport(Darwin)
         #expect(configuration.waitsForConnectivity == false)
+        #endif
         // Семь суток — значение по умолчанию, то есть «предела нет».
         #expect(configuration.timeoutIntervalForResource < 7 * 24 * 60 * 60)
     }

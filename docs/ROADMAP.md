@@ -1302,6 +1302,38 @@ invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
 
+**The socket check went into CI, and running it there found the core had not
+compiled on Linux for four days.** The step was written, and then — before
+trusting it — run inside the same `swift:6.0` image the job uses. It failed
+immediately, and not for the reason it was written:
+
+* `URLSession.bytes(for:)` **does not exist** in swift-corelibs-foundation, so
+  the streaming size limit added two days earlier broke the Linux build of
+  `OrakulCore` outright;
+* `waitsForConnectivity` is **get-only** there, so the timeout work broke it a
+  second time.
+
+Both landed in the same commit, both were invisible on macOS, and CI had not
+run because nothing had been pushed. The command line ships on Linux — that is
+what §6.1 is for — so this was not a CI inconvenience: the product did not
+build for its second platform and every suite was green.
+
+The streaming limit is now a `URLSessionDataDelegate` that works the same on
+both systems — chunks counted as they arrive, the task cancelled on the first
+one past the limit — rather than an Apple-only API with the protection quietly
+dropped on Linux. Per-task state is keyed by task identifier, because one
+delegate serves the whole session and a shared buffer would put one service's
+answer into another's.
+
+**The script that runs it could not fail.** Written the day before, it ended in
+`| grep … || true`: three red tests, exit code zero. Wiring that into CI would
+have added a step incapable of reporting anything. It now propagates the
+status — and refuses a **skipped** suite, which needed its own answer, because
+Swift Testing prints «6 tests passed after 0.001 seconds» for a suite disabled
+by `.enabled(if:)`. Parsing that line would have been green exactly when
+nothing ran, so the proof is the stranger's hit counter instead: no visit, no
+run.
+
 **The defences met a real socket, and the first thing they refuted was their own
 comment.** Everything written against a hostile service had been tested through a
 stubbed `http` closure — which never touches URLSession, and therefore cannot

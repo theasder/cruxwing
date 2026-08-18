@@ -79,6 +79,104 @@ public enum ConnectorSession {
     }
 
     private static let guardDelegate = RedirectGuard()
+    private static let streamGuard = StreamGuard()
+
+    /// Складывает ответ кусками и обрывает задачу на первом куске за пределом.
+    ///
+    /// Состояние — по номеру задачи: делегат один на всю сессию, а запросов
+    /// одновременно много. Общий буфер здесь означал бы перемешанные ответы,
+    /// то есть чужую задачу в чужой выдаче.
+    private final class StreamGuard: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+
+        private struct Pending {
+            var data = Data()
+            var limit = 0
+            var response: HTTPURLResponse?
+            var continuation: CheckedContinuation<(Data, HTTPURLResponse), Error>?
+        }
+
+        private let lock = NSLock()
+        private var pending: [Int: Pending] = [:]
+
+        func send(_ request: URLRequest, on session: URLSession,
+                  limit: Int) async throws -> (Data, HTTPURLResponse) {
+            let task = session.dataTask(with: request)
+            return try await withCheckedThrowingContinuation { continuation in
+                lock.lock()
+                var slot = Pending()
+                slot.limit = limit
+                slot.continuation = continuation
+                pending[task.taskIdentifier] = slot
+                lock.unlock()
+                task.resume()
+            }
+        }
+
+        /// Возвращает продолжение ровно один раз: второй вызов — падение.
+        private func finish(_ id: Int, with result: Result<(Data, HTTPURLResponse), Error>) {
+            lock.lock()
+            let continuation = pending[id]?.continuation
+            pending[id]?.continuation = nil
+            if continuation != nil { pending[id] = nil }
+            lock.unlock()
+            continuation?.resume(with: result)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask,
+                        didReceive response: URLResponse,
+                        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
+            lock.lock()
+            pending[dataTask.taskIdentifier]?.response = response as? HTTPURLResponse
+            lock.unlock()
+            completionHandler(.allow)
+        }
+
+        func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+            lock.lock()
+            guard var slot = pending[dataTask.taskIdentifier] else { lock.unlock(); return }
+            slot.data.append(data)
+            let over = slot.data.count > slot.limit
+            pending[dataTask.taskIdentifier] = slot
+            lock.unlock()
+
+            if over {
+                // Отмена — не «мы больше не читаем», а «соединение закрыто»:
+                // иначе сервис продолжает лить, а мы продолжаем платить.
+                dataTask.cancel()
+                finish(dataTask.taskIdentifier,
+                       with: .failure(URLError(.dataLengthExceedsMaximum)))
+            }
+        }
+
+        func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+            lock.lock()
+            let slot = pending[task.taskIdentifier]
+            lock.unlock()
+            if let error {
+                finish(task.taskIdentifier, with: .failure(error))
+                return
+            }
+            guard let http = slot?.response else {
+                finish(task.taskIdentifier, with: .failure(URLError(.badServerResponse)))
+                return
+            }
+            finish(task.taskIdentifier, with: .success((slot?.data ?? Data(), http)))
+        }
+
+        // Перенаправления остаются на том же правиле: делегат у сессии один, и
+        // задачи с данными идут через него же.
+        func urlSession(_ session: URLSession, task: URLSessionTask,
+                        willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest,
+                        completionHandler: @escaping (URLRequest?) -> Void) {
+            guard let from = task.originalRequest?.url, let to = request.url,
+                  RedirectPolicy.allows(from: from, to: to) else {
+                completionHandler(nil)
+                return
+            }
+            completionHandler(request)
+        }
+    }
 
     /// Одна сессия на процесс: у каждой свой пул соединений, и создавать её на
     /// запрос значит открывать соединение заново на каждый вопрос.
@@ -98,20 +196,35 @@ public enum ConnectorSession {
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 60
         // Ожидание доступной сети не должно превращаться в вечное ожидание.
+        //
+        // Только у Apple: в swift-corelibs-foundation это свойство доступно
+        // ТОЛЬКО НА ЧТЕНИЕ, и присваивание там не собирается. Потолок на весь
+        // обмен выше работает на обеих системах, поэтому Linux не остаётся без
+        // границы — он остаётся без одной из двух.
+        #if canImport(Darwin)
         configuration.waitsForConnectivity = false
+        #endif
         return URLSession(configuration: configuration,
-                          delegate: guardDelegate,
+                          delegate: streamGuard,
                           delegateQueue: nil)
     }()
 
     /// То, что подставляется коннекторам как `live`.
+    ///
+    /// Через делегата, а не через `session.bytes(for:)`.
+    ///
+    /// `bytes(for:)` есть только у Apple: в swift-corelibs-foundation 6.0.3
+    /// такого метода нет вовсе, и ядро на Linux с ним просто не собиралось.
+    /// Узналось это, когда шаг CI впервые запустили в том же образе, в котором
+    /// он должен идти, — на моей машине всё собиралось четыре дня подряд.
+    ///
+    /// Делегат работает на обеих системах одинаково: куски приходят по мере
+    /// прихода, счётчик растёт, на первом же куске за пределом задача
+    /// отменяется. Именно этого и добивались: ответ не должен оказаться в
+    /// памяти целиком, чтобы про него сказали «великоват».
     public static func send(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (bytes, response) = try await session.bytes(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        let data = try await collect(bytes, limit: ManifestConnector.maximumResponseBytes)
-        return (data, http)
+        try await streamGuard.send(request, on: session,
+                                   limit: ManifestConnector.maximumResponseBytes)
     }
 
     /// Складывает ответ, останавливаясь на пределе.
