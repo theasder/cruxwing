@@ -204,7 +204,7 @@ public struct SelfHostedTrackers {
             let outcome = try await connector.run(query)
             return (outcome.items.map {
                 Item(key: $0.key, title: $0.title, state: $0.state, service: service)
-            }, outcome.coverage.note)
+            }, outcome.coverage.note())
         } catch let error as ManifestConnector.ConnectorError {
             // Ошибки те же по смыслу, но тип наружу обязан остаться прежним: на
             // нём висят русские тексты с действием, и на них смотрит интерфейс.

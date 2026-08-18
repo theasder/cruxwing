@@ -81,7 +81,7 @@ import FoundationNetworking
                                           host: "https://example.com", http: http)
         let outcome = try await connector.run("лимиты")
         #expect(outcome.coverage == .wholeList(scanned: 1))
-        #expect(outcome.coverage.note.contains("все 1"))
+        #expect(outcome.coverage.note().contains("все 1"))
     }
 
     @Test("граница сработала — выдача называет и охват, и полный размер")
@@ -95,8 +95,8 @@ import FoundationNetworking
         let outcome = try await connector.run("которой нет")
         #expect(outcome.items.isEmpty)
         #expect(outcome.coverage == .latest(scanned: 200, total: 40000))
-        #expect(outcome.coverage.note.contains("последние 200"))
-        #expect(outcome.coverage.note.contains("40000"))
+        #expect(outcome.coverage.note().contains("последние 200"))
+        #expect(outcome.coverage.note().contains("40000"))
     }
 
     @Test("страниц читается не больше объявленного")
@@ -162,7 +162,7 @@ import FoundationNetworking
                                           host: "https://example.com", http: http)
         let outcome = try await connector.run("лимиты")
         #expect(outcome.coverage == .searched)
-        #expect(outcome.coverage.note.isEmpty, "приписка к обычному поиску — шум в каждой подсказке")
+        #expect(outcome.coverage.note().isEmpty, "приписка к обычному поиску — шум в каждой подсказке")
     }
 
     @Test("незаполненное поле — не «настроено наполовину»")

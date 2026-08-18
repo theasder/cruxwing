@@ -25,7 +25,7 @@ public enum ConnectorQuery {
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip",
-           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github", "заметки"]
 
     public struct Settings {
         public let service: String
@@ -83,6 +83,24 @@ public enum ConnectorQuery {
         guard services.contains(settings.service) else {
             return .init(text: unknownService(settings.service), failed: true)
         }
+        // Заметки на диске — раньше проверки токена: токена у них нет и быть
+        // не может, в этом вся их суть. Требовать его значило бы не пускать
+        // единственный источник, который ничего не обещает сети.
+        if settings.service == "заметки" {
+            guard let folder = settings.host, !folder.isEmpty else {
+                return .init(text: "Заметки: нужна папка — положите путь в ORAKUL_HOST.",
+                             failed: true)
+            }
+            do {
+                let outcome = try LocalNotes(root: URL(fileURLWithPath: folder)).search(trimmed)
+                return render("Заметки",
+                              outcome.hits.map { "\($0.path): \($0.context)" },
+                              note: outcome.coverage.note(.folder))
+            } catch {
+                return .init(text: explain(error), failed: true)
+            }
+        }
+
         guard !settings.token.isEmpty else {
             return .init(text: "Нет токена. Положите его в ORAKUL_TOKEN — он никуда не пишется.",
                          failed: true)

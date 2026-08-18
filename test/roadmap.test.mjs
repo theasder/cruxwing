@@ -96,7 +96,14 @@ describe('ROADMAP', () => {
       + services('WorkMessengers.swift')
       + services('SelfHostedTrackers.swift')
       + services('TeamNotes.swift')
-      + 2;  // GitHub и Telegram — отдельные типы, а не перечисления сервисов
+      // Источники, у которых нет перечисления Service: они самостоятельные типы.
+      // Список руками, поэтому каждый назван и проверен на существование —
+      // иначе число «+3» переживёт удаление любого из них.
+      + ['GitHubConnector', 'TelegramSupergroups', 'LocalNotes']
+          .filter((type) => {
+            const src = read('mvp', 'Sources', 'OrakulCore', `${type}.swift`);
+            return new RegExp(`public struct ${type}\\b`).test(src);
+          }).length;
 
     const mcp = read('app', 'Sources', 'MeetGPT', 'MCP', 'MCPCatalog.swift');
     const builtIn = mcp.slice(mcp.indexOf('static let builtIn'));

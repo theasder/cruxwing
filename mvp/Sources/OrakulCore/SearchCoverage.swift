@@ -1,0 +1,44 @@
+import Foundation
+
+/// Насколько выдача покрывает то, о чём спросили.
+///
+/// Общая для всех источников намеренно. Появилась ради сервисов, которые не
+/// умеют искать по слову (роадмап, §7.2), но вопрос у неё шире: «ничего не
+/// нашлось» — три разных ответа, и без этой разницы два из них врут.
+///
+///   * `.searched` — искал сам сервис. Ничего нет значит ничего нет.
+///   * `.wholeList` — мы просмотрели всё, до чего дотянулись, и слово не
+///     встретилось. Ответ такой же надёжный, как первый.
+///   * `.latest` — граница сработала. «Не нашлось среди последних 500 из
+///     40 000» — другой ответ, и выдать его за первый значит соврать.
+public enum SearchCoverage: Equatable, Sendable {
+    case searched
+    case wholeList(scanned: Int)
+    case latest(scanned: Int, total: Int?)
+
+    /// О чём речь: о чужом сервисе или о папке на этом компьютере. От этого
+    /// зависит не форма, а причина — почему отбирали мы, а не он.
+    public enum Subject: Sendable {
+        case service
+        case folder
+    }
+
+    /// Словами, как это увидит человек. Пусто там, где сказать нечего:
+    /// приписка к обычному поиску была бы шумом в каждой подсказке.
+    public func note(_ subject: Subject = .service) -> String {
+        let because = subject == .service
+            ? "сервис не ищет по слову, отбирали у себя"
+            : "искали по файлам на этом компьютере"
+        switch self {
+        case .searched:
+            return ""
+        case .wholeList(let scanned):
+            let what = subject == .service ? "все" : "все файлы"
+            return "просмотрены \(what) \(scanned) — \(because)"
+        case .latest(let scanned, let total):
+            let whole = total.map { " из \($0)" } ?? ""
+            let what = subject == .service ? "последние" : "последние файлы"
+            return "просмотрены \(what) \(scanned)\(whole) — \(because)"
+        }
+    }
+}

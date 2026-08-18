@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 21 own connectors, 11 western via MCP.
+Total: 22 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -599,7 +599,7 @@ setting.
 | **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
-| **Local notes: Obsidian and any `.md` directory** | No API at all, files on the same disk | The only source promising nothing to the network, and it fits «everything is computed on the device» without caveats. The question is how a person points at the directory and what to do with large vaults |
+| **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18** in the core and the command line (`orakul спросить заметки …`, folder in `ORAKUL_HOST`). No API, no token, no host — files read from disk, and unplugging the network changes nothing | Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage says so. The remaining half is the app: choosing a folder there means a security-scoped bookmark, which is macOS work, not connector work |
 
 The western layer already covers eleven MCP servers, and adding there is one
 line in the catalog (plan §2.2). The shortage sits elsewhere: sources that work
