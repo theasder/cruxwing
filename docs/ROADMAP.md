@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 260 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 262 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 570 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -340,11 +340,24 @@ clear task, not for code.
   instead of being re-researched. `test/opensource.test.mjs` pins the four
   required field ids, the dead-end wording, and the absent label.
 
-### 5.5 README: a «what next» line
+### 5.5 README: a «what next» line — closed 2026-08-18
 
-README has «Чего ещё нет» — that is state. The work order is absent, so a person
-willing to help cannot see what their patch joins. One line with a link to this
-file.
+README has «Чего ещё нет», which is state; the work order was supposed to be
+missing. It was not — the link to this file had been added at some point and the
+entry was never closed. What was genuinely missing is smaller and more useful: a
+door. «Чего ещё нет» tells a reader what is absent, and CONTRIBUTING tells them
+the rules, but neither hands them a task they could start today.
+
+README now points at two labels. `первая правка` is what can be done without
+understanding the whole project. `нужен доступ` is the opposite and is the more
+honest of the two: the work is blocked not by code but by an account or a portal
+we do not have, so a reader who *has* that access is holding the most valuable
+patch in the queue.
+
+A label link rots in silence — renaming a label is one click in the GitHub UI,
+after which the link 404s and README still reads correctly, because it cannot
+know. `test/metki.test.mjs` therefore checks README's label links against the
+same snapshot the issue forms are checked against, in the other direction.
 
 ---
 

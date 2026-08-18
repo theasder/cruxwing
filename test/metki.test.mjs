@@ -69,3 +69,31 @@ test('латинская «o» в «ошибка» — это другая ме�
   const oshibka = readFileSync(join(FORMS, 'oshibka.yml'), 'utf8');
   assert.deepEqual(declaredLabels(oshibka), ['ошибка']);
 });
+
+// README зовёт человека на метку по ссылке. Метку можно переименовать одним
+// движением в интерфейсе GitHub — ссылка после этого отдаёт 404, а README
+// продолжает выглядеть правильным: он и не может знать, что метки больше нет.
+// Это та же тишина, что и с формой, только в другую сторону.
+test('метки, на которые README зовёт по ссылке, существуют', () => {
+  const readme = readFileSync('README.md', 'utf8');
+  const real = realLabels();
+  const linked = [...readme.matchAll(/github\.com\/[^/]+\/[^/]+\/labels\/([^)\s]+)/g)]
+    .map((m) => decodeURIComponent(m[1]));
+
+  assert.ok(linked.length > 0,
+    'README не зовёт ни на одну метку — «первая правка» была дверью для нового человека');
+  const missing = linked.filter((label) => !real.has(label));
+  assert.deepEqual(missing, [],
+    `README ссылается на несуществующие метки: ${missing.join(', ')}. ` +
+    'Ссылка отдаёт 404, а текст выглядит целым.');
+});
+
+test('README показывает, куда встраивается правка', () => {
+  const readme = readFileSync('README.md', 'utf8');
+  // Состояние («чего ещё нет») без порядка работ — это список, в который
+  // нельзя войти: человек не видит, к чему присоединяется его правка.
+  assert.match(readme, /docs\/ROADMAP\.md/,
+    'README не показывает порядок работ');
+  assert.match(readme, /CONTRIBUTING\.md/,
+    'README не показывает правила приёма правок');
+});
