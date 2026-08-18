@@ -111,6 +111,45 @@ describe('ROADMAP', () => {
       `в тексте ${stated[2]} западных, в MCPCatalog.builtIn ${western}`);
   });
 
+  test('§7.2: манифест недостижим ровно тогда, когда роадмап так и говорит', () => {
+    // Ошибка, ради которой это написано, уже случилась: §7.2 сказал «shipped»
+    // про Plane, у которого нет case в Service, — то есть ни один вопрос
+    // человека до него не доходит. Файл в ресурсах читается как работающий
+    // коннектор, потому что он загружается, проверяется и покрыт набором.
+    const ids = readdirSync(resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'Resources', 'connectors'))
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => name.replace(/\.json$/, ''));
+    assert.ok(ids.length >= 5, `манифестов нашлось ${ids.length} — проверка была бы пустой`);
+
+    // Достижим тот, чей id совпадает с case в Service одного из четырёх файлов.
+    const cases = new Set();
+    for (const file of ['RussianTrackers.swift', 'WorkMessengers.swift',
+                        'SelfHostedTrackers.swift', 'TeamNotes.swift']) {
+      const src = readFileSync(resolve(repo, 'mvp', 'Sources', 'OrakulCore', file), 'utf8');
+      const block = src.slice(src.indexOf('public enum Service'));
+      for (const name of /case ([^\n]+)/.exec(block)[1].split(',')) cases.add(name.trim());
+    }
+    const unreachable = ids.filter((id) => !cases.has(id)).sort();
+
+    const text = section('7.2').replace(/\n/g, ' ');
+    const stated = /Manifests written but not yet routed to anybody: ([^.]+)\./.exec(text);
+    assert.ok(stated, 'в §7.2 пропал список недостижимых манифестов');
+    const listed = stated[1].split(',').map((s) => s.replace(/\*\*/g, '').trim()).sort();
+    assert.deepEqual(listed, unreachable,
+      `в тексте ${listed.join(', ') || '—'}, в коде ${unreachable.join(', ') || '—'}`);
+  });
+
+  test('§7.2: граница перечисления — то же число, что в движке', () => {
+    // Потолок держит движок, а не манифест. Если число в тексте разойдётся с
+    // кодом, читатель поверит тексту: код он открывает реже.
+    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const limit = /scanPageLimit = (\d+)/.exec(engine);
+    assert.ok(limit, 'потолок перечисления исчез из движка');
+    const text = section('7.2').replace(/\n/g, ' ');
+    assert.ok(new RegExp(`scanPageLimit\\` + '` = ' + `${limit[1]}`).test(text),
+      `в движке потолок ${limit[1]} — в §7.2 стоит другое число`);
+  });
+
   test('дыра в SECRET_VARS описана теми числами, которые в build.sh сейчас', () => {
     // §5.2 — единственное место роадмапа, где названа незакрытая дыра. Её
     // починят, а абзац останется и будет пугать читателя тем, чего уже нет;

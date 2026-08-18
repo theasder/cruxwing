@@ -267,7 +267,7 @@ struct ManifestConnectorTests {
         #expect(items.map(\.title) == ["Живая задача"])
     }
 
-    @Test("у каждого манифеста есть ссылка на документацию и параметр поиска")
+    @Test("каждый манифест либо ищет словом, либо перечисляет с границей")
     func everyManifestPassesTheGate() throws {
         let manifests = try ConnectorManifest.bundled()
         #expect(manifests.count >= 3,
@@ -275,13 +275,68 @@ struct ManifestConnectorTests {
         for manifest in manifests {
             #expect(manifest.docs.hasPrefix("http"), "«\(manifest.id)» без документации")
             // Слово может ехать параметром или телом — у Outline параметров
-            // нет вовсе. Проверяется то же, что и в `validate()`: слову есть
-            // куда попасть.
+            // нет вовсе. С 2026-08-18 (§7.2) допустим и третий случай:
+            // перечисление, но только объявленное границей и отбором.
             let inQuery = manifest.request.query.contains { $0.value.contains("{query}") }
             let inBody = manifest.request.body?.contains("{query}") ?? false
-            #expect(inQuery || inBody, "«\(manifest.id)» без параметра поиска")
+            if let scan = manifest.scan {
+                #expect(!scan.match.isEmpty, "«\(manifest.id)»: перечисление без отбора")
+                #expect(scan.pages >= 1 && scan.pages <= ManifestConnector.scanPageLimit,
+                        "«\(manifest.id)»: перечисление без границы")
+            } else {
+                #expect(inQuery || inBody, "«\(manifest.id)» без параметра поиска")
+            }
             #expect(manifest.verifiedOn.count == 10,
                     "«\(manifest.id)»: дата проверки не в виде ГГГГ-ММ-ДД")
+        }
+    }
+
+    @Test("сервис, который только перечисляет, без границы не загружается")
+    func scanWithoutBoundIsRejected() throws {
+        // Без потолка коннектор выкачивает чужой трекер целиком — и всё равно
+        // не обещает найти. Число берётся из движка, а не из манифеста.
+        let json = #"""
+        {"id":"безграничный","title":"Безграничный","docs":"https://example.com/api",
+         "verifiedOn":"2026-08-18",
+         "request":{"method":"GET","path":"/items","query":[],"headers":[]},
+         "scan":{"pages":99,"perPage":100,"page":[],"match":[["name"]]},
+         "response":{"list":["results"],"title":["name"],"key":["id"],"state":[]}}
+        """#
+        let manifest = try JSONDecoder().decode(ConnectorManifest.self, from: Data(json.utf8))
+        #expect(throws: ConnectorManifest.ManifestError.unboundedScan("безграничный")) {
+            try manifest.validate()
+        }
+    }
+
+    @Test("перечисление без отбора — это список, а не поиск")
+    func scanWithoutMatchIsRejected() throws {
+        let json = #"""
+        {"id":"списочный","title":"Списочный","docs":"https://example.com/api",
+         "verifiedOn":"2026-08-18",
+         "request":{"method":"GET","path":"/items","query":[],"headers":[]},
+         "scan":{"pages":3,"perPage":50,"page":[],"match":[]},
+         "response":{"list":["results"],"title":["name"],"key":["id"],"state":[]}}
+        """#
+        let manifest = try JSONDecoder().decode(ConnectorManifest.self, from: Data(json.utf8))
+        #expect(throws: ConnectorManifest.ManifestError.scanWithoutMatch("списочный")) {
+            try manifest.validate()
+        }
+    }
+
+    @Test("подстановка, которую некому заполнить, не загружается")
+    func unknownPlaceholderIsRejected() throws {
+        // Иначе `{project}` уедет в адрес буквой, сервис ответит 404, и человек
+        // прочтёт это как поломку, а не как незаполненную настройку.
+        let json = #"""
+        {"id":"дырявый","title":"Дырявый","docs":"https://example.com/api",
+         "verifiedOn":"2026-08-18",
+         "request":{"method":"GET","path":"/p/{project}/items",
+                    "query":[{"name":"q","value":"{query}"}],"headers":[]},
+         "response":{"list":[],"title":["name"],"key":["id"],"state":[]}}
+        """#
+        let manifest = try JSONDecoder().decode(ConnectorManifest.self, from: Data(json.utf8))
+        #expect(throws: ConnectorManifest.ManifestError.unknownPlaceholder("дырявый", "project")) {
+            try manifest.validate()
         }
     }
 
@@ -290,7 +345,7 @@ struct ManifestConnectorTests {
         let json = #"""
         {"id":"выдуманный","title":"Выдуманный","docs":"","verifiedOn":"2026-08-18",
          "request":{"method":"GET","path":"/search","query":[{"name":"q","value":"{query}"}],"headers":[]},
-         "response":{"list":[],"title":["title"],"key":["id"],"state":"state"}}
+         "response":{"list":[],"title":["title"],"key":["id"],"state":["state"]}}
         """#
         let manifest = try JSONDecoder().decode(ConnectorManifest.self, from: Data(json.utf8))
         #expect(throws: ConnectorManifest.ManifestError.missingDocumentation("выдуманный")) {
@@ -306,7 +361,7 @@ struct ManifestConnectorTests {
         {"id":"перечисление","title":"Перечисление","docs":"https://example.ru/api",
          "verifiedOn":"2026-08-18",
          "request":{"method":"GET","path":"/tasks","query":[{"name":"limit","value":"{limit}"}],"headers":[]},
-         "response":{"list":[],"title":["title"],"key":["id"],"state":"state"}}
+         "response":{"list":[],"title":["title"],"key":["id"],"state":["state"]}}
         """#
         let manifest = try JSONDecoder().decode(ConnectorManifest.self, from: Data(json.utf8))
         #expect(throws: ConnectorManifest.ManifestError.noSearchParameter("перечисление")) {

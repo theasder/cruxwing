@@ -8,18 +8,36 @@
     "method": "GET",
     "path": "/api/v1/repos/issues/search",
     "query": [
-      { "name": "q", "value": "{query}" },
-      { "name": "type", "value": "issues" },
-      { "name": "limit", "value": "{limit}" }
+      {
+        "name": "q",
+        "value": "{query}"
+      },
+      {
+        "name": "type",
+        "value": "issues"
+      },
+      {
+        "name": "limit",
+        "value": "{limit}"
+      }
     ],
     "headers": [
-      { "name": "Authorization", "value": "token {token}" }
+      {
+        "name": "Authorization",
+        "value": "token {token}"
+      }
     ]
   },
   "response": {
     "list": [],
-    "title": ["title"],
-    "key": ["number"],
-    "state": "state"
+    "title": [
+      "title"
+    ],
+    "key": [
+      "number"
+    ],
+    "state": [
+      "state"
+    ]
   }
 }

@@ -8,18 +8,36 @@
     "method": "GET",
     "path": "/api/v4/search",
     "query": [
-      { "name": "scope", "value": "issues" },
-      { "name": "search", "value": "{query}" },
-      { "name": "per_page", "value": "{limit}" }
+      {
+        "name": "scope",
+        "value": "issues"
+      },
+      {
+        "name": "search",
+        "value": "{query}"
+      },
+      {
+        "name": "per_page",
+        "value": "{limit}"
+      }
     ],
     "headers": [
-      { "name": "PRIVATE-TOKEN", "value": "{token}" }
+      {
+        "name": "PRIVATE-TOKEN",
+        "value": "{token}"
+      }
     ]
   },
   "response": {
     "list": [],
-    "title": ["title"],
-    "key": ["iid"],
-    "state": "state"
+    "title": [
+      "title"
+    ],
+    "key": [
+      "iid"
+    ],
+    "state": [
+      "state"
+    ]
   }
 }

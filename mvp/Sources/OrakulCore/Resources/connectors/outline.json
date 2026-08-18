@@ -9,16 +9,31 @@
     "path": "/api/documents.search",
     "query": [],
     "headers": [
-      { "name": "Authorization", "value": "Bearer {token}" },
-      { "name": "Content-Type", "value": "application/json" }
+      {
+        "name": "Authorization",
+        "value": "Bearer {token}"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
     ],
     "body": "{\"query\": \"{query}\", \"limit\": {limit}}"
   },
   "response": {
-    "list": ["data"],
-    "title": ["document", "title"],
-    "context": ["context"],
+    "list": [
+      "data"
+    ],
+    "title": [
+      "document",
+      "title"
+    ],
+    "context": [
+      "context"
+    ],
     "key": [],
-    "state": "state"
+    "state": [
+      "state"
+    ]
   }
 }

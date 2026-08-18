@@ -8,20 +8,43 @@
     "method": "GET",
     "path": "/api/shared/v1/search/messages",
     "query": [
-      { "name": "query", "value": "{query}" },
-      { "name": "limit", "value": "{limit}" },
-      { "name": "sort", "value": "created_at" },
-      { "name": "order", "value": "desc" }
+      {
+        "name": "query",
+        "value": "{query}"
+      },
+      {
+        "name": "limit",
+        "value": "{limit}"
+      },
+      {
+        "name": "sort",
+        "value": "created_at"
+      },
+      {
+        "name": "order",
+        "value": "desc"
+      }
     ],
     "headers": [
-      { "name": "Authorization", "value": "Bearer {token}" }
+      {
+        "name": "Authorization",
+        "value": "Bearer {token}"
+      }
     ]
   },
   "response": {
-    "list": ["data"],
-    "title": ["content"],
-    "author": ["user_id"],
+    "list": [
+      "data"
+    ],
+    "title": [
+      "content"
+    ],
+    "author": [
+      "user_id"
+    ],
     "key": [],
-    "state": "state"
+    "state": [
+      "state"
+    ]
   }
 }

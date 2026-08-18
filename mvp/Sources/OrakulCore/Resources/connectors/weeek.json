@@ -37,7 +37,9 @@
     "key": [
       "id"
     ],
-    "state": "state",
+    "state": [
+      "state"
+    ],
     "errorCode": [
       "error"
     ],

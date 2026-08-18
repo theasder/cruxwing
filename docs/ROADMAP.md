@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 234 tests, all green | `npm test`, run 2026-08-17 |
+| Page and doc checks | 236 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2803 and 407 | README, maintainer run |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -469,26 +469,73 @@ number inside the repo, and a check that stops it growing.
 
 Four questions to vendor docs — method, host, search parameter, response shape —
 plus a link in the comment and a `LiveConnectorProbe` run against the live
-service. No service below is scheduled: each carries what exactly is unknown and
-what unblocks it.
+service. Since 2026-08-18 the third question takes a second answer: **«none, and
+here is the list method instead»**, admitted under the bounded terms in §7.2. No
+service below is scheduled: each carries what exactly is unknown and what
+unblocks it.
 
-### 7.2 A decision owed: listing is not search
+### 7.2 Listing is not search — decided 2026-08-18
 
-Three candidates below — GitFlic, GitVerse, Plane — share one shape: **the task
-list is documented, the text search parameter is absent**. Today's project rule
-answers «no»: Pyrus and Яндекс Вики fell by it (plan §2.1), because «a page at a
-known address» answers a question nobody asked.
+The rule was: no text search parameter, no connector. It closed Pyrus and Яндекс
+Вики correctly — they have no cross-cutting listing either — and closed Plane,
+GitFlic and GitVerse for a different reason: their task list is documented, only
+the search is missing.
 
-The case differs though. Pyrus has no cross-cutting listing at all; these three
-list by pages inside a project or a repository, so filtering by title on our
-side is possible in principle.
+**Decision: a listing is admitted, on three terms, and all three are enforced by
+code rather than promised in a comment.**
 
-**This is a decision, not an implementation detail.** Take it explicitly and
-record it next to the rule — otherwise the first contributor applies client-side
-filtering to a service holding forty thousand tasks and gets «nothing found» on
-a full archive. If the answer is «yes», it must be bounded by page count and
-must tell the person a part is shown: the error «ten tasks out of forty-seven»
-already happened (plan §4).
+1. **A declared bound.** `scan.pages` × `scan.perPage` rows per question, no
+   more, and the engine caps `pages` at `ManifestConnector.scanPageLimit` = 10.
+   The manifest author is the party who wants the bound raised — «what if it
+   turns up» — and the cost lands on somebody else's service: Plane allows sixty
+   requests per minute per client.
+2. **A declared filter.** `scan.match` names the fields the word is matched
+   against on our side. An empty list refuses to load — a listing without a
+   filter is a list, not a search.
+3. **Coverage travels with the answer.** `ManifestConnector.run` returns
+   `Coverage`, and it separates three answers that «nothing found» flattens into
+   one: the service searched and found nothing (`.searched`); the list ended
+   before the bound, so we read all of it (`.wholeList`); the bound cut it off
+   (`.latest(scanned:total:)`) — «not found among the latest 500 of 40 000».
+
+The third term is the point. The failure this rule exists to prevent already
+happened once as «ten tasks out of forty-seven» (plan §4): a part presented as
+the whole. On a small team's tracker — three hundred tasks, not forty thousand —
+`.wholeList` is a complete answer and says so, which is why a flat «no» was
+costing real coverage.
+
+**First manifest written under it: Plane** (`mvp/…/connectors/plane.json`).
+Read 2026-08-18: the list method documents `cursor`, `per_page`, `expand`,
+`fields`, `order_by`, `external_id`, `external_source` — and no text
+search[^plane]. Five pages of a hundred, matched on `name` and `description`,
+`total_count` carried through to the person. Pinned by `ScanConnectorTests`,
+including a parse of the vendor's own sample response rather than one written to
+fit our parser.
+
+**It is not yet reachable, and that is stated because it would otherwise read as
+shipped.** A manifest becomes a working connector only through a `Service` case
+in one of the four Swift files — that is what routes a person's question to it —
+and Plane has none. It also needs somewhere to keep the two fields it asks for
+(workspace, project): today the settings surface holds a host and a token, and
+nothing else. Both are the next step.
+
+Manifests written but not yet routed to anybody: **plane**. A check keeps that
+list equal to what the code says — a manifest is reachable exactly when its `id`
+matches a `Service` case, and either half of the pair drifting is the error that
+made this paragraph wrong the first time it was written.
+
+**Not shipped, and why:** GitFlic and GitVerse need their response shape read
+from the vendor's own docs first. GitFlic's is recorded as
+`_embedded.issueModelList` but its paging fields are not; GitVerse's issue
+response shape is nowhere in what was read. Both are now blocked on a fact, not
+on a rule — which is a different queue.
+
+A side effect worth naming: the manifest gained `parameters`, the fields a person
+fills in themselves. Plane needs a workspace and a project inside the path, and
+until now such a service could not be described by data at all. An undeclared
+`{placeholder}` refuses to load: it would otherwise travel into the URL
+literally, and the service's 404 reads as breakage rather than as an unfilled
+setting.
 
 ### 7.3 Russia: a queue with questions
 
@@ -506,7 +553,7 @@ already happened (plan §4).
 | Service | Known | To decide or learn |
 |---|---|---|
 | **Slack** | `GET https://slack.com/api/search.messages`, a **personal user token** plus the `search:read` scope, response `{ok, messages:{matches:[…]}}`; the method is marked legacy[^slack] | A personal token changes the promise: not a bot with narrow rights but access to a person's whole correspondence. A product decision, not a technical one; if «yes», say it plainly in the interface |
-| **Plane**, open, self-hosted | `GET /api/v1/workspaces/{slug}/projects/{id}/work-items/`, header `X-API-Key`, response `{results, total_count, …}`[^plane] | The list docs carry no text search. See §7.2 |
+| **Plane**, open, self-hosted | **Connected 2026-08-18** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `state.name`[^plane] | Nothing blocking. Open: whether a live workspace confirms the cursor format `perPage:page:is_prev` — the connector is built from the docs, not from a live install |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
 | **BookStack, Wiki.js, Nextcloud** | Open knowledge bases, self-hosted | Search method and response shape for each. High value: Outline already showed an open wiki returns the text around the match — exactly what the prompt needs (plan §2.0) |
 | **Local notes: Obsidian and any `.md` directory** | No API at all, files on the same disk | The only source promising nothing to the network, and it fits «everything is computed on the device» without caveats. The question is how a person points at the directory and what to do with large vaults |
@@ -771,7 +818,7 @@ lives for years and spends other people's time.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
-[^plane]: Plane, list work items: `GET /api/v1/workspaces/{slug}/projects/{id}/work-items/`, header `X-API-Key`, read 2026-08-17: https://developers.plane.so/api-reference/issue/list-issues
+[^plane]: Plane, list work items: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, query `cursor` / `per_page` (default 20, max 100) / `expand` / `fields` / `order_by` / `external_id` / `external_source` — **no text search parameter**; response `total_count`, `next_page_results`, `results[]` with `name`, `description`, `sequence_id`, `state.name`; re-read 2026-08-18: https://developers.plane.so/api-reference/issue/list-issues
 [^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, read 2026-08-17: https://gitverse.ru/docs/developers/public-api/
 [^gitflic]: GitFlic, issue methods: `GET /project/{ownerAlias}/{projectAlias}/issue`, response with `_embedded.issueModelList`, read 2026-08-17: https://docs.gitflic.ru/api/issue/
 [^yonote]: Yonote, developer page (API v1 and v2 preview), read 2026-08-17: https://yonote.ru/developers

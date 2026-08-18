@@ -8,18 +8,38 @@
     "method": "GET",
     "path": "/search.json",
     "query": [
-      { "name": "q", "value": "{query}" },
-      { "name": "issues", "value": "1" },
-      { "name": "limit", "value": "{limit}" }
+      {
+        "name": "q",
+        "value": "{query}"
+      },
+      {
+        "name": "issues",
+        "value": "1"
+      },
+      {
+        "name": "limit",
+        "value": "{limit}"
+      }
     ],
     "headers": [
-      { "name": "X-Redmine-API-Key", "value": "{token}" }
+      {
+        "name": "X-Redmine-API-Key",
+        "value": "{token}"
+      }
     ]
   },
   "response": {
-    "list": ["results"],
-    "title": ["title"],
-    "key": ["id"],
-    "state": "state"
+    "list": [
+      "results"
+    ],
+    "title": [
+      "title"
+    ],
+    "key": [
+      "id"
+    ],
+    "state": [
+      "state"
+    ]
   }
 }

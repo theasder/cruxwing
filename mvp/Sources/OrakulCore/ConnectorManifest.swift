@@ -61,9 +61,14 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         public let author: [String]?
         /// Имена, под которыми может лежать номер, по порядку.
         public let key: [String]
-        /// Ключ состояния. В ответе может отсутствовать — тогда пусто, и это не
-        /// ошибка: Redmine состояния в поиске не отдаёт вовсе.
-        public let state: String
+        /// Путь до состояния. В ответе может отсутствовать — тогда пусто, и это
+        /// не ошибка: Redmine состояния в поиске не отдаёт вовсе.
+        ///
+        /// Путь, а не ключ: Plane отдаёт `state: {id, name, group}`, то есть
+        /// состояние лежит на уровень глубже строки. Ключом это описать нельзя,
+        /// а «показать пусто» означало бы потерять половину смысла выдачи —
+        /// «сделано» и «в работе» отвечают на вопрос по-разному.
+        public let state: [String]
         /// Флаг успеха в теле ответа, если сервис им пользуется.
         ///
         /// Не всякий сервис говорит об отказе кодом HTTP: WEEEK и Битрикс24
@@ -83,6 +88,57 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         public let errorMessage: [String]?
     }
 
+    /// Что человек подставляет в адрес сам.
+    ///
+    /// Хоста и токена хватает не всем: у Plane задачи лежат по адресу
+    /// `/workspaces/{workspace}/projects/{project}/work-items/`, и обе части
+    /// знает только владелец аккаунта. Раньше такой сервис был неописуем —
+    /// приходилось писать коннектор кодом.
+    public struct Field: Decodable, Equatable, Sendable {
+        public let name: String
+        /// Как назвать это поле человеку. Не `workspace_slug`, а «Пространство».
+        public let title: String
+        /// Пример значения — короче любого объяснения формата.
+        public let example: String
+    }
+
+    /// Перечисление вместо поиска — с границей и с обязанностью сказать об этом.
+    ///
+    /// Решение §7.2 дорожной карты, принято 2026-08-18. До него правило было
+    /// одно: нет параметра поиска — нет коннектора. Оно закрыло Pyrus и Яндекс
+    /// Вики правильно (у них нет и перечисления), но заодно закрыло Plane,
+    /// GitFlic и GitVerse, у которых список задач документирован, а поиска по
+    /// слову в документации нет.
+    ///
+    /// Что изменилось: перечисление принимается, если выполнены три условия, и
+    /// все три проверяются кодом, а не обещанием автора манифеста.
+    ///
+    ///   1. **Граница объявлена.** `pages` × `perPage` строк, не больше;
+    ///      потолок держит движок (`ManifestConnector.scanPageLimit`).
+    ///   2. **Отбор описан.** `match` перечисляет поля, по которым слово
+    ///      ищется у нас. Пустой список — манифест не грузится.
+    ///   3. **Охват уезжает вместе с выдачей.** Движок отдаёт `Coverage`, и
+    ///      «ничего не нашлось» отличается от «не нашлось среди последних 500
+    ///      из 40 000». Второе — другой ответ, и человек имеет право его
+    ///      увидеть: ошибка «десять задач из сорока семи» (план, §4) случилась
+    ///      ровно потому, что часть выдачи выдали за целое.
+    public struct Scan: Decodable, Equatable, Sendable {
+        public let pages: Int
+        public let perPage: Int
+        /// Параметры страницы. `{page}` — номер с нуля, `{perPage}` — размер.
+        public let page: [Parameter]
+        /// Поля, по которым слово ищется у нас. Пути, а не ключи: заголовок
+        /// бывает вложенным.
+        public let match: [[String]]
+        /// Где сервис говорит, что дальше есть ещё. Без этого поля движок
+        /// считает страницу последней, если она пришла короче `perPage`.
+        public let more: [String]?
+        /// Где сервис называет полный размер списка. Если называет — число
+        /// уезжает человеку: «среди последних 500 из 40 000» честнее, чем
+        /// «среди последних 500».
+        public let total: [String]?
+    }
+
     public let id: String
     public let title: String
     /// Ссылка на документацию вендора. Обязательна.
@@ -92,10 +148,17 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
     public let note: String?
     public let request: Request
     public let response: Response
+    /// Поля, которые заполняет человек. Пусто у большинства сервисов.
+    public let parameters: [Field]?
+    /// Есть — значит, сервис не ищет, а перечисляет, и отбор делаем мы.
+    public let scan: Scan?
 
     public enum ManifestError: Error, Equatable, CustomStringConvertible {
         case missingDocumentation(String)
         case noSearchParameter(String)
+        case unboundedScan(String)
+        case scanWithoutMatch(String)
+        case unknownPlaceholder(String, String)
         case unreadable(String)
 
         public var description: String {
@@ -103,7 +166,13 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
             case .missingDocumentation(let id):
                 return "Манифест «\(id)» без ссылки на документацию вендора. Метод, адрес, параметр поиска и форму ответа проверяют по ней; без неё коннектор — догадка."
             case .noSearchParameter(let id):
-                return "В манифесте «\(id)» ни один параметр не подставляет {query}. Перечисление задач поиском не считается: фильтрация первой страницы у себя отвечает «ничего не нашлось» на полном архиве."
+                return "В манифесте «\(id)» ни один параметр не подставляет {query}, и блока scan тоже нет. Перечисление задач поиском не считается, пока не объявлены граница и отбор: фильтрация первой страницы у себя отвечает «ничего не нашлось» на полном архиве."
+            case .unboundedScan(let id):
+                return "В манифесте «\(id)» перечисление без границы: pages и perPage обязаны быть от 1, а pages — не больше \(ManifestConnector.scanPageLimit). Без потолка коннектор выкачивает чужой трекер целиком и всё равно не обещает найти."
+            case .scanWithoutMatch(let id):
+                return "В манифесте «\(id)» есть scan, но не сказано, по каким полям отбирать (match). Перечисление без отбора — это не поиск, а список."
+            case .unknownPlaceholder(let id, let name):
+                return "В манифесте «\(id)» подстановка {\(name)} никому не известна. Она уйдёт в адрес как есть, и сервис ответит 404 на запрос, который выглядит правильным. Объявите поле в parameters или уберите подстановку."
             case .unreadable(let name):
                 return "Манифест «\(name)» не разобрался."
             }
@@ -118,12 +187,68 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
     /// проекте (роадмап, §7.2).
     public func validate() throws {
         guard docs.hasPrefix("http") else { throw ManifestError.missingDocumentation(id) }
+
         // Слово может ехать и в параметре, и в теле: у Outline поиск это
         // `POST {"query": …}`, параметров у него нет вовсе. Требование то же —
         // слово человека обязано куда-то попасть, иначе это перечисление.
         let inQuery = request.query.contains { $0.value.contains("{query}") }
         let inBody = request.body?.contains("{query}") ?? false
-        guard inQuery || inBody else { throw ManifestError.noSearchParameter(id) }
+
+        if let scan {
+            // Перечисление принимается только с границей и с отбором — §7.2.
+            guard scan.pages >= 1, scan.perPage >= 1,
+                  scan.pages <= ManifestConnector.scanPageLimit else {
+                throw ManifestError.unboundedScan(id)
+            }
+            guard !scan.match.isEmpty, scan.match.allSatisfy({ !$0.isEmpty }) else {
+                throw ManifestError.scanWithoutMatch(id)
+            }
+        } else {
+            guard inQuery || inBody else { throw ManifestError.noSearchParameter(id) }
+        }
+
+        // Подстановка, которой никто не заполнит, уходит в адрес буквально.
+        // Проверяется здесь, а не при сборке запроса: на сборке это уже
+        // ошибка сервиса — 404 на правильный с виду запрос.
+        let declared = Set((parameters ?? []).map(\.name))
+        for name in placeholders() where !declared.contains(name) {
+            throw ManifestError.unknownPlaceholder(id, name)
+        }
+    }
+
+    /// Имена всех подстановок манифеста, кроме тех, что заполняет движок.
+    func placeholders() -> Set<String> {
+        let builtin: Set<String> = ["query", "limit", "token", "page", "perPage"]
+        var texts = [request.path]
+        texts += request.query.flatMap { [$0.name, $0.value] }
+        texts += request.headers.flatMap { [$0.name, $0.value] }
+        texts += (scan?.page ?? []).flatMap { [$0.name, $0.value] }
+        if let body = request.body { texts.append(body) }
+
+        // Подстановка — это `{имя}` из букв, цифр и подчёркиваний. Скобка в
+        // шаблоне тела JSON («{"query": "{query}"}») подстановкой не является,
+        // и первая версия этой проверки спотыкалась ровно об неё: Outline
+        // перестал загружаться, потому что его тело начинается с `{"`.
+        var found = Set<String>()
+        for text in texts {
+            let characters = Array(text)
+            var index = 0
+            while index < characters.count {
+                guard characters[index] == "{" else { index += 1; continue }
+                var end = index + 1
+                while end < characters.count,
+                      characters[end].isLetter || characters[end].isNumber || characters[end] == "_" {
+                    end += 1
+                }
+                if end < characters.count, characters[end] == "}", end > index + 1 {
+                    found.insert(String(characters[(index + 1)..<end]))
+                    index = end + 1
+                } else {
+                    index += 1
+                }
+            }
+        }
+        return found.subtracting(builtin)
     }
 
     /// Все манифесты из ресурсов пакета, разобранные и проверенные.
