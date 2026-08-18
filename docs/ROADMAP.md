@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 253 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 255 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 557 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1234,6 +1234,17 @@ cannot quietly become a memory.
 reverse; a manifest is unreachable exactly when this file says it is; the scan
 bound here equals the engine's; §8's package promises hold against the packaging
 scripts; a queue row shows what it depends on.
+
+**Guards that cannot fire.** Three of them turned up in one week — a build halt
+reading a variable it had blanked itself, an entitlement check asserting
+whichever branch the machine happened to be in, and `PromptInjectionGuard`, with
+no caller anywhere in the app. None would ever have been found by running the
+suite: all three were green. They are visible only by asking who calls them, so
+`test/reachable-guards.test.mjs` asks that of every type whose name ends in
+Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
+invokes. It also checks itself against a planted lonely guard, because
+«the list is empty» otherwise means both «all good» and «the selection is
+broken».
 
 **Contradictions inside one section** — a system the §8 table calls working
 cannot be called untested three lines below, and something closed with cause in
