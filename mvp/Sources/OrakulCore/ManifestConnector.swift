@@ -55,6 +55,18 @@ public struct ManifestConnector {
         case http(Int)
         /// Сервис ответил отказом СВОИМИ словами — они и передаются дальше.
         case vendor(code: String, description: String)
+        /// Вместо данных пришла веб-страница.
+        ///
+        /// Отдельно от `unreadable`, потому что чинится совсем другим. «Ответил
+        /// непонятно» отправляет человека проверять адрес и версию сервера, а
+        /// здесь адрес почти всегда верный: так выглядит истёкшая сессия за
+        /// единым входом, портал гостиничного Wi-Fi и страница «войдите» вместо
+        /// ответа API. Все три отвечают кодом 200 и страницей входа — то есть
+        /// выглядят как исправная работа.
+        ///
+        /// Для недружелюбного сервиса это ещё и самый дешёвый способ отрезать:
+        /// не отдавать 401, а показать форму входа. Формально всё в порядке.
+        case webPage
         case unreadable
     }
 
@@ -405,8 +417,28 @@ public struct ManifestConnector {
             // с размером выдачи. Это пустой список, а не непонятный ответ.
             return []
         }
+        // Не разобралось как JSON, но разобралось бы браузером.
+        //
+        // Проверяется только когда JSON не вышел: ответ, который разобрался, но
+        // не той формы, — это смена формата, и путать её с формой входа нельзя.
+        if root == nil, Self.looksLikeWebPage(data) { throw ConnectorError.webPage }
+
         guard let rows else { throw ConnectorError.unreadable }
         return rows
+    }
+
+    /// Похоже ли тело на веб-страницу.
+    ///
+    /// Смотрим начало, а не весь ответ: строка `<html` встречается и внутри
+    /// честного JSON — например, в тексте задачи, где кто-то процитировал
+    /// разметку. Начало документа врать неоткуда.
+    static func looksLikeWebPage(_ data: Data) -> Bool {
+        let head = String(decoding: data.prefix(512), as: UTF8.self)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\u{FEFF}", with: "")
+            .lowercased()
+        return head.hasPrefix("<!doctype html") || head.hasPrefix("<html")
+            || head.hasPrefix("<?xml") && head.contains("<html")
     }
 
     /// Текст без разметки: `<strong>кот</strong>` — «кот».

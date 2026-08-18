@@ -69,6 +69,7 @@ public struct WesternTrackers: Sendable {
         case http(Int)
         /// Сервис отказал своими словами — они и передаются дальше.
         case vendor(code: String, description: String)
+        case webPage
         case unreadable
         /// Описание сервиса не нашлось в сборке.
         case manifestMissing
@@ -91,6 +92,8 @@ public struct WesternTrackers: Sendable {
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
                 return "Трекер отказал: \(prefix)\(description)"
+            case .webPage:
+                return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable:
                 return "Трекер ответил непонятным образом. Возможно, у сервиса изменился формат ответа."
             case .manifestMissing:
@@ -174,6 +177,7 @@ public struct WesternTrackers: Sendable {
             case .http(let code): throw ConnectorError.http(code)
             case .vendor(let code, let description):
                 throw ConnectorError.vendor(code: code, description: description)
+            case .webPage:       throw ConnectorError.webPage
             case .unreadable:    throw ConnectorError.unreadable
             }
         }

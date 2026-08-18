@@ -167,6 +167,7 @@ public struct RussianTrackers {
         /// то есть продукт уверенно сообщал бы об исходе поиска, которого не
         /// было.
         case vendor(Service, code: String, description: String)
+        case webPage(Service)
         case unreadable(Service)
 
         /// По-русски, с названием сервиса и с действием.
@@ -191,6 +192,8 @@ public struct RussianTrackers {
                 return "\(service.title) отказал: \(detail). Если это Битрикс24 — проверьте, что вебхук не удалён и у него есть право «Задачи»."
             case .http(let service, let status):
                 return "\(service.title) ответил ошибкой \(status). Если это 404 — проверьте очередь или доску в настройках."
+            case .webPage(let service):
+                return "\(service.title) прислал веб-страницу вместо данных — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable(let service):
                 return "\(service.title) вернул ответ, который не удалось разобрать."
             }
@@ -295,6 +298,7 @@ public struct RussianTrackers {
             // Token revoked» объясняет причину, а наше «непонятный ответ» нет.
             case .vendor(let code, let description):
                 throw TrackerError.vendor(service, code: code, description: description)
+            case .webPage:        throw TrackerError.webPage(service)
             case .unreadable:     throw TrackerError.unreadable(service)
             }
         }

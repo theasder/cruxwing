@@ -103,8 +103,13 @@ struct ConnectorHTTPStatusTests {
     func twoHundredWithGarbageIsStillUnreadable() async {
         // Второй край: сервер ответил 200 и мусором — это действительно
         // «не удалось разобрать», и та ветка обязана уцелеть.
+        //
+        // Образцом тут стоял «<html>не json</html>», и он перестал быть мусором:
+        // веб-страница теперь отдельный ответ (форма входа, портал сети), у неё
+        // своя ветка и свой совет человеку. Мусор должен быть мусором, иначе
+        // проверка сторожит соседнюю ветку.
         let garbage: @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse) = { request in
-            (Data("<html>не json</html>".utf8),
+            (Data("не json и не страница: %%%".utf8),
              HTTPURLResponse(url: request.url!, statusCode: 200,
                              httpVersion: nil, headerFields: [:])!)
         }

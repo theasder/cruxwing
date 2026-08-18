@@ -119,6 +119,7 @@ public struct SelfHostedTrackers {
         /// Ответ больше, чем бывает у поиска.
         case tooLarge(bytes: Int)
         case http(Int)
+        case webPage
         case unreadable
 
         /// По-русски и с действием.
@@ -142,6 +143,8 @@ public struct SelfHostedTrackers {
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "Трекер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+            case .webPage:
+                return "Вместо данных пришла веб-страница — обычно это форма входа: сессия за единым входом истекла или адрес ведёт на сам сервер, а не на его API."
             case .unreadable:
                 return "Трекер ответил непонятным образом. Если у вас свой сервер, проверьте адрес и версию."
             }
@@ -233,6 +236,7 @@ public struct SelfHostedTrackers {
             // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
             // сервис появится, ветку надо будет раскрыть, а не оставить общей.
             case .vendor:        throw ConnectorError.unreadable
+            case .webPage:       throw ConnectorError.webPage
             case .unreadable:    throw ConnectorError.unreadable
             }
         }

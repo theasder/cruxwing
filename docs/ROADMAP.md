@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 270 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 582 | README, maintainer run |
+| App and core tests | 2833 and 588 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,34 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**A login page is the cheapest way to cut someone off.** Not `401` — a form.
+An expired single-sign-on session, a hotel captive portal, and a service that
+would rather not say no all answer `200` with HTML, which is to say they all
+look like the system working. The engine called that «unreadable» and told the
+person to check the address and the server version: the address is fine, and
+the version has nothing to do with it. It is now its own answer, with its own
+sentence about sessions and captive networks, in all five connector families —
+the compiler named every one of them the moment the case was added.
+
+It is deliberately decided on the **start** of the body, not on the body
+containing markup: a task whose description quotes `<html>` is ordinary, and
+mistaking it for a login page would break a working search. Turning the check
+from «starts with» to «contains» fails the suite.
+
+**Two mutations came back green and neither was a hole.** Requiring the JSON
+parse to have failed first is unreachable as a difference — valid JSON cannot
+begin with `<` — and dropping the 512-byte window does not change a `hasPrefix`.
+Both are equivalent mutants, and recording them as «the guard is weak» would
+have been the wrong report; the mutation that tests the real claim is the one
+above.
+
+**Checked and needing nothing: the nesting bomb.** Eight megabytes of `[` passes
+the size limit entirely, so the shape had to be measured rather than reasoned
+about. `JSONSerialization` refuses past roughly 512 levels and throws instead of
+overflowing the stack; the suite pins that with a 100 000-level payload, and
+because the suite runs on Linux too, that is a measurement of corelibs rather
+than an assumption about it.
 
 **A secret in the address is a secret in somebody's logs.** A hostile service
 does not have to attack for this one — it only has to document the convenient
