@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 22 own connectors, 11 western via MCP.
+Total: 24 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -601,7 +601,33 @@ setting.
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18** in the core and the command line (`orakul спросить заметки …`, folder in `ORAKUL_HOST`). No API, no token, no host — files read from disk, and unplugging the network changes nothing | Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage says so. The remaining half is the app: choosing a folder there means a security-scoped bookmark, which is macOS work, not connector work |
 
-The western layer already covers eleven MCP servers, and adding there is one
+**Two western trackers connected directly, 2026-08-18: Linear and Trello.** Both
+are cloud services with one address, so unlike the self-hosted row they ask for
+no host — a field a person can only get wrong.
+
+* **Linear.** GraphQL only, `POST https://api.linear.app/graphql`,
+  `searchIssues(term:, first:)` returning `nodes { identifier title description
+  state { name } }`. The personal key travels in `Authorization` **as-is, with
+  no `Bearer`** — that prefix belongs to OAuth tokens, and confusing them
+  returns a 401 indistinguishable from an expired key[^linear]. `identifier` is
+  a string (`ENG-123`), which is why the engine now prints a string key
+  verbatim: «#ENG-123» is not something a person can find in their tracker.
+* **Trello.** `GET /1/search?query=…`, and three parameters matter.
+  `partial=true` — without it Trello matches whole words only, so «тариф» finds
+  nothing and the search looks broken. `modelTypes=cards` — otherwise boards and
+  members crowd the answer. And the two secrets go in an `Authorization: OAuth
+  oauth_consumer_key="…", oauth_token="…"` header rather than the query string,
+  where they would land in every proxy log[^trello].
+
+**Not connected, and the reason is a missing fact, not a rule.** Todoist has a
+documented filter endpoint (`query` parameter, `results` array), but its
+`search:` filter syntax lives in the help centre rather than the API reference
+and could not be read from the vendor's own pages — so the one thing that would
+make it a search is unverified. Notion's search returns a page's title inside
+`properties` under a key that varies per database, which a path-described
+manifest cannot address; that is a shape problem, not a documentation one.
+
+The western layer also covers eleven MCP servers, and adding there is one
 line in the catalog (plan §2.2). The shortage sits elsewhere: sources that work
 **without our server and without the developer's account**.
 
@@ -876,6 +902,10 @@ lives for years and spends other people's time.
 
 [^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
 [^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
+[^linear]: Linear: single GraphQL endpoint `POST https://api.linear.app/graphql`; personal API keys go in `Authorization` with **no** `Bearer` prefix (OAuth tokens use `Bearer`); `searchIssues(term: String!, first: Int)` returns `nodes` of `{id, identifier, title, description, url, state {name}}`; refusals arrive with HTTP 200 and an `errors` array. read 2026-08-18: https://linear.app/developers/graphql
+
+[^trello]: Trello: `GET https://api.trello.com/1/search`, `query` required (min 1 char), `modelTypes` (default all), `cards_limit` (max 1000, default 10), `partial` (default **false** — whole-word matching), `card_fields`; authorisation as query parameters or as `Authorization: OAuth oauth_consumer_key="{key}", oauth_token="{token}"`; response `{cards: [{id, name, desc, idShort, idBoard, closed}], boards, members}`. read 2026-08-18: https://developer.atlassian.com/cloud/trello/rest/api-group-search/ and https://developer.atlassian.com/cloud/trello/guides/rest-api/authorization/
+
 [^wikijs]: Wiki.js: GraphQL at `POST /graphql`, token from Administration → API Access passed as `Authorization: Bearer`; `PageQuery.search(query: String!, path: String, locale: String): PageSearchResponse!` returning `results: [PageSearchResult]` of `{id: String!, title: String!, description: String!, path: String!, locale: String!}`, plus `suggestions` and `totalHits`; refusals arrive with HTTP 200 and an `errors` array. read 2026-08-18 from the vendor's docs — https://docs.requarks.io/dev/api — and their schema, `server/graph/schemas/page.graphql`
 
 [^nextcloud]: Nextcloud unified search: `GET /ocs/v2.php/search/providers/{providerId}/search?term=…&limit=…`, provider list at `GET /ocs/v2.php/search/providers`; headers `OCS-APIRequest: true` and `Accept: application/json`; authentication is Basic with a username and an app password (Bearer only with OIDC); response `{ocs: {meta, data: {name, isPaginated, entries: [{thumbnailUrl, title, subline, resourceUrl, icon, rounded, attributes}], cursor}}}`. read 2026-08-18 from the developer manual — https://docs.nextcloud.com/server/stable/developer_manual/digging_deeper/search.html — and the response types in `core/ResponseDefinitions.php`

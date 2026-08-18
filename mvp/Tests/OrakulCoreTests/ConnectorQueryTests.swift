@@ -84,6 +84,7 @@ struct ConnectorQueryTests {
             .union(SelfHostedTrackers.Service.allCases.map(\.rawValue))
             .union(TeamNotes.Service.allCases.map(\.rawValue))
             .union(RussianTrackers.Service.allCases.map(\.rawValue))
+            .union(WesternTrackers.Service.allCases.map(\.rawValue))
             // `github` — отдельный тип, а не случай перечисления. `заметки` —
             // папка на диске: ни сервиса, ни токена у неё нет вовсе, и в этом
             // её смысл.

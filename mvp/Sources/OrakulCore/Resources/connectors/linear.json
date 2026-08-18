@@ -1,0 +1,26 @@
+{
+  "id": "linear",
+  "title": "Linear",
+  "docs": "https://linear.app/developers/graphql",
+  "verifiedOn": "2026-08-18",
+  "note": "Только GraphQL: один адрес /graphql и POST с запросом в теле. Проверено 2026-08-18: личный ключ уезжает в заголовке Authorization КАК ЕСТЬ, без слова Bearer — с Bearer ходят токены OAuth, и перепутать их значит получить 401, неотличимый от истёкшего ключа. searchIssues(term:, first:) отдаёт nodes с identifier, title, description и state.name. identifier — строка вида ENG-123, поэтому в выдаче она стоит как есть: «#ENG-123» человек у себя не найдёт. Отказ приходит кодом 200 в errors, оттуда и берутся слова для человека.",
+  "request": {
+    "method": "POST",
+    "path": "/graphql",
+    "query": [],
+    "headers": [
+      { "name": "Authorization", "value": "{token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ],
+    "body": "{\"query\": \"query { searchIssues(term: \\\"{query}\\\", first: {limit}) { nodes { identifier title description state { name } } } }\"}"
+  },
+  "response": {
+    "list": ["data", "searchIssues", "nodes"],
+    "title": ["title"],
+    "context": ["description"],
+    "key": ["identifier"],
+    "state": ["state", "name"],
+    "errorMessage": ["errors", "0", "message"],
+    "errorCode": ["errors", "0", "extensions", "code"]
+  }
+}

@@ -328,9 +328,14 @@ public struct ManifestConnector {
         // Строка, где нет ни заголовка, ни слов вокруг совпадения, не
         // сообщает человеку ничего. Пропускаем её, а не выдачу целиком.
         guard !title.isEmpty || !context.isEmpty else { return nil }
+        // Номер или обозначение. Trello нумерует карточки числом (#42), Linear
+        // называет задачу строкой (ENG-123). Решётка ставится только к числу:
+        // «#ENG-123» человек в своём трекере не найдёт — там такого нет.
         let number = manifest.response.key.lazy.compactMap { row[$0] as? Int }.first
+        let label = manifest.response.key.lazy.compactMap { row[$0] as? String }
+            .first { !$0.isEmpty }
         let author = manifest.response.author.map { Self.scalar(at: $0, in: row) } ?? ""
-        return Item(key: number.map { "#\($0)" } ?? "—",
+        return Item(key: number.map { "#\($0)" } ?? label ?? "—",
                     title: title,
                     context: context,
                     author: author,

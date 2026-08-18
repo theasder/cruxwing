@@ -20,10 +20,10 @@ describe('Cruxwing Russian developer landing', () => {
     // работы, и любое её изменение обязано быть намеренным. Обновлять слепок
     // руками — это и есть «намеренно». Последний раз обновлён 2026-08-18:
     // на страницу добавились чипы Plane, GitFlic, BookStack, Wiki.js, Nextcloud
-    // и заметки на диске.
+    // заметки на диске, Linear и Trello.
     const rootLanding = readFileSync(resolve(root, 'public', 'index.html'));
     const hash = createHash('sha256').update(rootLanding).digest('hex');
-    assert.equal(hash, '37d6371470be2271b2685f3573307da4c9df311915aadcfa04dc90aec289905a');
+    assert.equal(hash, '69120622536fb461d544b0a6c555a90638cddc4ac13fb4f710e55e8e813f8ab1');
   });
 
   test('declares Russian metadata and the requested production route', () => {

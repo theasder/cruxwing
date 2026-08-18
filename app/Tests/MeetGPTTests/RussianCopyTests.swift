@@ -606,6 +606,9 @@ struct RussianCopyTests {
             "mattermost", "rocket", "chat", "telegram", "teams", "bot", "botfather", "pachca",
             "gitlab", "gitea", "forgejo", "zulip",
             "redmine", "outline", "settings", "tokens", "teamly", "app",
+            // Сервисы, подключённые 2026-08-18: марки, а не забытый перевод.
+            "plane", "gitflic", "bookstack", "wiki", "js", "nextcloud", "trello",
+            "power", "ups", "admin",   // из адреса trello.com/power-ups/admin
             "matrix", "element",
             "json", "url", "pdf", "mac", "macos", "kaiten", "yougile",
             "weeek", "pyrus", "slack", "confluence", "hubspot", "attio", "sentry",

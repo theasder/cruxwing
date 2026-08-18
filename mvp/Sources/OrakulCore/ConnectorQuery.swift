@@ -25,7 +25,7 @@ public enum ConnectorQuery {
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip",
-           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github", "заметки"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github", "linear", "trello", "заметки"]
 
     public struct Settings {
         public let service: String
@@ -151,6 +151,17 @@ public enum ConnectorQuery {
                 return render(service.title,
                               outcome.items.map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" },
                               note: outcome.note)
+            }
+            if let service = WesternTrackers.Service(rawValue: settings.service) {
+                // Адреса сервера тут нет: он известен заранее. Поля, которые
+                // сервис требует помимо ключа, едут в values — у Trello это
+                // ключ приложения.
+                let outcome = try await WesternTrackers(
+                    service: service, token: settings.token,
+                    values: settings.values, http: trackerHTTP).run(trimmed)
+                return render(service.title,
+                              outcome.items.map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" },
+                              note: outcome.coverage.note())
             }
             if let service = TeamNotes.Service(rawValue: settings.service) {
                 let hits = try await TeamNotes(

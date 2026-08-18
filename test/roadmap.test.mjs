@@ -39,6 +39,13 @@ function section(number) {
   return next < 0 ? rest : rest.slice(0, afterHeading + next);
 }
 
+// Файлы, в которых живут перечисления Service. Список один на обе проверки
+// ниже: когда он был написан дважды, добавление WesternTrackers обновило одну
+// копию и оставило другую — и «манифест недостижим» соврал бы про Linear.
+const SERVICE_FILES = ['RussianTrackers.swift', 'WorkMessengers.swift',
+                       'SelfHostedTrackers.swift', 'TeamNotes.swift',
+                       'WesternTrackers.swift'];
+
 describe('ROADMAP', () => {
   test('разделы пронумерованы и идут по порядку', () => {
     // Та же проверка, что у плана, и по той же причине: документ дописывают
@@ -92,10 +99,7 @@ describe('ROADMAP', () => {
       const line = /case ([^\n]+)/.exec(block)[1];
       return line.split(',').length;
     };
-    const own = services('RussianTrackers.swift')
-      + services('WorkMessengers.swift')
-      + services('SelfHostedTrackers.swift')
-      + services('TeamNotes.swift')
+    const own = SERVICE_FILES.reduce((sum, file) => sum + services(file), 0)
       // Источники, у которых нет перечисления Service: они самостоятельные типы.
       // Список руками, поэтому каждый назван и проверен на существование —
       // иначе число «+3» переживёт удаление любого из них.
@@ -130,8 +134,7 @@ describe('ROADMAP', () => {
 
     // Достижим тот, чей id совпадает с case в Service одного из четырёх файлов.
     const cases = new Set();
-    for (const file of ['RussianTrackers.swift', 'WorkMessengers.swift',
-                        'SelfHostedTrackers.swift', 'TeamNotes.swift']) {
+    for (const file of SERVICE_FILES) {
       const src = readFileSync(resolve(repo, 'mvp', 'Sources', 'OrakulCore', file), 'utf8');
       const block = src.slice(src.indexOf('public enum Service'));
       for (const name of /case ([^\n]+)/.exec(block)[1].split(',')) cases.add(name.trim());

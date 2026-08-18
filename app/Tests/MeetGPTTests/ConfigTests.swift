@@ -232,6 +232,19 @@ struct ConfigTranscriptionLanguageTests {
 
     @Test("transcription factories snapshot language for one recording")
     func factoryLanguageSnapshot() async throws {
+        // `transcription.language` — один на процесс, а наборы идут
+        // параллельно: `SettingsDuringCallTests` ставит «ru» ровно между
+        // установкой «en» здесь и проверкой снимка. Поодиночке оба зелёные,
+        // на полном прогоне падает этот — то есть отчёт указывает не туда.
+        //
+        // Задвижка уже есть, и соседний набор ею пользуется; не хватало её
+        // здесь.
+        try await SharedDefaults.withExclusiveAccess {
+            try await Self.checkFactoryLanguageSnapshot()
+        }
+    }
+
+    private static func checkFactoryLanguageSnapshot() async throws {
         let key = "transcription.language"
         let saved = UserDefaults.standard.string(forKey: key)
         defer {

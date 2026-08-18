@@ -350,6 +350,72 @@ struct RussianTrackerStore: Sendable {
         return client.isConfigured ? client : nil
     }
 
+    // MARK: - Западные трекеры (Linear, Trello)
+    //
+    // Адреса сервера у них нет: сервис облачный, и адрес известен заранее.
+    // Поэтому записей две, а не три: ключ и поля.
+
+    private func westernAccount(_ service: WesternTrackers.Service) -> String {
+        "western.\(service.rawValue)"
+    }
+
+    private func westernFieldAccount(_ service: WesternTrackers.Service, _ name: String) -> String {
+        "western.\(service.rawValue).field.\(name)"
+    }
+
+    func westernToken(for service: WesternTrackers.Service) -> String? {
+        guard let data = store.get(westernAccount(service)),
+              let token = String(data: data, encoding: .utf8),
+              !token.isEmpty else { return nil }
+        return token
+    }
+
+    func setWesternToken(_ token: String, for service: WesternTrackers.Service) {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return removeWestern(service) }
+        store.set(Data(trimmed.utf8), for: westernAccount(service))
+    }
+
+    func westernField(_ name: String, for service: WesternTrackers.Service) -> String? {
+        guard let data = store.get(westernFieldAccount(service, name)),
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else { return nil }
+        return value
+    }
+
+    func setWesternField(_ value: String, name: String, for service: WesternTrackers.Service) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return store.delete(westernFieldAccount(service, name)) }
+        store.set(Data(trimmed.utf8), for: westernFieldAccount(service, name))
+    }
+
+    func westernFields(for service: WesternTrackers.Service) -> [String: String] {
+        service.fields.reduce(into: [:]) { result, field in
+            result[field.name] = westernField(field.name, for: service)
+        }
+    }
+
+    func removeWestern(_ service: WesternTrackers.Service) {
+        store.delete(westernAccount(service))
+        for field in service.fields {
+            store.delete(westernFieldAccount(service, field.name))
+        }
+    }
+
+    var configuredWestern: [WesternTrackers.Service] {
+        WesternTrackers.Service.allCases.filter {
+            westernClient(for: $0, http: { _ in (Data(), HTTPURLResponse()) }) != nil
+        }
+    }
+
+    func westernClient(for service: WesternTrackers.Service,
+                       http: @escaping WesternTrackers.HTTP) -> WesternTrackers? {
+        guard let token = westernToken(for: service) else { return nil }
+        let client = WesternTrackers(service: service, token: token,
+                                     values: westernFields(for: service), http: http)
+        return client.isConfigured ? client : nil
+    }
+
     // MARK: - Рабочие мессенджеры (Пачка, Mattermost, Rocket.Chat)
     //
     // Ключи отдельные от трекеров: сервис может быть подключён и там и там, и

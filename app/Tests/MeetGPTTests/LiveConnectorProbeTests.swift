@@ -29,7 +29,7 @@ import OrakulCore
 ///
 /// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, matrix,
 /// gitlab, gitea, redmine, plane, gitflic, outline, bookstack, wikijs,
-/// nextcloud.
+/// nextcloud, linear, trello.
 ///
 /// У Plane, GitFlic и Nextcloud, кроме токена и адреса, спрашиваются поля из
 /// манифеста:
@@ -101,6 +101,22 @@ struct LiveConnectorProbeTests {
             return
         }
 
+        if let western = WesternTrackers.Service(rawValue: service) {
+            // Адрес не спрашивается: он известен заранее. ORAKUL_HOST для этих
+            // сервисов не нужен, и проба про него молчит намеренно.
+            let values = western.fields.reduce(into: [String: String]()) { result, field in
+                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+            }
+            let items = try await WesternTrackers(service: western, token: token,
+                                                  values: values,
+                                                  http: WesternTrackers.live).search(query)
+            print("[\(western.title)] найдено задач: \(items.count)")
+            for item in items.prefix(3) {
+                print("  — \(item.key) [\(item.state)] \(item.title.prefix(100))")
+            }
+            return
+        }
+
         if let notes = TeamNotes.Service(rawValue: service) {
             let notesValues = notes.fields.reduce(into: [String: String]()) { result, field in
                 result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
@@ -131,10 +147,12 @@ struct LiveConnectorProbeTests {
     func documentedServicesExist() {
         let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip",
                                        "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline",
-                                       "bookstack", "wikijs", "nextcloud"]
+                                       "bookstack", "wikijs", "nextcloud",
+                                       "linear", "trello"]
         let real = Set(WorkMessengers.Service.allCases.map(\.rawValue))
             .union(SelfHostedTrackers.Service.allCases.map(\.rawValue))
             .union(TeamNotes.Service.allCases.map(\.rawValue))
+            .union(WesternTrackers.Service.allCases.map(\.rawValue))
 
         let onlyDocumented = documented.subtracting(real).sorted()
         let onlyInCode = real.subtracting(documented).sorted()

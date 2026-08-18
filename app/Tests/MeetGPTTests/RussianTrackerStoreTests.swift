@@ -235,4 +235,53 @@ struct EveryCredentialSetterClearsTests {
         store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
         #expect(store.selfHostedField("workspace", for: .gitea) == nil)
     }
+
+    // MARK: - Западные трекеры (Linear, Trello)
+
+    @Test("Linear настроен одним ключом, Trello — только с ключом приложения")
+    func westernConfiguration() {
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        let http: WesternTrackers.HTTP = { _ in (Data(), HTTPURLResponse()) }
+
+        store.setWesternToken("lin_api_ключ", for: .linear)
+        #expect(store.westernClient(for: .linear, http: http) != nil)
+
+        store.setWesternToken("токен", for: .trello)
+        #expect(store.westernClient(for: .trello, http: http) == nil,
+                "у Trello без ключа приложения запрос не собрать")
+        store.setWesternField("ключ-приложения", name: "key", for: .trello)
+        #expect(store.westernClient(for: .trello, http: http) != nil)
+    }
+
+    @Test("ключи западных трекеров лежат отдельно от остальных")
+    func westernKeysDoNotCollide() {
+        // Общая запись означала бы, что подключение Linear молча отключает
+        // Kaiten. Имена ключей у трекеров, баз знаний и мессенджеров разные —
+        // проверяется это единственным способом: положить всё и посчитать.
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setToken("kaiten", for: .kaiten)
+        store.setSelfHostedToken("gitea", for: .gitea)
+        store.setNotesToken("outline", for: .outline)
+        store.setWesternToken("linear", for: .linear)
+
+        #expect(store.token(for: .kaiten) == "kaiten")
+        #expect(store.selfHostedToken(for: .gitea) == "gitea")
+        #expect(store.notesToken(for: .outline) == "outline")
+        #expect(store.westernToken(for: .linear) == "linear")
+        #expect(keychain.count == 4)
+    }
+
+    @Test("«Отключить» у Trello уносит и ключ приложения")
+    func disconnectClearsWesternFields() {
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setWesternToken("токен", for: .trello)
+        store.setWesternField("ключ", name: "key", for: .trello)
+
+        store.removeWestern(.trello)
+        #expect(keychain.count == 0)
+        #expect(store.westernField("key", for: .trello) == nil)
+    }
 }
