@@ -202,6 +202,7 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         case unboundedScan(String)
         case scanWithoutMatch(String)
         case unknownPlaceholder(String, String)
+        case secretInAddress(String, String)
         case unreadable(String)
 
         public var description: String {
@@ -216,6 +217,8 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
                 return "В манифесте «\(id)» есть scan, но не сказано, по каким полям отбирать (match). Перечисление без отбора — это не поиск, а список."
             case .unknownPlaceholder(let id, let name):
                 return "В манифесте «\(id)» подстановка {\(name)} никому не известна. Она уйдёт в адрес как есть, и сервис ответит 404 на запрос, который выглядит правильным. Объявите поле в parameters или уберите подстановку."
+            case .secretInAddress(let id, let where_):
+                return "В манифесте «\(id)» секрет стоит в \(where_). Адрес запроса виден всем по дороге: он попадает в журналы прокси, в журналы самого сервиса и в отчёты об ошибках, и остаётся там после того, как токен отозвали. Секрет передаётся заголовком."
             case .unreadable(let name):
                 return "Манифест «\(name)» не разобрался."
             }
@@ -248,6 +251,28 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
             }
         } else {
             guard inQuery || inBody else { throw ManifestError.noSearchParameter(id) }
+        }
+
+        // Секрет не имеет права оказаться в адресе.
+        //
+        // Адрес — самая публичная часть запроса: он целиком пишется в журнал
+        // прокси, в журнал доступа самого сервиса и в отчёты об ошибках, и
+        // живёт там дольше, чем токен. Заголовок в те же журналы не попадает.
+        //
+        // Сегодня все четырнадцать манифестов передают секрет заголовком, и у
+        // Trello это отдельное решение, записанное в его note: у сервиса
+        // штатный способ — «?key=…&token=…», и вместо него взят заголовок
+        // OAuth. Решение, записанное словами в одном манифесте, следующий автор
+        // повторять не обязан — поэтому оно здесь, а не только там.
+        for (place, texts) in [
+            ("адресе (path)", [request.path]),
+            ("параметрах запроса (query)", request.query.flatMap { [$0.name, $0.value] }),
+            ("параметрах постраничного обхода (scan.page)",
+             (scan?.page ?? []).flatMap { [$0.name, $0.value] }),
+        ] {
+            for text in texts where text.contains("{token}") || text.contains("{basic}") {
+                throw ManifestError.secretInAddress(id, place)
+            }
         }
 
         // Подстановка, которой никто не заполнит, уходит в адрес буквально.

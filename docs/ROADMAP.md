@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 266 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 575 | README, maintainer run |
+| App and core tests | 2833 and 582 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1290,6 +1290,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**A secret in the address is a secret in somebody's logs.** A hostile service
+does not have to attack for this one — it only has to document the convenient
+way. Trello's own API is `?key=…&token=…`, and a manifest author copying the
+vendor's documentation would put the key straight into the URL, where it is
+written to proxy logs, the service's own access log and every error report, and
+stays there long after the token is revoked. A header goes into none of them.
+
+All fourteen manifests already send the secret as a header, and for Trello that
+was a deliberate choice recorded in its `note`. A decision written as prose in
+one manifest is not a rule — the next author is not obliged to read it — so it
+is now enforced in `validate()`, for `path`, for `query`, and for `scan.page`,
+which is the one that gets forgotten because it does not look like a query
+string. CONTRIBUTING states it before the code is written; the loader refuses it
+after.
+
+**Limit, stated rather than papered over:** the rule covers the two secrets the
+engine substitutes, `{token}` and `{basic}`. A person-filled parameter that
+happens to be secret — Trello's `{key}` — cannot be recognised as one, because
+`Parameter` is a name and a value with nothing to mark it. Making that
+enforceable means teaching the manifest which fields are secret, which is a
+larger change than this one.
 
 **HTTP 200 is not an answer.** GraphQL replies 200 to everything and puts the
 refusal in `errors`, and its normal shape for a refusal is not «no list» but
