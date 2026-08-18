@@ -43,6 +43,11 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
         case collidesWithOrdinaryWord(pack: String, word: String)
         case duplicate(pack: String, word: String)
         case wrongAlphabet(pack: String, word: String)
+        /// Два пакета чинят одно слово по-разному.
+        case conflictBetweenPacks(word: String, first: String, second: String,
+                                  canonical: String, other: String)
+        /// Один пакет чинит слово, которое другой считает обычным.
+        case termIsOrdinaryElsewhere(word: String, term: String, ordinary: String)
 
         public var description: String {
             switch self {
@@ -52,6 +57,10 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
                 return "«\(word)» в пакете «\(pack)» указано дважды. Два канона у одного слова означают, что починка зависит от порядка обхода."
             case .wrongAlphabet(let pack, let word):
                 return "«\(word)» из пакета «\(pack)» записано не тем алфавитом: аббревиатуры пишутся латиницей, заимствования — кириллицей. Иначе словарь чинит слово в сторону, обратную канону."
+            case .conflictBetweenPacks(let word, let first, let second, let canonical, let other):
+                return "«\(word)» пакет «\(first)» чинит в «\(canonical)», а «\(second)» — в «\(other)». Какой из них сработает, решал бы порядок чтения файлов, то есть имя файла. Это то же самое, что дубль внутри пакета, только увидеть его труднее."
+            case .termIsOrdinaryElsewhere(let word, let term, let ordinary):
+                return "«\(word)» пакет «\(term)» считает термином, а «\(ordinary)» — обычным словом. Один из них ошибается, и пока не решено какой, словарь чинит речь по чужому мнению."
             }
         }
     }
@@ -98,6 +107,52 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
         word.lowercased().replacingOccurrences(of: "ё", with: "е")
     }
 
+    /// Правила, которые видны только при взгляде на все пакеты сразу.
+    ///
+    /// Пакет проверяет себя (`validate`), но словарь собирается из всех, и две
+    /// поломки существуют только между ними:
+    ///
+    ///   * одно слово чинится по-разному — какой пакет победит, решал бы
+    ///     порядок чтения файлов, то есть их имена. Это тот же дубль, что
+    ///     внутри пакета, только заметить его труднее;
+    ///   * слово, которое один пакет чинит, другой держит в списке обычных.
+    ///     Списки отказов — это накопленный опыт («агент» — страховой агент), и
+    ///     новый доменный пакет не должен молча его отменять.
+    ///
+    /// Проверка появилась до первого доменного пакета намеренно: правило,
+    /// написанное после того, как его нарушили, обсуждают, а не соблюдают.
+    public static func validate(_ packs: [LexiconPack]) throws {
+        var canonOf: [String: (pack: String, canonical: String)] = [:]
+        for pack in packs {
+            for (spoken, canonical) in pack.variants ?? [:] {
+                let word = key(spoken)
+                if let seen = canonOf[word], key(seen.canonical) != key(canonical) {
+                    throw PackError.conflictBetweenPacks(
+                        word: spoken, first: seen.pack, second: pack.id,
+                        canonical: seen.canonical, other: canonical)
+                }
+                canonOf[word] = (pack.id, canonical)
+            }
+        }
+
+        var ordinaryIn: [String: String] = [:]
+        for pack in packs {
+            for word in pack.ordinary { ordinaryIn[key(word)] = pack.id }
+        }
+        for pack in packs {
+            // Термины — то, что пакет ЧИНИТ: списки и левая часть таблицы
+            // замен. Имена инструментов сюда не входят: они работают только на
+            // поиск, и совпадение с обычным словом там допустимо по условию.
+            let terms = pack.acronyms + pack.loanwords + Array((pack.variants ?? [:]).keys)
+            for term in terms {
+                if let owner = ordinaryIn[key(term)], owner != pack.id {
+                    throw PackError.termIsOrdinaryElsewhere(
+                        word: term, term: pack.id, ordinary: owner)
+                }
+            }
+        }
+    }
+
     /// Все пакеты из ресурсов, разобранные и проверенные.
     ///
     /// Каталог перечисляется руками по той же причине, что у коннекторов:
@@ -116,6 +171,7 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
             try pack.validate()
             packs.append(pack)
         }
+        try validate(packs)
         return packs
     }
 }

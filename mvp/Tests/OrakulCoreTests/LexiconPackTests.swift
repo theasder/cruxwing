@@ -135,4 +135,99 @@ struct LexiconPackTests {
             try Self.pack(loanwords: ["prod"]).validate()
         }
     }
+
+    // MARK: - Правила между пакетами (доменные пакеты, §9)
+
+    @Test("два пакета не могут чинить одно слово по-разному")
+    func conflictingCanonsAreRefused() throws {
+        // Иначе побеждает тот, чьё имя файла раньше по алфавиту. Это тот же
+        // дубль, что внутри пакета, только увидеть его труднее: каждый пакет
+        // сам по себе безупречен.
+        let first = try Self.pack(variants: ["прод": "прод"])
+        let second = try LexiconPack(pack: "мобильный", variants: ["прод": "production"])
+        #expect(throws: LexiconPack.PackError.self) {
+            try LexiconPack.validate([first, second])
+        }
+    }
+
+    @Test("одинаковая починка в двух пакетах — не поломка")
+    func sameCanonInTwoPacksIsFine() throws {
+        // Повтор безвреден: результат один и тот же при любом порядке чтения.
+        // Запретить его значило бы требовать от доменного пакета знать
+        // содержимое базового наизусть.
+        let first = try Self.pack(variants: ["апи": "API"])
+        let second = try LexiconPack(pack: "мобильный", variants: ["апи": "API"])
+        #expect(throws: Never.self) { try LexiconPack.validate([first, second]) }
+    }
+
+    @Test("пакет не чинит слово, которое другой считает обычным")
+    func termCannotBeOrdinaryElsewhere() throws {
+        // Списки отказов — накопленный опыт: «агент» это страховой агент.
+        // Доменный пакет не должен отменять его молча.
+        let base = try Self.pack(ordinary: ["агент"])
+        let domain = try LexiconPack(pack: "продуктовый", loanwords: ["агент"])
+        #expect(throws: LexiconPack.PackError.self) {
+            try LexiconPack.validate([base, domain])
+        }
+    }
+
+    @Test("имена инструментов из чужого списка обычных слов не запрещены")
+    func infrastructureIsNotBoundByOrdinaryLists() throws {
+        // Разница между таблицами держится и между пакетами: имена работают
+        // только на поиск, и «редис» обязан оставаться овощем в тексте.
+        let base = try Self.pack(ordinary: ["редис"])
+        let domain = try LexiconPack(pack: "инфраструктурный", infrastructure: ["редис": "redis"])
+        #expect(throws: Never.self) { try LexiconPack.validate([base, domain]) }
+    }
+
+    @Test("загрузка сама проверяет пакеты между собой, а не надеется на вызов")
+    func loaderAppliesCrossPackRules() throws {
+        // Без этого правило есть, но его никто не применяет: продукт зовёт
+        // `bundled()`, а не `validate(_:)`. Мутация «убрать вызов из загрузки»
+        // проходила именно поэтому — единственная проверка звала обе функции
+        // руками.
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("orakul-lexicon-\(UUID().uuidString)")
+        let lexicon = folder.appendingPathComponent("lexicon")
+        try FileManager.default.createDirectory(at: lexicon, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        func write(_ name: String, _ object: [String: Any]) throws {
+            let data = try JSONSerialization.data(withJSONObject: object)
+            try data.write(to: lexicon.appendingPathComponent(name))
+        }
+        // Два пакета, каждый безупречен сам по себе, и разный канон одного слова.
+        try write("a-base.json", ["id": "база", "title": "База", "acronyms": [], "loanwords": [],
+                                  "ordinary": [], "variants": ["прод": "прод"]])
+        try write("b-mobile.json", ["id": "мобильный", "title": "Мобильный", "acronyms": [],
+                                    "loanwords": [], "ordinary": [],
+                                    "variants": ["прод": "production"]])
+
+        let bundle = try #require(Bundle(url: folder), "не удалось собрать поддельный набор ресурсов")
+        #expect(throws: LexiconPack.PackError.self) {
+            _ = try LexiconPack.bundled(in: bundle)
+        }
+    }
+
+    @Test("пакеты в ресурсах проходят и правила между собой")
+    func bundledPacksAgreeWithEachOther() throws {
+        // Сегодня пакет один, и проверка почти пустая — но она стоит здесь до
+        // первого доменного пакета намеренно: правило, написанное после того,
+        // как его нарушили, обсуждают, а не соблюдают.
+        #expect(throws: Never.self) { try LexiconPack.validate(try LexiconPack.bundled()) }
+    }
+}
+
+private extension LexiconPack {
+    /// Пакет с произвольным именем — для проверок между пакетами.
+    init(pack id: String, acronyms: [String] = [], loanwords: [String] = [],
+         ordinary: [String] = [], variants: [String: String] = [:],
+         infrastructure: [String: String] = [:]) throws {
+        let json = try JSONSerialization.data(withJSONObject: [
+            "id": id, "title": id,
+            "acronyms": acronyms, "loanwords": loanwords, "ordinary": ordinary,
+            "variants": variants, "infrastructure": infrastructure,
+        ])
+        self = try JSONDecoder().decode(LexiconPack.self, from: json)
+    }
 }

@@ -907,8 +907,31 @@ scripts and refuses exactly this contradiction.
   pinned, because the first version of the rule was enforced in one direction
   only and no test noticed.
 
-  Domain packs per role are still ahead; the loader takes any number of files,
-  so that is now a data question rather than an architecture one.
+  **Domain packs per role: the architecture closed 2026-08-18, the content did
+  not.** «The loader takes any number of files» was true and insufficient. Each
+  pack validated itself, and two failures exist only between packs — each pack
+  flawless on its own:
+
+  * the same word repaired differently in two packs. Which one wins would be
+    decided by the order files are read, that is by their names — the same
+    defect as a duplicate inside one pack, only harder to see;
+  * a word one pack repairs while another lists it as ordinary. Those refusal
+    lists are accumulated experience («агент» is an insurance agent), and a new
+    domain pack must not overturn one silently.
+
+  Both are refused at load, not by a separate call somebody has to remember —
+  and that distinction was itself found by mutation: removing the check from the
+  loader passed, because the only test called validation by hand. Tool names
+  stay exempt on purpose: they act on search only, so «редис» may be a vegetable
+  in one pack and a search token in another.
+
+  The rules exist **before** the first domain pack deliberately: a rule written
+  after it was broken gets argued about rather than followed.
+
+  What is left is content, and it is not something to invent. A pack is a claim
+  about what a particular role actually says on calls; the way to earn it is the
+  corpus of §6.3, not a list assembled from memory. CONTRIBUTING states the
+  format and both rules.
 - **A kit for an outside connector — the missing half landed 2026-08-18.**
   Checking a connector needs an account in the service; accepting the patch
   needs the maintainer, who has none. Between them there must be a document:
