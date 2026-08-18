@@ -96,9 +96,7 @@ public struct SelfHostedTrackers {
         }
 
         func host(_ raw: String?) -> String? {
-            guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !value.isEmpty else { return nil }
-            return value.hasPrefix("http") ? value : "https://\(value)"
+            ConnectorAddress.normalise(raw)
         }
     }
 

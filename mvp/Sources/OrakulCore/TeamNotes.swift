@@ -92,9 +92,7 @@ public struct TeamNotes {
         }
 
         func host(_ raw: String?) -> String? {
-            guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !value.isEmpty else { return cloudHost }
-            return value.hasPrefix("http") ? value : "https://\(value)"
+            ConnectorAddress.normalise(raw) ?? cloudHost
         }
     }
 

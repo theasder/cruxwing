@@ -148,9 +148,7 @@ public struct WorkMessengers {
             case .pachca:
                 return "https://api.pachca.com"
             case .mattermost, .rocketChat, .zulip, .matrix:
-                guard let raw = secondary?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !raw.isEmpty else { return nil }
-                return raw.hasPrefix("http") ? raw : "https://\(raw)"
+                return ConnectorAddress.normalise(secondary)
             }
         }
     }

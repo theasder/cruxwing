@@ -29,8 +29,8 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 255 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 557 | README, maintainer run |
+| Page and doc checks | 258 tests, all green | `npm test`, run 2026-08-18 |
+| App and core tests | 2833 and 565 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1245,6 +1245,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The protocol the person typed.** A service address is filled in by hand, and
+the token travels to whatever address that is. `http://git.company.ru`, copied
+from an old bookmark, sent a work tracker's key in clear text to anyone sitting
+between — hotel Wi-Fi, a proxy, the next desk. No competitor has to do anything
+for this one. Three connector families each pasted the same line, and all three
+kept `http` whenever the person had typed it: the scheme was only ever added
+when it was missing entirely. `ConnectorAddress` now owns the single rule —
+plaintext is kept only for an address that cannot leave the local network
+(`localhost`, `.local`, `10.x`, `192.168.x`, `172.16–31.x`), and upgraded
+everywhere else.
+
+The expensive part was not the rule but its edge: for team notes an empty
+address means «the vendor's cloud», so returning nothing for an address that
+merely fails to parse would have redirected a self-hosted key straight into a
+third party — quieter and worse than the `http` it replaced. Nothing means
+«nobody typed anything», and only that.
+
+`test/connector-address.test.mjs` guards the class rather than the three
+instances: a fourth family added next year with its own `"https://\(value)"`
+would pass every Swift test, which only knows the three services it was written
+with.
 
 **Contradictions inside one section** — a system the §8 table calls working
 cannot be called untested three lines below, and something closed with cause in
