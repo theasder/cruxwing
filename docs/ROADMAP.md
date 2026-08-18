@@ -68,11 +68,20 @@ Total: 25 own connectors, 11 western via MCP.
 The MCP catalog holds six more descriptors: Asana, HubSpot, Affinity, Zoom,
 Gmail, Google Analytics. They need a **pre-registered** app, meaning credentials
 inside the build, and credentials stay out of shipped installers on purpose
-(`app/build.sh`, `SECRET_VARS`; plan §9.1). So downloaded orakul has no such six
-buttons.
+(`app/build.sh`: a dist build emits only explicitly named settings — §5.2; plan
+§9.1). So downloaded orakul has no such six buttons.
 
 Not a defect — a consequence of the rule. What was a defect is §5.2: four
-credential names slipped past the list that enforces it, closed 2026-08-17.
+credential names slipped past the list that used to enforce it, closed
+2026-08-17 and made structural 2026-08-18.
+
+The claim above is checked at the mechanism, not at the machine. The old test
+asked whether credentials happened to be present in whatever build ran it and
+asserted the matching branch — true under any behaviour, and blind to a seventh
+service added past the gate. Now `configuredDescriptor` is exercised directly:
+an empty id or an empty secret yields nothing, both halves yield a descriptor
+(otherwise «shows nothing» could be achieved by working never), and an unknown
+id is refused even with credentials.
 
 ---
 

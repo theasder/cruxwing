@@ -131,6 +131,47 @@ struct MCPCatalogTests {
         }
     }
 
+    @Test("сервис с пустым ключом не появляется — независимо от того, что в сборке")
+    func gateRefusesEmptyCredentials() {
+        // Проверяется сам механизм, а не состояние машины. Обещание §2.3:
+        // «в скачанном orakul этих шести кнопок нет», потому что ключей в
+        // раздаваемой сборке нет.
+        let id = MCPCatalog.preRegisteredIDs.first ?? "asana"
+        #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "", clientSecret: "секрет") == nil)
+        #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "ключ", clientSecret: "") == nil)
+        #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "", clientSecret: "") == nil)
+
+        // С обеими половинами сервис появляется — иначе «ничего не показываем»
+        // достигалось бы тем, что не работает ничего.
+        let ready = MCPCatalog.configuredDescriptor(id: id, clientID: "ключ", clientSecret: "секрет")
+        #expect(ready != nil)
+        #expect(ready?.fixedClientID == "ключ")
+
+        // Незнакомый идентификатор не проходит даже с ключами: список
+        // предварительно зарегистрированных — тоже часть гейта.
+        #expect(MCPCatalog.configuredDescriptor(id: "выдуманный",
+                                                clientID: "ключ", clientSecret: "секрет") == nil)
+    }
+
+    @Test("каждый предварительно зарегистрированный сервис проходит через гейт")
+    func everyPreRegisteredGoesThroughTheGate() {
+        // Структурно: седьмой сервис, добавленный мимо `configuredDescriptor`,
+        // появился бы в скачанной сборке без ключей — то есть кнопкой, которая
+        // ничего не делает.
+        let source = try! String(
+            contentsOfFile: #filePath.replacingOccurrences(
+                of: "Tests/MeetGPTTests/MCPCatalogTests.swift",
+                with: "Sources/MeetGPT/MCP/MCPCatalog.swift"),
+            encoding: .utf8)
+        let code = source.split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        let gated = code.components(separatedBy: "configuredDescriptor(").count - 1
+        // Одно объявление плюс по вызову на каждый сервис.
+        #expect(gated >= MCPCatalog.preRegisteredIDs.count + 1,
+                "сервисов \(MCPCatalog.preRegisteredIDs.count), а вызовов гейта \(gated - 1)")
+    }
+
     @Test("pre-registered servers are gated on Config credentials")
     func preRegisteredGating() {
         // The pre-registered apps (Asana, HubSpot, Affinity, Zoom, Gmail,

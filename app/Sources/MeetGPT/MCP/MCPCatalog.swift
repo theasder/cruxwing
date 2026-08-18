@@ -198,6 +198,10 @@ enum MCPCatalog {
 
     /// Servers that speak MCP + PKCE but require a pre-registered app (no open
     /// DCR) — each appears only when its client credentials are baked in.
+    /// Идентификаторы сервисов, которым нужен заранее зарегистрированный ключ.
+    /// Наружу — чтобы проверка считала их, а не повторяла список.
+    static var preRegisteredIDs: [String] { preRegisteredContracts.map(\.id) }
+
     static var preRegistered: [MCPServerDescriptor] {
         [asana, hubSpot, affinity, zoom, gmail, googleAnalytics].compactMap { $0 }
     }
@@ -302,8 +306,15 @@ enum MCPCatalog {
             clientSecret: Config.zoomClientSecret)
     }
 
-    private static func configuredDescriptor(id: String, clientID: String,
-                                             clientSecret: String) -> MCPServerDescriptor? {
+    /// Внутренний, а не приватный, чтобы это можно было проверить набором.
+    ///
+    /// Обещание §2.3 роадмапа — «в скачанном orakul этих шести кнопок нет» —
+    /// держится ровно здесь. Прежняя проверка смотрела на состояние машины, на
+    /// которой её запустили: есть ключи — ждём непустой список, нет ключей —
+    /// пустой. Такая проверка верна при любом поведении кода и не поймала бы
+    /// седьмой сервис, добавленный мимо этого гейта.
+    static func configuredDescriptor(id: String, clientID: String,
+                                     clientSecret: String) -> MCPServerDescriptor? {
         guard !clientID.isEmpty, !clientSecret.isEmpty,
               let contract = preRegisteredContracts.first(where: { $0.id == id })
         else { return nil }
