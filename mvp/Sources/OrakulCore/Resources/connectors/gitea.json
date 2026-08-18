@@ -1,0 +1,25 @@
+{
+  "id": "gitea",
+  "title": "Gitea / Forgejo",
+  "docs": "https://docs.gitea.com/api/1.20/#tag/issue/operation/issueSearchIssues",
+  "verifiedOn": "2026-08-12",
+  "note": "Заголовок именно «token», а не «Bearer»: так в их swagger.v1.json. С «Bearer» сервис отвечает 401, неотличимо от плохого токена. Forgejo — форк с тем же API, отдельной записи не нужно. Без type=issues в выдачу попадают пулл-реквесты и отвечают не о том.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/repos/issues/search",
+    "query": [
+      { "name": "q", "value": "{query}" },
+      { "name": "type", "value": "issues" },
+      { "name": "limit", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "token {token}" }
+    ]
+  },
+  "response": {
+    "list": [],
+    "title": ["title"],
+    "key": ["number"],
+    "state": "state"
+  }
+}

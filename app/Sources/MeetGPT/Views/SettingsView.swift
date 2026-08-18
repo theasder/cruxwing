@@ -540,7 +540,7 @@ private struct TranscriptionSettingsTab: View {
                         }
                         HStack {
                             if let metrics = state.connectedGlossarySuggestionMetrics {
-                                Text("\(metrics.sourceCount) source\(metrics.sourceCount == 1 ? "" : "s") · \(metrics.estimatedInputTokens) input tokens · ~\(metrics.estimatedComputeCredits) compute credits\(metrics.cached ? " · cached" : "")")
+                                Text("источников: \(metrics.sourceCount) · токенов на входе: \(metrics.estimatedInputTokens) · ~\(metrics.estimatedComputeCredits) на вычисления\(metrics.cached ? " · из кэша" : "")")
                                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                             }
                             Spacer()
@@ -744,7 +744,7 @@ private struct ConnectedAppsTab: View {
                     HStack(spacing: Space.s) {
                         SectionLabel("Источники команды")
                         if !TeamConnectors.configured.isEmpty {
-                            Text("\(TeamConnectors.configured.count) configured")
+                            Text("настроено: \(TeamConnectors.configured.count)")
                                 .font(Typo.caption)
                                 .foregroundStyle(Theme.inkTertiary)
                         }
@@ -1071,7 +1071,7 @@ private struct EngineChoiceRow: View {
         .buttonStyle(.plain)
         .disabled(!available)
         .opacity(available ? 1 : 0.55)
-        .accessibilityLabel("\(engine.advantageTitle) transcription engine")
+        .accessibilityLabel("движок расшифровки: \(engine.advantageTitle)")
         .accessibilityValue(selected ? "Selected" : "Не выбрано")
         .accessibilityIdentifier("settings.transcription.engine.\(engine.rawValue)")
     }
@@ -1105,7 +1105,7 @@ private struct GoogleSignInRow: View {
                         .labelStyle(SettingLabelStyle())
                     if state.googleConnected {
                         let count = state.promptWorkflowCount(usingSourcePrefix: "google:")
-                        Text("\(count) prompt workflow\(count == 1 ? "" : "s") ready")
+                        Text("готовых сценариев: \(count)")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                     }

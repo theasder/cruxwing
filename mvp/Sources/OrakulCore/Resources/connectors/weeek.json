@@ -1,0 +1,48 @@
+{
+  "id": "weeek",
+  "title": "WEEEK",
+  "docs": "https://developers.weeek.net/api/task",
+  "verifiedOn": "2026-08-16",
+  "note": "Российский трекер. Разблокировался, когда вендор опубликовал страницу метода с фильтром search и формой ответа — до этого стоял в списке невозможного. Отказ приходит с кодом 200 и полем success:false, поэтому флаг проверяется до разбора списка.",
+  "request": {
+    "method": "GET",
+    "path": "/tm/tasks",
+    "query": [
+      {
+        "name": "search",
+        "value": "{query}"
+      },
+      {
+        "name": "perPage",
+        "value": "{limit}"
+      }
+    ],
+    "headers": [
+      {
+        "name": "Authorization",
+        "value": "Bearer {token}"
+      }
+    ]
+  },
+  "response": {
+    "requireTrue": [
+      "success"
+    ],
+    "list": [
+      "tasks"
+    ],
+    "title": [
+      "title"
+    ],
+    "key": [
+      "id"
+    ],
+    "state": "state",
+    "errorCode": [
+      "error"
+    ],
+    "errorMessage": [
+      "message"
+    ]
+  }
+}

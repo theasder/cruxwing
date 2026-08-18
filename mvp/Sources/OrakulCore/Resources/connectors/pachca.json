@@ -1,0 +1,27 @@
+{
+  "id": "pachca",
+  "title": "Пачка",
+  "docs": "https://crm.pachca.com/dev/messages/search/",
+  "verifiedOn": "2026-08-12",
+  "note": "Российский мессенджер. Поиск по сообщениям требует права search:messages: без него сервис отвечает 403, и это не «токен плохой», а «токену не выдали право» — разные починки. Автор приходит числом (user_id), а не строкой.",
+  "request": {
+    "method": "GET",
+    "path": "/api/shared/v1/search/messages",
+    "query": [
+      { "name": "query", "value": "{query}" },
+      { "name": "limit", "value": "{limit}" },
+      { "name": "sort", "value": "created_at" },
+      { "name": "order", "value": "desc" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" }
+    ]
+  },
+  "response": {
+    "list": ["data"],
+    "title": ["content"],
+    "author": ["user_id"],
+    "key": [],
+    "state": "state"
+  }
+}

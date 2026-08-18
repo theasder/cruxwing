@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -18,7 +24,7 @@ struct WorkMessengersTests {
             recorder.record(request)
             return (Data(json.utf8),
                     HTTPURLResponse(url: request.url!, statusCode: status,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         return (http, recorder)
     }
@@ -265,7 +271,7 @@ struct PairedTokenTests {
             calls += 1
             return (Data("{}".utf8), HTTPURLResponse(
                 url: URL(string: "https://chat.company.ru")!, statusCode: 401,
-                httpVersion: nil, headerFields: nil)!)
+                httpVersion: nil, headerFields: [:])!)
         }
         return (http, { calls })
     }
@@ -308,7 +314,7 @@ struct PairedTokenTests {
     func emptyHalfIsMissing(token: String) {
         let client = WorkMessengers(service: .zulip, token: token,
                                     secondary: "zulip.company.ru",
-                                    http: { _ in (Data(), HTTPURLResponse()) })
+                                    http: { _ in (Data(), stubHTTPResponse()) })
         #expect(!client.hasBothTokenHalves)
     }
 
@@ -316,7 +322,7 @@ struct PairedTokenTests {
     func colonInsideSecondHalf() {
         let client = WorkMessengers(service: .zulip, token: "user@company.ru:ab:cd",
                                     secondary: "zulip.company.ru",
-                                    http: { _ in (Data(), HTTPURLResponse()) })
+                                    http: { _ in (Data(), stubHTTPResponse()) })
         #expect(client.hasBothTokenHalves)
     }
 
@@ -327,7 +333,7 @@ struct PairedTokenTests {
         let client = WorkMessengers(service: service, token: "один-токен",
                                     secondary: "chat.company.ru",
                                     scope: "team-1",
-                                    http: { _ in (Data(), HTTPURLResponse()) })
+                                    http: { _ in (Data(), stubHTTPResponse()) })
         #expect(client.hasBothTokenHalves)
     }
 }

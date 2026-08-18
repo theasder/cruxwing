@@ -418,7 +418,7 @@ private struct FolderChip: View {
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.4)
             .accessibilityLabel("Отвязать \(folder.name)")
-            .help("Detach")
+            .help("Отвязать")
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)

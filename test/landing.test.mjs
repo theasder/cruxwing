@@ -973,11 +973,20 @@ describe('orakul landing (ru)', () => {
     assert.ok(existsSync(guard),
       'the page claims the core is checked for portability; no such test exists');
 
-    // И проверка должна действительно разрешать только Foundation — иначе
-    // страница ссылается на сторожа, который никого не сторожит.
+    // И сторож обязан разрешать ровно то, что существует вне Apple, — иначе
+    // страница ссылается на проверку, которая никого не проверяет.
+    //
+    // Список вырос на `FoundationNetworking` 2026-08-17, и это не послабление:
+    // на Linux и Windows corelibs держит там `URLRequest` и `URLSession`, без
+    // которых ядро не собирается вовсе (сборка в swift:6.0 это и показала).
+    // Проверка поэтому смотрит на СОСТАВ, а не на конкретную строку: прежний
+    // вариант сверял литерал `["Foundation"]` и упал бы на честной правке.
     const text = readFileSync(guard, 'utf8');
-    assert.match(text, /allowed:\s*Set<String>\s*=\s*\["Foundation"\]/,
-      'the portability guard no longer restricts the core to Foundation');
+    const allowed = /allowed:\s*Set<String>\s*=\s*\[([^\]]*)\]/.exec(text);
+    assert.ok(allowed, 'the portability guard no longer declares an allow-list');
+    const modules = allowed[1].split(',').map((s) => s.trim().replace(/"/g, '')).filter(Boolean);
+    assert.deepEqual(modules.slice().sort(), ['Foundation', 'FoundationNetworking'],
+      `the core is allowed modules that do not exist outside Apple: ${modules.join(', ')}`);
     assert.match(text, /"AppKit"/,
       'the guard no longer treats AppKit as platform-specific, which the page cites');
   });
@@ -1549,7 +1558,16 @@ describe('orakul landing (ru)', () => {
 
     const decoder = stripComments(readFileSync(
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'TranscriptFile.swift'), 'utf8'));
-    assert.match(decoder, /windowsCP1251/, 'the CP1251 fallback is gone');
+    // Раньше здесь стояло `windowsCP1251` — имя системной кодировки. Оно ушло
+    // 2026-08-17 вместе с самой системной таблицей: её нет в
+    // swift-corelibs-foundation, и на Linux с Windows этот путь молча отвечал бы
+    // «не текст» на тех самых файлах, ради которых написан. Обещание страницы
+    // держится теперь на своей таблице, и проверять надо её.
+    assert.match(decoder, /CP1251\.decode/, 'the CP1251 fallback is gone');
+    const table = readFileSync(
+      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CP1251.swift'), 'utf8');
+    assert.match(table, /0x0410, 0x0411, 0x0412/,
+      'the CP1251 table lost its Cyrillic block — the page promises files it can no longer read');
     // Метка порядка байтов обязательна: без неё UTF-16 берётся за любые байты
     // и возвращает иероглифы, которые выглядят как успех.
     assert.match(decoder, /0xFF, 0xFE|0xFE, 0xFF/,

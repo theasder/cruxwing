@@ -108,6 +108,43 @@ struct RussianCopyTests {
         return result
     }
 
+    /// Вырезает интерполяции целиком, считая скобки.
+    ///
+    /// Было регулярное выражение `\\\([^)]*\)` — оно обрывается на ПЕРВОЙ
+    /// закрывающей скобке, поэтому у вложенного вызова
+    /// `\(apps.map(\.name).joined(separator: ", "))` в строке оставался хвост
+    /// `.joined(separator: `, и проверка объявляла недопереведённой строку,
+    /// в которой всё по-русски. Ошибка в сторону шума, а не пропуска, — но шум
+    /// в проверке кончается тем, что её начинают обходить.
+    static func strippingInterpolations(_ text: String) -> String {
+        var result = ""
+        let characters = Array(text)
+        var index = 0
+        while index < characters.count {
+            // Начало интерполяции — ровно `\(`, а не любая скобка.
+            guard characters[index] == "\\", index + 1 < characters.count,
+                  characters[index + 1] == "(" else {
+                result.append(characters[index]); index += 1; continue
+            }
+            var depth = 0
+            var scan = index + 1
+            while scan < characters.count {
+                if characters[scan] == "(" { depth += 1 }
+                if characters[scan] == ")" {
+                    depth -= 1
+                    if depth == 0 { break }
+                }
+                scan += 1
+            }
+            // Незакрытая интерполяция: строка оборвалась на кавычке внутри
+            // (`?? ""`). Хвост отбрасывает вызывающий, здесь просто выходим.
+            if scan >= characters.count { result.append(" "); return result }
+            result.append(" ")
+            index = scan + 1
+        }
+        return result
+    }
+
     private func russianLiterals() -> [(file: String, text: String)] {
         literals().filter {
             $0.text.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil
@@ -593,8 +630,7 @@ struct RussianCopyTests {
             // показывал настоящие огрехи.
             // Строка могла оборваться на кавычке внутри интерполяции
             // (`?? ""`), поэтому незакрытый хвост тоже отбрасывается.
-            let withoutInterpolation = text
-                .replacingOccurrences(of: #"\\\([^)]*\)"#, with: " ", options: .regularExpression)
+            let withoutInterpolation = Self.strippingInterpolations(text)
                 .replacingOccurrences(of: #"\\\(.*$"#, with: " ", options: .regularExpression)
                 // Адреса — не текст: «platform.deepseek.com» это место, куда
                 // человеку идти за ключом, и переводить в нём нечего.

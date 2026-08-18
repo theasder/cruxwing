@@ -15,6 +15,13 @@ func recordFromMicrophone(_ rest: [String]) async -> CommandLineApp.Result {
     let seconds = Double(rest.first ?? "") ?? 15
     let title = rest.dropFirst().joined(separator: " ")
 
+    // Сначала проверка, потом приглашение говорить. Обратный порядок звучал
+    // как «Записываю 5 с. Говорите…», а следом — «записи на этой системе нет».
+    guard MicrophoneRecorder.isSupported else {
+        return .init(output: MicrophoneRecorder.RecordingError.unsupportedPlatform.description,
+                     exitCode: 1)
+    }
+
     FileHandle.standardError.write(Data("Записываю \(Int(seconds)) с. Говорите…\n".utf8))
     do {
         let samples = try await MicrophoneRecorder.record(seconds: seconds) { done in

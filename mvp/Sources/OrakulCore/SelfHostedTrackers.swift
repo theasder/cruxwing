@@ -1,4 +1,11 @@
 import Foundation
+// URLRequest, URLSession и HTTPURLResponse на Linux и Windows лежат не в
+// Foundation, а в FoundationNetworking: swift-corelibs-foundation разнёс их по
+// разным модулям. Без этой строки ядро не собирается вне Apple — и `PortabilityTests`
+// этого не видел, потому что читает импорты, а не собирает код.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Открытые трекеры задач, которые команда поднимает у себя.
 ///
@@ -131,6 +138,45 @@ public struct SelfHostedTrackers {
             && service.host(hostValue) != nil
     }
 
+    /// Поиск по манифесту, если он для этого сервиса есть.
+    ///
+    /// Переключено 2026-08-18. До этого запрос и разбор были написаны здесь
+    /// руками — код ниже остался запасным путём и не удалён намеренно: если
+    /// манифест пропал из ресурсов или не прошёл проверку, коннектор обязан
+    /// работать, а не отказывать человеку из-за отсутствующего файла.
+    ///
+    /// Что делает замену безопасной: `ManifestConnectorTests` сверяет обе
+    /// дороги целиком — адрес со всеми параметрами, все заголовки, дедлайн и
+    /// разобранные строки, по каждому из трёх сервисов. Это единственная
+    /// причина, по которой такое переключение вообще можно делать сразу.
+    private func manifestSearch(_ query: String, host: String) async throws -> [Item]? {
+        guard let manifest = try? ConnectorManifest.bundled()
+            .first(where: { $0.id == service.rawValue })
+        else { return nil }
+
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        do {
+            return try await connector.search(query).map {
+                Item(key: $0.key, title: $0.title, state: $0.state, service: service)
+            }
+        } catch let error as ManifestConnector.ConnectorError {
+            // Ошибки те же по смыслу, но тип наружу обязан остаться прежним: на
+            // нём висят русские тексты с действием, и на них смотрит интерфейс.
+            switch error {
+            case .notConfigured: throw ConnectorError.notConfigured
+            case .unauthorised:  throw ConnectorError.unauthorised
+            // У этих сервисов 403 и 401 человек чинит одинаково — новым токеном.
+            case .forbidden:     throw ConnectorError.unauthorised
+            case .http(let code): throw ConnectorError.http(code)
+            // Свои слова сервиса у этих трёх в отдельный случай не выделены:
+            // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
+            // сервис появится, ветку надо будет раскрыть, а не оставить общей.
+            case .vendor:        throw ConnectorError.unreadable
+            case .unreadable:    throw ConnectorError.unreadable
+            }
+        }
+    }
+
     public func search(_ query: String) async throws -> [Item] {
         guard isConfigured, let host = service.host(hostValue) else {
             throw ConnectorError.notConfigured
@@ -138,6 +184,22 @@ public struct SelfHostedTrackers {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
+        if let items = try await manifestSearch(trimmed, host: host) { return items }
+        return try await legacySearch(trimmed, host: host)
+    }
+
+    /// Запрос и разбор, написанные руками, — запасной путь и эталон.
+    ///
+    /// Не `private` намеренно. После перехода на манифест сверять его стало не
+    /// с чем: `search` сам ходит через манифест, и проверка «манифест как
+    /// продакшен» сравнивала манифест с манифестом и проходила на любой порче.
+    /// Поймано мутацией 2026-08-18 — заменой `Bearer` на `token` в манифесте
+    /// Outline, которую никто не заметил.
+    ///
+    /// Теперь эталон вызывается прямо, и заодно перестаёт быть непроверенным
+    /// кодом: запасной путь, который никто не исполняет, — это не запас.
+    func legacySearch(_ query: String, host: String) async throws -> [Item] {
+        let trimmed = query
         var request: URLRequest
         switch service {
         case .gitlab:

@@ -1,0 +1,25 @@
+{
+  "id": "gitlab",
+  "title": "GitLab",
+  "docs": "https://docs.gitlab.com/ee/api/search.html#scope-issues",
+  "verifiedOn": "2026-08-12",
+  "note": "Ищет по всему, что видит токен. Сузить до проекта можно через /projects/{id}/search, но на вопрос «мы это уже заводили?» шире полезнее. Номер задачи здесь iid, а не id.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v4/search",
+    "query": [
+      { "name": "scope", "value": "issues" },
+      { "name": "search", "value": "{query}" },
+      { "name": "per_page", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "PRIVATE-TOKEN", "value": "{token}" }
+    ]
+  },
+  "response": {
+    "list": [],
+    "title": ["title"],
+    "key": ["iid"],
+    "state": "state"
+  }
+}

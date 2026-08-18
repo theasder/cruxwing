@@ -1,4 +1,11 @@
 import Foundation
+// URLRequest, URLSession и HTTPURLResponse на Linux и Windows лежат не в
+// Foundation, а в FoundationNetworking: swift-corelibs-foundation разнёс их по
+// разным модулям. Без этой строки ядро не собирается вне Apple — и `PortabilityTests`
+// этого не видел, потому что читает импорты, а не собирает код.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Поиск по рабочим мессенджерам — российским и открытым.
 ///
@@ -234,6 +241,49 @@ public struct WorkMessengers {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
+        if let hits = try await manifestSearch(trimmed, host: host) { return hits }
+        return try await legacySearch(trimmed, host: host)
+    }
+
+    /// Поиск по манифесту — для тех сервисов, что уже описаны данными.
+    ///
+    /// Пачка описана, остальные четыре нет, и это не «руки не дошли»: Mattermost
+    /// возвращает сообщения СЛОВАРЁМ по идентификаторам, Zulip требует
+    /// Basic-авторизации из двух половин, Matrix — вложенного тела, Rocket.Chat
+    /// — двух заголовков сразу. Каждый из них — отдельное свойство формата, а
+    /// описание обязано покрывать частый случай, не каждый (роадмап, §6.2).
+    private func manifestSearch(_ query: String, host: String) async throws -> [Hit]? {
+        guard let manifest = try? ConnectorManifest.bundled()
+            .first(where: { $0.id == service.rawValue })
+        else { return nil }
+
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        do {
+            return try await connector.search(query).map {
+                Hit(author: $0.author.isEmpty ? nil : $0.author, text: $0.title, service: service)
+            }
+        } catch let error as ManifestConnector.ConnectorError {
+            switch error {
+            case .notConfigured: throw ConnectorError.notConfigured
+            case .unauthorised:  throw ConnectorError.unauthorised
+            case .forbidden:
+                // Право `search:messages` выдают отдельно от токена, и человеку
+                // надо идти в настройки приложения, а не выпускать новый токен.
+                if service == .pachca { throw ConnectorError.missingScope("search:messages") }
+                throw ConnectorError.unauthorised
+            case .http(let code): throw ConnectorError.http(code)
+            // Свои слова сервиса у этих трёх в отдельный случай не выделены:
+            // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
+            // сервис появится, ветку надо будет раскрыть, а не оставить общей.
+            case .vendor:        throw ConnectorError.unreadable
+            case .unreadable:    throw ConnectorError.unreadable
+            }
+        }
+    }
+
+    /// Написанный руками путь — запас и эталон для сверки, см. `SelfHostedTrackers`.
+    func legacySearch(_ query: String, host: String) async throws -> [Hit] {
+        let trimmed = query
         var request = try makeRequest(host: host, query: trimmed)
         request.timeoutInterval = 8
 

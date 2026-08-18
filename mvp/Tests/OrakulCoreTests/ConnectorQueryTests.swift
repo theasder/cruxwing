@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -17,7 +23,7 @@ struct ConnectorQueryTests {
         { request in
             (Data(json.utf8),
              HTTPURLResponse(url: request.url!, statusCode: 200,
-                             httpVersion: nil, headerFields: nil)!)
+                             httpVersion: nil, headerFields: [:])!)
         }
     }
 
@@ -45,7 +51,7 @@ struct ConnectorQueryTests {
     func refusalIsRussian() async {
         let unauthorised: @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse) = { request in
             (Data(), HTTPURLResponse(url: request.url!, statusCode: 401,
-                                     httpVersion: nil, headerFields: nil)!)
+                                     httpVersion: nil, headerFields: [:])!)
         }
         let answer = await ConnectorQuery.ask(settings, query: "тарифы",
                                               messengerHTTP: unauthorised)
@@ -117,7 +123,7 @@ struct ConnectorQueryTests {
                                               trackerRUHTTP: { request in
             await calls.bump()
             return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                                     httpVersion: nil, headerFields: nil)!)
+                                                     httpVersion: nil, headerFields: [:])!)
         })
         #expect(answer.text.contains("организации"), "не названо, чего не хватает: «\(answer.text)»")
         #expect(answer.text.contains("ORAKUL_HOST"), "не сказано, куда это положить")
@@ -162,7 +168,7 @@ struct ConnectorQueryTests {
         let answer = await ConnectorQuery.ask(settings, query: "лимиты", githubHTTP: { request in
             await calls.bump()
             return (Data(), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                            httpVersion: nil, headerFields: nil)!)
+                                            httpVersion: nil, headerFields: [:])!)
         })
         #expect(answer.text.contains("ORAKUL_SCOPE"), "не сказано, куда класть репозитории")
         #expect(await calls.value == 0, "поиск ушёл по всему GitHub — вернулись бы чужие задачи")
@@ -256,7 +262,7 @@ struct ConnectorQueryFailureTests {
         let answer = await ConnectorQuery.ask(settings, query: "лимиты",
                                               trackerRUHTTP: { request in
             (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                              httpVersion: nil, headerFields: nil)!)
+                                              httpVersion: nil, headerFields: [:])!)
         })
         #expect(answer.text.contains("ничего не нашлось"))
         #expect(!answer.failed, "пустой ответ выдан за сбой — скрипты встанут на ровном месте")

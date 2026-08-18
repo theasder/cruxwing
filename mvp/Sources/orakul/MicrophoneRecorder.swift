@@ -1,4 +1,6 @@
+#if canImport(AVFoundation)
 import AVFoundation
+#endif
 import Foundation
 import OrakulCore
 
@@ -17,6 +19,8 @@ enum MicrophoneRecorder {
         case permissionDenied
         case engineFailed(String)
         case converterUnavailable
+        /// Система без AVFoundation — Linux, а со временем и Windows.
+        case unsupportedPlatform
 
         var description: String {
             switch self {
@@ -30,11 +34,37 @@ enum MicrophoneRecorder {
                 return "Не смог запустить запись: \(message)"
             case .converterUnavailable:
                 return "Не смог привести звук микрофона к 16 кГц моно."
+            case .unsupportedPlatform:
+                return """
+                Запись с микрофона на этой системе не работает: она сделана на \
+                AVFoundation, которого здесь нет.
+                Всё остальное работает: запишите звук чем угодно в WAV 16 кГц и \
+                отдайте его — `orakul расшифровать звонок.wav "Название"` \
+                (с `ORAKUL_ENGINE`) или `orakul добавить расшифровка.txt "Название"`.
+                """
             }
         }
     }
 
+    /// Есть ли на этой системе микрофонный тракт вообще.
+    ///
+    /// Спрашивается ДО того, как человеку сказали «говорите»: на Linux запись
+    /// невозможна, и приглашение говорить, за которым сразу идёт отказ, — это
+    /// та самая уверенная фраза о том, чего не произошло (план, §4). Найдено
+    /// запуском собранной программы в контейнере, а не чтением кода.
+#if canImport(AVFoundation)
+    public static let isSupported = true
+#else
+    public static let isSupported = false
+#endif
+
     /// Спросить разрешение и дождаться ответа.
+    ///
+    /// Там, где AVFoundation нет, спрашивать не у кого: ответ «нет», и `record`
+    /// ниже сообщает об этом отдельной ошибкой. Молчаливое `false` здесь
+    /// выглядело бы как отказ пользователя в доступе — то есть отправило бы
+    /// человека чинить разрешения, которых на этой системе не существует.
+#if canImport(AVFoundation)
     static func requestPermission() async -> Bool {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized: return true
@@ -134,4 +164,19 @@ enum MicrophoneRecorder {
             return accumulator.samples
         }
     }
+#else
+    /// Здесь микрофона нет — и это единственное, чего нет. Подписи те же, чтобы
+    /// `main.swift` не знал, на какой системе он собран: расходится реализация,
+    /// а не устройство программы.
+    static func requestPermission() async -> Bool { false }
+
+    /// Бросает, а не возвращает пустой массив. Пустой массив уехал бы в
+    /// `WAVFile.encode` и записался бы на диск как файл тишины — «записал»,
+    /// когда ничего не записано. Это тот самый класс ошибок, ради которого
+    /// заведено правило про уверенные фразы (план, §4).
+    static func record(seconds: Double,
+                       progress: @escaping (Double) -> Void = { _ in }) async throws -> [Float] {
+        throw RecordingError.unsupportedPlatform
+    }
+#endif
 }

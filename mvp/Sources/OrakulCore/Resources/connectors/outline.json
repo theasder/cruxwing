@@ -1,0 +1,24 @@
+{
+  "id": "outline",
+  "title": "Outline",
+  "docs": "https://www.getoutline.com/developers#tag/Documents/paths/~1documents.search/post",
+  "verifiedOn": "2026-08-12",
+  "note": "RPC поверх HTTP: поиск — POST со словом в теле, параметров запроса нет вовсе. Адрес сервера необязателен: Outline бывает облачным. Отдаёт context — готовый кусок текста вокруг совпадения, то есть ровно то, что нужно подсказке: не ссылку, а слова.",
+  "request": {
+    "method": "POST",
+    "path": "/api/documents.search",
+    "query": [],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ],
+    "body": "{\"query\": \"{query}\", \"limit\": {limit}}"
+  },
+  "response": {
+    "list": ["data"],
+    "title": ["document", "title"],
+    "context": ["context"],
+    "key": [],
+    "state": "state"
+  }
+}

@@ -263,7 +263,9 @@ struct ComposerImmediateFeedbackTests {
 
         let persistent = ComposerFolderChip(folder: folder, onRemove: {})
         #expect(throws: Never.self) { try persistent.inspect().find(text: "customer-project") }
-        #expect(throws: Never.self) { try persistent.inspect().find(text: "1 indexed") }
+        // «в индексе: 1», а не «1 indexed»: строка переведена 2026-08-17 вместе
+        // с остальными английскими остатками в Views/ (ROADMAP, §6.4).
+        #expect(throws: Never.self) { try persistent.inspect().find(text: "в индексе: 1") }
         #expect(throws: Never.self) {
             try persistent.inspect().find(viewWithAccessibilityLabel: "Убрать папку customer-project")
         }

@@ -1,0 +1,25 @@
+{
+  "id": "redmine",
+  "title": "Redmine",
+  "docs": "https://www.redmine.org/projects/redmine/wiki/Rest_Search",
+  "verifiedOn": "2026-08-12",
+  "note": "Единственный из трёх оборачивает выдачу в объект {\"results\": […]}, и единственный без issues=1 ищет заодно по вики, форуму и новостям — подсказка тонет в чужом. Состояние в поиске не отдаётся вовсе, поэтому state остаётся пустым, а не «unknown».",
+  "request": {
+    "method": "GET",
+    "path": "/search.json",
+    "query": [
+      { "name": "q", "value": "{query}" },
+      { "name": "issues", "value": "1" },
+      { "name": "limit", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "X-Redmine-API-Key", "value": "{token}" }
+    ]
+  },
+  "response": {
+    "list": ["results"],
+    "title": ["title"],
+    "key": ["id"],
+    "state": "state"
+  }
+}

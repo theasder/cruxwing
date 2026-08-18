@@ -178,7 +178,10 @@ struct CommandLineAppTests {
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         let path = root.appendingPathComponent("cp1251.txt")
         let text = "Аня: По тарифам решили поднять месячный на пятнадцать процентов."
-        let data = try #require(text.data(using: .windowsCP1251), "нет кодировки CP1251")
+        // Своей таблицей, а не системной: на Linux `.windowsCP1251` возвращает
+        // nil, и проверка падала на подготовке файла, ничего не сказав о том,
+        // читает ли его продукт. Совпадение таблиц — `CP1251EquivalenceTests`.
+        let data = try #require(CP1251.encode(text), "нет кодировки CP1251")
         try data.write(to: path)
 
         let store = SessionStore(root: root.appendingPathComponent("архив", isDirectory: true))
@@ -785,7 +788,8 @@ struct DeleteByPrefixTests {
     /// И объяснение должно стоять НА ПУТИ сохранения, а не рядом. Мутация
     /// «вернуть сырую ошибку в `добавить`» проходила зелёной, пока проверки
     /// звали `explain` напрямую.
-    @Test("на настоящем пути сохранения человек тоже видит русский текст")
+    @Test("на настоящем пути сохранения человек тоже видит русский текст",
+          .enabled(if: PermissionProbe.enforced, PermissionProbe.reason))
     func saveFailureIsExplainedThroughTheCommand() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("orakul-закрытый-\(UUID().uuidString)")

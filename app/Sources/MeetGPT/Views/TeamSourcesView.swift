@@ -247,7 +247,7 @@ private struct StatusPill: View {
 private struct CountBadge: View {
     let count: Int
     var body: some View {
-        Text("\(count) flagged")
+        Text("отмечено: \(count)")
             .font(Typo.label)
             .foregroundStyle(Theme.accentText)
             .padding(.horizontal, Space.s)

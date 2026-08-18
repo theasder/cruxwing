@@ -1,4 +1,11 @@
 import Foundation
+// URLRequest, URLSession и HTTPURLResponse на Linux и Windows лежат не в
+// Foundation, а в FoundationNetworking: swift-corelibs-foundation разнёс их по
+// разным модулям. Без этой строки ядро не собирается вне Apple — и `PortabilityTests`
+// этого не видел, потому что читает импорты, а не собирает код.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// GitHub: задачи и пулл-реквесты команды как источник для ответа на звонке.
 ///

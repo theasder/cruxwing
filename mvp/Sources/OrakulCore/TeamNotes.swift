@@ -1,4 +1,11 @@
 import Foundation
+// URLRequest, URLSession и HTTPURLResponse на Linux и Windows лежат не в
+// Foundation, а в FoundationNetworking: swift-corelibs-foundation разнёс их по
+// разным модулям. Без этой строки ядро не собирается вне Apple — и `PortabilityTests`
+// этого не видел, потому что читает импорты, а не собирает код.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Поиск по базе знаний команды.
 ///
@@ -121,12 +128,58 @@ public struct TeamNotes {
         !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// Поиск по манифесту, если он есть. Переключено 2026-08-18.
+    ///
+    /// Outline — первый сервис, где описание данными пришлось расширить:
+    /// поиск у него это `POST` со словом в ТЕЛЕ, а заголовок лежит на уровень
+    /// глубже строки (`document.title`). Расширение сделано ради него не
+    /// случайно: у Yonote, первого кандидата в очереди (роадмап, §7.3), API той
+    /// же формы, и если он подтвердится, коннектор к нему станет файлом JSON,
+    /// а не файлом Swift.
+    ///
+    /// Написанный руками путь ниже остаётся запасным: коннектор не должен
+    /// отказывать человеку из-за пропавшего файла ресурсов.
+    private func manifestSearch(_ query: String, host: String) async throws -> [Hit]? {
+        guard let manifest = try? ConnectorManifest.bundled()
+            .first(where: { $0.id == service.rawValue })
+        else { return nil }
+
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        do {
+            return try await connector.search(query).map {
+                Hit(title: $0.title.isEmpty ? "Без названия" : $0.title,
+                    context: $0.context, service: service)
+            }
+        } catch let error as ManifestConnector.ConnectorError {
+            switch error {
+            case .notConfigured: throw ConnectorError.notConfigured
+            case .unauthorised:  throw ConnectorError.unauthorised
+            // У этих сервисов 403 и 401 человек чинит одинаково — новым токеном.
+            case .forbidden:     throw ConnectorError.unauthorised
+            case .http(let code): throw ConnectorError.http(code)
+            // Свои слова сервиса у этих трёх в отдельный случай не выделены:
+            // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
+            // сервис появится, ветку надо будет раскрыть, а не оставить общей.
+            case .vendor:        throw ConnectorError.unreadable
+            case .unreadable:    throw ConnectorError.unreadable
+            }
+        }
+    }
+
     public func search(_ query: String) async throws -> [Hit] {
         guard isConfigured else { throw ConnectorError.notConfigured }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
         let host = service.host(hostValue)
+        if let hits = try await manifestSearch(trimmed, host: host) { return hits }
+        return try await legacySearch(trimmed, host: host)
+    }
+
+    /// Написанный руками путь — запас и эталон для сверки с манифестом.
+    /// Причина, по которой он вызывается напрямую, — в `SelfHostedTrackers`.
+    func legacySearch(_ query: String, host: String) async throws -> [Hit] {
+        let trimmed = query
         guard let url = URL(string: "\(host)/api/documents.search") else {
             throw ConnectorError.notConfigured
         }

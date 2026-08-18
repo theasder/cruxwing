@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -17,7 +23,7 @@ struct TeamNotesTests {
             recorder.record(request)
             return (Data(json.utf8),
                     HTTPURLResponse(url: request.url!, statusCode: status,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         return (http, recorder)
     }

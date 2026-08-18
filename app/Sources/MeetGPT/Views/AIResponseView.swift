@@ -334,7 +334,7 @@ private struct AnswerActionsRow: View {
         .buttonStyle(.plain)
         .disabled(running || blocked)
         .opacity(blocked ? 0.5 : 1)
-        .help("Save this answer, its prompt and its blind spots as a \(export.title).")
+        .help("Сохранить ответ, его запрос и слепые зоны как \(export.title).")
     }
 
     private func actionChip(_ action: AnswerActionPlanner.Action) -> some View {
@@ -421,7 +421,7 @@ private struct ArchivedExchangeBlock: View {
                                 )
                                 .foregroundStyle(Theme.inkSecondary)
                                 .help(action.rationale)
-                                .accessibilityLabel("\(action.title), from an earlier answer")
+                                .accessibilityLabel("\(action.title), из более раннего ответа")
                         }
                     }
                 }
@@ -644,7 +644,7 @@ struct WorkflowTracePanel: View {
                 Text(streaming ? "Workflow" : "Как получился этот ответ")
                     .font(Typo.caption.weight(.semibold))
                 Spacer(minLength: 0)
-                Text("\(completedCount)/\(displaySteps.count) complete")
+                Text("\(completedCount)/\(displaySteps.count) готово")
                     .font(Typo.caption.monospacedDigit())
                     .foregroundStyle(Theme.inkTertiary)
             }
@@ -653,7 +653,7 @@ struct WorkflowTracePanel: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(expanded ? "Свернуть ход работы" : "Развернуть ход работы")
-        .accessibilityValue("\(completedCount) of \(displaySteps.count) steps complete")
+        .accessibilityValue("шагов готово: \(completedCount) из \(displaySteps.count)")
     }
 
     private func workflowRow(_ step: WorkflowStep) -> some View {

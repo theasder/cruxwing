@@ -29,7 +29,7 @@ struct WorkflowTraceViewTests {
         let sut = try WorkflowTracePanel(steps: steps, streaming: true, initiallyExpanded: true).inspect()
 
         #expect(throws: Never.self) { try sut.find(text: "Workflow") }
-        #expect(throws: Never.self) { try sut.find(text: "1/3 complete") }
+        #expect(throws: Never.self) { try sut.find(text: "1/3 готово") }
         #expect(throws: Never.self) { try sut.find(text: "Notion") }
         #expect(throws: Never.self) { try sut.find(text: "Linear") }
         #expect(throws: Never.self) { try sut.find(text: "Cruxwing AI") }
@@ -57,7 +57,7 @@ struct WorkflowTraceViewTests {
         let sut = try WorkflowTracePanel(steps: steps, streaming: false, initiallyExpanded: true).inspect()
 
         #expect(throws: Never.self) { try sut.find(text: "Как получился этот ответ") }
-        #expect(throws: Never.self) { try sut.find(text: "2/2 complete") }
+        #expect(throws: Never.self) { try sut.find(text: "2/2 готово") }
         #expect(throws: Never.self) {
             try sut.find(viewWithAccessibilityLabel:
                 "Search relevant context, Notion, MCP, Skipped")

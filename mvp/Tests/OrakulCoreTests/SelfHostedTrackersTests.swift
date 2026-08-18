@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -18,7 +24,7 @@ struct SelfHostedTrackersTests {
             recorder.record(request)
             return (Data(json.utf8),
                     HTTPURLResponse(url: request.url!, statusCode: status,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         return (http, recorder)
     }
@@ -85,6 +91,33 @@ struct SelfHostedTrackersTests {
         #expect(url.contains("issues=1"))
         #expect(request.value(forHTTPHeaderField: "X-Redmine-API-Key") == "tok-synthetic")
         #expect(items.first?.key == "#314")
+    }
+
+    /// Слово, которое ищет человек, обязано уехать в ТОТ параметр, что описан в
+    /// документации вендора.
+    ///
+    /// Дыра найдена мутацией 2026-08-18: в манифесте Gitea имя параметра
+    /// заменили с `q` на `qq` — запрос ушёл другим, и ни одна проверка не
+    /// упала. Набор сверял начало адреса, `type=issues` и заголовок, а имя
+    /// параметра поиска — то единственное, ради чего коннектор существует, — не
+    /// проверял никто. Сервис на такой запрос отвечает либо всей лентой задач,
+    /// либо пустотой, и то и другое выглядит как исправный поиск.
+    @Test("слово ищется тем параметром, который описан у вендора",
+          arguments: [(SelfHostedTrackers.Service.gitea, "q"),
+                      (SelfHostedTrackers.Service.gitlab, "search"),
+                      (SelfHostedTrackers.Service.redmine, "q")])
+    func searchTermTravelsInDocumentedParameter(service: SelfHostedTrackers.Service,
+                                                parameter: String) async throws {
+        let (http, recorder) = stub(json: "[]")
+        _ = try? await SelfHostedTrackers(service: service, token: "tok-synthetic",
+                                          host: "git.company.ru",
+                                          http: http).search("синхронизация")
+
+        let request = try #require(recorder.last)
+        let url = try #require(request.url)
+        let items = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(items.first { $0.name == parameter }?.value == "синхронизация",
+                "у «\(service.rawValue)» слово ушло не в «\(parameter)»: \(items)")
     }
 
     @Test("адрес без схемы дополняется https")

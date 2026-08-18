@@ -79,8 +79,10 @@ public enum TranscriptFile {
            looksLikeText(utf16) {
             return utf16
         }
-        if let cp1251 = String(data: data, encoding: .windowsCP1251),
-           looksLikeText(cp1251) {
+        // Своя таблица, а не системная: `.windowsCP1251` есть только у Apple, и
+        // на Linux с Windows этот путь молча отвечал бы «не текст» именно на тех
+        // файлах, ради которых он написан. Разбор — в `CP1251`.
+        if let cp1251 = CP1251.decode(data), looksLikeText(cp1251) {
             return cp1251
         }
         return nil

@@ -118,7 +118,7 @@ private struct HiddenMeetingsDisclosure: View {
                 HStack(spacing: Space.xs) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 8, weight: .bold))
-                    Text("\(meetings.count) hidden")
+                    Text("скрыто: \(meetings.count)")
                         .font(Typo.caption)
                 }
                 .foregroundStyle(Theme.inkTertiary)

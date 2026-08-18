@@ -54,6 +54,180 @@ jobs:
         working-directory: mvp
         run: swift test
 
+  # Ядро без Apple. Обещание «порт стоит только захвата звука и оболочки»
+  # (план, §7.1) держалось на `PortabilityTests`, который читает импорты. Это
+  # проверка намерения: она не собирает ядро нигде, кроме macOS, и не заметит
+  # вызова Foundation, которого в swift-corelibs-foundation нет.
+  #
+  # Здесь ядро и командная строка собираются на Linux по-настоящему. Окно
+  # (SwiftUI) объявлено в манифесте условно и на этой системе не существует:
+  # уберут условие — задание упадёт на первой же строке про SwiftUI.
+  linux-core:
+    name: Ядро и командная строка (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Версия Swift
+        run: swift --version
+
+      - name: Сборка ядра
+        working-directory: mvp
+        run: swift build --target OrakulCore
+
+      # Командная строка тоже: запись с микрофона убрана под
+      # `#if canImport(AVFoundation)` и заменена ошибкой с объяснением, а не
+      # пустым массивом. Это обязано компилироваться, иначе «работает всё,
+      # кроме записи» — неправда.
+      - name: Сборка командной строки
+        working-directory: mvp
+        run: swift build
+
+      # Набор целиком. 2026-08-17 он впервые собрался и запустился на Linux и
+      # дал 9 замечаний в трёх классах; все три закрыты в тот же день:
+      #
+      #   1. Windows-1251 — своя таблица (`CP1251`), потому что у corelibs этой
+      #      кодировки нет вовсе, а расшифровку в ней делает как раз Windows;
+      #   2. поведение Foundation — `URL(string: "")` там непустой, а
+      #      `replaceItemAt` на повторном сохранении отвечает «файла нет»;
+      #   3. права доступа — под root они не действуют, и проверки отказа
+      #      пропускаются с названной причиной (`PermissionProbe`), а не падают.
+      #
+      # Пропуски видны в выводе поимённо: тест, «пройденный» потому, что не
+      # запускался, — худший вид зелёного.
+      - name: Тесты ядра
+        working-directory: mvp
+        run: swift test
+
+      # И собранную программу — запуском, а не чтением.
+      #
+      # Набор проверяет функции, этот шаг — то, что человек запускает. Разница
+      # не теоретическая: 2026-08-18 команда `записать` на Linux печатала
+      # «Записываю 5 с. Говорите…» и только потом сообщала, что записи здесь нет
+      # вовсе. Все тесты при этом были зелёными: функция вела себя ровно так,
+      # как задумано, а программа звала человека говорить в микрофон, которого
+      # не существует.
+      - name: Прогон собранной программы
+        run: |
+          swift build --package-path mvp -c release
+          bash scripts/smoke-linux.sh
+
+
+  # Пакет — отдельным заданием и БЕЗ контейнера Swift. Это не оформление.
+  #
+  # 2026-08-18 выяснилось, что первый собранный .deb на машине пользователя не
+  # работал вовсе: «error while loading shared libraries: libswiftCore.so».
+  # Проверка этого не показала, потому что шла внутри swift:6.0, где рантайм
+  # есть по определению. Артефакт проверяли в среде, которая ему льстит.
+  #
+  # Теперь сборка идёт в одном образе, а установка — в чистом debian:12, где
+  # Swift никогда не стоял. Собирается на jammy (glibc 2.35) намеренно: образ
+  # 24.04 требует GLIBC_2.38, которого нет ни в Debian 12, ни в Ubuntu 22.04.
+  linux-package:
+    name: Пакет .deb (сборка и установка в чистую систему)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Static Linux SDK ставится перед сборкой: без него пакет привязан к glibc
+      # того образа, где собран, и не ставится ни на ALT p10 (glibc 2.32), ни на
+      # Astra 1.7 (2.28) — то есть ровно там, где он нужнее всего. Со статической
+      # сборкой зависимостей нет вовсе; проверено запуском на обеих системах.
+      - name: Сборка пакета (статически)
+        run: |
+          docker run --rm -e ORAKUL_HEIGHT="$(git rev-list --count HEAD)" \
+            -v "$PWD":/repo -w /repo swift:6.0 bash -c '
+              swift sdk install \
+                "https://download.swift.org/swift-6.0.3-release/static-sdk/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz" \
+                --checksum 67f765e0030e661a7450f7e4877cfe008db4f57f177d5a08a6e26fd661cdd0bd >/dev/null
+              bash scripts/package-linux.sh
+            '
+
+      - name: Установка на ALT p10 — систему, ради которой всё это
+        run: |
+          docker run --rm -v "$PWD/exports/linux":/x alt:p10 sh -c '
+            set -e
+            dpkg-deb -x /x/*.deb /tmp/p 2>/dev/null || { apt-get update >/dev/null; apt-get install -y dpkg >/dev/null; dpkg-deb -x /x/*.deb /tmp/p; }
+            export ORAKUL_HOME=/tmp/архив
+            printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
+            /tmp/p/usr/bin/orakul добавить /tmp/р.txt "Планёрка" >/dev/null
+            /tmp/p/usr/bin/orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            echo "работает на ALT p10 (glibc 2.32) — статическая сборка сняла привязку"
+          '
+
+      - name: Установка в чистый debian:12 и прогон
+        run: |
+          docker run --rm -v "$PWD/exports/linux":/x debian:12 sh -c '
+            set -e
+            apt-get update >/dev/null
+            apt-get install -y /x/*.deb >/dev/null
+            export ORAKUL_HOME=/tmp/архив
+            printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
+            orakul добавить /tmp/р.txt "Планёрка"
+            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            orakul найти когда корпоратив | grep -q "придумывать не буду"
+            echo "пакет работает на системе без Swift"
+          '
+
+      # RPM собирается в образе СЕМЕЙСТВА RPM, а не переупаковкой того же файла.
+      # Программа, собранная на Ubuntu, тянет `libcurl.so.4(CURL_OPENSSL_4)` —
+      # версионированный символ Ubuntu, которого в Fedora нет. Сама она там
+      # работает, но dnf отказывается ставить пакет, и это правильно: проверка
+      # зависимостей строже загрузчика.
+      # RPM берёт ТОТ ЖЕ статический файл, что и deb. Раньше он собирался в
+      # образе семейства RPM ради правильных зависимостей — со статической
+      # сборкой зависимостей нет вовсе, и образ упаковки перестал что-либо
+      # значить. Заодно исчезла причина, по которой rpm не ставился на ALT.
+      - name: Сборка пакета .rpm из той же статической программы
+        run: |
+          mkdir -p exports/static
+          cp exports/linux/orakul_*/usr/bin/orakul exports/static/orakul
+          docker run --rm -e ORAKUL_RELEASE="$(git rev-list --count HEAD)" \
+            -v "$PWD":/repo -w /repo fedora:40 \
+            bash -c 'dnf install -y rpm-build >/dev/null && bash scripts/package-rpm.sh'
+
+      - name: Установка .rpm на ALT p10 и в чистую fedora:40
+        run: |
+          docker run --rm -v "$PWD/exports/linux":/x alt:p10 bash -c '
+            set -e
+            rpm -i /x/*.rpm
+            export ORAKUL_HOME=/tmp/архив
+            printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
+            orakul добавить /tmp/р.txt "Планёрка" >/dev/null
+            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            echo "rpm ставится на ALT p10 — там, где обычная сборка не ставилась"
+          '
+          docker run --rm -v "$PWD/exports/linux":/x fedora:40 bash -c '
+            set -e
+            dnf install -y /x/*.rpm >/dev/null
+            export ORAKUL_HOME=/tmp/архив
+            printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
+            orakul добавить /tmp/р.txt "Планёрка"
+            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            echo "rpm работает на системе без Swift"
+          '
+
+      # Из какого кода собран артефакт — читается из САМОГО файла.
+      # Собранное и выложенное путают регулярно: сборка зелёная, файл на месте,
+      # а в публикации вчерашний. Коммита для этого мало — при незакоммиченном
+      # дереве он одинаков у всех сборок подряд.
+      - name: Прослеживаемость пакетов
+        run: |
+          docker run --rm -v "$PWD":/repo -w /repo debian:12 \
+            bash scripts/audit-package.sh exports/linux/*.deb
+          docker run --rm -v "$PWD":/repo -w /repo fedora:40 \
+            bash scripts/audit-package.sh exports/linux/*.rpm
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orakul-packages
+          path: |
+            exports/linux/*.deb
+            exports/linux/*.rpm
+
   node:
     name: Тесты документации и страницы
     runs-on: ubuntu-latest

@@ -325,6 +325,9 @@ private struct ConnectedAppBadge: View {
 private struct ConnectedAppsOverflowBadge: View {
     let apps: [ConnectedAppIdentity]
 
+    /// Имена через запятую — отдельно от строки, а не внутри интерполяции.
+    private var names: String { apps.map(\.name).joined(separator: ", ") }
+
     var body: some View {
         Text("+\(apps.count)")
             .font(Typo.caption.weight(.semibold))
@@ -334,8 +337,13 @@ private struct ConnectedAppsOverflowBadge: View {
             .background(Capsule().fill(Theme.surfaceSunken))
             .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
             .fixedSize()
-            .help("Also connected: \(apps.map(\.name).joined(separator: ", "))")
-            .accessibilityLabel("\(apps.count) more connected apps: \(apps.map(\.name).joined(separator: ", "))")
+            // Список имён собирается ДО строки. Вложенные скобки внутри
+            // интерполяции сбивают сторожа русского текста (RussianCopyTests):
+            // он вырезает \(...) до первой закрывающей скобки, и хвост
+            // «.joined(separator:» остаётся в строке как латиница. Заодно
+            // строка стала читаемой.
+            .help("Ещё подключены: \(names)")
+            .accessibilityLabel("ещё подключено приложений: \(apps.count) — \(names)")
     }
 }
 
@@ -984,7 +992,7 @@ struct PromptBudgetDetails: View {
                                 .font(Typo.caption.weight(.semibold))
                                 .foregroundStyle(Theme.inkSecondary)
                             Spacer()
-                            Text("\(remaining) of \(allowance) left\(creditUsagePhase == .stale ? " · last checked" : "")")
+                            Text("осталось \(remaining) из \(allowance)\(creditUsagePhase == .stale ? " · по последней проверке" : "")")
                                 .font(Typo.caption)
                                 .foregroundStyle(Theme.inkSecondary)
                                 .monospacedDigit()

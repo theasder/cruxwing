@@ -251,7 +251,8 @@ struct UnreadableArchiveTests {
 
     /// Каталог есть, а прочитать нельзя. Сказать «пуст» — значит уверенно
     /// сообщить, что звонков нет, когда они, возможно, лежат рядом.
-    @Test("каталог не читается — это отказ, а не пустота")
+    @Test("каталог не читается — это отказ, а не пустота",
+          .enabled(if: PermissionProbe.enforced, PermissionProbe.reason))
     func unreadableDirectoryIsNotEmptiness() throws {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("orakul-закрыт-\(UUID().uuidString)")

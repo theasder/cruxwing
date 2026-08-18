@@ -184,7 +184,13 @@ struct BrainstormSection: View {
                     if researching {
                         ProgressView().controlSize(.small).scaleEffect(0.7)
                     } else {
-                        Text("\(mcp.researchableServers.count) apps · \(max(0, TariffAllowance.forTier(state.currentTier).groundedCycles - UsageTracker.groundedCyclesThisMonth)) research left")
+                        // Счёт считается до строки: вложенные скобки внутри
+                        // интерполяции сбивают сторожа русского текста
+                        // (RussianCopyTests) — он вырезает \(...) до первой
+                        // закрывающей скобки и принимает хвост за латиницу.
+                        let researchLeft = max(0, TariffAllowance.forTier(state.currentTier).groundedCycles
+                                                  - UsageTracker.groundedCyclesThisMonth)
+                        Text("приложений: \(mcp.researchableServers.count) · осталось разборов: \(researchLeft)")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                     }
@@ -263,7 +269,7 @@ struct BrainstormSection: View {
             // the full sheet — only when the live checker is on and found claims.
             if Config.factCheckDuringCallsEnabled, !state.factClaims.isEmpty, !state.showFactCheck {
                 Button { state.showFactCheck = true } label: {
-                    Label("\(state.factClaims.count) fact\(state.factClaims.count == 1 ? "" : "s") to review",
+                    Label("проверить фактов: \(state.factClaims.count)",
                           systemImage: "checkmark.seal")
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))

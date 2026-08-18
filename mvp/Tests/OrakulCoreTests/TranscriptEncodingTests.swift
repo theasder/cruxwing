@@ -93,7 +93,11 @@ struct TranscriptEncodingTests {
     @Test("CP1251 читается — файл из Windows приходит именно таким")
     func cp1251IsRead() throws {
         let text = "Аня: Решили катить в пятницу.\n"
-        let data = try #require(text.data(using: .windowsCP1251))
+        // Вход собирается своей таблицей, а не системной: `.windowsCP1251` есть
+        // только у Apple, и на Linux эта проверка падала не на разборе, а на
+        // подготовке данных — то есть молчала о продукте. Что таблицы совпадают,
+        // проверяет `CP1251EquivalenceTests` на всех 256 байтах.
+        let data = try #require(CP1251.encode(text))
         #expect(TranscriptFile.decode(data) == text)
     }
 

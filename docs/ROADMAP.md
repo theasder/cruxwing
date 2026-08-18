@@ -1,0 +1,777 @@
+# orakul — roadmap
+
+## 1. What this file is
+
+`docs/RESEARCH-AND-PLAN.md` answers «why built this way»: research, dead ends
+checked, decisions with causes. This file answers the other question — **what
+next, in what order**.
+
+Same rules as the rest of the repo:
+
+- every number here is measured, and the command or link stands next to it;
+- an unchecked thing is marked **ASSUMPTION** and does not count as fact;
+- a task with unread vendor docs is a question, not a promise;
+- horizons, not release dates: one maintainer, and order is more honest than
+  calendar.
+
+State: v1, 2026-08-17.
+
+---
+
+## 2. Where we stand (counted 2026-08-17)
+
+### 2.1 Repository
+
+| What | Value | Measured by |
+|---|---|---|
+| Public since | 2026-08-13 | `gh repo view theasder/orakul --json createdAt` |
+| Stars and forks | 0 and 0 | same |
+| Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
+| Discussions | off | `hasDiscussionsEnabled: false` |
+| Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
+| Page and doc checks | 234 tests, all green | `npm test`, run 2026-08-17 |
+| App and core tests | 2803 and 407 | README, maintainer run |
+
+Repo is four days old. Everything below about growth starts from that, not from
+an assumption the audience already exists.
+
+### 2.2 Connectors, counted from code, not from the page
+
+| Layer | Connected | Where in code |
+|---|---|---|
+| Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
+| Work messengers | Пачка, Mattermost, Rocket.Chat, Zulip, Matrix | `WorkMessengers.swift` |
+| Own servers: code and tasks | GitLab, Gitea and Forgejo, Redmine | `SelfHostedTrackers.swift` |
+| Notes | Outline | `TeamNotes.swift` |
+| Code in the cloud | GitHub, personal token, `GET /search/issues` | `GitHubConnector.swift` |
+| Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
+| Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
+
+Total: 16 own connectors, 11 western via MCP.
+
+### 2.3 What reaches the downloader is not the same thing
+
+The MCP catalog holds six more descriptors: Asana, HubSpot, Affinity, Zoom,
+Gmail, Google Analytics. They need a **pre-registered** app, meaning credentials
+inside the build, and credentials stay out of shipped installers on purpose
+(`app/build.sh`, `SECRET_VARS`; plan §9.1). So downloaded orakul has no such six
+buttons.
+
+Not a defect — a consequence of the rule. What was a defect is §5.2: four
+credential names slipped past the list that enforces it, closed 2026-08-17.
+
+---
+
+## 3. Borders this plan does not move
+
+| Border | Enforced by | What it deletes from any plan |
+|---|---|---|
+| Nothing paid | `NoTariffsTests` | subscriptions, team tiers, pro version |
+| No server of ours | `build.sh` halts the build on non-empty `BACKEND_URL`; `NoBackendPromisesTests` | cloud sync, accounts, SaluteJazz connector (plan §11) |
+| Data stays on the machine | button catalog fails to load when a button needs network | telemetry, «send us the transcript for analysis» |
+| Claim nothing that is absent | CONTRIBUTING, `LiveConnectorProbe`, census plan §2.0.3 | a «Connect» button before vendor docs are read |
+| Russian first | `contributing.test.mjs` | an interface where Russian arrives later as translation |
+| Apache 2.0 | `LICENSE` plus three checks in docs and page | licence swap to fend off clouds |
+
+Not values talk: every line breaks a build or a run when violated. A plan that
+needs them cancelled is a bad plan, not a bold one.
+
+---
+
+## 4. How the queue gets chosen
+
+One question sets the order: **how many people it cuts off before first launch**
+— cost comes second.
+
+1. Cut off by platform: no Windows — hits everyone at once.
+2. Cut off by visibility: nobody knows the repo exists — hits everyone who could
+   have come.
+3. Cut off by stack: no connector to what the team runs — hits a part, but
+   exactly the part the product exists separately for.
+4. Everything else.
+
+Above that, a hard gate for integrations: **method, host, search parameter and
+response shape found in vendor docs**. Not found — the task stays a question and
+does not enter a horizon. Pyrus, Мегаплан, Яндекс Вики, Teamly and GigaChat fell
+on this, and that is the right outcome, not debt.
+
+---
+
+## 5. Horizon 0 — weeks: fix what is broken and what breaks on the first `git push`
+
+### 5.1 Page `/ru` belongs to another product
+
+`public/ru/` sits in the repo and holds a **Cruxwing landing**, not orakul: 53
+mentions of cruxwing and zero of orakul, `rel="canonical"` points at
+`https://cruxwing.ai/ru/`, and the pricing block promises paid plans — straight
+against plan §5, «free, whole».
+
+**And that canonical is a 404 (checked 2026-08-18).** `https://cruxwing.ai/ru`
+and `/ru/` both answer 404, as does every file under them, while `/demo-film/`
+at the root answers 200 — the directory has never been published. The page is
+committed on the deploying branch of the other repository; the site there is
+simply older than it. So publishing this copy on the orakul site would announce
+a canonical pointing at an address that does not exist — on top of it being
+another product's page with prices.
+
+Right now `https://theasder.github.io/orakul/ru/` returns 404, only because the
+two commits carrying that page are unpushed: local `main` leads `origin/main` by
+two (`git rev-list --left-right --count origin/main...main` → `0 2`). Workflow
+`pages.yml` fires on any change under `public/**` — so the first `push`
+publishes a pricing page on the site of a product that has no prices.
+
+**Do one of three before pushing, deliberately:**
+
+1. move `public/ru/` back to the Cruxwing repo it came from;
+2. keep it here, exclude it from publishing — `pages.yml` builds the branch from
+   the whole `public/`, so the exclusion has to be written;
+3. rewrite it for orakul: no prices, own identity, own `canonical`.
+
+**What is missing so it cannot return:** a check that fails when the published
+directory holds a page with «Cruxwing» in the title or a `canonical` on a
+foreign domain. Today `ru-landing.test.mjs` pins that page, not its right to be
+here.
+
+### 5.2 Credentials blanked by shape, not by list — closed 2026-08-17
+
+**What was wrong.** `build.sh` substitutes values through `sw`, and for names
+listed in `SECRET_VARS` a DIST build gets an empty string back. The list is
+written by hand: 44 names pass through `sw`, 26 sit in the list. Four of the
+uncovered eighteen were credentials:
+
+```
+GMAIL_CLIENT_ID  GMAIL_CLIENT_SECRET
+GOOGLE_ANALYTICS_CLIENT_ID  GOOGLE_ANALYTICS_CLIENT_SECRET
+```
+
+Listed in one command:
+
+```bash
+node -e 'const b=require("fs").readFileSync("app/build.sh","utf8");
+const vars=/SECRET_VARS="([^"]+)"/.exec(b)[1].split(/\s+/);
+const used=[...new Set([...b.matchAll(/\$\(sw ([A-Z0-9_]+)\)/g)].map(m=>m[1]))];
+console.log(used.filter(v=>!vars.includes(v)).join("\n"))'
+```
+
+The remaining fourteen are settings (`TRANSCRIPTION_*`, `LLM_GATEWAY`,
+`DEFAULT_TIER`) and do not belong in the list; `BACKEND_URL` is covered by a
+separate, stricter check.
+
+The class had fired before: the inherited `Secrets.swift` carried live Google
+client credentials and they shipped inside published DMGs — recorded at the top
+of `test/secrets.test.mjs`. Such a leak was caught only by the check scanning
+the built binary, and **that check is skipped when the app is not built**, which
+is everyone except the person cutting the release.
+
+**What changed.** `sw` now blanks a DIST value by **shape of the name** —
+`*_CLIENT_ID`, `*_CLIENT_SECRET`, `*_TOKEN`, `*_API_KEY` — before ever reading
+`.env`. The hand list stays for names without a recognisable shape
+(`SLACK_CHANNEL_IDS`, `CONFLUENCE_SITE`, `CONFLUENCE_EMAIL`). A new credential
+name is covered on arrival, with nobody remembering to add it.
+
+**How it is proved.** `test/secrets.test.mjs` lifts the `sw` function straight
+out of `build.sh`, runs it under `bash` with `DIST=1` against a planted `.env`
+holding a sentinel for every credential-shaped name, and fails if any sentinel
+comes back. Behaviour, not a text scan: a scan passes just as happily on a
+filter placed **after** the value is returned. Mutation-checked — delete the
+shape branch and the run reports
+`GMAIL_CLIENT_ID=[SENTINEL-must-not-ship]`.
+
+### 5.3 Install in one command
+
+Shipped DMGs are signed and notarised, and installed by hand. For a developer,
+distribution means `brew`. Landing in the main `homebrew-cask` runs into
+notability: their rules name no numeric threshold, the criterion is stated in
+words[^cask], and with zero stars there is nothing to argue. An own tap sets no
+such condition:
+
+```
+brew install --cask theasder/orakul/orakul
+```
+
+**Do:** repo `theasder/homebrew-orakul`, a formula with the `sha256` of the
+published DMG, and a release step that refreshes that sum. Check — install from
+the tap on a clean machine plus `spctl -a -vv`: the answer must stay what README
+promises, `accepted, source=Notarized Developer ID`.
+
+### 5.4 A door for the contributor
+
+The project metric is stars and installs, and the first contributor comes for a
+clear task, not for code.
+
+- **Turn Discussions on.** An issue means «broke». The first question is usually
+  another one: «does Kaiten work for you on an own domain». Today such a
+  question has nowhere to live but issues, where it looks like breakage. Still
+  open: it is a repository setting, not a file.
+- **Labels — checked 2026-08-17, they are real.** `первая правка` and
+  `нужен доступ` exist as repository labels (`gh label list`), not as one-off
+  strings on three issues.
+
+  One label is **not** real, and it is declared: `oshibka.yml` carries
+  `labels: ["ошибка"]`, and no such label exists — the repo has `bug`. GitHub
+  drops an unknown label silently, so every bug report arrives unlabelled and
+  the form looks like it worked. Fix is one command,
+  `gh label create "ошибка" --description "Что-то работает не так, как написано"`,
+  or point the form at `bug`. Until then the connector form below declares no
+  label at all, and a check keeps it that way.
+- **A «new connector» form — shipped 2026-08-17.**
+  `.github/ISSUE_TEMPLATE/konnektor.yml` asks the four things §4 gates on —
+  vendor docs link, method and host, search parameter, response shape — and all
+  four are `required`. The same gate, presented before code gets written rather
+  than in a pull-request rejection.
+
+  It also asks for the negative: a service whose docs have no search method is a
+  result worth recording, which is how Яндекс Вики and Teamly got closed once
+  instead of being re-researched. `test/opensource.test.mjs` pins the four
+  required field ids, the dead-end wording, and the absent label.
+
+### 5.5 README: a «what next» line
+
+README has «Чего ещё нет» — that is state. The work order is absent, so a person
+willing to help cannot see what their patch joins. One line with a link to this
+file.
+
+---
+
+## 6. Horizon 1 — months: stop cutting the audience off
+
+### 6.1 Core and command line outside macOS
+
+The cheapest way to drop the platform cut is not the app but **the core plus the
+command line**: search across own calls, the glossary, the connectors and the
+external transcriber (`ExternalTranscriber`) depend on nothing platform-bound.
+`PortabilityTests` already guards it: the core gets one system module,
+`Foundation`.
+
+Exactly three things block it, all visible in the manifest:
+
+| Blocker | Where | Fix |
+|---|---|---|
+| `import AVFoundation` | `mvp/Sources/orakul`, command line | put under `#if canImport(AVFoundation)`; other systems keep the path through `ExternalTranscriber` |
+| `import SwiftUI` | `mvp/Sources/OrakulApp`, window | declare target and product conditionally, so a Linux build does not fall apart on the window |
+| `platforms: [.macOS(.v14)]` | `mvp/Package.swift` | SwiftPM ignores the field on Linux, but verify by a run, not by reasoning |
+
+**Done 2026-08-17, and it found what the import check could not.** The three
+blockers above are fixed and a `linux-core` job builds `OrakulCore` and the
+command line on `ubuntu-latest` in `swift:6.0`. Measured, not reasoned: the
+first Linux build failed outright.
+
+- **`URLRequest`, `URLSession`, `HTTPURLResponse` are not in `Foundation`
+  outside Apple.** swift-corelibs-foundation keeps them in `FoundationNetworking`,
+  so six core files — every connector — failed to compile. `PortabilityTests`
+  read imports and answered «portable» the whole time, which is the exact
+  difference between a check on intention and a build.
+- `FoundationNetworking` is therefore now in `PortabilityTests.allowed`, with
+  the reason next to it. The guard still refuses AppKit, SwiftUI,
+  ScreenCaptureKit and the rest — the list grew by one module that exists on
+  Linux and Windows, not by a door.
+- Microphone capture sits under `#if canImport(AVFoundation)`. Where it is
+  absent, `record` **throws with an explanation** instead of returning an empty
+  buffer: an empty buffer would have been written out as a WAV of silence, and
+  «recorded» with nothing recorded is the defect class of plan §4.
+
+**The suite runs there too, and it took three fixes.** The first Linux run gave
+9 issues in three classes. All three are closed, and CI now runs `swift test`
+on Linux as well — 411 tests pass, 3 skip with a stated reason.
+
+| Class | What it actually was | Fix |
+|---|---|---|
+| Windows-1251 | `data(using: .windowsCP1251)` returns nil on corelibs: the encoding is simply absent. A CP1251 transcript — the kind Windows writes — was readable **only on macOS**. Product gap, not test noise | Own table, `CP1251`, used on every platform. `CP1251EquivalenceTests` compares it with Foundation's across all 256 bytes wherever Foundation has one, so a hand-typed table cannot quietly disagree |
+| Foundation behaviour | `URL(string: "")` is nil on Darwin and **non-nil** on corelibs, so a task with no link came back carrying a link to nowhere. `replaceItemAt` answers «file doesn't exist» on re-save, so a second `orakul добавить` with the same id failed on Linux | `RussianTrackers.link(_:)` refuses an empty string before building a URL; `SessionStore.save` removes and renames instead of `replaceItemAt`, keeping the write atomic where it matters |
+| Permissions | The container runs as root, and `chmod 000` does not stop root — the refusals those tests assert cannot happen there | `PermissionProbe` asks by **doing**: creates a directory, strips its permissions, tries to read it. Where permissions do not bite, the two tests skip with the reason printed. Not `getuid() == 0` — the question is whether permissions stop us, not who we are |
+
+The first class is the one that mattered for the audience this is written for:
+Windows writes CP1251, and the whole point of §6.1 is that Windows is where the
+users are.
+
+**Then the program itself was run, and that found what no test could
+(2026-08-18).** `orakul записать` on Linux printed «Записываю 5 с. Говорите…»
+and only afterwards admitted recording does not exist on that system. Every test
+was green: the function behaved exactly as designed, while the program invited
+someone to speak into a microphone that cannot be there — the defect class of
+plan §4, in its purest form. The check now happens before the invitation, and
+`scripts/smoke-linux.sh` runs the built binary on every pull request: add a call,
+quote it back, refuse an invented question, tell a typo from silence, and refuse
+recording without pretending to start it. Removing the guard makes that script
+fail with «человека позвали говорить в микрофон, которого нет».
+
+A suite that reads sources cannot see this. Only running what ships can.
+
+**What it cost and what it bought.** Nine files in the core and the test target,
+one new codec, one new probe. In exchange «the core is portable» stopped being a
+claim about imports and became a job that builds it, and tests it, on every pull
+request.
+
+Windows stays open after that: no audio capture, no shell there. But a command
+line working on an already-made transcript is a product shippable to today's
+majority without waiting for the port. **ASSUMPTION**: the macOS share among
+Russian-speaking developers is unmeasured (plan §7.1); the direction of the
+error is clear, the size is not.
+
+### 6.2 Declarative connectors
+
+The tracker and messenger market here is fragmented — plan §2 concluded that,
+and the same fact means connectors will always be short. Today each one is a
+Swift file, so only somebody building a macOS project can add one. A person
+holding an **account in the needed service** but no Mac finds the door shut —
+and that person is exactly who can show the real server answer.
+
+**First slice landed 2026-08-18.** `ConnectorManifest` (the description),
+`ManifestConnector` (one engine), and three manifests under
+`mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
+The engine carries the rules the five hand-written connectors established
+(plan §2.2): an 8-second deadline, distinguishable errors, «read soft, write
+strict», and 2xx-with-an-unknown-shape treated as a refusal rather than an
+empty result.
+
+**The gate is executable, not advisory.** A manifest without a `docs` link, or
+without a parameter that substitutes `{query}`, fails to load at all — the same
+two questions the «new connector» form asks, now enforced by code. The second
+one is §7.2 made concrete: listing is not search.
+
+**What makes it trustworthy is the parity test.** `ManifestConnectorTests`
+compares the manifest path against `SelfHostedTrackers` — the whole request
+(URL with every query item, every header, the timeout) and the parsed result,
+for all three services. Description-by-data is worth having only if it can be
+trusted with what already works; a lost header or a dropped parameter turns
+«describe your service in JSON» into an invitation to make things worse.
+
+Mutation-checked, all four failing as they must: `Bearer` in place of Gitea's
+`token`, a dropped `type=issues`, GitLab's `iid` swapped for `id`, Redmine's
+`results` envelope removed.
+
+**Production switched the same day.** `SelfHostedTrackers.search` now builds its
+request and parses the reply through the manifest, keeping its own type, its
+Russian error text and the host rules; the hand-written branches stay as a
+fallback for a missing or rejected manifest — a connector must not stop working
+because a resource file went absent.
+
+**And the switch found a hole the parity test could not.** Renaming Gitea's
+search parameter from `q` to `qq` in the manifest changed the live request and
+**nothing failed**: the suite pinned the path, `type=issues` and the auth
+header, but never the name of the search parameter — the one thing the whole
+gate exists for. A service answering that request returns its entire task feed
+or nothing, and both look like a working search. Now
+`SelfHostedTrackersTests` asserts the term arrives in the parameter the vendor
+documents (`q`, `search`, `q`), and the same mutation fails.
+
+That check does double duty: it also proves production really reads the
+manifest, rather than quietly falling back.
+
+**Extended to RPC, and Outline moved over (2026-08-18).** Search there is a
+`POST` with the term in the **body**, and the title sits one level below the row
+(`document.title`), so the manifest grew a JSON body template and path-based
+field lookup. Done for Outline on purpose: Yonote, the first candidate in §7.3,
+has an API of the same shape — if it is confirmed, its connector becomes a JSON
+file rather than a Swift one.
+
+**Migration broke the parity test, silently, and mutation caught it.** Once
+`search` runs through the manifest, comparing «manifest against production»
+compares the manifest with itself — it passes on any corruption. Replacing
+Outline's `Bearer` with `token`, or quoting `limit` so a number became a string,
+changed nothing. Four connectors were in that state at once.
+
+The reference path is now called directly (`legacySearch`), so parity compares
+two genuinely different implementations again, and all six mutations fail:
+`Bearer`↔`token` both ways, a quoted `limit`, a shortened title path, `iid`→`id`,
+Redmine's envelope removed. The fallback also stops being untested code — an
+unexercised fallback is not a fallback.
+
+**Пачка next, and the format is now documented (2026-08-18).** Five services are
+described as data — Gitea, GitLab, Redmine, Outline, Пачка — and CONTRIBUTING
+carries the schema with a worked example, so «add a connector» is a JSON file
+for the common case. Пачка needed one addition: an `author` path, tolerant of an
+id arriving as a number (Пачка) or a string (Mattermost). Demanding a field type
+in the manifest would be describing JSON rather than describing a service.
+
+**It also cost a distinction, and the existing suite caught that.** The engine
+mapped 401 and 403 alike onto «bad token», which erased Пачка's meaning for 403:
+the token is genuine, the `search:messages` right was never granted. Those are
+different repairs — issue a new token versus grant a permission — and the wrong
+advice costs half an hour. The engine now has a separate `forbidden`, and each
+caller decides: trackers and the wiki still say «bad token», Пачка says «right
+not granted».
+
+**WEEEK is the sixth, and the first Russian tracker (2026-08-18).** It needed
+the schema to learn something real: WEEEK answers **200 with `success: false`**
+on refusal, so a connector reading only the HTTP code shows a revoked token as
+«no tasks found». The manifest now carries `requireTrue`, and — because the
+existing suite caught the regression immediately — `errorCode`/`errorMessage`
+too: «invalid_token — Token revoked» tells a person to issue a new token, while
+«the service answered unclearly» sends them to check the address and the
+version. That difference is a wasted evening.
+
+Parity also found a divergence worth keeping rather than copying: the
+hand-written path sets `Content-Type: application/json` on a **GET with no
+body**. The manifest does not reproduce it, and the test says so out loud, so it
+stays a decision instead of becoming the next person's discovery.
+
+**Still code, deliberately, and now for stated reasons:** Mattermost returns
+messages as a dictionary keyed by id, Zulip wants Basic auth built from two
+halves, Matrix a nested body, Битрикс24 keeps the key in the path, Яндекс Трекер
+searches by POST with a body and a second credential. Each is a separate
+property of the format; descriptors must cover the frequent case, not every
+case.
+
+What it does **not** cancel: the rule «claim nothing that is absent». A
+descriptor without a docs link is not accepted, and a live service answer still
+gets checked by `LiveConnectorProbe` — same environment variables, no keys in
+the repo.
+
+What it does not cover: services needing a protocol rather than a request —
+Битрикс24 with the key inside the path, Matrix with a request body, MCP with
+client registration. Those stay code, and that is fine: data descriptors must
+cover the frequent case, not every case.
+
+### 6.3 A corpus of Russian developer speech
+
+The top product risk is recognition quality on our speech. Plan §10 already
+downgraded it from «unknown» to a task: assemble a corpus, then measure T-one
+against the model shipping now. Without a corpus, any accuracy claim is somebody
+else's benchmark on somebody else's speech (plan §6.1).
+
+The hard part is collection, not measurement: a call recording carries other
+people's voices and words. So either participant consent, or public Russian
+technical talks as a first approximation — with the honest caveat that a talk
+and a call are different genres and code-switching (plan §6.2) is weaker in a
+talk.
+
+### 6.4 Russian strings to the end
+
+Measured 2026-08-17: of 440 string literals in `Views/` and `Onboarding/`, 22
+carry no Cyrillic letter — down from 44 the same day. That is an **upper bound,
+not a work list**: what is left is names (`GitHub`, `orakul`), bare
+interpolations (`"\($0)"`, `"+\(apps.count)"`), quote wrappers (`"“\(evidence)”"`)
+and an example placeholder (`https://mcp.example.com/mcp`). No English sentence
+remains on those two surfaces.
+
+Eighteen strings were translated across nine views — the ones a person actually
+reads: `Refining…`, `Detach`, `Settings (⌘,)`, `Remove all N meetings`,
+`N item(s) will be created`, `N fact(s) to review`, `N of N left`, and the
+accessibility labels beside them, which are the half that usually stays English
+because nobody sees it.
+
+Command to reproduce:
+
+```bash
+cd app/Sources/MeetGPT && grep -rhoE '(Text|Label|Button|Toggle|\.help|\.navigationTitle|Section)\(\s*"[^"]{4,}"' Views Onboarding \
+  | grep -oE '"[^"]+"' | sort -u | grep -vc "[а-яА-ЯёЁ]"
+```
+
+CONTRIBUTING already calls this a ready newcomer task. The missing pieces: the
+number inside the repo, and a check that stops it growing.
+
+---
+
+## 7. Integrations: queue and open questions
+
+### 7.1 Admission rule
+
+Four questions to vendor docs — method, host, search parameter, response shape —
+plus a link in the comment and a `LiveConnectorProbe` run against the live
+service. No service below is scheduled: each carries what exactly is unknown and
+what unblocks it.
+
+### 7.2 A decision owed: listing is not search
+
+Three candidates below — GitFlic, GitVerse, Plane — share one shape: **the task
+list is documented, the text search parameter is absent**. Today's project rule
+answers «no»: Pyrus and Яндекс Вики fell by it (plan §2.1), because «a page at a
+known address» answers a question nobody asked.
+
+The case differs though. Pyrus has no cross-cutting listing at all; these three
+list by pages inside a project or a repository, so filtering by title on our
+side is possible in principle.
+
+**This is a decision, not an implementation detail.** Take it explicitly and
+record it next to the rule — otherwise the first contributor applies client-side
+filtering to a service holding forty thousand tasks and gets «nothing found» on
+a full archive. If the answer is «yes», it must be bounded by page count and
+must tell the person a part is shown: the error «ten tasks out of forty-seven»
+already happened (plan §4).
+
+### 7.3 Russia: a queue with questions
+
+| Service | Known | Unknown, and how to learn it |
+|---|---|---|
+| **Yonote**, knowledge base | Checked 2026-08-18 and **still blocked**. The vendor's own developer pages return navigation without method reference (`/developers`, `/developers?v=2`, `docs.yonote.ru`). Third-party MCP clients agree on base `app.yonote.ru/api` and token auth[^yonote] | Whether a **search** method exists. One community client exposes only `documents_list` / `documents_info` — listing, which §7.2 does not accept as search. Unblocked by public method documentation, or by an account where the call can be made and its answer seen. Until then this is not «nearly written»: that phrasing was an assumption, and checking removed it |
+| **GitVerse**, code | Base `https://api.gitverse.ru/`, `Authorization: Bearer`, mandatory `Accept: application/vnd.gitverse.object+json;version=1`, issues under `/repos/{owner}/{repo}/issues`[^gitverse] | Whether a text search parameter exists — **looked for again 2026-08-18, still not documented**. Paths match Gitea by shape, but the version header is their own, so «point the Gitea connector at this host» gets verified, not assumed. Same class as GitFlic and Plane: see §7.2 |
+| **GitFlic**, code | `GET /project/{ownerAlias}/{projectAlias}/issue`, response `{_embedded:{issueModelList:[…]}, page:{…}}`, accessToken access[^gitflic] | The search parameter is absent from the docs. See §7.2 |
+| **Compass**, messenger with an on-premise install | A bot API exists | Whether message search exists and whether the bot sees other people's conversation. The Telegram path ended exactly here (plan §8.1) — question first, code after |
+| **Аспро.Cloud** | No method reference found from outside (plan §2.0.3) | Task list method, search parameter, response shape. Unblocked by somebody's account — issue [#2](https://github.com/theasder/orakul/issues/2) |
+| **Битрикс24** | Connected **from the docs**, not against a live portal (plan §2.0.1) | Whether `TITLE` pattern search works. One command, a portal needed — issue [#1](https://github.com/theasder/orakul/issues/1) |
+
+### 7.4 The West, and what teams run on their own servers
+
+| Service | Known | To decide or learn |
+|---|---|---|
+| **Slack** | `GET https://slack.com/api/search.messages`, a **personal user token** plus the `search:read` scope, response `{ok, messages:{matches:[…]}}`; the method is marked legacy[^slack] | A personal token changes the promise: not a bot with narrow rights but access to a person's whole correspondence. A product decision, not a technical one; if «yes», say it plainly in the interface |
+| **Plane**, open, self-hosted | `GET /api/v1/workspaces/{slug}/projects/{id}/work-items/`, header `X-API-Key`, response `{results, total_count, …}`[^plane] | The list docs carry no text search. See §7.2 |
+| **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
+| **BookStack, Wiki.js, Nextcloud** | Open knowledge bases, self-hosted | Search method and response shape for each. High value: Outline already showed an open wiki returns the text around the match — exactly what the prompt needs (plan §2.0) |
+| **Local notes: Obsidian and any `.md` directory** | No API at all, files on the same disk | The only source promising nothing to the network, and it fits «everything is computed on the device» without caveats. The question is how a person points at the directory and what to do with large vaults |
+
+The western layer already covers eleven MCP servers, and adding there is one
+line in the catalog (plan §2.2). The shortage sits elsewhere: sources that work
+**without our server and without the developer's account**.
+
+### 7.5 Closed with cause — do not reopen
+
+Pyrus (no text search), Мегаплан (no long-lived key), Яндекс Вики and Teamly (no
+search method in public docs), GigaChat (the token endpoint and the root
+certificate requirement do not agree), search across the whole Telegram history
+(Bot API does not serve it, MTProto demands a personal account), connectors to
+the four ВКС platforms (plan §11), SaluteJazz (needs our backend, which will not
+exist).
+
+Every «no» is dated and recorded in the plan with a cause. Reopening is allowed,
+but only with a new fact — the way WEEEK returned when the vendor published the
+method reference.
+
+---
+
+## 8. Horizon 2 — Windows and packaging
+
+The port costs exactly what lies outside the core (plan §7.1): system audio
+capture via WASAPI loopback, plus the shell. Recognition is the same model, a
+different runtime: ONNX Runtime or whisper.cpp.
+
+The entry condition is not a calendar but two facts: §6.1 closed (core and
+command line build outside macOS in CI) and demand named by people rather than
+by assumption. The second one is measurable: an issue «Windows needed» with
+votes, not our guess about the corporate fleet.
+
+**The deb exists as of 2026-08-18 — and the first one did not work.**
+`scripts/package-linux.sh` builds `orakul_<version>_<arch>.deb`, and CI builds
+and installs it on every pull request.
+
+The first version installed cleanly and then failed to start: `error while
+loading shared libraries: libswiftCore.so`. Every check passed, because every
+check ran **inside `swift:6.0`** — the image that ships the Swift runtime by
+definition. The artefact was verified in the environment that flatters it, which
+is the same mistake as reading a config instead of the built product.
+
+Three layers had to be peeled, each visible only by installing somewhere real:
+
+1. the Swift runtime is not on a user's machine → `-static-stdlib`;
+2. `libcurl` and `libstdc++` are system libraries → declared as `Depends:`, so
+   the package manager installs them instead of the user decoding an error;
+3. building on Ubuntu 24.04 requires `GLIBC_2.38`, absent from Debian 12 and
+   Ubuntu 22.04 → the package is built on `swift:6.0-jammy` (glibc 2.35).
+
+Verified by installing on **Debian 12, Ubuntu 22.04 and Ubuntu 24.04** — add a
+call, quote it back, refuse an invented question. The same binary also runs on
+Fedora 40 (one harmless linker warning), so an rpm is a packaging question
+rather than a portability one; it is not built yet, and nothing here claims
+Astra Linux or ALT until something is installed there.
+
+CI now builds the package in one image and installs it in a **clean debian:12**,
+in a job with no Swift container at all. A check of an installation performed
+inside the build image is green always and means nothing.
+
+**The rpm followed the same day, and needed its own toolchain.** Reusing the
+Ubuntu-built binary produced a package `dnf` refuses: it carries a dependency on
+`libcurl.so.4(CURL_OPENSSL_4)`, Ubuntu's versioned symbol, absent on Fedora. The
+program itself runs there — rpm's dependency check is stricter than the loader,
+and rightly so. So the rpm is built in `swift:6.0-rhel-ubi9` and installed into a
+clean `fedora:40`: add a call, quote it back, refuse an invented question,
+remove the package.
+
+**One cause bit three times today: a shared `.build`.** The repository is mounted
+into the container, so a build in one image reuses object files from another —
+which is how the rpm twice came out with Ubuntu's dependencies, and how a jammy
+rebuild silently kept a `GLIBC_2.38` requirement. Both packaging scripts now
+build in a scratch directory named after the image's own `/etc/os-release`.
+
+**And both scripts refused to invent a version.** Missing `git` inside the
+Fedora image made the release number silently `0`; a package numbered after
+nothing is worse than a failed build, so they now stop and ask for
+`ORAKUL_RELEASE` explicitly.
+
+**Astra Linux and ALT: tested 2026-08-18, and the first answer was «no».**
+Both ship container images, so «plausible» could be replaced with a measurement —
+and the measurement said the packages did not work there at all:
+
+| System | glibc | Verdict on the first packages |
+|---|---|---|
+| ALT p10 | 2.32 | rpm refused: needs `GLIBC_2.34`, `GLIBCXX_3.4.29` |
+| Astra Linux 1.7 | 2.28 | deb built on Ubuntu 22.04 (glibc 2.35) cannot run |
+
+Building on an older base only moves the line. The fix that removes it is Swift's
+**Static Linux SDK**: a musl binary with no glibc dependency whatsoever. The same
+file then runs on ALT p10, Astra 1.7, Debian 12 and Fedora 40 — verified by
+running it on each, with Astra reached by cross-compiling to x86_64 because its
+image is amd64-only.
+
+The package build now uses that SDK when it is installed and keeps the
+glibc path as a fallback. A static package declares **no dependencies at all**:
+`dpkg -i` installs it with no `apt` and no resolution step, which on an isolated
+corporate machine is the difference between working and not.
+
+**The rpm followed the same day.** It now packages the same static binary the
+deb does, so it installs on **ALT p10** — the distribution that rejected it an
+hour earlier for wanting `GLIBC_2.34` — and on Fedora 40. Verified by installing
+on both and running add / quote / refuse.
+
+That change also removed a rule: the rpm used to be built in an RHEL-family
+image so its auto-generated dependencies would be right. With nothing to depend
+on, the packaging image stopped mattering. Two of the guards I had written the
+day before had to go with it — one demanded `Requires: libcurl`, the other
+demanded the UBI image — because both pinned the method rather than the
+property. The property they were protecting is unchanged and still checked:
+the package runs where Swift never was.
+
+| System | Package | Result |
+|---|---|---|
+| ALT p10 (glibc 2.32) | rpm, static | installs and works |
+| Astra Linux 1.7 (glibc 2.28) | static binary, x86_64 | runs |
+| Debian 12, Ubuntu 22.04 | deb, static, no `Depends` | installs with plain `dpkg -i` |
+| Fedora 40 | rpm, static | installs and works |
+
+The version is **not invented**. It comes from the same pair the macOS build
+stamps — `CFBundleShortVersionString` in `app/Support/Info.plist` plus git
+height — giving `0.1.0-179`. Two artefacts of one commit must answer «which
+version» the same way, and a number typed into the packaging script diverges on
+the second edit.
+
+The package description says plainly what is not in it: the command line only,
+no microphone recording, that being macOS-only. Someone installing it to record
+a call would otherwise find out later and worse.
+
+rpm is not done, and Astra Linux and ALT are untested — naming them here without
+having installed anything would be exactly the claim this repo does not make.
+That is separate work about repositories and signing.
+
+---
+
+## 9. Horizon 3 — a project, not a repository
+
+- **Glossary as a shared resource — first slice 2026-08-18.** The two lists a
+  contributor actually extends now live in
+  `mvp/Sources/OrakulCore/Resources/lexicon/base.json`, not in Swift: adding a
+  term is editing data, exactly as with connectors. A parity test holds the pack
+  word-for-word against the tables the product still reads.
+
+  The curation rule became **executable**. «A word enters only if it does not
+  collide with ordinary Russian» was a comment plus six words inside a test;
+  `LexiconPack.validate()` now refuses on load — an ordinary word (`агент` is a
+  страховой агент), a duplicate (two canons make repair depend on traversal
+  order), or the wrong alphabet (`АПИ` among acronyms, `prod` among loanwords
+  repairs a word in the opposite direction). Each refusal explains itself, and
+  the `ordinary` list grows with the attempts it rejects — a recorded refusal
+  saves the next person the same evening.
+
+  The maps (`variants`, `infrastructure`) stay in Swift for now: they carry
+  index-building logic, and moving them is a separate step.
+
+  Domain packs per role are still ahead; the loader takes any number of files,
+  so that is now a data question rather than an architecture one.
+- **A kit for an outside connector — the missing half landed 2026-08-18.**
+  Checking a connector needs an account in the service; accepting the patch
+  needs the maintainer, who has none. Between them there must be a document:
+  what went to the server, what came back, whether the shape was recognised.
+  `ConnectorProbeReport` renders exactly that, and CONTRIBUTING says how to
+  attach it.
+
+  The property that matters is that the token does **not** appear in it — the
+  text goes into a public pull request, and a leak there would mean the checking
+  tool opened the very hole the «secrets only in the Keychain» rule exists to
+  close. It is scrubbed by header name, by value, by halves of a compound key
+  (`почта:ключ`, `id/код`), and by percent-encoding, because a key inside a URL
+  arrives encoded — unreadable to a human, decodable by anyone.
+
+  That last case was found by mutation: the leak test passed while the guard was
+  removed, because a Cyrillic token in a URL had been re-encoded and the test
+  was searching for a string that was no longer there. The test proved nothing
+  and looked green. Tokens in the fixtures are ASCII now, like real ones, and a
+  separate case covers the encoded form.
+- **A reproducible release — extended to Linux 2026-08-18.** The DMG has
+  carried a stamp and `audit-dmg.sh` from the start; the packages I shipped this
+  week carried nothing, so a `.deb` could not say what it was built from. Both
+  now embed `build-info` — version, commit, source hash, the paths that hash
+  covers, and the system it was built on — and `scripts/audit-package.sh` reads
+  it back out of the file and recomputes.
+
+  Two details are load-bearing. The hash covers **what actually ships**: the
+  core and the command line, not the app sources, because stamping a package
+  with the hash of code it does not contain promises traceability that is not
+  there. And both sides compute with **one implementation** (`source-hash.sh`),
+  because the DMG once raised a false alarm when the two pipelines wrote paths
+  differently and disagreed on identical code. Verified in both directions: an
+  untouched package matches, and one line added to a core file makes the audit
+  report a mismatch.
+
+  CI runs the audit on every pull request. Publishing the report alongside a
+  release is what remains, and that needs a release to publish.
+- **One maintainer — said out loud in README, 2026-08-18.** An issue may wait
+  days, and during a holiday may not be answered at all. The obligation from
+  CODE_OF_CONDUCT — explain every closure — holds regardless; what cannot be
+  promised is speed, so it is not promised.
+
+---
+
+## 10. What will not happen, and why
+
+| Not happening | Cause |
+|---|---|
+| Search across other people's Telegram chats | Foreign content, the answer holds no decision status, and such search engines already exist (plan §8) |
+| A personal MTProto session | Asking for a personal account is a changed promise, not a detail (plan §8.1) |
+| A SaluteJazz connector | Their API needs a token that belongs on a backend; no backend exists and none will (plan §11) |
+| Tariffs, limits, paid features | Owner decision, pinned by `NoTariffsTests` (plan §5) |
+| A recognition model in the bundle | Gigabytes of weights at install stop being «run in five minutes» |
+| Telemetry and «quality improvement on your data» | Data does not leave the machine, and that is verified at build time |
+| Writing to a tracker without a human | The product sends nothing itself: it drafts, the person sends |
+
+---
+
+## 11. Risks
+
+| Risk | How we learn it fired | What we do |
+|---|---|---|
+| Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
+| macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
+| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | A live check by other hands (issue #1); until then a caveat in README, not silence |
+| A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
+| One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
+| A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-17: `sw` blanks by name shape, and `test/secrets.test.mjs` runs `sw` itself to prove it. Remaining exposure is a credential whose name carries no recognisable shape — those still depend on the hand list |
+
+---
+
+## 12. Metrics
+
+The metric is unchanged and honest: **stars and installs** (plan §5). In a repo
+with nothing to sell, README is the whole marketing.
+
+| What we count | With what |
+|---|---|
+| Stars and forks | `gh repo view theasder/orakul --json stargazerCount,forkCount` |
+| Installs | the sum of `assets[].download_count` in `gh api repos/theasder/orakul/releases` |
+| Connectors | from code, not from the page: `RussianTrackers.Service` and neighbouring types — the same way the census check does it |
+| Time to the first answer on an issue | by hand while they are countable; otherwise it is a metric for its own sake |
+
+What we do **not** count: page traffic through third-party counters. Putting
+analytics on the site of a product promising the data stays put is exactly the
+contradiction we hold against others.
+
+---
+
+## 13. How this file avoids going stale
+
+`test/roadmap.test.mjs` checks what rots first in a document like this:
+
+- sections numbered and in order;
+- a service called connected here exists in the code — and the reverse;
+- a service closed in the plan with a cause is not promised here as work;
+- Russian service names spelled the way the code spells them;
+- every external claim carries a footnote with an address and a read date.
+
+The check does not make the plan right. It makes it **checkable** — and a wrong
+but checkable plan gets fixed by one edit, while a wrong and uncheckable one
+lives for years and spends other people's time.
+
+[^cask]: Homebrew, Acceptable Casks: notability criteria stated without numeric thresholds, read 2026-08-17: https://docs.brew.sh/Acceptable-Casks
+[^slack]: Slack, `search.messages`: user token, `search:read` scope, response `{ok, messages:{matches}}`, legacy marker, read 2026-08-17: https://docs.slack.dev/reference/methods/search.messages
+[^plane]: Plane, list work items: `GET /api/v1/workspaces/{slug}/projects/{id}/work-items/`, header `X-API-Key`, read 2026-08-17: https://developers.plane.so/api-reference/issue/list-issues
+[^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, read 2026-08-17: https://gitverse.ru/docs/developers/public-api/
+[^gitflic]: GitFlic, issue methods: `GET /project/{ownerAlias}/{projectAlias}/issue`, response with `_embedded.issueModelList`, read 2026-08-17: https://docs.gitflic.ru/api/issue/
+[^yonote]: Yonote, developer page (API v1 and v2 preview), read 2026-08-17: https://yonote.ru/developers

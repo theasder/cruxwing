@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -21,7 +27,7 @@ struct RussianTrackersTests {
         let http: RussianTrackers.HTTP = { request in
             recorder.record(request)
             let response = HTTPURLResponse(url: request.url!, statusCode: status,
-                                           httpVersion: nil, headerFields: nil)!
+                                           httpVersion: nil, headerFields: [:])!
             return (Data(json.utf8), response)
         }
         return (http, recorder)
@@ -317,7 +323,7 @@ struct YandexOrgHeaderTests {
         for organisation in ["1234567", "bpf3crucp1v28b74p3rk"] {
             let client = RussianTrackers(
                 service: .yandexTracker, token: "y0_test", secondary: organisation,
-                http: { _ in (Data(), HTTPURLResponse()) })
+                http: { _ in (Data(), stubHTTPResponse()) })
             let sent = client.headers().keys.filter { $0.hasSuffix("Org-ID") }
             #expect(sent.count == 1, "заголовков организации \(sent.count): \(sent)")
             #expect(client.headers()[RussianTrackers.orgHeader(for: organisation)]
@@ -333,7 +339,7 @@ struct Bitrix24Tests {
         let http: RussianTrackers.HTTP = { request in
             last = request
             return (Data(json.utf8), HTTPURLResponse(
-                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+                url: request.url!, statusCode: 200, httpVersion: nil, headerFields: [:])!)
         }
         return (http, { last })
     }
@@ -434,7 +440,7 @@ struct BitrixWebhookPasteTests {
             last = request
             return (Data("{\"result\": {\"tasks\": []}}".utf8),
                     HTTPURLResponse(url: request.url!, statusCode: 200,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         return (http, { last })
     }
@@ -497,7 +503,7 @@ struct VendorErrorInsideSuccessTests {
         RussianTrackers(service: .bitrix24, token: "1/abc123",
                         secondary: "company.bitrix24.ru") { request in
             (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                              httpVersion: nil, headerFields: nil)!)
+                                              httpVersion: nil, headerFields: [:])!)
         }
     }
 
@@ -560,7 +566,7 @@ struct UnknownShapeIsAnErrorTests {
                         secondary: service == .bitrix24 ? "company.bitrix24.ru"
                                  : service == .kaiten ? "team.kaiten.ru" : "1234567") { request in
             (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                              httpVersion: nil, headerFields: nil)!)
+                                              httpVersion: nil, headerFields: [:])!)
         }
     }
 

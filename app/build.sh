@@ -83,6 +83,17 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
     if [ "$DIST" = "1" ]; then
         # Never emit a provider/org secret into a distributed binary.
         case " $SECRET_VARS " in *" $1 "*) printf ''; return ;; esac
+        # Класс, а не список. Список выше пишется руками, и четыре имени мимо
+        # него уже прошли: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET,
+        # GOOGLE_ANALYTICS_CLIENT_ID, GOOGLE_ANALYTICS_CLIENT_SECRET. Поймать их
+        # могло только чтение собранного бинарника — проверка, которая
+        # пропускается, когда приложение не собрано.
+        #
+        # Список остаётся: он покрывает имена без узнаваемой формы
+        # (SLACK_CHANNEL_IDS, CONFLUENCE_SITE, CONFLUENCE_EMAIL).
+        case "$1" in
+            *_CLIENT_ID|*_CLIENT_SECRET|*_TOKEN|*_API_KEY) printf ''; return ;;
+        esac
         # orakul: прямой доступ к провайдеру, не через шлюз.
         #
         # У Cruxwing здесь стояло 'backend' — и это правильно для продукта, у

@@ -55,11 +55,21 @@ public struct SessionStore: Sendable {
         let destination = url(for: session.id)
         let temporary = root.appendingPathComponent(".\(session.id).tmp")
         try data.write(to: temporary, options: .atomic)
+        // Замена — снятие старого файла и переименование, а не `replaceItemAt`.
+        // Причина не во вкусе: в swift-corelibs-foundation этот метод на
+        // повторном сохранении отвечает NSFileNoSuchFileError (код 4), то есть
+        // второй `orakul добавить` с тем же идентификатором на Linux падал бы, а
+        // на macOS работал. Найдено прогоном набора в `swift:6.0` 2026-08-17.
+        //
+        // Атомарность остаётся там, где она нужна: содержимое пишется целиком во
+        // временный файл и въезжает на место одним переименованием внутри той же
+        // файловой системы. Окно между удалением и переименованием есть, и это
+        // цена одинакового поведения на всех системах; данные в нём не теряются —
+        // они уже лежат рядом, во временном файле.
         if FileManager.default.fileExists(atPath: destination.path) {
-            _ = try FileManager.default.replaceItemAt(destination, withItemAt: temporary)
-        } else {
-            try FileManager.default.moveItem(at: temporary, to: destination)
+            try FileManager.default.removeItem(at: destination)
         }
+        try FileManager.default.moveItem(at: temporary, to: destination)
     }
 
     /// Удаляет встречу. Возвращает false, если такой встречи не было.

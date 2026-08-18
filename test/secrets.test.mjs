@@ -15,9 +15,10 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, writeFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { resolve, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -122,6 +123,62 @@ describe('учётные данные', () => {
       const hit = shape.exec(source);
       assert.equal(hit, null,
         `в Secrets.swift лежит ${what}: ${hit?.[0]?.slice(0, 12)}…`);
+    }
+  });
+
+  test('dist-сборка стирает учётные данные по форме имени, а не по списку', () => {
+    // Список SECRET_VARS пишется руками, и четыре имени мимо него уже прошли:
+    // GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET и оба GOOGLE_ANALYTICS_*. Поймать их
+    // могло только чтение собранного бинарника — а та проверка пропускается,
+    // когда приложение не собрано, то есть у всех, кроме сборщика выпуска.
+    //
+    // Проверяется поведение, а не текст: из build.sh берётся сама функция `sw`
+    // и запускается с DIST=1 на подставном .env, где у каждого имени лежит
+    // маячок. Текстовый поиск «есть ли строка с фильтром» прошёл бы и на
+    // фильтре, поставленном ПОСЛЕ возврата значения.
+    const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+    const secretVars = /SECRET_VARS="([^"]+)"/.exec(build)?.[1];
+    assert.ok(secretVars, 'в build.sh больше нет SECRET_VARS');
+
+    const lines = build.split('\n');
+    const start = lines.findIndex((line) => /^sw\(\)/.test(line));
+    assert.ok(start >= 0, 'функция sw больше не объявлена в build.sh');
+    const end = lines.findIndex((line, i) => i > start && line === '}');
+    assert.ok(end > start, 'у функции sw не нашлось закрывающей скобки');
+    const swSource = lines.slice(start, end + 1).join('\n');
+
+    // Имена берутся из самого build.sh: новое учётное имя попадёт под проверку
+    // без правки теста. Форма та же, что у фильтра внутри sw.
+    const credentials = [...new Set([...build.matchAll(/\$\(sw ([A-Z0-9_]+)\)/g)]
+      .map((m) => m[1]))].filter((n) => /_(CLIENT_ID|CLIENT_SECRET|TOKEN|API_KEY)$/.test(n));
+    assert.ok(credentials.length >= 5,
+      `учётных имён нашлось ${credentials.length} — проверка была бы пустой`);
+
+    const SENTINEL = 'SENTINEL-must-not-ship';
+    const envFile = resolve(tmpdir(), 'orakul-sw-probe.env');
+    writeFileSync(envFile, `${credentials.map((n) => `${n}=${SENTINEL}`).join('\n')}\n`);
+    try {
+      const script = [
+        'set -u',
+        'DIST=1',
+        `SECRET_VARS=${JSON.stringify(secretVars)}`,
+        `ENV_FILE=${JSON.stringify(envFile)}`,
+        swSource,
+        // Значение печатается в скобках: пустой вывод и «строка не напечаталась
+        // вовсе» иначе выглядели бы одинаково.
+        `for n in ${credentials.join(' ')}; do printf '%s=[%s]\\n' "$n" "$(sw "$n")"; done`,
+      ].join('\n');
+      const out = execFileSync('bash', ['-c', script], { cwd: repo, encoding: 'utf8' });
+
+      const leaked = out.split('\n').filter((line) => line.includes(SENTINEL));
+      assert.deepEqual(leaked, [],
+        `dist-сборка вписала бы учётные данные в бинарник:\n  ${leaked.join('\n  ')}`);
+      // Обратная сторона: строк должно быть по одной на имя, иначе «ничего не
+      // утекло» может значить «ничего и не запускалось».
+      assert.equal(out.trim().split('\n').length, credentials.length,
+        `sw ответил не на все имена: ${out.trim()}`);
+    } finally {
+      rmSync(envFile, { force: true });
     }
   });
 

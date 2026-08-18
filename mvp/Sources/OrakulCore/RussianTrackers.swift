@@ -1,4 +1,11 @@
 import Foundation
+// URLRequest, URLSession и HTTPURLResponse на Linux и Windows лежат не в
+// Foundation, а в FoundationNetworking: swift-corelibs-foundation разнёс их по
+// разным модулям. Без этой строки ядро не собирается вне Apple — и `PortabilityTests`
+// этого не видел, потому что читает импорты, а не собирает код.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Коннекторы к российским трекерам — не через MCP.
 ///
@@ -239,6 +246,44 @@ public struct RussianTrackers {
         guard !token.isEmpty, !(service.needsSecondary && (secondary ?? "").isEmpty) else {
             throw TrackerError.notConfigured(service)
         }
+        if let issues = try await manifestSearch(query, limit: limit) { return issues }
+        return try await legacySearch(query, limit: limit)
+    }
+
+    /// Поиск по манифесту — для тех сервисов, что описаны данными.
+    ///
+    /// Пока это WEEEK: обычный GET с параметром поиска и Bearer-токеном. У
+    /// остальных четырёх есть по своей особенности — POST с телом у Яндекса,
+    /// ключ внутри пути у Битрикса, второе поле у Kaiten, — и они остаются
+    /// кодом, пока описание данными их не покрывает.
+    private func manifestSearch(_ query: String, limit: Int) async throws -> [Issue]? {
+        guard let manifest = try? ConnectorManifest.bundled()
+            .first(where: { $0.id == service.rawValue })
+        else { return nil }
+
+        let connector = ManifestConnector(manifest: manifest, token: token,
+                                          host: service.host(secondary: secondary), http: http)
+        do {
+            return try await connector.search(query, limit: limit).map {
+                Issue(key: $0.key.hasPrefix("#") ? String($0.key.dropFirst()) : $0.key,
+                      title: $0.title, url: nil)
+            }
+        } catch let error as ManifestConnector.ConnectorError {
+            switch error {
+            case .notConfigured:  throw TrackerError.notConfigured(service)
+            case .unauthorised, .forbidden: throw TrackerError.unauthorised(service)
+            case .http(let code): throw TrackerError.http(service, code)
+            // Слова сервиса доходят до человека как есть: «invalid_token —
+            // Token revoked» объясняет причину, а наше «непонятный ответ» нет.
+            case .vendor(let code, let description):
+                throw TrackerError.vendor(service, code: code, description: description)
+            case .unreadable:     throw TrackerError.unreadable(service)
+            }
+        }
+    }
+
+    /// Написанный руками путь — запас и эталон для сверки, см. `SelfHostedTrackers`.
+    func legacySearch(_ query: String, limit: Int = 10) async throws -> [Issue] {
         var request = URLRequest(url: try endpoint(for: query, limit: limit))
         request.timeoutInterval = 8   // тот же бюджет, что у остальных источников
         for (field, value) in headers() { request.setValue(value, forHTTPHeaderField: field) }
@@ -460,8 +505,20 @@ public struct RussianTrackers {
         return Issue(key: key, title: title, url: issueURL(key: key, raw: object))
     }
 
+    /// Ссылка из ответа сервиса — или её отсутствие.
+    ///
+    /// Пустую строку в `URL(string:)` подставлять нельзя, и это не мелочь: на
+    /// Apple такой вызов возвращает nil, а в swift-corelibs-foundation —
+    /// непустой URL, указывающий в никуда. Задача без ссылки выглядела бы
+    /// задачей со ссылкой, и человек нажимал бы на пустоту. Разница поймана
+    /// прогоном набора на Linux 2026-08-17, а не рассуждением.
+    static func link(_ value: Any?) -> URL? {
+        guard let text = value as? String, !text.isEmpty else { return nil }
+        return URL(string: text)
+    }
+
     private func issueURL(key: String, raw: [String: Any]) -> URL? {
-        if let direct = raw["url"] as? String, let url = URL(string: direct) { return url }
+        if let url = Self.link(raw["url"]) { return url }
         switch service {
         case .yandexTracker: return URL(string: "https://tracker.yandex.ru/\(key)")
         case .kaiten:
@@ -571,7 +628,7 @@ public struct RussianTrackers {
                 ?? (row["TITLE"] as? String)
                 ?? "Без названия"
             guard !key.isEmpty else { return nil }
-            return Issue(key: key, title: title, url: URL(string: (row["url"] as? String) ?? ""))
+            return Issue(key: key, title: title, url: Self.link(row["url"]))
         }
     }
 

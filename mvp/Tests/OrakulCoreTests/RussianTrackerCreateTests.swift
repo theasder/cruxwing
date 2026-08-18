@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -14,7 +20,7 @@ struct RussianTrackerCreateTests {
         let http: RussianTrackers.HTTP = { request in
             recorder.record(request)
             let response = HTTPURLResponse(url: request.url!, statusCode: status,
-                                           httpVersion: nil, headerFields: nil)!
+                                           httpVersion: nil, headerFields: [:])!
             return (Data(json.utf8), response)
         }
         return (http, recorder)
@@ -143,7 +149,7 @@ struct RussianTrackerCreateTests {
         let http: RussianTrackers.HTTP = { request in
             reached = true
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
-                                           httpVersion: nil, headerFields: nil)!
+                                           httpVersion: nil, headerFields: [:])!
             return (Data(#"{"id": 1}"#.utf8), response)
         }
         await #expect(throws: RussianTrackers.TrackerError.notConfigured(service)) {
@@ -160,7 +166,7 @@ struct RussianTrackerCreateTests {
         let http: RussianTrackers.HTTP = { request in
             reached = true
             return (Data("{}".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
-                                                     httpVersion: nil, headerFields: nil)!)
+                                                     httpVersion: nil, headerFields: [:])!)
         }
         let tracker = RussianTrackers(
             service: .yandexTracker,

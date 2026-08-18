@@ -74,7 +74,7 @@ struct AnswerActionConfirmSheet: View {
     /// when three were wanted is the failure this prevents.
     private var itemList: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("\(remainingItems.count) item(s) will be created")
+            SectionLabel("будет создано записей: \(remainingItems.count)")
             ForEach(items, id: \.task) { item in
                 let isExcluded = excluded.contains(item.task)
                 HStack(alignment: .top, spacing: Space.s) {
@@ -119,7 +119,7 @@ struct AnswerActionConfirmSheet: View {
                         .padding(Space.xs)
                         .background(Theme.surfaceSunken,
                                     in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                        .accessibilityLabel("\(key) to write")
+                        .accessibilityLabel("\(key) — куда записать")
                         .accessibilityIdentifier("connected-write.field.\(key)")
                 }
             }

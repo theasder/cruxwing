@@ -1,4 +1,10 @@
 import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import OrakulCore
 
@@ -27,7 +33,7 @@ struct ConnectorHTTPStatusTests {
             // и именно поэтому прежний код объявлял ответ неразборчивым.
             (Data("<html><title>\(status)</title></html>".utf8),
              HTTPURLResponse(url: request.url!, statusCode: status,
-                             httpVersion: nil, headerFields: nil)!)
+                             httpVersion: nil, headerFields: [:])!)
         }
     }
 
@@ -100,7 +106,7 @@ struct ConnectorHTTPStatusTests {
         let garbage: @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse) = { request in
             (Data("<html>не json</html>".utf8),
              HTTPURLResponse(url: request.url!, statusCode: 200,
-                             httpVersion: nil, headerFields: nil)!)
+                             httpVersion: nil, headerFields: [:])!)
         }
         let client = SelfHostedTrackers(service: .gitea, token: "tok",
                                         host: "http://git.internal", http: garbage)
@@ -117,7 +123,7 @@ struct ConnectorHTTPStatusTests {
             let json = #"{"results": [{"id": 314, "title": "Обновить постгрес"}], "total_count": 1}"#
             return (Data(json.utf8),
                     HTTPURLResponse(url: request.url!, statusCode: 200,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         let settings = ConnectorQuery.Settings(service: "redmine", token: "tok",
                                                host: "http://redmine.internal", scope: nil)
@@ -137,7 +143,7 @@ struct ConnectorHTTPStatusTests {
             let json = #"[{"iid": 42, "title": "Поднять лимиты", "state": "closed"}]"#
             return (Data(json.utf8),
                     HTTPURLResponse(url: request.url!, statusCode: 200,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
         let settings = ConnectorQuery.Settings(service: "gitlab", token: "tok",
                                                host: "http://gitlab.internal", scope: nil)
@@ -183,7 +189,7 @@ struct ConnectorHTTPStatusTests {
             }.joined(separator: ",")
             return (Data("[\(items)]".utf8),
                     HTTPURLResponse(url: request.url!, statusCode: 200,
-                                    httpVersion: nil, headerFields: nil)!)
+                                    httpVersion: nil, headerFields: [:])!)
         }
     }
 

@@ -118,7 +118,7 @@ struct AIStudioView: View {
             if state.isRefining {
                 ProgressView().controlSize(.small).scaleEffect(0.7)
                     .frame(width: 16, height: 16)
-                    .help("Refining…")
+                    .help("Уточняю…")
             } else {
                 if state.canRevertRefine {
                     Button { state.revertRefine() } label: {
@@ -800,7 +800,7 @@ struct ComposerFolderChip: View {
                     .font(Typo.caption.weight(.semibold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
-                Text("\(folder.files.count) indexed")
+                Text("в индексе: \(folder.files.count)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
             }

@@ -229,7 +229,7 @@ private struct TranscriptRow: View {
             Button(isSelected ? "Снять выделение со строки" : "Выделить строку") { onSelect(false) }
             if let speaker = entry.speaker {
                 Divider()
-                Button("Rename \"\(speaker)\"…") { onRenameSpeaker(speaker) }
+                Button("Переименовать «\(speaker)»…") { onRenameSpeaker(speaker) }
             }
         }
         .animation(Motion.quick, value: isSelected)

@@ -268,7 +268,7 @@ private struct HistorySection: View {
                     .environmentObject(state)
             }
             .confirmationDialog("Удалить всю историю?", isPresented: $confirmClear) {
-                Button("Remove all \(state.savedSessions.count) meeting\(state.savedSessions.count == 1 ? "" : "s")",
+                Button("Удалить все звонки: \(state.savedSessions.count)",
                        role: .destructive) { state.clearAllHistory() }
                 Button("Отмена", role: .cancel) {}
             } message: {
@@ -454,7 +454,7 @@ struct SidebarFooter: View {
             }
             .buttonStyle(IconButtonStyle())
             .accessibilityLabel("Настройки")
-            .help("Settings (⌘,)")
+            .help("Настройки (⌘,)")
         } else {
             Button {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
@@ -463,7 +463,7 @@ struct SidebarFooter: View {
             }
             .buttonStyle(IconButtonStyle())
             .accessibilityLabel("Настройки")
-            .help("Settings (⌘,)")
+            .help("Настройки (⌘,)")
         }
     }
 
