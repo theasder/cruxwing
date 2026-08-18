@@ -267,6 +267,8 @@ final class MCPConnectionManager: ObservableObject {
     let selfHostedHTTP: SelfHostedTrackers.HTTP
     /// Сеть для базы знаний.
     let notesHTTP: TeamNotes.HTTP
+    /// Сеть для западных трекеров.
+    let westernHTTP: WesternTrackers.HTTP
     /// Telegram is prospective-only: this actor long-polls new Bot API updates
     /// and searches the durable local archive. It has no write methods.
     let telegramSource: TelegramSupergroupSource
@@ -282,6 +284,7 @@ final class MCPConnectionManager: ObservableObject {
          messengerHTTP: WorkMessengers.HTTP? = nil,
          selfHostedHTTP: SelfHostedTrackers.HTTP? = nil,
          notesHTTP: TeamNotes.HTTP? = nil,
+         westernHTTP: WesternTrackers.HTTP? = nil,
          telegramHTTP: TelegramSupergroups.HTTP? = nil,
          telegramArchive: TelegramMessageArchive? = nil) {
         let customServers = Self.loadCustomServers()
@@ -293,6 +296,7 @@ final class MCPConnectionManager: ObservableObject {
         self.messengerHTTP = messengerHTTP ?? WorkMessengers.live
         self.selfHostedHTTP = selfHostedHTTP ?? SelfHostedTrackers.live
         self.notesHTTP = notesHTTP ?? TeamNotes.live
+        self.westernHTTP = westernHTTP ?? WesternTrackers.live
         self.telegramSource = TelegramSupergroupSource(
             archive: telegramArchive ?? .shared,
             http: telegramHTTP ?? TelegramSupergroups.live)

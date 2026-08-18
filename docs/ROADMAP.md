@@ -599,9 +599,12 @@ setting.
 | **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
-| **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18** in the core and the command line (`orakul спросить заметки …`, folder in `ORAKUL_HOST`). No API, no token, no host — files read from disk, and unplugging the network changes nothing | Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage says so. The remaining half is the app: choosing a folder there means a security-scoped bookmark, which is macOS work, not connector work |
+| **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
 
-**Two western trackers connected directly, 2026-08-18: Linear and Trello.** Both
+**Two western trackers connected directly, 2026-08-18: Linear and Trello.**
+Both also answer during a call, not only from the command line — the fan-out in
+`MCPGrounding` had to learn them, which is a separate wiring from the settings
+screen and was missed on the first pass. Both
 are cloud services with one address, so unlike the self-hosted row they ask for
 no host — a field a person can only get wrong.
 

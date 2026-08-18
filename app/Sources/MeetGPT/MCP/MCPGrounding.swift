@@ -181,6 +181,31 @@ extension MCPConnectionManager {
                 strongFor: ConnectorProbeStrategy.trackerProbe.strongFor)
         }
 
+        // Западные трекеры — тот же вопрос, что у GitHub, только сервис
+        // облачный. Без этого они отвечали бы только из командной строки, а на
+        // звонке молчали: настройки есть, а источника в веере нет.
+        let allWestern = includeTeam ? trackerStore.configuredWestern : []
+        let westernCandidates = allWestern.map { service -> GroundingContextPolicy.SourceCandidate in
+            GroundingContextPolicy.SourceCandidate(
+                id: "western:\(service.rawValue)",
+                searchableText: [service.rawValue, service.title,
+                                 ConnectorProbeStrategy.trackerProbe.queryHint]
+                    .joined(separator: " "),
+                strongFor: ConnectorProbeStrategy.trackerProbe.strongFor)
+        }
+
+        // Заметки на этом компьютере. Единственный источник, который отвечает
+        // без сети, — и единственный, у которого нет ни токена, ни сервиса:
+        // есть выбранная папка или её нет.
+        let localNotesReady = includeTeam && LocalNotesFolder.live.isConfigured
+        let localNotesCandidates: [GroundingContextPolicy.SourceCandidate] = localNotesReady
+            ? [GroundingContextPolicy.SourceCandidate(
+                id: "notes-local",
+                searchableText: "заметки obsidian markdown записи мои файлы на компьютере "
+                    + "вики база знаний описывали",
+                strongFor: ConnectorProbeStrategy.trackerProbe.strongFor)]
+            : []
+
         let teamCandidates = allTeamServices.map { service -> GroundingContextPolicy.SourceCandidate in
             let probe = ConnectorProbeStrategy.probe(forTeamService: service.rawValue)
             return GroundingContextPolicy.SourceCandidate(
@@ -192,7 +217,8 @@ extension MCPConnectionManager {
         }
         let selected = GroundingContextPolicy.selectSources(
             trackerCandidates + githubCandidates + messengerCandidates + telegramCandidates
-                + selfHostedCandidates + notesCandidates + mcpCandidates + teamCandidates,
+                + selfHostedCandidates + notesCandidates + westernCandidates
+                + localNotesCandidates + mcpCandidates + teamCandidates,
             query: goal,
             tier: Config.currentTier,
             requestedLimit: maxSources)
@@ -238,12 +264,20 @@ extension MCPConnectionManager {
             let id = String(candidate.id.dropFirst("notes:".count))
             return allNotes.first { $0.rawValue == id }
         }
+        let westernServices: [WesternTrackers.Service] = selected.compactMap {
+            candidate -> WesternTrackers.Service? in
+            guard candidate.id.hasPrefix("western:") else { return nil }
+            let id = String(candidate.id.dropFirst("western:".count))
+            return allWestern.first { $0.rawValue == id }
+        }
+        let localNotesSelected = selected.contains { $0.id == "notes-local" }
         let githubSelected = selected.contains { $0.id == "github" }
         let telegramSelected = selected.contains { $0.id == "messenger:telegram" }
         guard !targets.isEmpty || !teamServices.isEmpty || !trackerServices.isEmpty
                 || githubSelected || !messengerServices.isEmpty
                 || telegramSelected
                 || !selfHostedServices.isEmpty || !notesServices.isEmpty
+                || !westernServices.isEmpty || localNotesSelected
         else { return [] }
         // Тип результата закрытия проставлен явно. Без него компилятор
         // выводит его из семи веток `group.addTask` разом и перестаёт
@@ -456,6 +490,72 @@ extension MCPConnectionManager {
                     return (index, GroundingSnippet(
                         serverName: "GitHub", toolName: "search",
                         text: text, sourceID: "github",
+                        readFor: ConnectorProbeStrategy.trackerProbe.readFor))
+                }
+            }
+
+            // Западные трекеры и заметки на диске идут последними: их смещение
+            // считается от суммы всех предыдущих. Сложение по шагам — по той же
+            // причине, что выше: одной цепочкой оно перестаёт проверяться по
+            // типам за отведённое время, и сборка падает не ошибкой в коде.
+            var westernBase: Int = targets.count
+            westernBase += teamServices.count
+            westernBase += trackerServices.count
+            westernBase += githubCount
+            westernBase += messengerServices.count
+            westernBase += selfHostedServices.count
+            westernBase += notesServices.count
+            for (offset, service) in westernServices.enumerated() {
+                let index = westernBase + offset
+                let store = trackerStore
+                let http = westernHTTP
+                group.addTask {
+                    let query = ConnectorProbeStrategy.query(
+                        goal: goal, serverID: service.rawValue)
+                    guard let client = store.westernClient(for: service, http: http) else {
+                        return (index, nil)
+                    }
+                    let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
+                        try await client.search(query)
+                    }
+                    guard let items, !items.isEmpty else { return (index, nil) }
+                    let text = items.prefix(10)
+                        .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
+                        .joined(separator: "\n")
+                        .prefix(maxCharsPerSource).description
+                    return (index, GroundingSnippet(
+                        serverName: service.title, toolName: "search",
+                        text: text, sourceID: "western:\(service.rawValue)",
+                        readFor: ConnectorProbeStrategy.trackerProbe.readFor))
+                }
+            }
+
+            if localNotesSelected {
+                var index: Int = westernBase
+                index += westernServices.count
+                group.addTask {
+                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "notes-local")
+                    // Срок тот же, что у сетевых источников. Диск обычно
+                    // быстрее сети, но хранилище на сетевом диске — нет, и
+                    // ждать его весь звонок не стоит.
+                    let found = await withMCPDeadline(seconds: Self.groundingDeadline) {
+                        LocalNotesFolder.live.search(query)
+                    }
+                    guard let found = found ?? nil, !found.hits.isEmpty else { return (index, nil) }
+                    var text = found.hits.prefix(10)
+                        .map { "[\($0.path)] \($0.context)" }
+                        .joined(separator: "\n")
+                    // Охват дописывается к тексту: модель, получившая часть
+                    // хранилища как целое, ответит «в заметках этого нет» —
+                    // а мы смотрели последние две тысячи файлов из восьми.
+                    let note = found.coverage.note(.folder)
+                    if case .latest = found.coverage, !note.isEmpty {
+                        text += "\n(\(note))"
+                    }
+                    return (index, GroundingSnippet(
+                        serverName: "Заметки", toolName: "search",
+                        text: text.prefix(maxCharsPerSource).description,
+                        sourceID: "notes-local",
                         readFor: ConnectorProbeStrategy.trackerProbe.readFor))
                 }
             }

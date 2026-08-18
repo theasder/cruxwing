@@ -609,6 +609,9 @@ struct RussianCopyTests {
             // Сервисы, подключённые 2026-08-18: марки, а не забытый перевод.
             "plane", "gitflic", "bookstack", "wiki", "js", "nextcloud", "trello",
             "power", "ups", "admin",   // из адреса trello.com/power-ups/admin
+            // Заметки на диске: имя программы и имена служебных каталогов,
+            // которые человек увидит у себя ровно в таком виде.
+            "obsidian", "markdown", "trash",
             "matrix", "element",
             "json", "url", "pdf", "mac", "macos", "kaiten", "yougile",
             "weeek", "pyrus", "slack", "confluence", "hubspot", "attio", "sentry",

@@ -6,6 +6,13 @@
     <key>com.apple.security.device.audio-input</key>    <true/>
     <key>com.apple.security.network.client</key>        <true/>
     <key>com.apple.security.files.user-selected.read-write</key><true/>
+    <!-- Закладка на выбранную папку. Без неё выбор папки с заметками работает
+         до перезапуска: в песочнице разрешение выдаётся на папку, а не на
+         строку с её адресом, и перенести его через запуск можно только
+         закладкой. Проверка `EntitlementsTests` держит эту связь: код,
+         создающий security-scoped-закладки, без этого права ничего не сохранит,
+         причём молча. -->
+    <key>com.apple.security.files.bookmarks.app-scope</key>     <true/>
     <!-- Sign in with Apple (Phase 3 social account login). Requires the
          capability on the App ID in App Store Connect / developer portal. -->
     <key>com.apple.developer.applesignin</key>
