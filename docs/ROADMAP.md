@@ -1063,6 +1063,26 @@ the new path is the one on the mind. All four now refuse a response where **no**
 row can be read, and each has its own attack test — the fourth was added after a
 mutation showed the guard was there but unproven.
 
+**The worst finding was not an attack on the answer — it was on the token
+(2026-08-18).** `URLSession` follows a redirect **itself** and repeats the
+request at the new address, carrying `Authorization` with it. So a service
+answering `302 Location: https://collector.example/collect` collects our token,
+and needs nothing but that one line to do it. For a self-hosted address a typo
+is enough: a person writes the wrong domain, and the token goes there.
+
+Every connector now goes through one session that refuses to follow a redirect
+to a different host, refuses an https → http downgrade, and treats a subdomain
+as a different host — «almost the same domain» is the convenient kind of theft,
+because it does not stand out in a log. A refused redirect is not silent: the
+3xx becomes the answer, so a person sees something strange instead of a key
+leaving quietly.
+
+Two details that are easy to get wrong and are pinned by tests: host comparison
+ignores case (`Git.Company.RU` is the same host), and `http → https` stays
+allowed because that direction is a strengthening. A structural check scans the
+whole core directory for `URLSession.shared`, since one forgotten connector
+reduces the defence to nothing.
+
 **Throttling was the move with no answer at all, and now it has one
 (2026-08-18).** A block is visible and arguable; answering 429 to every third
 request is neither, and it reads to the user as «their thing is flaky». Before,

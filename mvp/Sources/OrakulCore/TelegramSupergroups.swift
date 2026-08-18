@@ -16,11 +16,9 @@ public struct TelegramSupergroups: Sendable {
     public typealias HTTP = @Sendable (URLRequest) async throws -> (Data, HTTPURLResponse)
 
     public static let live: HTTP = { request in
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let response = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        return (data, response)
+        // Через общую сессию: токен бота в адресе, и уводить такой запрос на
+        // чужой хост нельзя тем более. См. ConnectorSession.
+        return try await ConnectorSession.send(request)
     }
 
     public struct Message: Codable, Equatable, Sendable {

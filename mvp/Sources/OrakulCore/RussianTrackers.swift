@@ -34,11 +34,10 @@ public struct RussianTrackers {
     /// сюда они не попадают: значение по умолчанию тут не задано намеренно,
     /// иначе забытый аргумент в тесте молча пошёл бы в чужой сервис.
     public static let live: HTTP = { request in
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
-        return (data, http)
+        // Общая сессия с запретом уводить токен на чужой хост: `URLSession`
+        // по умолчанию идёт по перенаправлению сама и уносит `Authorization`
+        // туда, куда укажет сервис. См. ConnectorSession.
+        return try await ConnectorSession.send(request)
     }
 
     public enum Service: String, CaseIterable, Sendable {
