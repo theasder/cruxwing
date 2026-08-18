@@ -16,9 +16,13 @@ const film = readFileSync(
 
 describe('Cruxwing Russian developer landing', () => {
   test('does not change the existing Orakul landing', () => {
+    // Слепок, а не список правил: страница orakul — чужой продукт для этой
+    // работы, и любое её изменение обязано быть намеренным. Обновлять слепок
+    // руками — это и есть «намеренно». Последний раз обновлён 2026-08-18:
+    // на страницу добавился чип Plane.
     const rootLanding = readFileSync(resolve(root, 'public', 'index.html'));
     const hash = createHash('sha256').update(rootLanding).digest('hex');
-    assert.equal(hash, 'b2949044961ed4710062e06ead9c99aee78afa81ad1e0fc4aa76e28fb182079d');
+    assert.equal(hash, '2cec2540a6875ced7b212a1b89da5d4452d88a4256af3bb3bd6536d5991ac21b');
   });
 
   test('declares Russian metadata and the requested production route', () => {

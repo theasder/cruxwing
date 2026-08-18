@@ -264,9 +264,44 @@ struct RussianTrackerStore: Sendable {
         store.set(Data(trimmed.utf8), for: selfHostedHostAccount(service))
     }
 
+    /// Ключ поля: `selfhosted.plane.field.workspace`.
+    ///
+    /// В Связке ключей, а не в UserDefaults, вместе с токеном: номер проекта
+    /// сам по себе не секрет, но лежать он должен там же, где остальное про
+    /// это подключение, — иначе «Отключить» очистит половину.
+    private func selfHostedFieldAccount(_ service: SelfHostedTrackers.Service,
+                                        _ name: String) -> String {
+        "selfhosted.\(service.rawValue).field.\(name)"
+    }
+
+    func selfHostedField(_ name: String, for service: SelfHostedTrackers.Service) -> String? {
+        guard let data = store.get(selfHostedFieldAccount(service, name)),
+              let value = String(data: data, encoding: .utf8),
+              !value.isEmpty else { return nil }
+        return value
+    }
+
+    func setSelfHostedField(_ value: String, name: String,
+                            for service: SelfHostedTrackers.Service) {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return store.delete(selfHostedFieldAccount(service, name)) }
+        store.set(Data(trimmed.utf8), for: selfHostedFieldAccount(service, name))
+    }
+
+    func selfHostedFields(for service: SelfHostedTrackers.Service) -> [String: String] {
+        service.fields.reduce(into: [:]) { result, field in
+            result[field.name] = selfHostedField(field.name, for: service)
+        }
+    }
+
     func removeSelfHosted(_ service: SelfHostedTrackers.Service) {
         store.delete(selfHostedAccount(service))
         store.delete(selfHostedHostAccount(service))
+        // Поля тоже. Оставленный номер проекта пережил бы «Отключить» и
+        // подставился бы следующему токену — чужому.
+        for field in service.fields {
+            store.delete(selfHostedFieldAccount(service, field.name))
+        }
     }
 
     var configuredSelfHosted: [SelfHostedTrackers.Service] {
@@ -279,7 +314,9 @@ struct RussianTrackerStore: Sendable {
                           http: @escaping SelfHostedTrackers.HTTP) -> SelfHostedTrackers? {
         guard let token = selfHostedToken(for: service) else { return nil }
         let client = SelfHostedTrackers(service: service, token: token,
-                                        host: selfHostedHost(for: service), http: http)
+                                        host: selfHostedHost(for: service),
+                                        values: selfHostedFields(for: service),
+                                        http: http)
         return client.isConfigured ? client : nil
     }
 

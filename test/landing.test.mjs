@@ -1843,7 +1843,10 @@ describe('orakul landing (ru)', () => {
     assert.match(query, /failed: true/,
       'nothing is marked as a failure — the exit status cannot be anything but 0');
     // …и пустая выдача обязана остаться успехом.
-    assert.match(query, /ничего не нашлось\.", failed: false/,
+    // Проверяется соседство, а не точная строка: между текстом и `failed`
+    // теперь стоит охват выдачи (§7.2), и точное совпадение ломалось бы на
+    // каждой правке формулировки, ничего не проверяя сверх этого.
+    assert.match(query, /ничего не нашлось[^\n]*failed: false/,
       'an empty result counts as a failure again — scripts stall on a normal answer');
 
     // Транспортная ошибка должна разбираться, а не пересказываться.

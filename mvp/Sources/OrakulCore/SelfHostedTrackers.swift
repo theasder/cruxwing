@@ -47,13 +47,14 @@ public struct SelfHostedTrackers {
     }
 
     public enum Service: String, CaseIterable, Sendable {
-        case gitlab, gitea, redmine
+        case gitlab, gitea, redmine, plane
 
         public var title: String {
             switch self {
             case .gitlab: return "GitLab"
             case .gitea:  return "Gitea / Forgejo"
             case .redmine: return "Redmine"
+            case .plane:  return "Plane"
             }
         }
 
@@ -65,6 +66,11 @@ public struct SelfHostedTrackers {
                 return "Токен из настроек профиля и адрес вашего Gitea или Forgejo"
             case .redmine:
                 return "Ключ API со страницы «Моя учётная запись» и адрес вашего Redmine"
+            case .plane:
+                // Про перечисление сказано здесь, а не в подсказке об ошибке:
+                // человек выбирает сервис до того, как задаст первый вопрос, и
+                // «ищет не сервис, а мы» — это то, что меняет его ожидания.
+                return "Ключ API из настроек Plane, адрес сервера и два поля из адреса вашего проекта. Поиска по слову у Plane нет: orakul просматривает последние задачи и отбирает их у себя — сколько именно просмотрено, пишется под ответом"
             }
         }
 
@@ -73,7 +79,17 @@ public struct SelfHostedTrackers {
             case .gitlab: return "адрес сервера, например gitlab.company.ru"
             case .gitea:  return "адрес сервера, например git.company.ru"
             case .redmine: return "адрес сервера, например redmine.company.ru"
+            case .plane: return "адрес сервера, например api.plane.so"
             }
+        }
+
+        /// Поля, которые человек заполняет сам, — из манифеста, а не из кода.
+        ///
+        /// У Plane пространство и проект стоят внутри адреса. Держать их
+        /// списком здесь значило бы описывать сервис в двух местах: манифест
+        /// уже знает и имена, и примеры.
+        public var fields: [ConnectorManifest.Field] {
+            (try? ConnectorManifest.bundled().first { $0.id == rawValue })?.parameters ?? []
         }
 
         func host(_ raw: String?) -> String? {
@@ -86,6 +102,13 @@ public struct SelfHostedTrackers {
     public enum ConnectorError: Error, Equatable, LocalizedError {
         case notConfigured
         case unauthorised
+        /// Сервис описан манифестом, а манифеста в сборке нет.
+        ///
+        /// Отдельно от `notConfigured` и `unreadable`: человек ничего не
+        /// испортил и сервис ничего не ответил — сломана сама сборка. Оба
+        /// соседних текста отправили бы его чинить не то: один в настройки,
+        /// другой — проверять версию чужого сервера.
+        case manifestMissing
         /// Сервер ответил, но ошибкой. Отдельно от `unreadable`:
         /// 502 от обратного прокси — это живой сервер и внятный
         /// ответ, а прежний текст советовал проверить ВЕРСИЮ, то
@@ -105,6 +128,8 @@ public struct SelfHostedTrackers {
                 return "Трекер не подключён. Откройте «Настройки → Подключённые приложения» и вставьте токен."
             case .unauthorised:
                 return "Трекер не принял токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+            case .manifestMissing:
+                return "Описание этого трекера не нашлось в сборке — запрос собрать не из чего. Это поломка сборки, а не ваших настроек: переустановите приложение."
             case .http(let status):
                 return "Трекер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
             case .unreadable:
@@ -124,18 +149,32 @@ public struct SelfHostedTrackers {
     let service: Service
     let token: String
     let hostValue: String?
+    /// Значения полей из `service.fields`. Пусто у сервисов, которым хватает
+    /// токена и адреса.
+    let values: [String: String]
     let http: HTTP
 
-    public init(service: Service, token: String, host: String?, http: @escaping HTTP) {
+    public init(service: Service,
+                token: String,
+                host: String?,
+                values: [String: String] = [:],
+                http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.hostValue = host
+        self.values = values
         self.http = http
     }
 
     public var isConfigured: Bool {
-        !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && service.host(hostValue) != nil
+        guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              service.host(hostValue) != nil else { return false }
+        // Незаполненное поле — это «не подключён», а не «подключён наполовину».
+        // Иначе Plane выглядит настроенным, а первый же вопрос уходит по
+        // адресу с `{project}` буквами и возвращает 404.
+        return service.fields.allSatisfy {
+            !(values[$0.name] ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
     }
 
     /// Поиск по манифесту, если он для этого сервиса есть.
@@ -149,16 +188,19 @@ public struct SelfHostedTrackers {
     /// дороги целиком — адрес со всеми параметрами, все заголовки, дедлайн и
     /// разобранные строки, по каждому из трёх сервисов. Это единственная
     /// причина, по которой такое переключение вообще можно делать сразу.
-    private func manifestSearch(_ query: String, host: String) async throws -> [Item]? {
+    private func manifestSearch(_ query: String, host: String) async throws
+        -> (items: [Item], note: String)? {
         guard let manifest = try? ConnectorManifest.bundled()
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
-        let connector = ManifestConnector(manifest: manifest, token: token, host: host, http: http)
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host,
+                                          values: values, http: http)
         do {
-            return try await connector.search(query).map {
+            let outcome = try await connector.run(query)
+            return (outcome.items.map {
                 Item(key: $0.key, title: $0.title, state: $0.state, service: service)
-            }
+            }, outcome.coverage.note)
         } catch let error as ManifestConnector.ConnectorError {
             // Ошибки те же по смыслу, но тип наружу обязан остаться прежним: на
             // нём висят русские тексты с действием, и на них смотрит интерфейс.
@@ -178,14 +220,24 @@ public struct SelfHostedTrackers {
     }
 
     public func search(_ query: String) async throws -> [Item] {
+        try await run(query).items
+    }
+
+    /// Выдача вместе с охватом.
+    ///
+    /// `note` пуст почти всегда: сервис ищет сам, и приписка была бы шумом.
+    /// Не пуст он у тех, кто искать не умеет, — и тогда это не украшение, а
+    /// часть ответа: «не нашлось» и «не нашлось среди последних пятисот из
+    /// сорока тысяч» — разные ответы (роадмап, §7.2).
+    public func run(_ query: String) async throws -> (items: [Item], note: String) {
         guard isConfigured, let host = service.host(hostValue) else {
             throw ConnectorError.notConfigured
         }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return [] }
+        guard !trimmed.isEmpty else { return ([], "") }
 
-        if let items = try await manifestSearch(trimmed, host: host) { return items }
-        return try await legacySearch(trimmed, host: host)
+        if let outcome = try await manifestSearch(trimmed, host: host) { return outcome }
+        return (try await legacySearch(trimmed, host: host), "")
     }
 
     /// Запрос и разбор, написанные руками, — запасной путь и эталон.
@@ -202,6 +254,11 @@ public struct SelfHostedTrackers {
         let trimmed = query
         var request: URLRequest
         switch service {
+        // Запасного пути у Plane нет и не будет: он не переписан с рук на
+        // манифест, а сразу описан данными. Писать ему второй, ручной запрос
+        // значило бы держать две дороги там, где первая появилась вчера.
+        case .plane: throw ConnectorError.manifestMissing
+
         case .gitlab:
             var components = URLComponents(string: "\(host)/api/v4/search")
             components?.queryItems = [

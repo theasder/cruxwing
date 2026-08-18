@@ -47,7 +47,7 @@ an assumption the audience already exists.
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 16 own connectors, 11 western via MCP.
+Total: 17 own connectors, 11 western via MCP.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -438,12 +438,19 @@ talk.
 
 ### 6.4 Russian strings to the end
 
-Measured 2026-08-17: of 440 string literals in `Views/` and `Onboarding/`, 22
-carry no Cyrillic letter — down from 44 the same day. That is an **upper bound,
+Measured 2026-08-18: of 441 string literals in `Views/` and `Onboarding/`, 23
+carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
 not a work list**: what is left is names (`GitHub`, `orakul`), bare
-interpolations (`"\($0)"`, `"+\(apps.count)"`), quote wrappers (`"“\(evidence)”"`)
-and an example placeholder (`https://mcp.example.com/mcp`). No English sentence
-remains on those two surfaces.
+interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
+quote wrappers (`"“\(evidence)”"`) and an example placeholder
+(`https://mcp.example.com/mcp`). No English sentence remains on those two
+surfaces.
+
+The count went 22 → 23 on 2026-08-18, and the guard caught it: the Plane
+settings row labels its fields `"\(field.title) — \(service.title)"`, which
+reads as Russian on screen and carries no Cyrillic letter in source. The bound
+counts a class, not a defect — and a growth that needs an explanation is exactly
+what it is for.
 
 Eighteen strings were translated across nine views — the ones a person actually
 reads: `Refining…`, `Detach`, `Settings (⌘,)`, `Remove all N meetings`,
@@ -512,15 +519,30 @@ search[^plane]. Five pages of a hundred, matched on `name` and `description`,
 including a parse of the vendor's own sample response rather than one written to
 fit our parser.
 
-**It is not yet reachable, and that is stated because it would otherwise read as
-shipped.** A manifest becomes a working connector only through a `Service` case
-in one of the four Swift files — that is what routes a person's question to it —
-and Plane has none. It also needs somewhere to keep the two fields it asks for
-(workspace, project): today the settings surface holds a host and a token, and
-nothing else. Both are the next step.
+**Reachable since 2026-08-18.** A manifest becomes a working connector only
+through a `Service` case — that is what routes a person's question to it — and
+Plane now has one, in `SelfHostedTrackers`. Two things had to exist first, and
+both are general rather than Plane-specific:
 
-Manifests written but not yet routed to anybody: **plane**. A check keeps that
-list equal to what the code says — a manifest is reachable exactly when its `id`
+* **Somewhere to keep the fields.** The settings surface held a host and a token
+  and nothing else. Now a service can declare fields (`parameters` in the
+  manifest), the settings row renders one input per field with the vendor's own
+  example, and each is kept in the Keychain beside the token — `selfhosted.plane.field.workspace`.
+  «Отключить» clears them too: a project id left behind would attach itself to
+  the next token, possibly somebody else's.
+* **The coverage reaching the answer.** `SelfHostedTrackers.run` returns the note
+  next to the items, and `ConnectorQuery` prints it — including under «ничего не
+  нашлось», which is the case that lies without it. From the command line the
+  fields travel as `ORAKUL_FIELD_workspace=…`, and the names come from the
+  manifest rather than a second list in the CLI.
+
+«Подключено» in settings is now decided by the same code as the connector's own
+`isConfigured`, not by a second list of conditions in the view — otherwise the
+row shows a tick, saving succeeds, and every question answers «трекер не
+подключён».
+
+Manifests written but not yet routed to anybody: none. A check keeps that list
+equal to what the code says — a manifest is reachable exactly when its `id`
 matches a `Service` case, and either half of the pair drifting is the error that
 made this paragraph wrong the first time it was written.
 

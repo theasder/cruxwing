@@ -25,19 +25,23 @@ public enum ConnectorQuery {
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip",
-           "matrix", "gitlab", "gitea", "redmine", "outline", "github"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "outline", "github"]
 
     public struct Settings {
         public let service: String
         public let token: String
         public let host: String?
         public let scope: String?
+        /// Поля, которые человек заполняет сам: у Plane — пространство и проект.
+        public let values: [String: String]
 
-        public init(service: String, token: String, host: String?, scope: String?) {
+        public init(service: String, token: String, host: String?, scope: String?,
+                    values: [String: String] = [:]) {
             self.service = service
             self.token = token
             self.host = host
             self.scope = scope
+            self.values = values
         }
     }
 
@@ -123,10 +127,12 @@ public enum ConnectorQuery {
                 return render(service.title, hits.map { $0.text })
             }
             if let service = SelfHostedTrackers.Service(rawValue: settings.service) {
-                let items = try await SelfHostedTrackers(
+                let outcome = try await SelfHostedTrackers(
                     service: service, token: settings.token, host: settings.host,
-                    http: trackerHTTP).search(trimmed)
-                return render(service.title, items.map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" })
+                    values: settings.values, http: trackerHTTP).run(trimmed)
+                return render(service.title,
+                              outcome.items.map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" },
+                              note: outcome.note)
             }
             if let service = TeamNotes.Service(rawValue: settings.service) {
                 let hits = try await TeamNotes(
@@ -183,10 +189,18 @@ public enum ConnectorQuery {
     /// коннекторов (`limit=10`, `per_page=10`).
     static let searchLimit = 10
 
-    private static func render(_ service: String, _ lines: [String]) -> Answer {
+    /// `note` — охват выдачи у сервисов, которые не умеют искать (роадмап,
+    /// §7.2). Пуст у всех остальных, и тогда ответ выглядит как прежде.
+    private static func render(_ service: String, _ lines: [String], note: String = "") -> Answer {
+        let tail = note.isEmpty ? "" : " (\(note))"
         guard !lines.isEmpty else {
             // Пустая выдача — ответ, а не сбой: слова могло и не быть сказано.
-            return .init(text: "\(service): по этим словам ничего не нашлось.", failed: false)
+            //
+            // Охват приписывается ИМЕННО здесь, а не только к непустой выдаче.
+            // «Ничего не нашлось» — тот самый ответ, который без охвата врёт:
+            // человек прочтёт его как «в трекере этого нет», хотя смотрели мы
+            // последние пятьсот задач из сорока тысяч.
+            return .init(text: "\(service): по этим словам ничего не нашлось.\(tail)", failed: false)
         }
         var text = ([service + ":"] + lines.prefix(searchLimit).map { "    " + $0 })
             .joined(separator: "\n")
@@ -207,6 +221,7 @@ public enum ConnectorQuery {
         if lines.count >= searchLimit {
             text += "\n\nПоказаны первые \(searchLimit) — сузьте запрос, если нужного здесь нет."
         }
+        if !note.isEmpty { text += "\n\n\(note.prefix(1).uppercased())\(note.dropFirst())." }
         return .init(text: text, failed: false)
     }
 }

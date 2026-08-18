@@ -175,4 +175,64 @@ struct EveryCredentialSetterClearsTests {
         #expect(unguarded.isEmpty,
                 "сеттер сохранит пустую строку, и сервис будет выглядеть настроенным: \(unguarded)")
     }
+
+    // MARK: - Поля, которые сервис требует помимо токена и адреса (§7.2)
+
+    @Test("Plane настроен только когда заполнены и поля тоже")
+    func planeNeedsItsFields() {
+        // Ошибка, которую это ловит, не видна на экране: строка показывает
+        // «подключено», а вопрос уходит по адресу с {project} буквами и
+        // возвращает 404 — человек читает это как поломку Plane.
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedHost("api.plane.so", for: .plane)
+        #expect(store.selfHostedClient(for: .plane, http: { _ in (Data(), HTTPURLResponse()) }) == nil)
+
+        store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
+        #expect(store.selfHostedClient(for: .plane, http: { _ in (Data(), HTTPURLResponse()) }) == nil,
+                "одно поле из двух — это по-прежнему не настроено")
+
+        store.setSelfHostedField("проект-1", name: "project", for: .plane)
+        #expect(store.selfHostedClient(for: .plane, http: { _ in (Data(), HTTPURLResponse()) }) != nil)
+    }
+
+    @Test("поля переживают перезапуск и лежат отдельными записями")
+    func fieldsRoundTrip() {
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedHost("api.plane.so", for: .plane)
+        store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
+        store.setSelfHostedField("проект-1", name: "project", for: .plane)
+
+        let restarted = RussianTrackerStore(store: keychain)
+        #expect(restarted.selfHostedFields(for: .plane) == ["workspace": "moya-komanda",
+                                                           "project": "проект-1"])
+        #expect(keychain.count == 4, "токен, адрес и два поля — четыре записи")
+    }
+
+    @Test("«Отключить» уносит и поля")
+    func disconnectClearsFields() {
+        // Оставленный номер проекта пережил бы отключение и подставился бы
+        // следующему токену — возможно, чужому.
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedHost("api.plane.so", for: .plane)
+        store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
+        store.setSelfHostedField("проект-1", name: "project", for: .plane)
+
+        store.removeSelfHosted(.plane)
+        #expect(keychain.count == 0)
+        #expect(store.selfHostedField("workspace", for: .plane) == nil)
+    }
+
+    @Test("поля одного сервиса не видны другому")
+    func fieldsDoNotLeakBetweenServices() {
+        let keychain = InMemoryKeychain()
+        let store = RussianTrackerStore(store: keychain)
+        store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
+        #expect(store.selfHostedField("workspace", for: .gitea) == nil)
+    }
 }

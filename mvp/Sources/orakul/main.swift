@@ -81,11 +81,19 @@ case "спросить", "ask":
                 + "Сервисы: " + ConnectorQuery.services.joined(separator: ", ") + ".",
             exitCode: 2)
     } else {
+        // Поля, которые у сервиса свои: `ORAKUL_FIELD_workspace=…`. Имена не
+        // перечислены здесь намеренно — их знает манифест, а список в двух
+        // местах разъезжается ровно тогда, когда добавляют третий сервис.
+        let fields = environment.reduce(into: [String: String]()) { result, pair in
+            guard pair.key.hasPrefix("ORAKUL_FIELD_") else { return }
+            result[String(pair.key.dropFirst("ORAKUL_FIELD_".count))] = pair.value
+        }
         let settings = ConnectorQuery.Settings(
             service: rest[0],
             token: environment["ORAKUL_TOKEN"] ?? "",
             host: environment["ORAKUL_HOST"],
-            scope: environment["ORAKUL_SCOPE"])
+            scope: environment["ORAKUL_SCOPE"],
+            values: fields)
         let answer = await ConnectorQuery.ask(settings,
                                               query: rest.dropFirst().joined(separator: " "))
         // Код возврата — не украшение: `orakul спросить … && развернуть`

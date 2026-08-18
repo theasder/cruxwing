@@ -28,7 +28,11 @@ import OrakulCore
 ///     swift test --filter LiveConnectorProbe
 ///
 /// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, matrix,
-/// gitlab, gitea, redmine, outline.
+/// gitlab, gitea, redmine, plane, outline.
+///
+/// У Plane, кроме токена и адреса, спрашиваются поля из манифеста:
+/// `ORAKUL_FIELD_workspace` и `ORAKUL_FIELD_project`. Без них проба скажет
+/// «не подключён», а не уйдёт по адресу с подстановками.
 @Suite("Живая проверка коннектора")
 struct LiveConnectorProbeTests {
 
@@ -75,13 +79,21 @@ struct LiveConnectorProbeTests {
         }
 
         if let tracker = SelfHostedTrackers.Service(rawValue: service) {
-            let items = try await SelfHostedTrackers(service: tracker, token: token,
-                                                     host: host,
-                                                     http: SelfHostedTrackers.live).search(query)
-            print("[\(tracker.title)] найдено задач: \(items.count)")
-            for item in items.prefix(3) {
+            // Поля берутся из окружения по именам самого манифеста: второй
+            // список здесь разъехался бы с первым на третьем сервисе.
+            let values = tracker.fields.reduce(into: [String: String]()) { result, field in
+                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+            }
+            let outcome = try await SelfHostedTrackers(service: tracker, token: token,
+                                                       host: host, values: values,
+                                                       http: SelfHostedTrackers.live).run(query)
+            print("[\(tracker.title)] найдено задач: \(outcome.items.count)")
+            for item in outcome.items.prefix(3) {
                 print("  — \(item.key) [\(item.state)] \(item.title.prefix(100))")
             }
+            // Охват печатается вместе с находками: проба, которая молчит про
+            // «просмотрены последние 500 из 40 000», подтверждает не то.
+            if !outcome.note.isEmpty { print("  охват: \(outcome.note)") }
             return
         }
 
@@ -110,7 +122,7 @@ struct LiveConnectorProbeTests {
     @Test("документация набора называет существующие сервисы")
     func documentedServicesExist() {
         let documented: Set<String> = ["pachca", "mattermost", "rocketChat", "zulip",
-                                       "matrix", "gitlab", "gitea", "redmine", "outline"]
+                                       "matrix", "gitlab", "gitea", "redmine", "plane", "outline"]
         let real = Set(WorkMessengers.Service.allCases.map(\.rawValue))
             .union(SelfHostedTrackers.Service.allCases.map(\.rawValue))
             .union(TeamNotes.Service.allCases.map(\.rawValue))

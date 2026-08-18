@@ -134,7 +134,10 @@ describe('ROADMAP', () => {
     const text = section('7.2').replace(/\n/g, ' ');
     const stated = /Manifests written but not yet routed to anybody: ([^.]+)\./.exec(text);
     assert.ok(stated, 'в §7.2 пропал список недостижимых манифестов');
-    const listed = stated[1].split(',').map((s) => s.replace(/\*\*/g, '').trim()).sort();
+    // «none» — это пустой список, а не манифест с таким именем. Без разбора
+    // этого слова проверка требовала бы держать в тексте несуществующий id.
+    const listed = stated[1].trim() === 'none' ? []
+      : stated[1].split(',').map((s) => s.replace(/\*\*/g, '').trim()).sort();
     assert.deepEqual(listed, unreachable,
       `в тексте ${listed.join(', ') || '—'}, в коде ${unreachable.join(', ') || '—'}`);
   });

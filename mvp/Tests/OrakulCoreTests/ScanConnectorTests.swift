@@ -251,4 +251,78 @@ import FoundationNetworking
         // Слова человека в запросе нет вовсе — в этом и смысл: сервис не ищет.
         #expect(!query.contains("лимиты") && !query.contains("%D0%BB"))
     }
+
+    // MARK: - Plane как настоящий трекер, а не файл в ресурсах
+
+    @Test("Plane доходит до человека через обычный поиск по трекеру")
+    func planeIsReachableAsATracker() async throws {
+        let page = Self.page([Self.row(7, "Поднять лимиты выгрузки")], more: false, total: 1)
+        let tracker = SelfHostedTrackers(
+            service: .plane, token: "ключ", host: "api.plane.so",
+            values: ["workspace": "moya-komanda", "project": "проект"],
+            http: { request in
+                (page, HTTPURLResponse(url: request.url!, statusCode: 200,
+                                       httpVersion: nil, headerFields: [:])!)
+            })
+        #expect(tracker.isConfigured)
+        let outcome = try await tracker.run("лимиты")
+        #expect(outcome.items.map(\.key) == ["#7"])
+        #expect(outcome.note.contains("просмотрены все"))
+    }
+
+    @Test("токен и адрес есть, а поля пустые — это «не подключён»")
+    func planeWithoutFieldsIsNotConfigured() {
+        let tracker = SelfHostedTrackers(service: .plane, token: "ключ", host: "api.plane.so",
+                                         http: { _ in (Data(), stubHTTPResponse()) })
+        // Иначе первый же вопрос уходит по адресу с {project} буквами, сервис
+        // отвечает 404, и человек читает это как поломку сервиса.
+        #expect(!tracker.isConfigured)
+    }
+
+    @Test("поля Plane описаны манифестом, а не списком в коде")
+    func planeFieldsComeFromTheManifest() {
+        let names = SelfHostedTrackers.Service.plane.fields.map(\.name)
+        #expect(names == ["workspace", "project"])
+        #expect(SelfHostedTrackers.Service.gitea.fields.isEmpty,
+                "у сервиса, которому хватает адреса, лишних полей быть не должно")
+        for field in SelfHostedTrackers.Service.plane.fields {
+            #expect(!field.title.isEmpty && !field.example.isEmpty,
+                    "поле «\(field.name)» нечем объяснить человеку")
+        }
+    }
+
+    @Test("«ничего не нашлось» у Plane договаривает, среди чего искали")
+    func emptyAnswerCarriesCoverage() async throws {
+        // Самый важный случай во всём §7.2. Пустой ответ без охвата читается
+        // как «в трекере этого нет» — а смотрели мы последние пятьсот из сорока
+        // тысяч.
+        let full = (1...100).map { Self.row($0, "Задача \($0)") }
+        let page = Self.page(full, more: true, total: 40000)
+        let answer = await ConnectorQuery.ask(
+            .init(service: "plane", token: "ключ", host: "api.plane.so", scope: nil,
+                  values: ["workspace": "moya-komanda", "project": "проект"]),
+            query: "которой там нет",
+            trackerHTTP: { request in
+                (page, HTTPURLResponse(url: request.url!, statusCode: 200,
+                                       httpVersion: nil, headerFields: [:])!)
+            })
+        #expect(answer.text.contains("ничего не нашлось"))
+        #expect(answer.text.contains("последние 500"), "ответ: «\(answer.text)»")
+        #expect(answer.text.contains("40000"))
+        #expect(!answer.failed, "пустая выдача — ответ, а не сбой")
+    }
+
+    @Test("у трекера, который ищет сам, приписки нет")
+    func searchingTrackerAnswersAsBefore() async throws {
+        let answer = await ConnectorQuery.ask(
+            .init(service: "gitea", token: "ключ", host: "git.company.ru", scope: nil),
+            query: "лимиты",
+            trackerHTTP: { request in
+                (Data(#"[{"number":42,"title":"Поднять лимиты","state":"open"}]"#.utf8),
+                 HTTPURLResponse(url: request.url!, statusCode: 200,
+                                 httpVersion: nil, headerFields: [:])!)
+            })
+        #expect(answer.text.contains("Поднять лимиты"))
+        #expect(!answer.text.contains("отбирали у себя"))
+    }
 }

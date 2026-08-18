@@ -28,6 +28,8 @@ private struct SelfHostedTrackerRow: View {
 
     @State private var token = ""
     @State private var host = ""
+    /// Поля, которые у сервиса свои. У GitLab и Gitea пусто, у Plane два.
+    @State private var fields: [String: String] = [:]
     @State private var isConfigured = false
 
     private var store: RussianTrackerStore { mcp.trackerStore }
@@ -78,6 +80,24 @@ private struct SelfHostedTrackerRow: View {
                     .accessibilityLabel("Адрес сервера — \(service.title)")
                     .accessibilityIdentifier("settings.selfhosted.\(service.rawValue).host")
 
+                // Поля из манифеста: у Plane пространство и проект стоят
+                // внутри адреса, и без них запрос собрать не из чего.
+                ForEach(service.fields, id: \.name) { field in
+                    TextField("", text: Binding(
+                        get: { fields[field.name] ?? "" },
+                        set: { fields[field.name] = $0 }),
+                        prompt: Text(field.example))
+                        .textFieldStyle(.plain)
+                        .font(Typo.callout)
+                        .padding(.horizontal, Space.s)
+                        .padding(.vertical, 6)
+                        .background(Theme.surfaceSunken,
+                                    in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+                        .accessibilityLabel("\(field.title) — \(service.title)")
+                        .accessibilityIdentifier(
+                            "settings.selfhosted.\(service.rawValue).field.\(field.name)")
+                }
+
                 HStack {
                     Button("Сохранить") { save() }
                         .buttonStyle(QuietButtonStyle())
@@ -90,27 +110,40 @@ private struct SelfHostedTrackerRow: View {
         .onAppear(perform: load)
     }
 
-    /// Токен без адреса некуда отправить, адрес без токена вернёт 401.
+    /// Кнопка включается ровно тогда, когда ядро сочтёт подключение
+    /// настроенным.
+    ///
+    /// Правило спрашивается у ядра, а не повторяется здесь. Второй список
+    /// условий разъезжается с первым молча: кнопка «Сохранить» доступна,
+    /// сохранение проходит, а вопросы возвращают «трекер не подключён» — и
+    /// человеку не за что зацепиться.
     private var canSave: Bool {
-        !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        SelfHostedTrackers(service: service, token: token, host: host, values: fields,
+                           http: { _ in (Data(), HTTPURLResponse()) }).isConfigured
     }
 
     private func load() {
-        isConfigured = store.selfHostedToken(for: service) != nil
         host = store.selfHostedHost(for: service) ?? ""
+        fields = store.selfHostedFields(for: service).compactMapValues { $0 }
+        // «Подключён» — это то же самое, что считает ядро: токен, адрес и все
+        // поля. Иначе строка показывает галочку, а вопросы возвращают ошибку.
+        isConfigured = store.selfHostedClient(for: service,
+                                              http: { _ in (Data(), HTTPURLResponse()) }) != nil
     }
 
     private func save() {
         store.setSelfHostedToken(token, for: service)
         store.setSelfHostedHost(host, for: service)
+        for field in service.fields {
+            store.setSelfHostedField(fields[field.name] ?? "", name: field.name, for: service)
+        }
         token = ""
         load()
     }
 
     private func disconnect() {
         store.removeSelfHosted(service)
-        token = ""; host = ""
+        token = ""; host = ""; fields = [:]
         load()
     }
 }
