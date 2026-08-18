@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 277 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 281 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 597 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1321,14 +1321,28 @@ without chain validation, on a challenge handler that neither defers to the
 system nor refuses, and on `NSAllowsArbitraryLoads` appearing in a plist —
 checked by planting the very edit somebody will one day be tempted to make.
 
-**Named and not measured:** `ConnectorAddress` deliberately keeps plaintext for
-addresses that cannot leave the local network, and in the **bundled app** ATS
-may refuse `http://192.168.…` regardless — localhost is exempt, a private
-address is not. If it does, the allowance is theoretical there and the person
-sees a confusing failure rather than a connection. The key that fixes it if
-needed is `NSAllowsLocalNetworking`, which is narrower than any exception the
-check above forbids. Measuring it requires the built app rather than a test
-target, which is why this says «unmeasured» instead of guessing.
+**Measured 2026-08-19, and the answer was «not that gate, the other one».** The
+question was whether ATS refuses `http://192.168.…` from the bundled app, making
+the local-network allowance theoretical. Measuring it needed a bundle rather than
+a test target, so one was built around the app's own `Info.plist`: it reached a
+private address over plaintext and got 200. ATS is not the obstacle, and
+`NSAllowsLocalNetworking` is not needed.
+
+The first attempt measured nothing — the hostile server binds to `127.0.0.1`, so
+both probes failed with `-1004` «could not connect» rather than the `-1022` ATS
+returns. Two failures that look alike and mean opposite things: one says the rule
+blocks you, the other says nobody was listening.
+
+What the measurement did surface is a different gate on the machine this runs on.
+macOS 15 asks the person before an app may reach the local network, and the app
+declared microphone, screen capture and speech recognition — but nothing for the
+network. That prompt arrives at the worst possible moment: seconds after somebody
+pastes a work tracker's token, deciding right then whether this program is
+trustworthy, with no reason given. `NSLocalNetworkUsageDescription` now says what
+it is for and where the request goes, and `test/dostup-k-seti.test.mjs` holds it
+to the rule that permits local plaintext in the first place — remove the private
+ranges from `ConnectorAddress` and the pair stops making sense, so the suite says
+so.
 
 **Forty-five commits, none pushed, and CI is what checks the second platform.**
 The Linux breakage went four days undetected not because the job is wrong — it

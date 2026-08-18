@@ -32,6 +32,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 orakul</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Чтобы искать по вашему трекеру или вики, если они стоят на своём сервере в вашей сети. Наружу при этом ничего не уходит: запрос идёт только по адресу, который вы вписали сами.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>orakul записывает звонок, чтобы вы могли потом спросить «что мы решили». Запись и расшифровка остаются на вашем компьютере.</string>
 	<key>NSScreenCaptureUsageDescription</key>
