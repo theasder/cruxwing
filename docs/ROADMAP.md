@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 236 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 244 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2803 and 407 | README, maintainer run |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -177,7 +177,7 @@ filter placed **after** the value is returned. Mutation-checked — delete the
 shape branch and the run reports
 `GMAIL_CLIENT_ID=[SENTINEL-must-not-ship]`.
 
-### 5.3 Install in one command
+### 5.3 Install in one command — code done 2026-08-18, one owner action left
 
 Shipped DMGs are signed and notarised, and installed by hand. For a developer,
 distribution means `brew`. Landing in the main `homebrew-cask` runs into
@@ -189,10 +189,25 @@ such condition:
 brew install --cask theasder/orakul/orakul
 ```
 
-**Do:** repo `theasder/homebrew-orakul`, a formula with the `sha256` of the
-published DMG, and a release step that refreshes that sum. Check — install from
-the tap on a clean machine plus `spctl -a -vv`: the answer must stay what README
-promises, `accepted, source=Notarized Developer ID`.
+**Done:** `packaging/homebrew/orakul.rb.template` plus `scripts/refresh-cask.sh`,
+which builds the cask from the images that were actually produced — version read
+from `Info.plist`, minimum macOS from `config/app.json` (translated to Homebrew's
+codename), and both `sha256` sums computed from the files themselves. It refuses
+to emit anything if either image is missing: a cask for one architecture means
+the other half of your users find out after installing. `test/cask.test.mjs`
+runs the script against stand-in images and checks all of it, including that the
+app name in the cask matches the one `dmg.sh` actually ships — the two differ in
+`build/`, and installing under the wrong name means macOS treats it as a
+different application, so microphone and screen-recording permissions do not
+carry over.
+
+**Left, and it is not code:** create `theasder/homebrew-orakul` and push the
+generated file. Homebrew resolves a tap to a repository named
+`homebrew-<tap>`, so it cannot live beside the sources.
+
+**Check before believing it works:** install from the tap on a clean machine and
+run `spctl -a -vv`; the answer must stay what README promises,
+`accepted, source=Notarized Developer ID`.
 
 ### 5.4 A door for the contributor
 
