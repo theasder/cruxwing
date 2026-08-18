@@ -33,6 +33,28 @@ jobs:
           test -f public/index.html
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Каталоги из public/, которые НЕ публикуются. Этот список читает
+          # test/publikaciya.test.mjs — он здесь единственный, потому что два
+          # списка исключений разойдутся, и разойдутся молча.
+          #
+          # `ru` — landing другого продукта (Cruxwing): 53 упоминания cruxwing,
+          # цены и canonical на cruxwing.ai. У orakul цен нет по устройству
+          # (план, §5), а тот canonical к тому же отвечает 404. Файлы оставлены
+          # на месте намеренно: перенести их обратно или переписать под orakul —
+          # решение владельца (план, §5.1), а публикация ждать его не должна.
+          EXCLUDE="ru"
+
+          for dir in $EXCLUDE; do
+            if [ -e "public/$dir" ]; then
+              git rm -r --quiet "public/$dir"
+              echo ">> не публикуем public/$dir"
+            fi
+          done
+          # Коммит живёт только в этой копии репозитория: ветка страницы
+          # собирается из истории, и в main отсюда ничего не уезжает.
+          git commit --quiet -m "публикуется не всё содержимое public/"
+
           git subtree split --prefix=public -b gh-pages-build
           git push --force origin gh-pages-build:gh-pages
 
@@ -42,21 +64,29 @@ jobs:
           # Страница обновляется не мгновенно; ждём до двух минут и сверяем
           # обе точки входа. Проверка только `/` не заметит, если новый `/ru/`
           # не попал в subtree или GitHub Pages продолжает отдавать старый билд.
+          # Утверждение про /ru/ перевёрнуто.
+          #
+          # Раньше шаг ЖДАЛ появления /ru/ и сверял его заголовок с
+          # public/ru/index.html — то есть не просто публиковал страницу чужого
+          # продукта, а дожидался подтверждения, что она отдаётся. Теперь она
+          # обязана отсутствовать, и её возвращение роняет выпуск.
           want_root=$(grep -o '<title>[^<]*</title>' public/index.html)
-          want_ru=$(grep -o '<title>[^<]*</title>' public/ru/index.html)
           for i in $(seq 1 12); do
             got_root=$(curl -s --max-time 10 https://theasder.github.io/orakul/ \
                        | grep -o '<title>[^<]*</title>' || true)
-            got_ru=$(curl -s --max-time 10 https://theasder.github.io/orakul/ru/ \
-                     | grep -o '<title>[^<]*</title>' || true)
-            if [ "$got_root" = "$want_root" ] && [ "$got_ru" = "$want_ru" ]; then
+            if [ "$got_root" = "$want_root" ]; then
               echo "отдаётся /: $got_root"
-              echo "отдаётся /ru/: $got_ru"
-              exit 0
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
+                     https://theasder.github.io/orakul/ru/ || true)
+              if [ "$code" = "404" ]; then
+                echo "/ru/ не отдаётся — так и задумано"
+                exit 0
+              fi
+              echo "!! /ru/ отдаётся (код $code) — это страница другого продукта с ценами"
+              exit 1
             fi
             sleep 10
           done
-          echo "страницы так и не обновились"
+          echo "страница так и не обновилась"
           echo "последнее /: ${got_root:-пусто}"
-          echo "последнее /ru/: ${got_ru:-пусто}"
           exit 1

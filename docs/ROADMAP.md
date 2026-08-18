@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 266 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 270 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 582 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -167,23 +167,34 @@ simply older than it. So publishing this copy on the orakul site would announce
 a canonical pointing at an address that does not exist — on top of it being
 another product's page with prices.
 
-Right now `https://theasder.github.io/orakul/ru/` returns 404, only because the
-two commits carrying that page are unpushed: local `main` leads `origin/main` by
-two (`git rev-list --left-right --count origin/main...main` → `0 2`). Workflow
-`pages.yml` fires on any change under `public/**` — so the first `push`
-publishes a pricing page on the site of a product that has no prices.
+`https://theasder.github.io/orakul/ru/` returns 404 only because the commits
+carrying that page are unpushed — thirty-nine of them by 2026-08-18, up from two.
+Workflow `pages.yml` fires on any change under `public/**`, so the first `push`
+would publish a pricing page on the site of a product that has no prices.
 
-**Do one of three before pushing, deliberately:**
+**And the workflow did not merely publish it — it waited for it.** The
+verification step read `<title>` out of `public/ru/index.html`, then polled the
+live site until `/ru/` came back with that exact title, failing the release if it
+did not. The other product's page was not an oversight in the pipeline; it was a
+release requirement of it.
+
+**Option 2 is taken — 2026-08-18 — because it is the reversible one.** `pages.yml`
+now carries an `EXCLUDE` list, removes those directories in its own checkout
+before `subtree split`, and asserts `/ru/` answers **404** instead of asserting
+its title. Nothing is deleted and nothing is rewritten, so options 1 and 3
+remain open and remain the owner's:
 
 1. move `public/ru/` back to the Cruxwing repo it came from;
-2. keep it here, exclude it from publishing — `pages.yml` builds the branch from
-   the whole `public/`, so the exclusion has to be written;
+2. **done** — kept here, excluded from publishing;
 3. rewrite it for orakul: no prices, own identity, own `canonical`.
 
-**What is missing so it cannot return:** a check that fails when the published
-directory holds a page with «Cruxwing» in the title or a `canonical` on a
-foreign domain. Today `ru-landing.test.mjs` pins that page, not its right to be
-here.
+**The check that stops it returning** is `test/publikaciya.test.mjs`: no page in
+the *published* set may carry «Cruxwing» in its title or a `canonical` off
+`theasder.github.io`. It reads the exclusion list out of `pages.yml` rather than
+keeping its own, because two lists of exclusions drift and drift silently. Mention
+count is deliberately not the test — `public/index.html` names Cruxwing eight
+times as attribution and is the right page. Removing the exclusion turns the
+suite red, which is the state this section describes.
 
 ### 5.2 Nothing ships unless it is named — closed 2026-08-18
 
