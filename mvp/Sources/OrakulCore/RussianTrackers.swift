@@ -156,6 +156,8 @@ public struct RussianTrackers {
         case unauthorised(Service)
         /// Сервис просит обращаться реже: 429. Чинить нечего, надо переждать.
         case rateLimited(Service, retryAfter: Int?)
+        /// Ответ больше, чем бывает у поиска.
+        case tooLarge(Service, bytes: Int)
         case http(Service, Int)
         /// Сервис ответил успехом, а внутри — отказ.
         ///
@@ -175,6 +177,8 @@ public struct RussianTrackers {
         /// отказал. При трёх подключённых это делает сообщение бесполезным.
         public var errorDescription: String? {
             switch self {
+            case .tooLarge(let service, let bytes):
+                return "\(service.title) прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
             case .rateLimited(let service, let retryAfter):
                 let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
                 return "\(service.title) просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
@@ -282,6 +286,8 @@ public struct RussianTrackers {
             switch error {
             case .notConfigured:  throw TrackerError.notConfigured(service)
             case .unauthorised, .forbidden: throw TrackerError.unauthorised(service)
+            case .tooLarge(let bytes):
+                throw TrackerError.tooLarge(service, bytes: bytes)
             case .rateLimited(let retryAfter):
                 throw TrackerError.rateLimited(service, retryAfter: retryAfter)
             case .http(let code): throw TrackerError.http(service, code)

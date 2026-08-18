@@ -85,4 +85,32 @@ import Foundation
         #expect(offenders.isEmpty,
                 "эти коннекторы ходят мимо запрета на чужие перенаправления: \(offenders)")
     }
+
+    @Test("общая сессия тоже не берёт ответ сверх предела")
+    func sessionEnforcesTheSizeLimit() throws {
+        // Проверка структурная, и это признаётся прямо: подставной HTTP в
+        // наборах обходит сессию, а поднимать ради одного условия настоящий
+        // сервер — дороже, чем польза. Поведенчески предел закрыт на уровне
+        // движка (HostileVendorTests); здесь держится то, что вторая половина
+        // защиты — для коннекторов, разбирающих ответ руками, — не исчезла.
+        let source = try String(contentsOfFile: #filePath.replacingOccurrences(
+            of: "Tests/OrakulCoreTests/RedirectPolicyTests.swift",
+            with: "Sources/OrakulCore/ConnectorSession.swift"), encoding: .utf8)
+        let code = source.split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        let send = code.slice(from: "public static func send")
+        #expect(send.contains("maximumResponseBytes"),
+                "сессия перестала ограничивать размер ответа: коннекторы, разбирающие руками, снова беззащитны")
+        #expect(send.contains("dataLengthExceedsMaximum"))
+    }
+}
+
+private extension String {
+    /// Кусок от первого вхождения и до конца — чтобы смотреть тело функции, а
+    /// не весь файл: упоминание в другом месте не считается применением.
+    func slice(from marker: String) -> String {
+        guard let start = range(of: marker) else { return "" }
+        return String(self[start.lowerBound...])
+    }
 }

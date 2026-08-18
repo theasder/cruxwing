@@ -1097,6 +1097,23 @@ allowed because that direction is a strengthening. A structural check scans the
 whole core directory for `URLSession.shared`, since one forgotten connector
 reduces the defence to nothing.
 
+**A service does not have to lie to hurt a call — it can just answer with a
+lot (2026-08-18).** Two hundred megabytes of valid JSON is parsed on the
+person's machine, in the middle of a live meeting, and «wait, I am parsing» is
+the whole objective. Compression makes it cheaper for the sender: a megabyte
+that unpacks into a gigabyte costs them nothing.
+
+Eight megabytes is the ceiling, checked **before** parsing and in two places:
+in the engine, and in the shared session for the connectors that parse by hand.
+The number has room by design — a hundred issues with descriptions is tens of
+kilobytes, and a limit that trips on a normal answer is a denial of service we
+inflict on ourselves. Both directions are tested: an oversized body is refused,
+an ordinary one is parsed whole.
+
+The session's half is checked structurally rather than behaviourally, and the
+test says so out loud: stub HTTP in the suites bypasses the session, and
+standing up a real server for one condition costs more than it is worth.
+
 **Throttling was the move with no answer at all, and now it has one
 (2026-08-18).** A block is visible and arguable; answering 429 to every third
 request is neither, and it reads to the user as «their thing is flaky». Before,

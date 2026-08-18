@@ -64,6 +64,8 @@ public struct WesternTrackers: Sendable {
         case forbidden
         /// Сервис просит подождать: 429. Чинить нечего, надо переждать.
         case rateLimited(retryAfter: Int?)
+        /// Ответ больше, чем бывает у поиска.
+        case tooLarge(bytes: Int)
         case http(Int)
         /// Сервис отказал своими словами — они и передаются дальше.
         case vendor(code: String, description: String)
@@ -79,6 +81,8 @@ public struct WesternTrackers: Sendable {
                 return "Трекер не принял ключ. Обычно он истёк или отозван — создайте новый в самом сервисе."
             case .forbidden:
                 return "Ключ принят, но прав на поиск у него нет. Права выдаются в самом сервисе, перевыпуск ключа тут не поможет."
+            case .tooLarge(let bytes):
+                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
             case .rateLimited(let retryAfter):
                 let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
@@ -163,6 +167,8 @@ public struct WesternTrackers: Sendable {
             case .notConfigured: throw ConnectorError.notConfigured
             case .unauthorised:  throw ConnectorError.unauthorised
             case .forbidden:     throw ConnectorError.forbidden
+            case .tooLarge(let bytes):
+                throw ConnectorError.tooLarge(bytes: bytes)
             case .rateLimited(let retryAfter):
                 throw ConnectorError.rateLimited(retryAfter: retryAfter)
             case .http(let code): throw ConnectorError.http(code)

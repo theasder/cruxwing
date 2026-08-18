@@ -171,6 +171,8 @@ public struct WorkMessengers {
         /// есть отправлял человека не туда.
         /// Сервис просит подождать: 429. Чинить нечего, надо переждать.
         case rateLimited(retryAfter: Int?)
+        /// Ответ больше, чем бывает у поиска.
+        case tooLarge(bytes: Int)
         case http(Int)
         case unreadable
 
@@ -190,6 +192,8 @@ public struct WorkMessengers {
                 return "Токен принят, но у него нет права \(scope). Добавьте это право в настройках токена."
             case .incompleteToken(let expected):
                 return "В поле токена нужны два значения: \(expected). Сейчас там одно — сервис откажет, сколько бы раз токен ни перевыпускали."
+            case .tooLarge(let bytes):
+                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
             case .rateLimited(let retryAfter):
                 let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
@@ -294,6 +298,8 @@ public struct WorkMessengers {
                 // надо идти в настройки приложения, а не выпускать новый токен.
                 if service == .pachca { throw ConnectorError.missingScope("search:messages") }
                 throw ConnectorError.unauthorised
+            case .tooLarge(let bytes):
+                throw ConnectorError.tooLarge(bytes: bytes)
             case .rateLimited(let retryAfter):
                 throw ConnectorError.rateLimited(retryAfter: retryAfter)
             case .http(let code): throw ConnectorError.http(code)

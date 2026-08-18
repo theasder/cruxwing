@@ -75,6 +75,14 @@ public enum ConnectorSession {
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
+        // Тот же предел, что у движка, — но здесь он закрывает коннекторы,
+        // написанные руками: они разбирают ответ сами и до движка не доходят.
+        //
+        // Сжатие тут учтено само собой: URLSession отдаёт уже распакованное,
+        // поэтому мегабайт, разворачивающийся в гигабайт, считается гигабайтом.
+        guard data.count <= ManifestConnector.maximumResponseBytes else {
+            throw URLError(.dataLengthExceedsMaximum)
+        }
         return (data, http)
     }
 }

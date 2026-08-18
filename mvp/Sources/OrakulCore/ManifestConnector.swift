@@ -44,6 +44,14 @@ public struct ManifestConnector {
         /// Недружелюбному сервису дешевле придушить, чем заблокировать, так что
         /// это норма работы, а не сбой.
         case rateLimited(retryAfter: Int?)
+        /// Ответ больше, чем бывает у поиска.
+        ///
+        /// Сервису не нужно врать, чтобы навредить: достаточно ответить
+        /// двумястами мегабайтами. Дальше их надо разобрать — во время живого
+        /// звонка, на машине человека. Ответ на вопрос «что решили» столько не
+        /// весит ни у одного сервиса; всё, что весит, — либо ошибка на их
+        /// стороне, либо расчёт на нашу доверчивость.
+        case tooLarge(bytes: Int)
         case http(Int)
         /// Сервис ответил отказом СВОИМИ словами — они и передаются дальше.
         case vendor(code: String, description: String)
@@ -72,6 +80,14 @@ public struct ManifestConnector {
         public let items: [Item]
         public let coverage: Coverage
     }
+
+    /// Сколько байт ответа разбирается. Восемь мегабайт — с запасом: выдача
+    /// поиска у самых многословных сервисов измеряется сотнями килобайт.
+    ///
+    /// Проверяется и здесь, и в `ConnectorSession`: сессия закрывает
+    /// коннекторы, написанные руками, а эта проверка — движок, и её видно
+    /// набором, потому что подставной HTTP сессию обходит.
+    public static let maximumResponseBytes = 8 * 1024 * 1024
 
     /// Дедлайн один на все манифесты и из данных не задаётся: сервис, который
     /// «просит подождать подольше», — ровно тот случай, ради которого дедлайн
@@ -237,6 +253,11 @@ public struct ManifestConnector {
         }
         guard (200..<300).contains(response.statusCode) else {
             throw ConnectorError.http(response.statusCode)
+        }
+        // Размер проверяется ДО разбора: JSONSerialization на двухстах
+        // мегабайтах — это не ошибка, а зависший ответ посреди звонка.
+        guard data.count <= Self.maximumResponseBytes else {
+            throw ConnectorError.tooLarge(bytes: data.count)
         }
         return data
     }

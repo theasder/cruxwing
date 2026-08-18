@@ -185,4 +185,37 @@ import FoundationNetworking
                                       http: { _ in (Data(), stubHTTPResponse()) })
         #expect(try tracker.parse(Data("[]".utf8)).isEmpty)
     }
+
+    @Test("двести мегабайт в ответ — отказ до разбора, а не зависший звонок")
+    func hugeResponseIsRefusedBeforeParsing() async throws {
+        // Сервису не нужно врать, чтобы навредить: достаточно ответить очень
+        // много. Разбор такого ответа идёт на машине человека посреди живого
+        // звонка, и «подождите, я парсю» — это и есть цель.
+        let huge = Data(count: ManifestConnector.maximumResponseBytes + 1)
+        let connector = ManifestConnector(manifest: try Self.manifest("gitea"), token: "т",
+                                          host: "https://git.example.com",
+                                          http: Self.stub(huge))
+        await #expect(throws: ManifestConnector.ConnectorError.tooLarge(
+            bytes: ManifestConnector.maximumResponseBytes + 1)) {
+            _ = try await connector.run("лимиты")
+        }
+    }
+
+    @Test("обычная выдача предел не задевает")
+    func ordinaryAnswerPasses() async throws {
+        // Обратная сторона: предел должен быть выше всего, что бывает у поиска,
+        // иначе защита превращается в отказ на нормальном ответе. Сто задач с
+        // описаниями — это десятки килобайт.
+        let rows = (1...100).map {
+            #"{"number":\#($0),"title":"Задача \#($0) про лимиты выгрузки и сроки","state":"open"}"#
+        }.joined(separator: ",")
+        let body = Data("[\(rows)]".utf8)
+        #expect(body.count < ManifestConnector.maximumResponseBytes / 10,
+                "сто задач весят \(body.count) байт — предел выбран не с тем запасом")
+        let connector = ManifestConnector(manifest: try Self.manifest("gitea"), token: "т",
+                                          host: "https://git.example.com",
+                                          http: Self.stub(body))
+        let outcome = try await connector.run("лимиты", limit: 100)
+        #expect(outcome.items.count == 100, "нормальный ответ не разобрался целиком")
+    }
 }
