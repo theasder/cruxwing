@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 273 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 277 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 597 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1301,6 +1301,34 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Everything above stands on certificate validation, and nothing was watching
+it.** The rule about `http`, the refusal to follow a redirect off-host, the
+secret kept in a header rather than the address — all of it assumes the
+connection is encrypted to the party we meant. One line,
+`completionHandler(.useCredential, URLCredential(trust: trust))` without
+`SecTrustEvaluateWithError`, cancels the lot: anyone in the middle becomes the
+service, and the token travels to them over «https».
+
+The code is clean today — pinning tightens trust rather than loosening it, and
+there are no App Transport Security exceptions anywhere. The point is that the
+request **will** come, and it is a reasonable one: self-hosted GitLab and Gitea
+often run behind a company's own certificate authority, so «allow self-signed»
+is the natural thing for exactly our audience to ask. The right answer is to
+trust that specific certificate, the way `CertPinning` already does, not to
+switch validation off. `test/doverie-tls.test.mjs` now fails on trust granted
+without chain validation, on a challenge handler that neither defers to the
+system nor refuses, and on `NSAllowsArbitraryLoads` appearing in a plist —
+checked by planting the very edit somebody will one day be tempted to make.
+
+**Named and not measured:** `ConnectorAddress` deliberately keeps plaintext for
+addresses that cannot leave the local network, and in the **bundled app** ATS
+may refuse `http://192.168.…` regardless — localhost is exempt, a private
+address is not. If it does, the allowance is theoretical there and the person
+sees a confusing failure rather than a connection. The key that fixes it if
+needed is `NSAllowsLocalNetworking`, which is narrower than any exception the
+check above forbids. Measuring it requires the built app rather than a test
+target, which is why this says «unmeasured» instead of guessing.
 
 **Forty-five commits, none pushed, and CI is what checks the second platform.**
 The Linux breakage went four days undetected not because the job is wrong — it
