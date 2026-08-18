@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 244 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 247 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2822 and 521 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -782,8 +782,9 @@ Three layers had to be peeled, each visible only by installing somewhere real:
 Verified by installing on **Debian 12, Ubuntu 22.04 and Ubuntu 24.04** — add a
 call, quote it back, refuse an invented question. The same binary also runs on
 Fedora 40 (one harmless linker warning), so an rpm is a packaging question
-rather than a portability one; it is not built yet, and nothing here claims
-Astra Linux or ALT until something is installed there.
+rather than a portability one. At the time of writing it was not built, and
+neither Astra Linux nor ALT had anything installed on them — both were settled
+later the same day, below.
 
 CI now builds the package in one image and installs it in a **clean debian:12**,
 in a job with no Swift container at all. A check of an installation performed
@@ -858,9 +859,19 @@ The package description says plainly what is not in it: the command line only,
 no microphone recording, that being macOS-only. Someone installing it to record
 a call would otherwise find out later and worse.
 
-rpm is not done, and Astra Linux and ALT are untested — naming them here without
-having installed anything would be exactly the claim this repo does not make.
-That is separate work about repositories and signing.
+**What is still not done here.** The packages are built and installed by hand
+or by CI; there is no repository to `apt install` from and nothing is signed, so
+`dpkg -i` and `rpm -i` are the whole distribution story. Repositories and
+signing are separate work, and the reason to name it is that a table saying
+«installs and works» invites the reading «available from your package manager»,
+which is not true.
+
+This paragraph used to say the opposite of the table three lines above: it
+declared the rpm unfinished and both Russian distributions unverified, hours
+after they had been installed and checked. It survived because §8 had no checks
+at all — every other section's numbers are pinned to code, this one's were
+prose. `test/roadmap.test.mjs` now holds the table against the packaging
+scripts and refuses exactly this contradiction.
 
 ---
 

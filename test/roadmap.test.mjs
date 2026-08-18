@@ -42,6 +42,14 @@ function section(number) {
 // Файлы, в которых живут перечисления Service. Список один на обе проверки
 // ниже: когда он был написан дважды, добавление WesternTrackers обновило одну
 // копию и оставило другую — и «манифест недостижим» соврал бы про Linear.
+/// Скрипт без комментариев: строка, упомянутая в пояснении, не считается
+/// исполняемой. На этом здесь уже спотыкались шесть раз.
+function stripShellComments(text) {
+  return text.split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+}
+
 const SERVICE_FILES = ['RussianTrackers.swift', 'WorkMessengers.swift',
                        'SelfHostedTrackers.swift', 'TeamNotes.swift',
                        'WesternTrackers.swift'];
@@ -161,6 +169,63 @@ describe('ROADMAP', () => {
     const text = section('7.2').replace(/\n/g, ' ');
     assert.ok(new RegExp(`scanPageLimit\\` + '` = ' + `${limit[1]}`).test(text),
       `в движке потолок ${limit[1]} — в §7.2 стоит другое число`);
+  });
+
+  test('§8: система из таблицы не может быть названа непроверенной рядом', () => {
+    // Ровно та поломка, ради которой это написано: таблица говорила «ставится
+    // и работает», а абзац тремя строками ниже — «не проверено». Пережило это
+    // потому, что §8 был единственным разделом без единой проверки: у всех
+    // остальных числа привязаны к коду, у этого была проза.
+    const text = section('8');
+    const rows = [...text.matchAll(/^\| ([^|]+?) \|[^|]*\| ([^|]+?) \|$/gm)]
+      .map(([, system, result]) => ({ system: system.trim(), result: result.trim() }))
+      .filter(({ system }) => !/^System$|^-+$/.test(system));
+    assert.ok(rows.length >= 3, `в таблице §8 строк ${rows.length} — проверка была бы пустой`);
+
+    const working = rows.filter(({ result }) => /installs|runs|works/i.test(result))
+      .map(({ system }) => system.replace(/\s*\(.*\)/, '').trim());
+    assert.ok(working.length >= 3, 'ни одна система не названа работающей — таблица не о том');
+
+    for (const system of working) {
+      // Первое слово названия: «ALT p10» → «ALT», «Astra Linux 1.7» → «Astra».
+      const name = system.split(/[\s,]/)[0];
+      const claimsUntested = new RegExp(
+        `${name}[^.]{0,80}\\b(untested|not tested|is untested)\\b`, 'i');
+      assert.doesNotMatch(text.replace(/\n/g, ' '), claimsUntested,
+        `§8 одновременно говорит, что ${name} работает и что он не проверен`);
+    }
+  });
+
+  test('§8: обещание «пакет ни от чего не зависит» держится скриптами', () => {
+    // Обещание сильное: на изолированной машине это разница между «ставится» и
+    // «не ставится». Если скрипт снова начнёт объявлять зависимости, текст
+    // обязан перестать это обещать.
+    const text = section('8').replace(/\n/g, ' ');
+    if (!/declares \*\*no dependencies at all\*\*|no `Depends`/.test(text)) return;
+
+    for (const file of ['package-linux.sh', 'package-rpm.sh']) {
+      const script = stripShellComments(read('scripts', file));
+      // Зависимости допустимы только на запасном пути (без статического SDK):
+      // именно поэтому они появляются внутри ветки, а не безусловно.
+      const unconditional = script.split('\n').filter((line) =>
+        /^(Depends|Requires):/.test(line.trim()));
+      assert.deepEqual(unconditional, [],
+        `${file} объявляет зависимости безусловно — обещание §8 перестало быть правдой`);
+    }
+  });
+
+  test('§8: версия пакета берётся оттуда же, откуда версия macOS-сборки', () => {
+    // Два артефакта одного коммита обязаны отвечать на вопрос «какая версия»
+    // одинаково. Число, вписанное в скрипт руками, разъезжается на второй
+    // правке.
+    const text = section('8').replace(/\n/g, ' ');
+    assert.match(text, /CFBundleShortVersionString/,
+      '§8 больше не говорит, откуда берётся версия');
+    for (const file of ['package-linux.sh', 'package-rpm.sh']) {
+      const script = stripShellComments(read('scripts', file));
+      assert.match(script, /CFBundleShortVersionString/,
+        `${file} перестал читать версию из Info.plist`);
+    }
   });
 
   test('дыра в SECRET_VARS описана теми числами, которые в build.sh сейчас', () => {
