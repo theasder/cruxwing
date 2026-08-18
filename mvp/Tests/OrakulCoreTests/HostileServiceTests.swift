@@ -91,13 +91,100 @@ struct HostileServiceTests {
         #expect(rows?.first?["title"] as? String == "тарифы")
     }
 
-    @Test("бесконечный ответ обрывается, а не съедает память")
-    func endlessResponseIsCut() async throws {
+    // Крупный, но КОНЕЧНЫЙ ответ (~13 МБ при пределе 8): звонящему возвращается
+    // ошибка, и это работает на обеих системах.
+    @Test("ответ больше предела не доезжает до звонящего")
+    func oversizedNeverReachesTheCaller() async throws {
+        do {
+            let (data, _) = try await ConnectorSession.send(Self.request("/big"))
+            Issue.record("ответ на \(data.count) байт доехал целиком")
+        } catch let error as URLError {
+            #expect(error.code == .dataLengthExceedsMaximum)
+        }
+    }
+
+    // А вот БЫСТРЫЙ обрыв бесконечного ответа — только на Apple, и это не
+    // придирка к тесту, а свойство системы.
+    //
+    // Измерено 2026-08-19: на corelibs `cancel()` задачи передачу не
+    // останавливает — после отмены пришло ещё 62 450 кусков за пять секунд,
+    // после `invalidateAndCancel()` сессии 72 414. Звонящий там получает
+    // ошибку сразу, а качает библиотека до предела по времени. Запусти этот
+    // тест на Linux — он не проверил бы обрыв, а повесил бы прогон, и
+    // «зелёный на обеих системах» означал бы неправду про одну из них.
+    #if canImport(Darwin)
+    @Test("бесконечный ответ обрывается сразу")
+    func endlessResponseIsCutPromptly() async throws {
+        let started = Date()
         do {
             _ = try await ConnectorSession.send(Self.request("/endless"))
             Issue.record("бесконечный ответ доехал целиком")
         } catch let error as URLError {
             #expect(error.code == .dataLengthExceedsMaximum)
+        }
+        #expect(Date().timeIntervalSince(started) < 10,
+                "обрыв занял слишком долго — предел работает не сразу")
+    }
+    #endif
+
+    // Делегат один на всю сессию, а запросов одновременно много. Состояние
+    // хранится по номеру задачи; ошибка здесь не роняет набор, а СМЕШИВАЕТ
+    // ответы — человек получает чужую задачу в своей выдаче и не может этого
+    // заметить. Проверяется тем, что каждый ответ несёт свою метку.
+    @Test("двадцать одновременных запросов не перемешиваются")
+    func concurrentAnswersStaySeparate() async throws {
+        let answers = try await withThrowingTaskGroup(of: (Int, String).self) { group in
+            for tag in 1...20 {
+                group.addTask {
+                    let (data, _) = try await ConnectorSession.send(
+                        Self.request("/tagged?tag=\(tag)&delay=0.2"))
+                    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                    let rows = json?["data"] as? [[String: Any]]
+                    return (tag, rows?.first?["title"] as? String ?? "")
+                }
+            }
+            var seen: [Int: String] = [:]
+            for try await (tag, title) in group { seen[tag] = title }
+            return seen
+        }
+
+        #expect(answers.count == 20)
+        for tag in 1...20 {
+            #expect(answers[tag] == "\(tag)",
+                    "запрос \(tag) получил «\(answers[tag] ?? "ничего")» — ответы перемешались")
+        }
+    }
+
+    // Смешанная пачка: часть ответов обрывается по пределу, часть обычные.
+    // Отмена задачи приходит в делегата тогда же, когда соседние задачи ещё
+    // получают куски, — и продолжение каждой обязано сработать ровно один раз.
+    // Дважды возобновлённое продолжение роняет процесс, а не набор.
+    @Test("обрыв по пределу не задевает соседние запросы")
+    func oversizedDoesNotDisturbNeighbours() async throws {
+        let outcome = try await withThrowingTaskGroup(of: (Int, Bool).self) { group in
+            for index in 1...12 {
+                let oversized = index % 3 == 0
+                group.addTask {
+                    do {
+                        let (data, _) = try await ConnectorSession.send(
+                            Self.request(oversized ? "/big" : "/tagged?tag=\(index)&delay=0.1"))
+                        return (index, data.count <= ManifestConnector.maximumResponseBytes)
+                    } catch {
+                        return (index, false)
+                    }
+                }
+            }
+            var result: [Int: Bool] = [:]
+            for try await (index, ok) in group { result[index] = ok }
+            return result
+        }
+
+        for index in 1...12 where index % 3 != 0 {
+            #expect(outcome[index] == true,
+                    "обычный запрос \(index) пострадал от соседнего обрыва")
+        }
+        for index in 1...12 where index % 3 == 0 {
+            #expect(outcome[index] == false, "крупный ответ \(index) доехал целиком")
         }
     }
 

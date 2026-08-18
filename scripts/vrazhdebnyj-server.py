@@ -92,6 +92,32 @@ class Vendor(BaseHTTPRequestHandler):
                 "Location": f"http://localhost:{VENDOR_PORT}/ok"})
             return
 
+        # Ответ со своей меткой и задержкой: чтобы запросы гарантированно
+        # перекрывались во времени и делегат обслуживал их одновременно.
+        if path == "/tagged":
+            query = dict(pair.split("=", 1) for pair in
+                         (self.path.split("?", 1)[1].split("&") if "?" in self.path else []))
+            tag = query.get("tag", "0")
+            time.sleep(float(query.get("delay", "0.2")))
+            self._send(200, json.dumps({"data": [{"id": tag, "title": tag}]}).encode())
+            return
+
+        # Крупный ответ с меткой: перешагивает предел, но не бесконечен, —
+        # чтобы в одной пачке были и обрываемые, и обычные.
+        if path == "/big":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+            chunk = b"b" * 65536
+            try:
+                for _ in range(200):   # ~13 МБ, предел — 8
+                    self.wfile.write(b"%X\r\n" % len(chunk) + chunk + b"\r\n")
+                    self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            return
+
         if path == "/ok":
             self._send(200, b'{"data":[{"id":1,"title":"\\u0442\\u0430\\u0440\\u0438\\u0444\\u044b"}]}')
             return

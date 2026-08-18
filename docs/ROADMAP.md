@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 270 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 594 | README, maintainer run |
+| App and core tests | 2833 and 597 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,38 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The size limit does not work on Linux, and now says so.** The delegate that
+replaced `bytes(for:)` was new and load-bearing, so it was pushed the way a
+hostile service would push it: twenty overlapping requests, each carrying its own
+tag, plus a batch mixing oversized responses with ordinary ones. Both pass, and
+both were mutation-checked — a shared buffer instead of per-task state mixes the
+answers (one service's task appearing in another's results, which no person
+could detect), and a continuation allowed to resume twice **kills the test
+process** rather than failing it, caught only by the exit status the previous day
+had fixed.
+
+Running the same on Linux found something worse than a flaky test:
+`dataTask.cancel()` **does not stop delivery** there. Measured — after
+cancelling, 62 450 more chunks arrived within five seconds; after
+`invalidateAndCancel()` on the whole session, 72 414. An endless response with no
+bound killed the container outright (OOM). So on Linux:
+
+* the caller **is** protected — the overrun is spotted on the first chunk past
+  the limit and the error returns at once, and our buffer stops growing;
+* the transfer is **not** stopped — the library keeps reading until the
+  resource timeout.
+
+Time is therefore the only bound that exists there, which is why it is now
+tighter on Linux (20 s against 60 s on macOS): a tracker search that takes
+twenty seconds is broken anyway, and a third of the window is a third of what a
+hostile service can pour in. Claiming the eight-megabyte cap protects Linux would
+have been the comfortable thing to write and false.
+
+The suite was split along the same line rather than papered over: the oversized
+**finite** response is checked on both systems, and prompt abort only on macOS,
+where prompt abort exists. Left as it was, that test did not fail on Linux — it
+hung the run for four minutes, and a suite that hangs teaches nothing.
 
 **The socket check went into CI, and running it there found the core had not
 compiled on Linux for four days.** The step was written, and then — before

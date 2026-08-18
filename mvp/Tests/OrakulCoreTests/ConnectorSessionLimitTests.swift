@@ -76,7 +76,13 @@ struct ConnectorSessionLimitTests {
     @Test("весь обмен ограничен по времени")
     func transferIsBounded() {
         let configuration = ConnectorSession.session.configuration
+        // На Linux окно короче: там обрыв ответа не работает, и время —
+        // единственная граница. Проверяется то, что задано на этой системе.
+        #if canImport(Darwin)
         #expect(configuration.timeoutIntervalForResource == 60)
+        #else
+        #expect(configuration.timeoutIntervalForResource == 20)
+        #endif
         #expect(configuration.timeoutIntervalForRequest == 30)
         // Только на Apple: у corelibs это свойство на чтение, и требовать от
         // него значения значит требовать несуществующего.
