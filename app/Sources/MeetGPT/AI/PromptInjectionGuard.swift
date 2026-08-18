@@ -82,6 +82,13 @@ enum PromptInjectionGuard {
 
     static func contains(_ content: String) -> Bool { scan(content) != nil }
 
+    /// То же, что `scan`, но именем, которым это зовут снаружи.
+    ///
+    /// Публичная точка входа появилась 2026-08-18 вместе с первым вызовом из
+    /// приложения: до тех пор `scan` был приватным, и это ровно та причина, по
+    /// которой сторож год простоял непозванным.
+    static func signal(in content: String) -> Signal? { scan(content) }
+
     /// Lowercased, with punctuation and repeated whitespace flattened.
     ///
     /// Handles the cheapest evasion — "i-g-n-o-r-e  all   previous" and

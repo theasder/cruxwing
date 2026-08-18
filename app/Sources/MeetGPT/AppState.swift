@@ -643,6 +643,15 @@ final class AppState: ObservableObject {
     /// assessments end in "no question needed" and never produce a card.
     @Published private(set) var clarifying = false
     @Published var aiResponse: String = ""
+
+    /// Данные подключённых сервисов, на которых построен последний ответ.
+    ///
+    /// Хранится ради `PromptInjectionGuard`: предложение записи проверяется по
+    /// тому, ЧТО легло в основу ответа, а не только по самому ответу. В
+    /// тикете или в вики может лежать обращение к модели, а в ответе от него
+    /// не останется и следа — модель сделает, что просили, и напишет обычную
+    /// фразу.
+    private(set) var lastConnectorContext: String = ""
     /// Exact user/button request that produced the visible assistant answer.
     /// Kept separately because the composer and follow-up chips clear as soon
     /// as a run begins, while DOCX export may happen much later.
@@ -5609,6 +5618,7 @@ final class AppState: ObservableObject {
         }
 
         let raw = blocks.joined(separator: "\n\n")
+        lastConnectorContext = raw
         guard blindSpotRunIsCurrent(identity) else { return nil }
         mutateBlindSpotDevTrace(identity: identity) {
             $0.connectorPackStartedAt = Date().timeIntervalSince1970
@@ -7726,19 +7736,32 @@ final class AppState: ObservableObject {
         /// invalidates the preview: the reviewed destination is no longer the
         /// destination that would receive the write.
         let connectionScope: UInt64?
+        /// Фраза из текста, на котором построено это предложение, если тот
+        /// текст выглядел как указание модели.
+        ///
+        /// Заполняется из `PromptInjectionGuard`. Проверка написана давно и
+        /// проверена наборами, но в приложении её НИКТО НЕ ЗВАЛ: сторож
+        /// существовал, а сработать не мог — как и останов на адресе сервера
+        /// (§3 роадмапа). Признак не запрещает запись: запись и так требует
+        /// подтверждения человеком. Он даёт тому, кто подтверждает, факт,
+        /// который иначе не виден: предложение выросло из текста, где кто-то
+        /// обращался к модели.
+        let injectionSignal: PromptInjectionGuard.Signal?
 
         init(id: String,
              action: AnswerActionPlanner.Action,
              fields: [String: String],
              fieldOrder: [String],
              items: [TasksArtifact.Item],
-             connectionScope: UInt64? = nil) {
+             connectionScope: UInt64? = nil,
+             injectionSignal: PromptInjectionGuard.Signal? = nil) {
             self.id = id
             self.action = action
             self.fields = fields
             self.fieldOrder = fieldOrder
             self.items = items
             self.connectionScope = connectionScope
+            self.injectionSignal = injectionSignal
         }
 
         var isPerItem: Bool { !items.isEmpty }
@@ -7753,6 +7776,12 @@ final class AppState: ObservableObject {
         }
         let items = action.isPerItem ? AnswerActionItems.parse(aiResponse) : []
         let fields = stagedFields(for: action, tool: tool, items: items)
+        // Ответ построен на расшифровке и на данных подключённых сервисов —
+        // и то и другое пишет кто угодно. Смотрим на текст, который лёг в
+        // основу предложения: если там обращались к модели, тот, кто
+        // подтверждает запись, должен это знать.
+        let signal = PromptInjectionGuard.signal(in: aiResponse)
+            ?? PromptInjectionGuard.signal(in: lastConnectorContext)
         pendingAnswerAction = PendingAnswerAction(
             id: action.id,
             action: action,
@@ -8294,7 +8323,9 @@ final class AppState: ObservableObject {
             .filter { Date().timeIntervalSince($0.at) < Self.groundingTTL }
             .flatMap(\.snippets)
         guard !snippets.isEmpty else { return "" }
-        return PromptWorkflows.renderGrounding(Array(snippets.prefix(8)))
+        let digest = PromptWorkflows.renderGrounding(Array(snippets.prefix(8)))
+        lastConnectorContext = digest
+        return digest
     }
 
     func saveCustomPrompt(_ prompt: QuickPrompt) {

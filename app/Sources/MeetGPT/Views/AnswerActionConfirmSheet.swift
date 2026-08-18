@@ -23,9 +23,37 @@ struct AnswerActionConfirmSheet: View {
         pending.isPerItem ? !remainingItems.isEmpty : fields.values.contains { !$0.isEmpty }
     }
 
+    /// Предупреждение о том, откуда выросло предложение.
+    ///
+    /// Не запрет: запись и так требует подтверждения, и именно оно — граница.
+    /// Но подтверждение стоит ровно столько, сколько человек может заметить в
+    /// нём неправильное, а предложение, выросшее из чужого указания, выглядит
+    /// обычно. Фраза цитируется дословно: «нашлось что-то подозрительное» — это
+    /// просьба поверить на слово, а показанная строка проверяется глазами.
+    private func injectionWarning(_ signal: PromptInjectionGuard.Signal) -> some View {
+        HStack(alignment: .top, spacing: Space.s) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(Theme.amber)
+            VStack(alignment: .leading, spacing: Space.xxs) {
+                Text("В тексте, на котором построено это предложение, кто-то обращался к модели")
+                    .font(Typo.callout)
+                Text("Найдено: «\(signal.matched)». Это не значит, что предложение плохое, — "
+                     + "но прочитайте поля внимательнее, чем обычно.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(Space.s)
+        .background(Theme.surfaceSunken,
+                    in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+        .accessibilityIdentifier("action.confirm.injection-warning")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             header
+            if let signal = pending.injectionSignal { injectionWarning(signal) }
             Hairline()
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.m) {
