@@ -64,7 +64,7 @@ struct CommandListingTests {
         // Английские синонимы (`record`, `ask`, `help`) в подсказке не нужны:
         // продукт русский, а синонимы — вежливость к тем, кто печатает вслепую.
         let synonyms: Set<String> = ["record", "ask", "help", "list", "find", "add",
-                                     "delete", "transcribe", "search"]
+                                     "delete", "transcribe", "search", "corpus"]
         let handled = try dispatched().subtracting(synonyms)
         #expect(handled.count > 4, "разбор не прочитался: \(handled)")
         let undocumented = handled.subtracting(listed).subtracting(["помощь"])

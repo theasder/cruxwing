@@ -132,79 +132,97 @@ struct SpeechEvalTests {
 
     /// Замер на настоящей русской речи — не проверка, а измерение.
     ///
-    ///     CRUXWING_RU_CORPUS=/путь/к/data/russian \
+    ///     CRUXWING_RU_CORPUS=/путь/к/корпусу \
     ///     swift test --filter probeRussianCorpus
     ///
-    /// Эталона, размеченного человеком, у нас нет, поэтому WER здесь не
-    /// считается: печатается расхождение движков между собой и список
-    /// терминов, на которых они разошлись. Разногласие доказывает ошибку,
-    /// единогласие ничего не доказывает — и вывод не должен притворяться,
-    /// что доказывает.
-    @Test("замер: расхождение движков на русском корпусе",
+    /// Что читается: `corpus.json` в этой папке (формат — `SpeechCorpus`).
+    /// Раньше здесь стояли три имени файлов, вписанные руками: корпус нельзя
+    /// было пополнить, не правя набор, и жанр записи нигде не учитывался.
+    ///
+    /// Считается два разных числа, и они не взаимозаменяемы:
+    ///
+    ///   * WER — только там, где есть расшифровка, размеченная человеком.
+    ///     Это настоящая ошибка распознавания;
+    ///   * согласие движков — там, где эталона нет. Разногласие доказывает
+    ///     ошибку, единогласие не доказывает ничего, и вывод не должен
+    ///     притворяться, что доказывает.
+    ///
+    /// Доклады и звонки печатаются раздельно. Смешать их в одном среднем —
+    /// значит пообещать точность, которой на звонке не будет: переключение
+    /// языков в докладе слабее (план, §6.2).
+    @Test("замер: русский корпус — WER по эталону, согласие движков без него",
           .enabled(if: ProcessInfo.processInfo.environment["CRUXWING_RU_CORPUS"] != nil))
     func probeRussianCorpus() throws {
-        // Наличие гарантирует трейт выше — без переменной тело не соберётся.
         let dir = ProcessInfo.processInfo.environment["CRUXWING_RU_CORPUS"]!
+        let corpus = try SpeechCorpus.load(directory: dir)
         let terms = ["LLM", "API", "промпт", "агент", "фильтр", "токен", "инъекция",
                      "прод", "MCP", "RAG", "модель", "модели", "пайплайн", "деплой",
                      "релиз", "бэкенд", "джейлбрейк"]
-        let engines = ["whisper-large", "parakeet", "fireflies"]
-        let stems = ["ru1-ai-security-w900", "ru1-ai-security-w2700", "ru1-ai-security-w4300"]
 
-        var rates: [Double] = []
-        var ratesAfter: [Double] = []
-        for stem in stems {
-            let texts = engines.compactMap {
-                try? String(contentsOfFile: "\(dir)/\(stem).\($0).txt", encoding: .utf8)
+        for (genre, count) in corpus.countsByGenre.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            print("\(genre.rawValue): записей \(count)")
+        }
+        print("с человеческой расшифровкой: \(corpus.withReference.count) из \(corpus.items.count)")
+
+        func read(_ file: String) -> String? {
+            try? String(contentsOfFile: "\(dir)/\(file)", encoding: .utf8)
+        }
+
+        var werByGenre: [SpeechCorpus.Genre: [Double]] = [:]
+        var agreementByGenre: [SpeechCorpus.Genre: [Double]] = [:]
+
+        for item in corpus.items.sorted(by: { $0.id < $1.id }) {
+            let engines = item.engines.sorted { $0.key < $1.key }
+            let texts = engines.compactMap { read($0.value) }
+            guard texts.count == engines.count else {
+                print("\(item.id): не прочиталась часть расшифровок — пропущено")
+                continue
             }
-            guard texts.count == engines.count else { continue }
 
+            if let referenceFile = item.reference, let reference = read(referenceFile) {
+                // Эталон есть — считается настоящая ошибка, по каждому движку.
+                for (engine, text) in zip(engines.map(\.key), texts) {
+                    let raw = SpeechEval.wordErrorRate(reference: reference, hypothesis: text)
+                    let fixed = SpeechEval.wordErrorRate(reference: reference,
+                                                         hypothesis: RussianLexicon.restore(text))
+                    werByGenre[item.genre, default: []].append(fixed.rate)
+                    print(String(format: "%@ [%@] %@: WER %.1f%% → после словаря %.1f%%",
+                                 item.id, item.genre.rawValue, engine,
+                                 raw.rate * 100, fixed.rate * 100))
+                }
+                continue
+            }
+
+            // Эталона нет — остаётся согласие движков между собой.
             let reports = SpeechEval.termDisagreements(terms: terms, across: texts)
-            // Термин, которого нет ни у кого, ничего не говорит о движках:
-            // возможно, его просто не произносили.
             let spoken = reports.filter { $0.found > 0 }
-            let disputed = spoken.filter(\.isDisputed)
             guard !spoken.isEmpty else { continue }
-
+            let disputed = spoken.filter(\.isDisputed)
             let agreement = Double(spoken.count - disputed.count) / Double(spoken.count)
-            rates.append(agreement)
-            print(String(format: "%@: терминов прозвучало %d, спорных %d, согласие %.0f%%",
-                         stem, spoken.count, disputed.count, agreement * 100))
+            agreementByGenre[item.genre, default: []].append(agreement)
+            print(String(format: "%@ [%@]: терминов прозвучало %d, спорных %d, согласие %.0f%%",
+                         item.id, item.genre.rawValue, spoken.count, disputed.count,
+                         agreement * 100))
             for report in disputed.sorted(by: { $0.term < $1.term }) {
                 print("    спорный «\(report.term)»: нашли \(report.found) из \(report.total)")
             }
-            let drift = SpeechEval.wordErrorRate(reference: texts[0], hypothesis: texts[1])
-            print(String(format: "    whisper vs parakeet: расходятся на %.0f%% слов (замен %d, пропусков %d, вставок %d)",
-                         drift.rate * 100, drift.substitutions, drift.deletions, drift.insertions))
-
-            // Тот же замер после словаря. Смысл всей затеи: если согласие не
-            // выросло, словарь не решает измеренную задачу, и об этом надо
-            // узнать здесь, а не после релиза.
-            let repaired = texts.map { RussianLexicon.restore($0) }
-            let afterReports = SpeechEval.termDisagreements(terms: terms, across: repaired)
-            let afterSpoken = afterReports.filter { $0.found > 0 }
-            let afterDisputed = afterSpoken.filter(\.isDisputed)
-            if !afterSpoken.isEmpty {
-                let after = Double(afterSpoken.count - afterDisputed.count) / Double(afterSpoken.count)
-                ratesAfter.append(after)
-                print(String(format: "    после словаря: спорных %d, согласие %.0f%% (было %.0f%%)",
-                             afterDisputed.count, after * 100, agreement * 100))
-                for report in afterDisputed.sorted(by: { $0.term < $1.term }) {
-                    print("        всё ещё спорный «\(report.term)»: \(report.found) из \(report.total)")
-                }
-            }
         }
 
-        guard !rates.isEmpty else { return }
-        let mean = rates.reduce(0, +) / Double(rates.count)
-        // Обе цифры, и обязательно рядом: одна «до» в отчёте выглядела бы как
-        // результат работы словаря, хотя это результат его отсутствия.
-        print(String(format: "среднее согласие по терминам: %.0f%% (сырые расшифровки)", mean * 100))
-        if !ratesAfter.isEmpty {
-            let meanAfter = ratesAfter.reduce(0, +) / Double(ratesAfter.count)
-            print(String(format: "среднее согласие после словаря: %.0f%%", meanAfter * 100))
+        func mean(_ values: [Double]) -> Double {
+            values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count)
         }
-        // Порога здесь нет намеренно: это замер, а не ворота. Порог появится
-        // тогда, когда появится эталон и можно будет считать WER честно.
+        for (genre, values) in werByGenre.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            print(String(format: "средний WER (%@, после словаря): %.1f%% по %d замерам",
+                         genre.rawValue, mean(values) * 100, values.count))
+        }
+        for (genre, values) in agreementByGenre.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+            print(String(format: "среднее согласие движков (%@): %.0f%% по %d записям",
+                         genre.rawValue, mean(values) * 100, values.count))
+        }
+        if werByGenre[.call] == nil {
+            // Главное предупреждение отчёта: доклад и звонок — разные жанры.
+            print("!! звонков с эталоном в корпусе нет — число про доклады, а обещание продукта про звонки")
+        }
+        // Порога здесь нет намеренно: это замер, а не ворота.
     }
 }

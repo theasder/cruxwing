@@ -445,11 +445,41 @@ downgraded it from «unknown» to a task: assemble a corpus, then measure T-one
 against the model shipping now. Without a corpus, any accuracy claim is somebody
 else's benchmark on somebody else's speech (plan §6.1).
 
-The hard part is collection, not measurement: a call recording carries other
-people's voices and words. So either participant consent, or public Russian
-technical talks as a first approximation — with the honest caveat that a talk
-and a call are different genres and code-switching (plan §6.2) is weaker in a
-talk.
+The hard part is collection, not measurement — and until 2026-08-18 there was no
+answer to «what does a valid contribution look like», so every collector would
+have built a different thing and no two measurements could be compared.
+
+**A corpus is now a described format** (`SpeechCorpus`, `corpus.json` beside the
+transcripts), and three of its fields exist for honesty rather than parsing:
+
+* `genre` — `talk` or `call`. The measurement prints them **separately** and
+  says so out loud when the corpus has no calls. Pooling them promises accuracy
+  that a call will not deliver: code-switching (plan §6.2) is weaker in a talk.
+* `consent` — `public` for a published talk, `participants` for a call. A call
+  recording carries other people's voices; an item that cannot answer this
+  question does not load at all, because «forgot to write it» and «there was no
+  consent» are indistinguishable from outside.
+* `source` — where it came from. Without it a measurement cannot be reproduced,
+  which means it cannot be disputed either.
+
+**Checked before use:** `bash scripts/corpus-check.sh <folder>` (or
+`orakul корпус <folder>`) parses the manifest, verifies every named file
+exists, refuses duplicate ids, and prints the per-genre counts. A missing file
+does not fail a measurement — it silently shrinks the corpus, and the average is
+then computed over the remainder and looks convincing.
+
+**The measurement itself now computes two different numbers.** Where a
+human-marked reference exists, it is WER — a real recognition error, printed per
+engine, before and after the glossary. Where it does not, it stays engine
+disagreement, which proves an error when engines differ and proves nothing when
+they agree. Run it with `CRUXWING_RU_CORPUS=<folder> swift test --filter
+probeRussianCorpus`. There is deliberately no threshold: this is a measurement,
+not a gate.
+
+**Still missing, and it is not code: the recordings.** Public Russian technical
+talks are the first approximation — with the caveat above that a talk is not a
+call. Calls need participant consent, and the format makes recording that
+consent a condition of entry rather than a promise.
 
 ### 6.4 Russian strings to the end
 

@@ -71,6 +71,37 @@ let result: CommandLineApp.Result
 switch arguments.first {
 case "записать", "record":
     result = await recordFromMicrophone(Array(arguments.dropFirst()))
+case "корпус", "corpus":
+    // Проверка корпуса речи перед замером (роадмап, §6.3). Правила те же, что
+    // у самого замера: второй набор правил разошёлся бы с первым, и слово
+    // «проверено» перестало бы что-то значить.
+    let rest = Array(arguments.dropFirst())
+    if let directory = rest.first {
+        do {
+            let corpus = try SpeechCorpus.load(directory: directory)
+            var lines = ["Корпус: записей \(corpus.items.count)"]
+            for (genre, count) in corpus.countsByGenre.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
+                lines.append("  \(genre.rawValue): \(count)")
+            }
+            lines.append("  с человеческой расшифровкой: \(corpus.withReference.count)")
+            // Предупреждение, а не ошибка: корпус из одних докладов — рабочий
+            // корпус, просто отвечает он на другой вопрос.
+            if corpus.countsByGenre[.call] == nil {
+                lines.append("!! звонков нет: замер по такому корпусу говорит про доклады,"
+                             + " а обещание продукта — про звонки")
+            }
+            result = CommandLineApp.Result(output: lines.joined(separator: "\n"), exitCode: 0)
+        } catch {
+            result = CommandLineApp.Result(
+                output: (error as? SpeechCorpus.CorpusError)?.description
+                    ?? error.localizedDescription,
+                exitCode: 1)
+        }
+    } else {
+        result = CommandLineApp.Result(
+            output: "Нужно: orakul корпус <папка>. Описание — corpus.json в этой папке.",
+            exitCode: 2)
+    }
 case "спросить", "ask":
     // Логика — в ядре и покрыта тестами; здесь только окружение и настоящий HTTP.
     let rest = Array(arguments.dropFirst())
