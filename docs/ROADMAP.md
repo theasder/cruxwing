@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 247 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 248 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2822 and 521 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -146,7 +146,7 @@ directory holds a page with «Cruxwing» in the title or a `canonical` on a
 foreign domain. Today `ru-landing.test.mjs` pins that page, not its right to be
 here.
 
-### 5.2 Credentials blanked by shape, not by list — closed 2026-08-17
+### 5.2 Nothing ships unless it is named — closed 2026-08-18
 
 **What was wrong.** `build.sh` substitutes values through `sw`, and for names
 listed in `SECRET_VARS` a DIST build gets an empty string back. The list is
@@ -177,19 +177,37 @@ of `test/secrets.test.mjs`. Such a leak was caught only by the check scanning
 the built binary, and **that check is skipped when the app is not built**, which
 is everyone except the person cutting the release.
 
-**What changed.** `sw` now blanks a DIST value by **shape of the name** —
-`*_CLIENT_ID`, `*_CLIENT_SECRET`, `*_TOKEN`, `*_API_KEY` — before ever reading
-`.env`. The hand list stays for names without a recognisable shape
-(`SLACK_CHANNEL_IDS`, `CONFLUENCE_SITE`, `CONFLUENCE_EMAIL`). A new credential
-name is covered on arrival, with nobody remembering to add it.
+**What changed, in two steps.** First (2026-08-17) `sw` began blanking by
+**shape of the name** — `*_CLIENT_ID`, `*_CLIENT_SECRET`, `*_TOKEN`,
+`*_API_KEY` — so a new credential was covered on arrival. That left a gap this
+file recorded rather than hid: a secret whose name has no recognisable shape
+still depended on the hand-written list, and `SLACK_CHANNEL_IDS`,
+`CONFLUENCE_SITE` and `CONFLUENCE_EMAIL` are exactly that.
+
+Second (2026-08-18) the rule was **inverted**. A dist build now emits only what
+is named explicitly — `BACKEND_URL`, `BACKEND_CERT_PINS`, `DEFAULT_TIER`,
+`LLM_GATEWAY`, `ENSEMBLE_*`, `TEAM_WATCH_AUTO_ACK`, `TRANSCRIPTION_*` — and
+blanks everything else, whatever it is called. The gap closes structurally: to
+reach the binary, a value has to be spoken for. The cost changes sign too. The
+failure is no longer «a secret left silently» but «a setting did not arrive»,
+which shows up on the first launch.
+
+`SECRET_VARS` stays in the file as a list of known secrets for a reader, and no
+longer decides anything — said in a comment beside it, because a list that looks
+operative and is not is its own trap.
 
 **How it is proved.** `test/secrets.test.mjs` lifts the `sw` function straight
-out of `build.sh`, runs it under `bash` with `DIST=1` against a planted `.env`
-holding a sentinel for every credential-shaped name, and fails if any sentinel
-comes back. Behaviour, not a text scan: a scan passes just as happily on a
-filter placed **after** the value is returned. Mutation-checked — delete the
-shape branch and the run reports
-`GMAIL_CLIENT_ID=[SENTINEL-must-not-ship]`.
+out of `build.sh` and runs it under `bash` with `DIST=1` against a planted
+`.env`. Two cases, and the second is the one that matters: a made-up name
+(`PARTNER_HANDSHAKE`) that appears in no list must come back empty **because
+nobody named it**, while `DEFAULT_TIER` must survive — otherwise «nothing
+leaked» would be achieved by shipping nothing. Behaviour, not a text scan: a
+scan passes just as happily on a filter placed after the value is returned.
+
+Mutation-checked in all three directions: remove the default-deny branch, narrow
+it back to `*_API_KEY`, or empty the allowlist so even public settings vanish —
+each one fails the suite. One earlier attempt at the third mutation edited a
+line that left `DEFAULT_TIER` allowed and reported a false «guard is weak».
 
 ### 5.3 Install in one command — code done 2026-08-18, one owner action left
 
@@ -999,7 +1017,7 @@ scripts and refuses exactly this contradiction.
 | A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | A live check by other hands (issue #1); until then a caveat in README, not silence |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
-| A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-17: `sw` blanks by name shape, and `test/secrets.test.mjs` runs `sw` itself to prove it. Remaining exposure is a credential whose name carries no recognisable shape — those still depend on the hand list |
+| A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. What remains is not a naming gap but a build one — the check applies to values passing through `sw`, so anything a future path bakes in another way needs its own guard |
 
 ---
 

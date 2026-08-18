@@ -77,22 +77,38 @@ SECRETS="$ROOT/Sources/MeetGPT/Secrets.swift"
 # transcribes on-device (TRANSCRIPTION_ENGINE=local). Dev builds (flag unset)
 # keep keys baked for local iteration.
 DIST="${MEETGPT_DIST:-0}"
+# Известные секреты — перечислены для читателя, а НЕ для решения: решение
+# принимает разрешительный список внутри sw(). Оставлен потому, что отвечает на
+# вопрос «что вообще бывает в .env», и потому что §5.2 роадмапа считает по нему
+# размер дыры, которой больше нет.
 SECRET_VARS="OPENAI_API_KEY ANTHROPIC_API_KEY GOOGLE_AI_API_KEY DEEPGRAM_API_KEY ASSEMBLYAI_API_KEY DEEPSEEK_API_KEY DASHSCOPE_API_KEY ZHIPU_API_KEY MOONSHOT_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_SIGNIN_CLIENT_ID GOOGLE_SIGNIN_CLIENT_SECRET HUBSPOT_CLIENT_ID HUBSPOT_CLIENT_SECRET ASANA_CLIENT_ID ASANA_CLIENT_SECRET AFFINITY_CLIENT_ID AFFINITY_CLIENT_SECRET ZOOM_CLIENT_ID ZOOM_CLIENT_SECRET SLACK_BOT_TOKEN SLACK_CHANNEL_IDS CONFLUENCE_SITE CONFLUENCE_EMAIL CONFLUENCE_TOKEN"
 
 sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-escaped
     if [ "$DIST" = "1" ]; then
-        # Never emit a provider/org secret into a distributed binary.
-        case " $SECRET_VARS " in *" $1 "*) printf ''; return ;; esac
-        # Класс, а не список. Список выше пишется руками, и четыре имени мимо
-        # него уже прошли: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET,
-        # GOOGLE_ANALYTICS_CLIENT_ID, GOOGLE_ANALYTICS_CLIENT_SECRET. Поймать их
-        # могло только чтение собранного бинарника — проверка, которая
-        # пропускается, когда приложение не собрано.
+        # Правило перевёрнуто 2026-08-18: в раздаваемую сборку попадает только
+        # то, что названо ЯВНО. Всё остальное стирается, чем бы оно ни было.
         #
-        # Список остаётся: он покрывает имена без узнаваемой формы
-        # (SLACK_CHANNEL_IDS, CONFLUENCE_SITE, CONFLUENCE_EMAIL).
+        # Почему. Сначала был список секретов — мимо него прошли четыре имени
+        # (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GOOGLE_ANALYTICS_CLIENT_ID,
+        # GOOGLE_ANALYTICS_CLIENT_SECRET). Потом добавился класс имён
+        # (*_TOKEN, *_API_KEY и подобные) — и остался зазор, записанный в §11
+        # роадмапа честно: секрет с именем без узнаваемой формы по-прежнему
+        # держался на списке, написанном руками. SLACK_CHANNEL_IDS,
+        # CONFLUENCE_SITE, CONFLUENCE_EMAIL — как раз такие.
+        #
+        # Запрет по умолчанию убирает зазор целиком: чтобы значение попало в
+        # бинарник, о нём надо сказать вслух здесь. Цена ошибки меняет знак — не
+        # «секрет уехал молча», а «настройка не приехала», и это видно при
+        # первом же запуске.
         case "$1" in
-            *_CLIENT_ID|*_CLIENT_SECRET|*_TOKEN|*_API_KEY) printf ''; return ;;
+            BACKEND_URL|BACKEND_CERT_PINS|DEFAULT_TIER|LLM_GATEWAY \
+                |ENSEMBLE_CHAIRMAN|ENSEMBLE_PANEL|TEAM_WATCH_AUTO_ACK \
+                |TRANSCRIPTION_*) : ;;   # публичные настройки: не секреты
+            # `BACKEND_URL` стоит в списке, хотя в сборку всё равно уезжает
+            # пустым: его отдельно стирают ниже, и там же написано почему.
+            # Убрать его отсюда — значит сделать то объяснение недостижимым
+            # кодом, а вместе с ним и причину.
+            *) printf ''; return ;;
         esac
         # orakul: прямой доступ к провайдеру, не через шлюз.
         #
@@ -104,8 +120,8 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
         # отвечает «настроено» за все провайдеры сразу. Установщик выглядел бы
         # рабочим и не отвечал ни на один вопрос — так и было, пока не поймали.
         #
-        # Гарантия «в бинарнике нет секретов» не меняется: SECRET_VARS выше
-        # по-прежнему стирает все ключи. Ключ приезжает из Связки ключей в
+        # Гарантия «в бинарнике нет секретов» не меняется: разрешительный
+        # список выше пропускает только публичные настройки. Ключ приезжает из Связки ключей в
         # рантайме, его вводит человек в настройках.
         [ "$1" = "LLM_GATEWAY" ] && { printf 'direct'; return; }
         # Расшифровка — на устройстве. 'server' означал бы managed Whisper на
@@ -159,7 +175,7 @@ enum Secrets {
     static let deepgramAPIKey  = "$(sw DEEPGRAM_API_KEY)"
     static let assemblyAIAPIKey = "$(sw ASSEMBLYAI_API_KEY)"
     // Local/test builds may use the gitignored .env Desktop OAuth client.
-    // MEETGPT_DIST=1 blanks both values through SECRET_VARS above.
+    // MEETGPT_DIST=1 blanks both values: sw() пропускает только публичные настройки.
     static let googleClientID  = "$(sw GOOGLE_CLIENT_ID)"
     // A native OAuth client cannot keep this credential confidential. Local and
     // tester builds may inject it from the gitignored .env; public distribution

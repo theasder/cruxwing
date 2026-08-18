@@ -198,9 +198,12 @@ describe('учётные данные', () => {
     assert.match(build,
       /sw\(\)[^{]*\{[\s\S]*?if \[ "\$DIST" = "1" \]; then/,
       'sw больше не проверяет MEETGPT_DIST=1');
-    assert.match(build,
-      /case " \$SECRET_VARS " in \*" \$1 "\*\) printf ''; return ;; esac/,
-      'sw больше не обнуляет имена из SECRET_VARS в dist-сборке');
+    // Раньше здесь стояла точная строка из build.sh — то есть проверялся
+    // СПОСОБ, а не свойство. Способ сменился (список запретов стал списком
+    // разрешений), свойство осталось тем же, и проверка упала на усилении
+    // защиты. Теперь спрашивается то, что важно: имена ниже в dist пусты.
+    assert.match(build, /\*\) printf ''; return ;;/,
+      'в sw больше нет запрета по умолчанию: значение, о котором не сказано явно, уедет в сборку');
     for (const [field, variable] of fields) {
       assert.ok(secretVars.includes(variable),
         `${variable} не входит в SECRET_VARS и попадёт в публичную сборку`);
@@ -231,6 +234,51 @@ describe('учётные данные', () => {
       const hit = shape.exec(text);
       assert.equal(hit, null,
         `в собранном приложении лежит ${what}: ${hit?.[0]?.slice(0, 12)}…`);
+    }
+  });
+
+
+  test('в dist-сборку не уезжает то, о чём не сказано явно', () => {
+    // Дыра, записанная в §11 роадмапа: секрет с именем без узнаваемой формы
+    // держался на списке, написанном руками. SLACK_CHANNEL_IDS и
+    // CONFLUENCE_SITE — как раз такие: ни *_TOKEN, ни *_API_KEY.
+    //
+    // Проверяется свойство, а не список: выдуманное имя, которого нет ни в
+    // одном списке, обязано быть стёрто просто потому, что о нём не сказано.
+    const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+    const lines = build.split('\n');
+    const start = lines.findIndex((line) => /^sw\(\)/.test(line));
+    const end = lines.findIndex((line, i) => i > start && line === '}');
+    const swSource = lines.slice(start, end + 1).join('\n');
+    const secretVars = /SECRET_VARS="([^"]+)"/.exec(build)?.[1] ?? '';
+
+    const SENTINEL = 'SENTINEL-must-not-ship';
+    // Первое — имя без всякой формы, второе — публичная настройка, которая
+    // обязана дойти: проверка без неё разрешала бы стереть вообще всё.
+    const unnamed = ['PARTNER_HANDSHAKE', 'CONFLUENCE_SITE', 'SLACK_CHANNEL_IDS'];
+    const envFile = resolve(tmpdir(), 'orakul-sw-default-deny.env');
+    writeFileSync(envFile,
+      `${unnamed.map((n) => `${n}=${SENTINEL}`).join('\n')}\nDEFAULT_TIER=team\n`);
+    try {
+      const script = [
+        'set -u', 'DIST=1',
+        `SECRET_VARS=${JSON.stringify(secretVars)}`,
+        `ENV_FILE=${JSON.stringify(envFile)}`,
+        swSource,
+        `for n in ${unnamed.join(' ')} DEFAULT_TIER; do printf '%s=[%s]\\n' "$n" "$(sw "$n")"; done`,
+      ].join('\n');
+      const out = execFileSync('bash', ['-c', script], { cwd: repo, encoding: 'utf8' });
+
+      const leaked = out.split('\n').filter((line) => line.includes(SENTINEL));
+      assert.deepEqual(leaked, [],
+        `в сборку уехало значение, о котором никто не говорил:\n  ${leaked.join('\n  ')}`);
+      // И обратная сторона: запрет по умолчанию не должен стирать настройки,
+      // без которых приложение перестанет работать. Иначе «ничего не утекло»
+      // достигается тем, что не уехало ничего.
+      assert.match(out, /DEFAULT_TIER=\[team\]/,
+        `публичная настройка стёрта вместе с секретами: ${out.trim()}`);
+    } finally {
+      rmSync(envFile, { force: true });
     }
   });
 });
