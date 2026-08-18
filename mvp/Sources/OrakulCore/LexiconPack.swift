@@ -24,6 +24,20 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
     /// Слова языка, которым в словаре не место. Пополняется вместе с попытками
     /// их добавить — список отказов ценнее списка правил.
     public let ordinary: [String]
+    /// Что человек сказал → как это пишется. «апи» → `API`, `prompt` → «промпт».
+    ///
+    /// По этой таблице расшифровка ПЕРЕПИСЫВАЕТСЯ, поэтому сюда не берут
+    /// слова, совпадающие с обычными русскими: проверка `validate()` смотрит на
+    /// ключи так же, как на списки выше.
+    public let variants: [String: String]?
+    /// Имена инструментов: что сказали → общий токен для поиска.
+    ///
+    /// Отдельно от `variants` намеренно, и правило здесь другое. По этой
+    /// таблице ничего не переписывается — она действует только при поиске,
+    /// поэтому совпадение с обычным словом тут допустимо: «редис» останется
+    /// овощем в расшифровке и найдётся по запросу redis. Цена ошибки —
+    /// лишняя находка, а не испорченный архив.
+    public let infrastructure: [String: String]?
 
     public enum PackError: Error, Equatable, CustomStringConvertible {
         case collidesWithOrdinaryWord(pack: String, word: String)
@@ -65,6 +79,18 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
         for word in loanwords where word.contains(where: { $0.isASCII && $0.isLetter }) {
             throw PackError.wrongAlphabet(pack: id, word: word)
         }
+
+        // Таблица замен подчиняется тому же правилу, что и списки: по ней
+        // переписывают текст. Ключ, совпавший с обычным словом, испортит
+        // нормальную фразу — разница лишь в том, что здесь проверяется левая
+        // часть, то есть то, что человек сказал.
+        for spoken in (variants ?? [:]).keys where ordinarySet.contains(Self.key(spoken)) {
+            throw PackError.collidesWithOrdinaryWord(pack: id, word: spoken)
+        }
+        // `infrastructure` этой проверке НЕ подчиняется, и это не забывчивость:
+        // она действует только на поиск, а половина имён там — обычные слова
+        // («редис», «кафка», «прометей»). Требовать от них непересечения
+        // значило бы выбросить ровно те имена, ради которых таблица заведена.
     }
 
     /// «ё» и «е» — одно слово, регистр не важен: так же, как в самом словаре.

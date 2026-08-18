@@ -23,6 +23,32 @@ struct LexiconPackTests {
                 "аббревиатуры разошлись: пакет \(pack.acronyms.count), код \(RussianLexicon.acronyms.count)")
         #expect(pack.loanwords == RussianLexicon.loanwords,
                 "заимствования разошлись: пакет \(pack.loanwords.count), код \(RussianLexicon.loanwords.count)")
+        // Две таблицы замен — тем же способом. Пакет не заменяет код, пока
+        // продукт читает Swift: он держит ту же правду в виде, который правит
+        // тот, у кого на звонках слышится «промт», а не тот, кто собирает
+        // macOS-проект. Расхождение здесь означает, что правку внесли в одно
+        // место из двух — и словарь тихо стал другим.
+        #expect(pack.variants == RussianLexicon.variants,
+                "таблица замен разошлась: пакет \(pack.variants?.count ?? 0), код \(RussianLexicon.variants.count)")
+        #expect(pack.infrastructure == RussianLexicon.infrastructure,
+                "имена инструментов разошлись: пакет \(pack.infrastructure?.count ?? 0), код \(RussianLexicon.infrastructure.count)")
+    }
+
+    @Test("таблица замен не берёт обычных слов, а таблица инструментов — берёт")
+    func curationDiffersBetweenTheTwoMaps() throws {
+        let pack = try Self.base()
+        let ordinary = Set(pack.ordinary.map { LexiconPack.key($0) })
+        // По `variants` текст ПЕРЕПИСЫВАЕТСЯ: обычное слово там испортит фразу.
+        for spoken in (pack.variants ?? [:]).keys {
+            #expect(!ordinary.contains(LexiconPack.key(spoken)),
+                    "«\(spoken)» — обычное слово, а по нему переписывают расшифровку")
+        }
+        // А `infrastructure` действует только на поиск, и обычные слова там
+        // намеренно есть: «редис» останется овощем в тексте и найдётся по
+        // запросу redis. Если этого больше нет — таблицу выхолостили.
+        let names = Set((pack.infrastructure ?? [:]).keys.map { LexiconPack.key($0) })
+        #expect(!names.isDisjoint(with: ["редис", "кафка", "прометей", "кролик", "откат"]),
+                "из таблицы инструментов пропали имена, совпадающие с обычными словами — ради них она и заведена")
     }
 
     @Test("каждый пакет из ресурсов проходит кураторские правила")
@@ -35,12 +61,37 @@ struct LexiconPackTests {
     }
 
     static func pack(acronyms: [String] = [], loanwords: [String] = [],
-                     ordinary: [String] = ["агент", "модель"]) throws -> LexiconPack {
+                     ordinary: [String] = ["агент", "модель"],
+                     variants: [String: String] = [:],
+                     infrastructure: [String: String] = [:]) throws -> LexiconPack {
         let json = try JSONSerialization.data(withJSONObject: [
             "id": "проба", "title": "Проба",
             "acronyms": acronyms, "loanwords": loanwords, "ordinary": ordinary,
+            "variants": variants, "infrastructure": infrastructure,
         ])
         return try JSONDecoder().decode(LexiconPack.self, from: json)
+    }
+
+    @Test("обычное слово слева в таблице замен не принимается")
+    func ordinaryWordInVariantsIsRejected() throws {
+        // По этой таблице расшифровку ПЕРЕПИСЫВАЮТ, поэтому правило то же, что
+        // и для списков, — только смотреть надо на левую часть: на то, что
+        // человек сказал. Без этой проверки «агент» → «agent» переписал бы
+        // страхового агента в термин.
+        let pack = try Self.pack(variants: ["агент": "agent"])
+        #expect(throws: LexiconPack.PackError.collidesWithOrdinaryWord(pack: "проба", word: "агент")) {
+            try pack.validate()
+        }
+    }
+
+    @Test("обычное слово в таблице инструментов принимается")
+    func ordinaryWordInInfrastructureIsAllowed() throws {
+        // Разница между двумя таблицами. Эта действует только на поиск: цена
+        // ошибки — лишняя находка про овощ, а не испорченный архив. Запретить
+        // здесь обычные слова значило бы выбросить «редис», «кафку» и
+        // «прометея» — то есть ровно то, ради чего таблица заведена.
+        let pack = try Self.pack(ordinary: ["редис"], infrastructure: ["редис": "redis"])
+        #expect(throws: Never.self) { try pack.validate() }
     }
 
     @Test("обычное русское слово в словарь не принимается")

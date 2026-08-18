@@ -892,8 +892,20 @@ scripts and refuses exactly this contradiction.
   the `ordinary` list grows with the attempts it rejects — a recorded refusal
   saves the next person the same evening.
 
-  The maps (`variants`, `infrastructure`) stay in Swift for now: they carry
-  index-building logic, and moving them is a separate step.
+  The two maps followed on 2026-08-18: `variants` (33 pairs — what was said →
+  how it is written) and `infrastructure` (91 — a tool's spoken name → one
+  search token) are in the pack as well. What stayed in Swift is the part that
+  is actually logic: building the index and generating Russian case forms.
+
+  They carry **different curation rules**, and the pack enforces the difference
+  rather than describing it. `variants` rewrites the transcript, so an ordinary
+  word on its left-hand side is refused exactly as in the lists — «агент» →
+  `agent` would turn an insurance agent into jargon. `infrastructure` only
+  affects search, so ordinary words are deliberately allowed there: «редис»
+  stays a vegetable in the text and is still found by `redis`. Forbidding them
+  would throw out the very names the table exists for. Both directions are
+  pinned, because the first version of the rule was enforced in one direction
+  only and no test noticed.
 
   Domain packs per role are still ahead; the loader takes any number of files,
   so that is now a data question rather than an architecture one.
