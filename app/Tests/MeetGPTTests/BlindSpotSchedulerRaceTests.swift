@@ -195,25 +195,30 @@ struct BlindSpotSchedulerRaceTests {
     }
 
     @Test("same-value Settings writes do not restart the Blind Spot task")
-    func settingsWriteIsIdempotent() {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotAccessTokenProvider: { nil },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
-        state.applyTestWorkspace(recording: true)
+    func settingsWriteIsIdempotent() async {
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotAccessTokenProvider: { nil },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
+            state.applyTestWorkspace(recording: true)
 
-        state.setBlindSpotsEnabled(true)
-        let firstGeneration = state.blindSpotGenerationForTesting()
-        state.setBlindSpotsEnabled(true)
+            state.setBlindSpotsEnabled(true)
+            let firstGeneration = state.blindSpotGenerationForTesting()
+            state.setBlindSpotsEnabled(true)
 
-        #expect(firstGeneration != nil)
-        #expect(state.blindSpotGenerationForTesting() == firstGeneration)
-        #expect(state.liveWatchActivity().brainstormTaskActive)
-        state.setBlindSpotsEnabled(false)
+            #expect(firstGeneration != nil)
+            #expect(state.blindSpotGenerationForTesting() == firstGeneration)
+            #expect(state.liveWatchActivity().brainstormTaskActive)
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("OFF, snooze, Stop, and new call reject a non-cooperative stale provider")
@@ -268,229 +273,259 @@ struct BlindSpotSchedulerRaceTests {
 
     @Test("backpressure does not consume the transcript baseline or miss the retry")
     func backpressureRetriesExactSnapshot() async throws {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let queue = BackgroundLLMQueue(maxConcurrent: 2)
-        #expect(await queue.reserve(key: "occupied-a", signature: 1))
-        #expect(await queue.reserve(key: "occupied-b", signature: 1))
-        let provider = ImmediateBlindSpotProvider()
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            backgroundLLMQueue: queue,
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { nil },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
-        prepare(state)
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let queue = BackgroundLLMQueue(maxConcurrent: 2)
+            #expect(await queue.reserve(key: "occupied-a", signature: 1))
+            #expect(await queue.reserve(key: "occupied-b", signature: 1))
+            let provider = ImmediateBlindSpotProvider()
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                backgroundLLMQueue: queue,
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { nil },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
+            prepare(state)
 
-        #expect(await waitUntil {
-            (state.blindSpotSchedulerStateForTesting()?.evaluations ?? 0) >= 1
-        })
-        #expect(provider.requests.isEmpty)
-        #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun == nil)
+            #expect(await waitUntil {
+                (state.blindSpotSchedulerStateForTesting()?.evaluations ?? 0) >= 1
+            })
+            #expect(provider.requests.isEmpty)
+            #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun == nil)
 
-        await queue.finish(key: "occupied-a")
-        await queue.finish(key: "occupied-b")
-        state.forceBlindSpotRefreshForTesting()
-        #expect(await waitUntil { provider.requests.count == 1 })
-        #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
-        #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun != nil)
-        #expect(state.suggestions.map(\.title) == ["Confirm delivery date"])
-        state.setBlindSpotsEnabled(false)
+            await queue.finish(key: "occupied-a")
+            await queue.finish(key: "occupied-b")
+            state.forceBlindSpotRefreshForTesting()
+            #expect(await waitUntil { provider.requests.count == 1 })
+            #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
+            #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun != nil)
+            #expect(state.suggestions.map(\.title) == ["Confirm delivery date"])
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("a visible user answer has priority over a new Blind Spot wake")
     func foregroundAnswerDefersAmbientSpend() async {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let provider = ImmediateBlindSpotProvider()
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { nil },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let provider = ImmediateBlindSpotProvider()
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { nil },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
 
-        state.applyTestWorkspace(recording: true)
-        state.callGoal = "De-risk Project Falcon"
-        state.transcript = transcript()
-        state.aiStreaming = true
-        state.setBlindSpotsEnabled(true)
-        state.forceBlindSpotRefreshForTesting()
+            state.applyTestWorkspace(recording: true)
+            state.callGoal = "De-risk Project Falcon"
+            state.transcript = transcript()
+            state.aiStreaming = true
+            state.setBlindSpotsEnabled(true)
+            state.forceBlindSpotRefreshForTesting()
 
-        #expect(await waitUntil {
-            (state.blindSpotSchedulerStateForTesting()?.evaluations ?? 0) >= 1
-        })
-        #expect(provider.requests.isEmpty)
-        #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun == nil)
+            #expect(await waitUntil {
+                (state.blindSpotSchedulerStateForTesting()?.evaluations ?? 0) >= 1
+            })
+            #expect(provider.requests.isEmpty)
+            #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun == nil)
 
-        state.aiStreaming = false
-        state.forceBlindSpotRefreshForTesting()
-        #expect(await waitUntil { provider.requests.count == 1 })
-        #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
-        state.setBlindSpotsEnabled(false)
+            state.aiStreaming = false
+            state.forceBlindSpotRefreshForTesting()
+            #expect(await waitUntil { provider.requests.count == 1 })
+            #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("disable during token lookup prevents the provider request")
     func disableBeforeProviderBoundary() async {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let tokenProvider = BlockingBlindSpotTokenProvider()
-        let provider = ImmediateBlindSpotProvider()
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { await tokenProvider.token() },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
-        prepare(state)
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let tokenProvider = BlockingBlindSpotTokenProvider()
+            let provider = ImmediateBlindSpotProvider()
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { await tokenProvider.token() },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
+            prepare(state)
 
-        #expect(await waitUntil { tokenProvider.isWaiting })
-        state.setBlindSpotsEnabled(false)
-        tokenProvider.release()
-        await Task.yield()
-        #expect(provider.requests.isEmpty)
-        #expect(state.blindSpotActivity().attempts == 0)
-        #expect(state.suggestions.isEmpty)
+            #expect(await waitUntil { tokenProvider.isWaiting })
+            state.setBlindSpotsEnabled(false)
+            tokenProvider.release()
+            await Task.yield()
+            #expect(provider.requests.isEmpty)
+            #expect(state.blindSpotActivity().attempts == 0)
+            #expect(state.suggestions.isEmpty)
+        }
     }
 
     @Test("a provider 429 latches quota and never promises an automatic retry")
     func quotaDoesNotClaimRetry() async {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let provider = ImmediateBlindSpotProvider(error: LLMError.http(
-            "Brainstorm", 429,
-            #"{"error":"Synthetic credit pool is empty.","upgrade":true}"#))
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { nil },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
-        prepare(state)
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let provider = ImmediateBlindSpotProvider(error: LLMError.http(
+                "Brainstorm", 429,
+                #"{"error":"Synthetic credit pool is empty.","upgrade":true}"#))
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { nil },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
+            prepare(state)
 
-        #expect(await waitUntil { state.blindSpotActivity().failures == 1 })
-        #expect(state.copilotQuotaMessage == "Synthetic credit pool is empty.")
-        #expect(state.blindSpotFailureMessage == "Synthetic credit pool is empty.")
-        #expect(state.blindSpotFailureMessage?.localizedCaseInsensitiveContains("retry") == false)
-        #expect(state.blindSpotActivity().lastOutcome == "failed")
-        #expect(await waitUntil { !state.liveWatchActivity().brainstormTaskActive })
-        state.setBlindSpotsEnabled(false)
+            #expect(await waitUntil { state.blindSpotActivity().failures == 1 })
+            #expect(state.copilotQuotaMessage == "Synthetic credit pool is empty.")
+            #expect(state.blindSpotFailureMessage == "Synthetic credit pool is empty.")
+            #expect(state.blindSpotFailureMessage?.localizedCaseInsensitiveContains("retry") == false)
+            #expect(state.blindSpotActivity().lastOutcome == "failed")
+            #expect(await waitUntil { !state.liveWatchActivity().brainstormTaskActive })
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("authorized synthetic trace exactly reconstructs the bounded provider body")
     func syntheticTraceIsExactAndSnapshotVisible() async throws {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        Config.connectedAppsGroundingEnabled = false
-        let provider = ImmediateBlindSpotProvider()
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { "must-not-enter-evidence" },
-            blindSpotSkillGuidanceProvider: { _, _ in "Synthetic fixed guidance" })
-        prepare(state, goal: LiveTestHooks.syntheticBlindSpotGoal)
-        state.beginSyntheticBlindSpotTraceCapture(
-            goal: LiveTestHooks.syntheticBlindSpotGoal)
-        // Arm before the wake is consumed even on a heavily loaded full suite.
-        state.forceBlindSpotRefreshForTesting()
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            Config.connectedAppsGroundingEnabled = false
+            let provider = ImmediateBlindSpotProvider()
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { "must-not-enter-evidence" },
+                blindSpotSkillGuidanceProvider: { _, _ in "Synthetic fixed guidance" })
+            prepare(state, goal: LiveTestHooks.syntheticBlindSpotGoal)
+            state.beginSyntheticBlindSpotTraceCapture(
+                goal: LiveTestHooks.syntheticBlindSpotGoal)
+            // Arm before the wake is consumed even on a heavily loaded full suite.
+            state.forceBlindSpotRefreshForTesting()
 
-        #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
-        let request = try #require(provider.requests.first)
-        let trace = try #require(state.syntheticBlindSpotTrace())
-        #expect(trace.goal == request.goal)
-        #expect(trace.transcript == request.transcript)
-        #expect(trace.priorTitles == request.priorTitles)
-        #expect(trace.guidance == request.guidance)
-        #expect(trace.context == request.context)
-        #expect(trace.probe == request.probe)
-        #expect(trace.theme == request.theme)
-        #expect(trace.grounded == request.grounded)
-        #expect(trace.transcript.count <= 8_000)
-        #expect((trace.guidance?.count ?? 0) <= 8_000)
-        #expect(trace.priorTitles.count <= 40)
-        #expect(trace.preparedAt <= (trace.tokenLookupStartedAt ?? 0))
-        #expect((trace.tokenLookupStartedAt ?? 0) <= (trace.tokenLookupCompletedAt ?? 0))
-        #expect((trace.tokenLookupCompletedAt ?? 0) <= (trace.providerStartedAt ?? 0))
-        #expect((trace.providerStartedAt ?? 0) <= (trace.providerCompletedAt ?? 0))
+            #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
+            let request = try #require(provider.requests.first)
+            let trace = try #require(state.syntheticBlindSpotTrace())
+            #expect(trace.goal == request.goal)
+            #expect(trace.transcript == request.transcript)
+            #expect(trace.priorTitles == request.priorTitles)
+            #expect(trace.guidance == request.guidance)
+            #expect(trace.context == request.context)
+            #expect(trace.probe == request.probe)
+            #expect(trace.theme == request.theme)
+            #expect(trace.grounded == request.grounded)
+            #expect(trace.transcript.count <= 8_000)
+            #expect((trace.guidance?.count ?? 0) <= 8_000)
+            #expect(trace.priorTitles.count <= 40)
+            #expect(trace.preparedAt <= (trace.tokenLookupStartedAt ?? 0))
+            #expect((trace.tokenLookupStartedAt ?? 0) <= (trace.tokenLookupCompletedAt ?? 0))
+            #expect((trace.tokenLookupCompletedAt ?? 0) <= (trace.providerStartedAt ?? 0))
+            #expect((trace.providerStartedAt ?? 0) <= (trace.providerCompletedAt ?? 0))
 
-        let payload = try #require(trace.requestPayload?.data(using: .utf8))
-        let object = try #require(
-            JSONSerialization.jsonObject(with: payload) as? [String: Any])
-        #expect(object["goal"] as? String == request.goal)
-        #expect(object["transcript"] as? String == request.transcript)
-        #expect(object["priorSuggestions"] as? [String] == request.priorTitles)
-        #expect(object["probe"] as? String == request.probe)
-        #expect(object["accessToken"] == nil)
-        #expect(!String(data: payload, encoding: .utf8)!.contains("must-not-enter-evidence"))
+            let payload = try #require(trace.requestPayload?.data(using: .utf8))
+            let object = try #require(
+                JSONSerialization.jsonObject(with: payload) as? [String: Any])
+            #expect(object["goal"] as? String == request.goal)
+            #expect(object["transcript"] as? String == request.transcript)
+            #expect(object["priorSuggestions"] as? [String] == request.priorTitles)
+            #expect(object["probe"] as? String == request.probe)
+            #expect(object["accessToken"] == nil)
+            #expect(!String(data: payload, encoding: .utf8)!.contains("must-not-enter-evidence"))
 
-        _ = NSApplication.shared
-        let snapshot = LiveTestHooks.snapshotJSON(
-            of: state, requestID: "synthetic-trace", appliedAt: 123)
-        let root = try #require(
-            JSONSerialization.jsonObject(with: snapshot) as? [String: Any])
-        let snapshotTrace = try #require(
-            root["blindSpotSyntheticTrace"] as? [String: Any])
-        #expect(snapshotTrace["goal"] as? String == request.goal)
-        #expect(snapshotTrace["transcript"] as? String == request.transcript)
-        #expect(snapshotTrace["requestPayload"] as? String == trace.requestPayload)
-        state.setBlindSpotsEnabled(false)
+            _ = NSApplication.shared
+            let snapshot = LiveTestHooks.snapshotJSON(
+                of: state, requestID: "synthetic-trace", appliedAt: 123)
+            let root = try #require(
+                JSONSerialization.jsonObject(with: snapshot) as? [String: Any])
+            let snapshotTrace = try #require(
+                root["blindSpotSyntheticTrace"] as? [String: Any])
+            #expect(snapshotTrace["goal"] as? String == request.goal)
+            #expect(snapshotTrace["transcript"] as? String == request.transcript)
+            #expect(snapshotTrace["requestPayload"] as? String == trace.requestPayload)
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("a probeQuery is captured from one outcome and consumed by the next scan")
     func probeQueryCapturedThenConsumedOnce() async {
-        let saved = SavedConfig()
-        defer { saved.restore() }
-        Config.brainstormEnabled = false
-        // Connectors OFF: the scan must not ask for a query (canProbe false), and
-        // a pending query has no grounded cycle to spend itself on — so the
-        // consume-once contract shows as capture → drop, never carry.
-        Config.connectedAppsGroundingEnabled = false
-        let provider = ImmediateBlindSpotProvider(probeQueryOnce: "acme renewal history")
-        let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            blindSpotSuggestionProvider: { request in
-                try await provider.respond(to: request)
-            },
-            blindSpotAccessTokenProvider: { nil },
-            blindSpotSkillGuidanceProvider: { _, _ in nil })
-        prepare(state)
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно. `.serialized` упорядочивает тесты внутри набора и
+        // от соседей не спасает: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let saved = SavedConfig()
+            defer { saved.restore() }
+            Config.brainstormEnabled = false
+            // Connectors OFF: the scan must not ask for a query (canProbe false), and
+            // a pending query has no grounded cycle to spend itself on — so the
+            // consume-once contract shows as capture → drop, never carry.
+            Config.connectedAppsGroundingEnabled = false
+            let provider = ImmediateBlindSpotProvider(probeQueryOnce: "acme renewal history")
+            let state = AppState(
+                credentialStore: InMemoryKeychain(),
+                blindSpotSuggestionProvider: { request in
+                    try await provider.respond(to: request)
+                },
+                blindSpotAccessTokenProvider: { nil },
+                blindSpotSkillGuidanceProvider: { _, _ in nil })
+            prepare(state)
 
-        #expect(await waitUntil { provider.requests.count >= 1 })
-        #expect(provider.requests.first?.canProbe == false)
-        // Captured from the first outcome, held for the next cycle.
-        #expect(await waitUntil {
-            state.blindSpotPendingProbeQueryForTesting() == "acme renewal history"
-        })
+            #expect(await waitUntil { provider.requests.count >= 1 })
+            #expect(provider.requests.first?.canProbe == false)
+            // Captured from the first outcome, held for the next cycle.
+            #expect(await waitUntil {
+                state.blindSpotPendingProbeQueryForTesting() == "acme renewal history"
+            })
 
-        // New material, or the loop rightly skips the rescan as "unchanged";
-        // the wake poll runs in 500ms slices, so give the wait real headroom.
-        state.transcript.append(TranscriptEntry(
-            source: .mic,
-            text: "Also the vendor now says the delivery could slip a further week past Thursday."))
-        state.forceBlindSpotRefreshForTesting()
-        #expect(await waitUntil(iterations: 8_000) { provider.requests.count >= 2 })
-        // The second scan consumed it at start (and, with connectors off,
-        // dropped it); its own outcome carried none, so nothing re-armed.
-        #expect(await waitUntil(iterations: 8_000) {
-            state.blindSpotPendingProbeQueryForTesting() == nil
-        })
-        #expect(provider.requests.last?.canProbe == false)
-        state.setBlindSpotsEnabled(false)
+            // New material, or the loop rightly skips the rescan as "unchanged";
+            // the wake poll runs in 500ms slices, so give the wait real headroom.
+            state.transcript.append(TranscriptEntry(
+                source: .mic,
+                text: "Also the vendor now says the delivery could slip a further week past Thursday."))
+            state.forceBlindSpotRefreshForTesting()
+            #expect(await waitUntil(iterations: 8_000) { provider.requests.count >= 2 })
+            // The second scan consumed it at start (and, with connectors off,
+            // dropped it); its own outcome carried none, so nothing re-armed.
+            #expect(await waitUntil(iterations: 8_000) {
+                state.blindSpotPendingProbeQueryForTesting() == nil
+            })
+            #expect(provider.requests.last?.canProbe == false)
+            state.setBlindSpotsEnabled(false)
+        }
     }
 }

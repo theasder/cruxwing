@@ -188,29 +188,33 @@ struct MCPGroundingBudgetTests {
 
     @Test("Blind Spot grounding skips query-derivation gateway while interactive grounding retains it")
     func blindSpotSkipsDerivationSpend() async throws {
-        let savedGrounding = Config.connectedAppsGroundingEnabled
-        defer { Config.connectedAppsGroundingEnabled = savedGrounding }
-        let tool = searchTool()
-        let manager = MCPConnectionManager(
-            tokenStore: InMemoryKeychain(),
-            notificationCenter: NotificationCenter(),
-            connectionAttemptOverride: { _ in [tool] },
-            toolCallOverride: { _, _, _ in "CRX-42 remains open" })
-        let linear = try #require(MCPCatalog.builtIn.first { $0.id == "linear" })
-        await manager.connect(linear)
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно: см. SharedDefaults.withConfigLock.
+        try await SharedDefaults.withConfigLock {
+            let savedGrounding = Config.connectedAppsGroundingEnabled
+            defer { Config.connectedAppsGroundingEnabled = savedGrounding }
+            let tool = searchTool()
+            let manager = MCPConnectionManager(
+                tokenStore: InMemoryKeychain(),
+                notificationCenter: NotificationCenter(),
+                connectionAttemptOverride: { _ in [tool] },
+                toolCallOverride: { _, _, _ in "CRX-42 remains open" })
+            let linear = try #require(MCPCatalog.builtIn.first { $0.id == "linear" })
+            await manager.connect(linear)
 
-        // Both tool calls below are instant in-process stubs, so this test does
-        // not exercise the grounding deadline — but on a saturated machine the
-        // real eight seconds can elapse before a stub is scheduled, the deadline
-        // fires, and grounding correctly returns nothing. The test then reports
-        // an empty result as a product failure. Take the clock out of it.
-        //
-        // Через `withValue`, а не присваиванием: наборы идут параллельно, и
-        // выставленные здесь 600 видел `WedgedConnectorTests`, который в это же
-        // время утверждает, что срок не больше пятнадцати. Task-local виден
-        // только внутри своей задачи.
-        try await MCPConnectionManager.$deadlineOverrideForTesting.withValue(600) {
-            try await runGroundingCheck(manager: manager)
+            // Both tool calls below are instant in-process stubs, so this test does
+            // not exercise the grounding deadline — but on a saturated machine the
+            // real eight seconds can elapse before a stub is scheduled, the deadline
+            // fires, and grounding correctly returns nothing. The test then reports
+            // an empty result as a product failure. Take the clock out of it.
+            //
+            // Через `withValue`, а не присваиванием: наборы идут параллельно, и
+            // выставленные здесь 600 видел `WedgedConnectorTests`, который в это же
+            // время утверждает, что срок не больше пятнадцати. Task-local виден
+            // только внутри своей задачи.
+            try await MCPConnectionManager.$deadlineOverrideForTesting.withValue(600) {
+                try await runGroundingCheck(manager: manager)
+            }
         }
     }
 

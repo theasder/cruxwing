@@ -39,19 +39,23 @@ struct SuggestionSnoozeTests {
 
     @Test("Settings off-on preserves surfaced cards")
     @MainActor
-    func settingsRestartKeepsCards() {
-        let original = Config.brainstormEnabled
-        defer { Config.brainstormEnabled = original }
-        let state = AppState(llm: MockLLMGateway(response: ""),
-                             credentialStore: InMemoryKeychain())
-        state.status = .recording
-        state.suggestions = [Suggestion(title: "Risk", detail: "Budget unraised", kind: .risk)]
+    func settingsRestartKeepsCards() async {
+        // Общие настройки — один комплект на процесс, а наборы идут
+        // параллельно: см. SharedDefaults.withConfigLock.
+        await SharedDefaults.withConfigLock {
+            let original = Config.brainstormEnabled
+            defer { Config.brainstormEnabled = original }
+            let state = AppState(llm: MockLLMGateway(response: ""),
+                                 credentialStore: InMemoryKeychain())
+            state.status = .recording
+            state.suggestions = [Suggestion(title: "Risk", detail: "Budget unraised", kind: .risk)]
 
-        state.setBlindSpotsEnabled(false)
-        state.setBlindSpotsEnabled(true)
+            state.setBlindSpotsEnabled(false)
+            state.setBlindSpotsEnabled(true)
 
-        #expect(state.suggestions.map(\.title) == ["Risk"])
-        state.setBlindSpotsEnabled(false)
+            #expect(state.suggestions.map(\.title) == ["Risk"])
+            state.setBlindSpotsEnabled(false)
+        }
     }
 
     @Test("dismissed cards do not regenerate until the next call")

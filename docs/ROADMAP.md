@@ -30,10 +30,24 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 244 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2803 and 407 | README, maintainer run |
+| App and core tests | 2822 and 521 | README, maintainer run |
+| Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
 an assumption the audience already exists.
+
+**«All green» needs one caveat, stated because a table that hides it is worse
+than no table.** `BlindSpotSchedulerRaceTests` failed twice on full runs on
+2026-08-18 and passed every time it ran alone. The mechanism is understood in
+outline: several suites write the same process-wide settings
+(`brainstormEnabled`, `connectedAppsGroundingEnabled`), six of them through the
+`SharedDefaults` gate and three without it, so a neighbour could flip a flag in
+the middle of a wait. Those three now take the gate too.
+
+What that is **not**: a demonstrated fix. Six further full runs — three gated,
+three deliberately ungated, one of them under concurrent load — all passed, so
+the change is a removed inconsistency rather than a proven repair. If it recurs,
+the next step is capturing which neighbour wrote what, not another guess.
 
 ### 2.2 Connectors, counted from code, not from the page
 
