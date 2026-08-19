@@ -532,6 +532,24 @@ public struct ManifestConnector {
             }
             rows = node as? [[String: Any]]
         }
+        // Строки словарём: порядок берётся из отдельного массива.
+        //
+        // Значения словаря в Swift неупорядочены, поэтому «разобрать словарь»
+        // и «сохранить выдачу» — разные вещи. Сам Mattermost на это и
+        // рассчитывает: `order` перечисляет идентификаторы по убыванию
+        // совпадения, а `posts` — просто хранилище. Без него человек получил бы
+        // случайную строку первой и решил, что она и есть лучшее совпадение.
+        if let orderPath = manifest.response.order {
+            let root = try? JSONSerialization.jsonObject(with: data)
+            let ids = Self.follow(orderPath, from: root) as? [String]
+            let byKey = Self.follow(manifest.response.list, from: root) as? [String: Any]
+            if let ids, let byKey {
+                return ids.compactMap { byKey[$0] as? [String: Any] }
+            }
+            // Порядок объявлен, но его в ответе НЕТ — это смена формата, а не
+            // пустая выдача, и разбирать словарь «как получится» здесь нельзя.
+            if byKey != nil { throw ConnectorError.unreadable }
+        }
         // Пустой список рядом с жалобой сервиса — это отказ, а не «ничего не
         // нашлось».
         //

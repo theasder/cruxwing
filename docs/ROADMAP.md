@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2885 and 636 | README, maintainer run |
+| App and core tests | 2885 and 640 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 14**, and the number is counted from that directory rather
+**Today there are 15**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -568,10 +568,39 @@ hand-written path sets `Content-Type: application/json` on a **GET with no
 body**. The manifest does not reproduce it, and the test says so out loud, so it
 stays a decision instead of becoming the next person's discovery.
 
-**Still code, deliberately, and now for stated reasons:** Mattermost returns
-messages as a dictionary keyed by id, Zulip wants Basic auth built from two
-halves, Matrix a nested body, Битрикс24 keeps the key in the path, Яндекс Трекер
-searches by POST with a body and a second credential. Each is a separate
+**Mattermost is the seventh, and it cost the format one property — 2026-08-21.**
+It was listed below as «stays code» because messages arrive as a dictionary keyed
+by id. That is not one vendor's quirk but a property of the format, and the
+format has it now: `list` points at the dictionary, `order` at the array of ids.
+
+The order is the whole point. A dictionary in Swift is unordered, so «parse the
+values» and «keep the answer» are different things: the service lists matches in
+`order` by descending relevance and `posts` is merely storage. Iterating the
+values would hand a person a random permutation and call it «what was found» —
+the first line, the one that gets read, would be whichever the hash landed on.
+The hand-written path had a fallback to `Array(posts.keys)` for a missing
+`order`; the manifest refuses instead, because a declared order that is absent
+is a change of format, not a reason to guess.
+
+Adding the file switched production the same minute — `manifestSearch` picks a
+manifest up by service id — and **the existing suite failed instantly**: search
+answered «not configured» for a configured service, because the engine was never
+handed the team, so `{team}` in the path stayed unresolved. The scope now travels
+under the name the **manifest itself** declares, not a name written into the
+messenger code: a description of a service exists so the code need not know in
+advance what the vendor calls its team.
+
+A second thing surfaced in the same run, and it is about a change made two days
+earlier: the Mattermost test read the **last** request, and since the engine asks
+a third question with the stem of the word, «last» was no longer the person's
+word. The hand-written branch never asked it. The check reads the first request
+now, which is what `Recorder.first` was written for.
+
+**Still code, deliberately, and now for stated reasons:** Zulip wants Basic auth
+built from two halves, Matrix a nested body, Битрикс24 keeps the key in the path
+— and that one is not merely unimplemented: the engine **refuses** secrets in
+addresses, so describing Битрикс24 as data would mean removing a guard. Яндекс
+Трекер searches by POST with a body and a second credential. Each is a separate
 property of the format; descriptors must cover the frequent case, not every
 case.
 

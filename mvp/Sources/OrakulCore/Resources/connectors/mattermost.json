@@ -1,0 +1,28 @@
+{
+  "id": "mattermost",
+  "title": "Mattermost",
+  "docs": "https://api.mattermost.com/#tag/posts/operation/SearchPostsInTeam",
+  "verifiedOn": "2026-08-21",
+  "note": "Свой сервер, поиск по сообщениям команды: POST /api/v4/teams/{team}/posts/search с телом {terms, is_or_search}. is_or_search: false — это И, а не ИЛИ: при ИЛИ выдача забивается сообщениями, где совпало одно случайное слово, а подсказка из случайных сообщений хуже пустой. Ответ устроен иначе, чем у остальных: строки лежат СЛОВАРЁМ posts по идентификатору, а порядок по совпадению — отдельным массивом order. Разбирать значения словаря нельзя: в Swift он неупорядочен, и человек получил бы случайное сообщение первым. Автор приходит идентификатором (user_id), имени в этом ответе нет.",
+  "parameters": [
+    { "name": "team", "title": "Команда", "example": "9x7k2m4npq" }
+  ],
+  "request": {
+    "method": "POST",
+    "path": "/api/v4/teams/{team}/posts/search",
+    "query": [],
+    "body": "{\"terms\": \"{query}\", \"is_or_search\": false}",
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ]
+  },
+  "response": {
+    "list": ["posts"],
+    "order": ["order"],
+    "title": ["message"],
+    "author": ["user_id"],
+    "key": [],
+    "state": []
+  }
+}

@@ -298,7 +298,22 @@ public struct WorkMessengers {
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
-        let connector = ManifestConnector(manifest: manifest, token: token, host: host, cache: cache, caseMemory: caseMemory, http: http)
+        // Область (у Mattermost — команда) уезжает под тем именем, которым её
+        // назвал САМ манифест.
+        //
+        // Без этого манифест с параметром в пути не работал вовсе: движок не
+        // получал `team`, подстановка оставалась неразрешённой, и поиск отвечал
+        // «не настроено» — при настроенном сервисе. Поймал существующий набор в
+        // ту же минуту, когда манифест появился.
+        //
+        // Имя берётся из манифеста, а не пишется здесь: описание сервиса на то и
+        // описание, чтобы код не знал заранее, как вендор зовёт свою команду.
+        var values: [String: String] = [:]
+        if let field = manifest.parameters?.first, let scope, !scope.isEmpty {
+            values[field.name] = scope
+        }
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host,
+                                          values: values, cache: cache, caseMemory: caseMemory, http: http)
         do {
             return try await connector.search(query).map {
                 Hit(author: $0.author.isEmpty ? nil : $0.author, text: $0.title, service: service)

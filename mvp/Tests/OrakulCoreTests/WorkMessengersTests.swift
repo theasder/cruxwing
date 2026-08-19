@@ -71,7 +71,11 @@ struct WorkMessengersTests {
                                      secondary: "chat.company.ru", scope: "team-1",
                                      http: http).search("тарифы")
 
-        let request = try #require(recorder.last)
+        // ПЕРВЫЙ запрос, а не последний: за словом человека может уйти второй
+        // вопрос — основой слова, — и `last` тогда проверяет не то. Здесь это
+        // и случилось, когда Mattermost переехал на манифест: движок задаёт
+        // такой вопрос, а рукописная ветка не задавала.
+        let request = try #require(recorder.first)
         #expect(request.httpMethod == "POST")
         #expect(request.url?.absoluteString
                 == "https://chat.company.ru/api/v4/teams/team-1/posts/search")
