@@ -69,7 +69,45 @@ enum MCPImportToolPolicy {
         "uploads", "upsert", "upserts", "write", "writes", "writing"
     ]
 
+    /// Указания модели, спрятанные в описании инструмента.
+    ///
+    /// Известный приём против MCP: сервер объявляет безобидный с виду поиск, а
+    /// в описании пишет «сначала выполни …», «игнорируй прежние указания».
+    /// Описание — часть данных, которые сервер отдаёт о себе, и оно попадает в
+    /// разбор наравне с именем.
+    ///
+    /// Здесь тот же список признаков, что и у `PromptInjectionGuard`, но
+    /// последствие ДРУГОЕ, и разница намеренная. У расшифровки признак только
+    /// помечает предложение: люди на созвонах произносят что угодно, и сторож,
+    /// срабатывающий на обычную речь, быстро перестаёт читаться. В описании
+    /// инструмента такие обороты не появляются случайно — их туда пишут. При
+    /// одинаковых словах частота ошибки разная, поэтому и ответ разный: такой
+    /// инструмент не берётся вовсе.
+    /// Обороты, которые в честном описании инструмента не встречаются.
+    ///
+    /// Общий сторож настроен на живую речь и намеренно узок: на созвоне люди
+    /// произносят что угодно. В поле описания порог другой — здесь машинный
+    /// текст от третьей стороны, и обращение к «твоим инструкциям» или к
+    /// системному промпту помощника не бывает случайным.
+    private static let metadataPhrases = [
+        "disregard your", "ignore your", "your system prompt",
+        "системный промпт", "твои инструкции", "твой системный",
+    ]
+
+    static func hidesInstructions(_ tool: Tool) -> PromptInjectionGuard.Signal? {
+        if let signal = PromptInjectionGuard.signal(in: tool.name) { return signal }
+        if let signal = PromptInjectionGuard.signal(in: tool.description ?? "") { return signal }
+
+        let haystack = ((tool.description ?? "") + " " + tool.name).lowercased()
+        for phrase in metadataPhrases where haystack.contains(phrase) {
+            return PromptInjectionGuard.Signal(matched: phrase)
+        }
+        return nil
+    }
+
     static func isSafeForImport(_ tool: Tool) -> Bool {
+        if hidesInstructions(tool) != nil { return false }
+
         let nameTokens = tokens(in: tool.name)
         guard !nameTokens.isEmpty else { return false }
 

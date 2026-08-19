@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 604 | README, maintainer run |
+| App and core tests | 2839 and 604 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,37 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The injection guard had no Russian in it.** Its phrase list was English plus
+Latin transliteration — `ignoriruy predydushchie` was caught, «Игнорируй
+предыдущие инструкции» was not. In a Russian product, where the pages and
+tickets arriving through connectors are written in Russian, that is the wrong
+way round. Found while examining MCP tool descriptions, not by looking at the
+guard.
+
+The addition follows the same rule the file already sets for itself: every
+phrase names the assistant's own instructions or hides an action from the
+person, and the imperative form is required. «Поиск игнорирует регистр» appears
+in honest descriptions; «игнорируй» is not something you say to a colleague. The
+benign half is tested as seriously as the attacking half — «Не говори заказчику
+про сроки» must survive, or the guard fires in every meeting and stops being
+read.
+
+**Tool metadata gets a stricter threshold than speech, deliberately.** An MCP
+server is third-party code the person connects, and it describes itself: name,
+description, hints. The known attack is a read-shaped tool whose description
+carries instructions for the model — which passes a mutation-word check
+untouched, because it contains no write verbs. The same signals now refuse the
+tool outright rather than flagging it, and a few phrases are added that would be
+absurd in an honest description («disregard your», «your system prompt»,
+«системный промпт»).
+
+The asymmetry is the point, not an inconsistency. Identical words, different
+base rate: a meeting is full of people saying anything, a description field is
+machine text from a stranger. Both mutations that widen the metadata list to
+ordinary words («instructions», «prompt») fail the suite by breaking honest
+tools — the cost of over-refusal is a source the person loses, and it is checked
+in both directions.
 
 **Wiki.js is now verified by a script rather than by hand.** Yesterday it was
 stood up manually, and the bug it exposed took the rest of the tick — so the
