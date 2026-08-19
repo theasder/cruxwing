@@ -172,7 +172,10 @@ struct WorkMessengersTests {
                                             secondary: "matrix.company.ru",
                                             http: http).search("тарифы")
 
-        let request = try #require(recorder.last)
+        // Первый запрос — со словом человека; второй движок задаёт основой.
+        // Третья проверка за три дня, споткнувшаяся об это: `last`
+        // перестал быть словом человека, когда появился вопрос основой.
+        let request = try #require(recorder.first)
         #expect(request.httpMethod == "POST")
         #expect(request.url?.absoluteString
                 == "https://matrix.company.ru/_matrix/client/v3/search")

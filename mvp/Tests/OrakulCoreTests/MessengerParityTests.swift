@@ -68,4 +68,22 @@ import FoundationNetworking
         #expect(legacy.first?.text == "<p>Тарифы <strong>с декабря</strong></p>")
         #expect(manifest.first?.text != legacy.first?.text)
     }
+
+    @Test("Matrix: манифест и рука читают одну и ту же вложенность")
+    func matrixParity() async throws {
+        // Вложенность здесь родная для сервиса: он умеет искать в нескольких
+        // категориях сразу. Манифест ходит по тому же пути путями полей, а не
+        // разбором руками.
+        let json = #"""
+        {"search_categories":{"room_events":{"results":[
+          {"result":{"content":{"body":"Тарифы с декабря"},"sender":"@anya:company.ru"}},
+          {"result":{"content":{"body":"Лимиты позже"},"sender":"@boris:company.ru"}}
+        ]}}}
+        """#
+        let (manifest, legacy) = try await Self.both(.matrix, json: json, scope: nil)
+        #expect(manifest.map(\.text) == legacy.map(\.text))
+        #expect(manifest.map(\.author) == legacy.map(\.author))
+        #expect(manifest.first?.text == "Тарифы с декабря")
+        #expect(manifest.first?.author == "@anya:company.ru")
+    }
 }

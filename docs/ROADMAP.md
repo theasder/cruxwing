@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 643 | README, maintainer run |
+| App and core tests | 2886 and 644 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 16**, and the number is counted from that directory rather
+**Today there are 17**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -618,11 +618,34 @@ a person mid-call. The manifest strips the markup. The parity check asserts the
 two differ *and* what each produces, so it stays a decision instead of becoming
 the next person's discovery.
 
-**Still code, deliberately, and now for stated reasons:** Matrix wants a nested
-body, Битрикс24 keeps the key in the path — and that one is not merely
-unimplemented: the engine **refuses** secrets in addresses, so describing
-Битрикс24 as data would mean removing a guard. Яндекс Трекер searches by POST
-with a body and a second credential. Each is a separate
+**Matrix is the ninth, and its reason had expired too — 2026-08-21.** «Wants a
+nested body» stopped being a blocker when the body became a string template: a
+template does not care how deep the JSON inside it goes, and the response paths
+were already arrays because Outline needed `document.title`. Matrix nests three
+levels on the way in and four on the way out, and neither needed anything new.
+
+**Two reasons out of four had rotted, and that is a hole in how this file is
+kept.** Every number here is recomputed from code on each run, precisely because
+a number that was true when written reads exactly like one that still is. The
+*reasons* had no such check — and «still code because X» is a claim about the
+code just as much as «fourteen manifests» is. `test/roadmap.test.mjs` now holds
+the list against the manifest directory: a service named here as code must not
+have a manifest file. Write one and the plan is required to catch up.
+
+**Still code, and now for reasons that were re-checked rather than remembered:**
+
+* **Яндекс Трекер.** The old wording — «searches by POST with a body and a second
+  credential» — describes two things the format now does: bodies are templates,
+  and a parameter substitutes into a header value as readily as into a path. The
+  real blocker is narrower and more interesting: the **name** of the header
+  depends on the shape of the value. A numeric organisation id means Яндекс 360
+  and `X-Org-ID`; anything else means Yandex Cloud and `X-Cloud-Org-ID`, and
+  sending the wrong one returns a refusal that looks like a bad token. A manifest
+  can carry a header whose value is chosen by a person; it cannot carry one whose
+  *name* is chosen by a rule.
+* **Битрикс24** keeps the key in the path, and that is not merely unimplemented:
+  the engine **refuses** secrets in addresses, so describing it as data would mean
+  removing a guard. Each is a separate
 property of the format; descriptors must cover the frequent case, not every
 case.
 

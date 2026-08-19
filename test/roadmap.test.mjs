@@ -211,6 +211,27 @@ describe('ROADMAP', () => {
     assert.ok(section('7.2').includes(`scanPageLimit\` = ${limit}`),
       `§7.2 называет не тот предел страниц: в коде ${limit}`);
 
+    // Причины стареют так же, как числа, и заметны ещё меньше.
+    //
+    // §6.2 держит список «остаётся кодом, и вот почему». Две причины из четырёх
+    // оказались просроченными: Zulip ждал Basic-авторизации, появившейся вместе
+    // с Nextcloud, а Matrix — вложенного тела, переставшего быть преградой,
+    // когда тело стало шаблоном-строкой. Обе фразы читались как верные.
+    //
+    // Числа здесь пересчитываются из кода на каждом прогоне; у причин такой
+    // проверки не было. «Остаётся кодом» — утверждение о коде ровно в той же
+    // мере, что и «четырнадцать манифестов».
+    const described = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                                          'Resources', 'connectors'))
+      .filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
+    const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24' };
+    const stillCode = section('6.2').slice(section('6.2').indexOf('Still code'));
+    for (const [name, id] of Object.entries(claimedAsCode)) {
+      assert.ok(stillCode.includes(name), `§6.2 больше не называет ${name} среди остающихся кодом`);
+      assert.ok(!described.includes(id.toLowerCase()),
+        `§6.2 зовёт ${name} кодом, а манифест для него уже написан`);
+    }
+
     const manifests = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                                           'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json')).length;

@@ -1,0 +1,24 @@
+{
+  "id": "matrix",
+  "title": "Matrix / Element",
+  "docs": "https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3search",
+  "verifiedOn": "2026-08-21",
+  "note": "Свой сервер (Synapse и совместимые). Полнотекстовый поиск по событиям комнат: POST /_matrix/client/v3/search, тело вложенное — сервер умеет искать в нескольких «категориях» сразу, нам нужна одна, room_events. order_by: recent — по свежести, а не по релевантности: на звонке важнее «когда решили», чем «где слово встретилось чаще». Ответ вложен так же глубоко: строка лежит в result.content.body, автор — в result.sender. Вложенность родная для сервиса, а не наша.",
+  "request": {
+    "method": "POST",
+    "path": "/_matrix/client/v3/search",
+    "query": [],
+    "body": "{\"search_categories\": {\"room_events\": {\"search_term\": \"{query}\", \"order_by\": \"recent\"}}}",
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ]
+  },
+  "response": {
+    "list": ["search_categories", "room_events", "results"],
+    "title": ["result", "content", "body"],
+    "author": ["result", "sender"],
+    "key": [],
+    "state": []
+  }
+}
