@@ -108,6 +108,7 @@ public struct TeamNotes {
         /// Ответ больше, чем бывает у поиска.
         case tooLarge(bytes: Int)
         case http(Int)
+        case vendor(code: String, description: String)
         case webPage
         case unreadable
 
@@ -130,6 +131,9 @@ public struct TeamNotes {
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "База знаний ответила ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+            case .vendor(let code, let description):
+                let prefix = code.isEmpty ? "" : "\(code) — "
+                return "Вики отказала: \(prefix)\(description)"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable:
@@ -219,7 +223,10 @@ public struct TeamNotes {
             // Свои слова сервиса у этих трёх в отдельный случай не выделены:
             // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
             // сервис появится, ветку надо будет раскрыть, а не оставить общей.
-            case .vendor:        throw ConnectorError.unreadable
+            // Доказано на живом сервисе 2026-08-19: Wiki.js отвечает 200 и
+            // errors[0].message = «Forbidden», когда доступ сняли.
+            case .vendor(let code, let description):
+                throw ConnectorError.vendor(code: code, description: description)
             case .webPage:       throw ConnectorError.webPage
             case .unreadable:    throw ConnectorError.unreadable
             }

@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 281 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 597 | README, maintainer run |
+| App and core tests | 2833 and 600 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,33 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**A live Wiki.js disproved a comment, and the defect was one layer below every
+test.** Wiki.js 2 was stood up in a container with Postgres, seeded through its
+own GraphQL API, and its access revoked — which is what a service withdrawing
+access actually looks like: `200`, `data.pages: null`, `errors[0].message:
+"Forbidden"`. The connector answered **«непонятный ответ»**, sending the person
+to check the address and the server version. The address was right, the version
+irrelevant, the access gone.
+
+The engine was correct. `ManifestConnector` distinguishes a refusal in the body
+from an unreadable answer, and that was tested — **on the engine**. The
+application does not call the engine; it calls the family wrapper, and two
+wrappers mapped `.vendor` straight back to `.unreadable`. Every test was green
+because they all stopped one layer above the person.
+
+The comment there had even named the condition for opening the branch: «their
+refusals arrive as an HTTP code, not as a body with a flag — if such a service
+appears, open it». Such a service was already in that family. And a second one
+ships in another: Slack declares `requireTrue: ["ok"]` with `errorCode:
+["error"]`, so `invalid_auth` — a word that tells you to reissue a token — was
+being replaced by advice about server versions.
+
+Both are open now, with the third family opened deliberately though no manifest
+of its own refuses that way today: `.vendor` comes from the shared engine, so
+leaving the swallow in place would just be waiting for the first manifest that
+does. The regression test crosses the boundary the old ones never did, using the
+exact body the live Wiki.js returned.
 
 **Everything above stands on certificate validation, and nothing was watching
 it.** The rule about `http`, the refusal to follow a redirect off-host, the

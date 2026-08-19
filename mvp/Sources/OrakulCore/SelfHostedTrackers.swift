@@ -119,6 +119,7 @@ public struct SelfHostedTrackers {
         /// Ответ больше, чем бывает у поиска.
         case tooLarge(bytes: Int)
         case http(Int)
+        case vendor(code: String, description: String)
         case webPage
         case unreadable
 
@@ -143,6 +144,9 @@ public struct SelfHostedTrackers {
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "Трекер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+            case .vendor(let code, let description):
+                let prefix = code.isEmpty ? "" : "\(code) — "
+                return "Трекер отказал: \(prefix)\(description)"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа: сессия за единым входом истекла или адрес ведёт на сам сервер, а не на его API."
             case .unreadable:
@@ -235,7 +239,11 @@ public struct SelfHostedTrackers {
             // Свои слова сервиса у этих трёх в отдельный случай не выделены:
             // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
             // сервис появится, ветку надо будет раскрыть, а не оставить общей.
-            case .vendor:        throw ConnectorError.unreadable
+            // Ни один манифест этой семьи сегодня не объявляет отказ телом. Ветка
+            // всё равно раскрыта: `.vendor` кидает общий движок, и молчаливое
+            // «непонятный ответ» здесь ждало бы только первого такого манифеста.
+            case .vendor(let code, let description):
+                throw ConnectorError.vendor(code: code, description: description)
             case .webPage:       throw ConnectorError.webPage
             case .unreadable:    throw ConnectorError.unreadable
             }
