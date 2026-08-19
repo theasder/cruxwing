@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 337 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2939 and 667 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -2262,6 +2262,21 @@ one, the command line and the tests get their own. That distinction was not
 foresight — a shared default made neighbouring tests receive each other's
 answers within minutes of being written, which is the same global-state trap
 this repository keeps stepping into.
+
+**Muting is the only way to stop asking a competitor, and nothing held it in
+place (2026-08-20).** A person who connects Fireflies and later mutes it has one
+reason for doing so: not to hand a competing product the topic of every call on
+a schedule. The mute is subtracted in exactly one place — `researchableServers`
+— and every asking path goes through it today: the background scan, the answer
+on a call, the action planner, the task writeback, the agentic reader. Beside it
+lives `researchableServersIncludingMuted`, which display needs, because an app
+that vanished from the strip when muted could never be switched back on.
+
+The two differ by one word, and the cost is not symmetric. Writing the full list
+in a new asking path compiles, passes every suite, and cannot be seen by
+reading — the difference is a word, not a shape. The list of places allowed to
+see everything is now written down and checked, and the check was proved by
+muting the wrong thing on purpose in a file it had never been pointed at.
 
 What this audit does **not** claim. It covers connectors described by manifests
 and the shared engine, plus the four hand-written parsers named above. A vendor can still do things nothing here detects —
