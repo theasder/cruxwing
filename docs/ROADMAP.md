@@ -1247,7 +1247,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea, Redmine and Wiki.js were checked that way 2026-08-19 |
+| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea, Redmine, Wiki.js and Nextcloud were checked that way 2026-08-19 |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
@@ -1301,6 +1301,31 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Two services out of four search Russian case-sensitively, and it is the same
+cause.** Nextcloud 29 was verified live and behaves exactly as Redmine did:
+«Тарифы» finds the file, «тарифы» finds nothing, Latin `SSO` is unaffected. Both
+ship SQLite by default, and SQLite's `LIKE` folds case for ASCII only. This is
+no longer a quirk of one connector — it is what a small self-hosted install does
+to Russian search, and the transcript hands us lowercase words, because that is
+how people speak.
+
+Nothing in the connector can fix it and nothing pretends to. It is recorded in
+both manifest notes, where somebody debugging «it found half of my files» will
+meet it.
+
+Two other facts about Nextcloud earned their place in the note: the unified
+search matches **file names by substring**, so «тарифы» does not find «пересчёт
+тарифов» — a Russian ending is enough to miss — and `subline` arrives empty for
+files, so the hint carries no context. Both are the service's data rather than
+our loss, and neither is visible in the documentation.
+
+**The probe script could not fail on an empty answer.** It printed «коннектор
+ответил пустотой» and exited zero: the live probe counts any reply as success,
+which is right for the probe and wrong for the script, because the script seeds
+the data itself and two of three records contain the word. It now exits 1, and
+that was found the honest way — the first Nextcloud run returned nothing, and the
+script called it a pass.
 
 **The injection guard had no Russian in it.** Its phrase list was English plus
 Latin transliteration — `ignoriruy predydushchie` was caught, «Игнорируй
