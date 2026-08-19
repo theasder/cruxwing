@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 313 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2865 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1385,6 +1385,26 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**One switch holds several doors, and it was unguarded.** `Config.isDevBuild`
+reads `Secrets.devMode`, and twenty-five places depend on it: content-bearing
+call diagnostics that an environment variable turns on, the tier preview, and —
+sharpest — `usesDataProtectionKeychain`. So «tokens stay on this Mac», pinned two
+days ago by its own suite, silently rested on this switch as well.
+
+`build.sh` bakes `0` for a distribution build and `1` otherwise, which is right
+and was right before this tick. Nothing checked it: inverting one ternary would
+have shipped an application whose call contents can be dumped to disk by setting
+an environment variable, and whose tokens move to the classic login keychain.
+
+Two checks now. The line must bake `0` under `DIST=1` and `1` outside it — the
+second half matters too, or a developer loses their own tools and adds the flag
+back some other way. And `DEV_MODE` must stay out of the `.env` allowlist, so the
+switch cannot be flipped from outside the build script.
+
+Both were verified with `scripts/mutaciya.py` rather than by hand, which is what
+it was written for: invert the ternary, add `DEV_MODE` to the allowlist, watch
+the run go red, and have the tree restored by checksum afterwards.
 
 **The method itself was the weakest guard here.** Mutation is how this file
 separates a watchman from an ornament, and it was improvised in the shell every

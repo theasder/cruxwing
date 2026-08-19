@@ -403,3 +403,35 @@ describe('учётные данные', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+test('сборка для распространения печёт devMode = 0', () => {
+  // Один переключатель держит несколько дверей.
+  //
+  // `Config.isDevBuild` читает `Secrets.devMode`, и от него зависят 25 мест:
+  // содержательная диагностика звонка, включаемая переменной окружения;
+  // предпросмотр тарифов; и — резче всего — `usesDataProtectionKeychain`. То
+  // есть свойство «токены остаются на этом компьютере», закреплённое отдельным
+  // набором, молча стоит на этом же переключателе.
+  //
+  // В build.sh он верный. Держало его ничто: инверсия тернарного оператора
+  // осталась бы незамеченной, а в собранном приложении появилась бы выгрузка
+  // содержимого звонка по переменной окружения.
+  const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+  const line = build.split('\n').find((l) => l.includes('static let devMode'));
+  assert.ok(line, 'build.sh больше не печёт devMode — проверять нечего');
+  assert.match(line, /DIST"?\s*=\s*"?1"?\s*\]\s*&&\s*printf\s*'0'/,
+    `при DIST=1 обязан печься 0, а строка такая: ${line.trim()}`);
+  assert.match(line, /\|\|\s*printf\s*'1'/,
+    'вне DIST обязан печься 1, иначе разработчик лишится своих же инструментов');
+});
+
+test('DEV_MODE нельзя внести через .env в сборку для распространения', () => {
+  // Список разрешённых имён в build.sh — это то, что вообще попадает в
+  // Secrets.swift при DIST. DEV_MODE там быть не должно: иначе переключатель
+  // включается снаружи, минуя строку выше.
+  const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+  const allowlist = build.split('\n').find((l) => l.includes('BACKEND_CERT_PINS'));
+  assert.ok(allowlist, 'список разрешённых имён не найден — разбор сломан');
+  assert.ok(!/DEV_MODE/.test(allowlist),
+    `DEV_MODE попал в список разрешённых: ${allowlist.trim()}`);
+});
