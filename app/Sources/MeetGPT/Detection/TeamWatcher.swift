@@ -96,7 +96,11 @@ final class TeamWatcher: ObservableObject {
         // 3. Optional automated response
         if Config.teamWatchAutoAck {
             await TeamConnectors.post(service, channel: item.channel,
-                                      text: "⚑ Cruxwing watch: flagged “\(keyword)” — the team has been notified.")
+                                      // Это сообщение УХОДИТ В ЧАТ КОМАНДЫ и
+                                      // видно всем, включая владельца сервиса.
+                                      // Стояло чужое имя продукта, и
+                                      // по-английски — в русской переписке.
+                                      text: "⚑ orakul: замечено слово «\(keyword)» — команда уведомлена.")
         }
     }
 

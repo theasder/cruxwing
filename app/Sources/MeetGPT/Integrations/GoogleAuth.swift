@@ -121,8 +121,8 @@ enum GoogleAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingClientID: return "Add GOOGLE_CLIENT_ID for the Google Desktop OAuth client and rebuild Cruxwing."
-        case .missingClientSecret: return "Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild Cruxwing."
+        case .missingClientID: return "Add GOOGLE_CLIENT_ID for the Google Desktop OAuth client and rebuild orakul."
+        case .missingClientSecret: return "Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild orakul."
         case .badClientID:     return "That doesn't look like a Google OAuth client ID."
         case .noServicesSelected: return "Select at least one Google Workspace service before connecting."
         case .cancelled:       return "Google sign-in was cancelled."

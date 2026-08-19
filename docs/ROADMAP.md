@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 298 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 301 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2857 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1358,6 +1358,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The parent product's name is now asked about once, everywhere.** Yesterday's
+fix covered two files, which is how every previous instance of this was found —
+one at a time, by stumbling on it. Asking the whole tree at once found two more,
+and the worse of them is not read by a person at all:
+
+* the **system prompt** told the model the transcript was «captured by Cruxwing
+  (a native macOS app)». That goes to the provider on every single request;
+* `TeamWatcher` posts an automatic reply **into the team's chat** — «⚑ Cruxwing
+  watch: flagged …» — visible to everyone in the channel and to whoever owns
+  that service, in English, in a Russian conversation.
+
+`test/chuzhoe-imya.test.mjs` reads string literals across both source trees and
+allows exactly one category: **addresses, not text**. `com.cruxwing.credentials`
+is a Keychain account, `cruxwing-tests/Sessions` is a folder of saved calls,
+`CRUXWING_*` are variables development scripts know. Renaming those buys a
+prettier plist and costs somebody their stored tokens and their saved meetings.
+
+The allow-list is checked in both directions, which mutation showed to be worth
+doing: turning a key into prose fails, and **renaming a key also fails** — the
+second test asserts the permitted patterns still match something, so a
+compatibility decision cannot be quietly reversed either.
 
 **orakul was introducing itself to every connected service as Cruxwing.** The
 MCP client sent `Client(name: "Cruxwing", version: "1.0.0")` on connect, and the
