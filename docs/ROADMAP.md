@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2939 and 663 | README, maintainer run |
+| App and core tests | 2939 and 667 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1773,6 +1773,30 @@ else, and the person sees a confident «ничего не нашлось» where
 something. An attempt to redirect the question on purpose looks exactly the
 same in the text, which is why both are disarmed by the same rule rather than
 by telling them apart.
+
+**The sweep finished where it started — the two connectors still written by
+hand (2026-08-20).** The paragraph above listed manifests, because that is what
+was swept; Яндекс Трекер is the fifth service whose search is a language, and it
+was not covered by that pass. Its question goes inside an expression:
+`Summary: "текст"`.
+
+What stood there was a substitution, not an escape: a double quote became an
+apostrophe. The apostrophe is not special in Tracker's language, so nothing was
+escaped — the string was simply **changed**, and a person asking about
+«"Избранное"» searched for a different word and did not find their own. The
+backslash was not touched at all, and it is the character that escapes the next
+one: a question ending in a backslash ate the closing quote, and the rest of the
+expression was no longer written by the person. The vendor states the rule
+plainly — `"` and `\` are escaped with a backslash — and the order is
+load-bearing: escape the backslash first, or the one just added is escaped by
+the second pass and `\"` becomes a backslash followed by a **closing** quote.
+
+Битрикс24, the other hand-written one, is left as it is on purpose. Its
+`TITLE` filter takes `%значение%`, where `%` and `_` are wildcards, so a
+question containing them matches more broadly than asked — wrong, but wrong in
+the direction of *more* results rather than of a rewritten question. The escape
+for that filter is not in the vendor's documentation, and the rule here is the
+same as everywhere else in this file: not found means it stays a question.
 
 Where the line was **not** crossed matters as much. Zulip builds its expression
 on our side — a `narrow` with a `search` operator — so inside the operand the
