@@ -65,3 +65,13 @@ test('пропущенный шаг находится', () => {
   const missing = [...wanted].filter((command) => !crippled.has(command));
   assert.equal(missing.length, 1, 'сравнение не замечает выпавший шаг');
 });
+
+// Проверка предупреждений должна ловить свой дефект, а не просто существовать.
+test('запрет на выброшенное значение написан так, как пишет компилятор', () => {
+  const script = readFileSync('scripts/proverka-preduprezhdenij.sh', 'utf8');
+  assert.match(script, /grep -nE "warning:\.\*/,
+    'совпадение ищется сразу после «warning:» — компилятор так не пишет, ' +
+    'и проверка пропустит «initialization of immutable value ... was never used»');
+  assert.match(script, /was never used/,
+    'запрет на выброшенное значение исчез — именно так пропало предупреждение о внедрении');
+});

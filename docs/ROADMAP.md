@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 297 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 298 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2849 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1358,6 +1358,32 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The compiler had said so, and nobody read it.** Yesterday's dropped signal was
+not silent after all — reverting the fix prints
+
+    warning: initialization of immutable value 'signal' was never used
+
+That line existed for as long as the defect did. A build prints hundreds of
+lines; a warning inside them is scenery.
+
+`scripts/proverka-preduprezhdenij.sh` builds both packages and fails on the
+warning classes that hide a defect rather than describe a style: a value
+computed and discarded, a return value ignored. Deliberately just those two.
+Banning every warning would mean the first person to hit an unrelated one
+disables the check — the four «mutation of captured var» in the core tests are
+real Swift-6 debt and are dealt with as debt, not under a red run.
+
+It is verified against the actual defect, not trusted: with the signal dropped
+the script exits 1 and quotes the line; with it passed, 0.
+
+**The first version of the check did not catch it.** The pattern required the
+phrase to follow «warning: » immediately, and the compiler writes
+«warning: initialization of immutable value 'signal' was never used». It ran,
+reported «запрещённых предупреждений нет», and exited 0 while the warning count
+went from two to four. A guard written from memory of what a message looks like
+is a guard tested against nothing — the shape of the pattern is now pinned by a
+check of its own.
 
 **The injection warning has never once been shown.** Following the competitor
 question to its most literal place — orakul consumes **Fireflies**, whose owner
