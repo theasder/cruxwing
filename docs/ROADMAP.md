@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2839 and 615 | README, maintainer run |
+| App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,24 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Yesterday's fix handed a hostile service a lever, so it is bounded now.** The
+connector asks a second spelling of a Russian word when it has learned that a
+service compares bytes. Nothing distinguishes a database that genuinely does
+from one that merely answers the two spellings differently on purpose — and the
+second is worth doing, because it makes us double our own traffic to them, after
+which they can throttle us with a straight face.
+
+The rule that closes it is one the repository already believes: «the throttling
+people complain about is partly our own», written for the cache. A `429` now
+stops the second spelling for that service and host. The knowledge is kept, not
+erased — the service is still known to compare bytes — it simply is not acted on
+while the service is asking for less. Half the answers beats «сервис просит
+обращаться реже».
+
+The suppression is keyed by service **and host**, because one company's
+throttled GitLab must not silence another's, and a mutation that keys it by
+service alone fails.
 
 **«Nothing the connector can do» lasted one day.** Yesterday's entry recorded
 case-sensitive Russian search on SQLite-backed installs and called it the

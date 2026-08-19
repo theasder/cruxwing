@@ -38,14 +38,40 @@ public actor ConnectorCaseMemory {
         "\(service)|\(host ?? "")"
     }
 
+    /// Сервисы, попросившие обращаться реже.
+    ///
+    /// Второе написание удваивает запросы к тому, кто уже сказал «реже». Свой
+    /// же комментарий про кэш: троттлинг, на который потом жалуются, отчасти
+    /// наш собственный.
+    ///
+    /// Недружелюбному сервису это ещё и рычаг: достаточно отвечать на два
+    /// написания по-разному — и мы сами удвоим ему нагрузку, после чего он
+    /// придушит нас на законных основаниях. Различить это и SQLite нечем, а
+    /// вот перестать давить, когда просят, можно.
+    private var askedToSlowDown: Set<String> = []
+
     public func behaviour(service: String, host: String?) -> Behaviour {
-        known[key(service, host)] ?? .unknown
+        // Просьба подождать сильнее знания: пока сервис душит, второе написание
+        // не спрашиваем, даже зная, что он сравнивает байты. Половина ответов
+        // лучше, чем ответ «сервис просит обращаться реже».
+        if askedToSlowDown.contains(key(service, host)) { return .foldsCase }
+        return known[key(service, host)] ?? .unknown
+    }
+
+    /// Сервис попросил обращаться реже — перестаём спрашивать вторым написанием.
+    public func slowDown(service: String, host: String?) {
+        askedToSlowDown.insert(key(service, host))
+    }
+
+    /// Знает ли память, что сервис просил подождать.
+    public func isSlowedDown(service: String, host: String?) -> Bool {
+        askedToSlowDown.contains(key(service, host))
     }
 
     /// Забыть всё. Нужно наборам: память общая на процесс, и без этого
     /// соседние проверки начинают зависеть от порядка — общий кэш однажды уже
     /// переносил ответы между наборами, идущими рядом.
-    public func forget() { known.removeAll() }
+    public func forget() { known.removeAll(); askedToSlowDown.removeAll() }
 
     public func learn(_ behaviour: Behaviour, service: String, host: String?) {
         guard behaviour != .unknown else { return }

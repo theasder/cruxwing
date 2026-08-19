@@ -296,6 +296,9 @@ public struct ManifestConnector {
             await cache.store(outcome, service: manifest.id, host: host, query: trimmed)
             return outcome
         } catch ConnectorError.rateLimited(let retryAfter) {
+            // Раз просят реже — перестаём спрашивать вторым написанием.
+            await caseMemory.slowDown(service: manifest.id, host: host)
+
             // Сервис просит подождать. Выбор здесь не между свежим и старым, а
             // между старым и никаким: молчащий источник на звонке — это
             // «ничего не нашлось» в чужих словах.
