@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2866 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -845,6 +845,37 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**GitLab verified against a live install on 2026-08-19 — the manifest held,
+and the guard beside it did not.** GitLab is the most common own-server among
+western teams and its manifest was the oldest unverified one, written from the
+docs on 2026-08-12. Raised here (no arm64 image exists, so it runs emulated and
+takes twenty minutes), it confirmed every claim: `/api/v4/search?scope=issues`,
+header `PRIVATE-TOKEN`, a top-level array, `iid` as the number, `title`, `state`.
+Search is by substring and folds case: `тарифы` finds two, the stem `тариф`
+finds three — the oblique row reaches the person through the stem question.
+
+Six services are now verified against something running, not something printed.
+
+What the run did expose is on our side. **The injection guard was reading a
+field that five of six paths never filled.** A person's write-back is checked
+against what the answer was based on, because a ticket or a wiki page can hold
+an instruction to the model that leaves no trace in the answer itself. That
+check reads `lastConnectorContext` — and of the six places where connector
+findings became part of a prompt, exactly one recorded what it sent. The two
+main paths, the ones that answer during a call, were among the five that did
+not. The guard was written, called, and blind: it was inspecting the previous
+question's material, or nothing.
+
+Rendering now happens behind one door that records what it returns, and two
+checks hold the rule — one in the app's own suite, one in the repository's —
+so a seventh path cannot quietly forget.
+
+And a note on what a compiler will not tell you: while routing all six sites
+through that door, the replacement also rewrote the door's **own** body, making
+it call itself. Swift compiled that without a word. The structural check caught
+it on the first run — a recursion that would have hung the app on the first
+grounded answer.
 
 **The stem question was measured on one service, and five say different
 things.** A day-old feature verified against a single install is the same

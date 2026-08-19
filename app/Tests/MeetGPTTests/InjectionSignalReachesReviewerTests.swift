@@ -85,6 +85,24 @@ import Foundation
         #expect(staging.contains("lastConnectorContext"),
                 "проверяется только ответ, а указание может лежать в данных сервиса")
 
+        // ...и что этот текст ЗАПОЛНЯЕТСЯ на всех путях, а не на одном.
+        //
+        // Сторож смотрел на `lastConnectorContext`, а тот заполнялся в одном
+        // месте из шести: пять путей — включая оба главных, по которым идёт
+        // ответ на звонке, — клали находки коннекторов в запрос молча. Проверка
+        // выше этого не видела: она спрашивает, ЧТО проверяется, а не откуда
+        // оно берётся.
+        let doorCount = source.components(separatedBy: "PromptWorkflows.renderGrounding(").count - 1
+        #expect(doorCount == 1,
+                "находки рендерятся \(doorCount) раз(а) мимо двери, ведущей запись")
+        let door = try #require(source.range(of: "func groundingBlock").map { start -> String in
+            let tail = String(source[start.lowerBound...])
+            guard let end = tail.range(of: "\n    }") else { return tail }
+            return String(tail[..<end.lowerBound])
+        })
+        #expect(door.contains("lastConnectorContext = block") && door.contains("return block"),
+                "дверь запоминает не то, что отдаёт запросу")
+
         // Вызвать сторожа мало — надо ещё донести его ответ.
         //
         // Именно этого и не было: `signal` вычислялся и НЕ передавался в

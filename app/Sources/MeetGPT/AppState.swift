@@ -652,6 +652,24 @@ final class AppState: ObservableObject {
     /// не останется и следа — модель сделает, что просили, и напишет обычную
     /// фразу.
     private(set) var lastConnectorContext: String = ""
+
+    /// Находки коннекторов для запроса — и одновременно запись о том, что
+    /// именно уехало модели.
+    ///
+    /// Отдельная дверь, потому что запоминать забывали. Мест, где находки
+    /// превращались в кусок запроса, было шесть, а запись велась в одном:
+    /// пять путей — включая оба главных, по которым идёт ответ на звонке, —
+    /// клали текст чужого сервиса в запрос, и `PromptInjectionGuard` при
+    /// предложении записи смотрел на прошлый или пустой текст. Сторож был
+    /// написан, позван и слеп: он проверял не то, что легло в основу ответа.
+    ///
+    /// Проверка `zapis-nahodok.test.mjs` держит это правило: `renderGrounding`
+    /// в `AppState` зовётся только отсюда.
+    func groundingBlock(_ snippets: [GroundingSnippet]) -> String {
+        let block = PromptWorkflows.renderGrounding(snippets)
+        lastConnectorContext = block
+        return block
+    }
     /// Exact user/button request that produced the visible assistant answer.
     /// Kept separately because the composer and follow-up chips clear as soon
     /// as a run begins, while DOCX export may happen much later.
@@ -3955,7 +3973,7 @@ final class AppState: ObservableObject {
                         for: priorWorkflow, promptID: "goal",
                         query: priorQuery, runGeneration: -1)
                     if !priorCalls.isEmpty {
-                        let block = PromptWorkflows.renderGrounding(priorCalls)
+                        let block = self.groundingBlock(priorCalls)
                         user += "Earlier calls and logged decisions from this team:\n"
                             + String(block.prefix(4_000)) + "\n\n"
                     }
@@ -7363,7 +7381,7 @@ final class AppState: ObservableObject {
                         for: workflow, promptID: "logdecision", query: query,
                         runGeneration: runGeneration)
                     if !snippets.isEmpty {
-                        let block = PromptWorkflows.renderGrounding(snippets)
+                        let block = self.groundingBlock(snippets)
                         groundedContext = context.isEmpty ? block : context + "\n\n" + block
                     }
                 }
@@ -7530,7 +7548,7 @@ final class AppState: ObservableObject {
                     for: workflow, promptID: "factcheck", query: query,
                     runGeneration: runGeneration)
                 if !snippets.isEmpty {
-                    let block = PromptWorkflows.renderGrounding(snippets)
+                    let block = self.groundingBlock(snippets)
                     groundedContext = context.isEmpty ? block : context + "\n\n" + block
                 }
             }
@@ -8384,9 +8402,7 @@ final class AppState: ObservableObject {
             .filter { Date().timeIntervalSince($0.at) < Self.groundingTTL }
             .flatMap(\.snippets)
         guard !snippets.isEmpty else { return "" }
-        let digest = PromptWorkflows.renderGrounding(Array(snippets.prefix(8)))
-        lastConnectorContext = digest
-        return digest
+        return groundingBlock(Array(snippets.prefix(8)))
     }
 
     func saveCustomPrompt(_ prompt: QuickPrompt) {
@@ -8485,7 +8501,7 @@ final class AppState: ObservableObject {
                         for: workflow, promptID: promptID, query: query,
                         runGeneration: runGeneration)
                     if !snippets.isEmpty {
-                        let block = PromptWorkflows.renderGrounding(snippets)
+                        let block = self.groundingBlock(snippets)
                         groundedContext = context.isEmpty ? block : context + "\n\n" + block
                     }
                 }
@@ -8709,7 +8725,7 @@ final class AppState: ObservableObject {
                         for: workflow, promptID: promptID, query: query,
                         runGeneration: runGeneration)
                     if !snippets.isEmpty {
-                        let block = PromptWorkflows.renderGrounding(snippets)
+                        let block = self.groundingBlock(snippets)
                         groundedContext = context.isEmpty ? block : context + "\n\n" + block
                     }
                 }

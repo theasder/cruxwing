@@ -11,6 +11,7 @@
 #     bash scripts/zhivaya-proba.sh wikijs
 #     bash scripts/zhivaya-proba.sh nextcloud
 #     bash scripts/zhivaya-proba.sh plane
+#     bash scripts/zhivaya-proba.sh gitlab   — минут двадцать, см. ниже
 #
 # Сервис поднимается, наполняется тремя задачами (две со словом «тарифы», одна
 # без), коннектор ищет это слово, контейнер удаляется. Токен создаётся здесь же
@@ -33,8 +34,8 @@ TASKS=("Поднять тарифы с декабря" "Починить вхо�
        "Пересчитать смету вместе с тарифами")
 
 case "$SERVICE" in
-  gitea|redmine|wikijs|nextcloud|plane) ;;
-  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane" >&2; exit 2 ;;
+  gitea|redmine|wikijs|nextcloud|plane|gitlab) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
@@ -185,6 +186,42 @@ t, _ = APIToken.objects.get_or_create(user=u, workspace=ws, label='proba')
 print('%s %s' % (pr.id, t.token))" | tail -1)
   TOKEN="${SETUP##* }"
   FIELDS=(ORAKUL_FIELD_workspace=moya-komanda "ORAKUL_FIELD_project=${SETUP%% *}")
+elif [ "$SERVICE" = gitlab ]; then
+  PORT=3993
+  # Двадцать минут на подъём — и это не преувеличение: официального образа под
+  # arm64 у GitLab CE нет, на этой машине он идёт через эмуляцию. Проба всё
+  # равно нужна: GitLab — самый частый свой сервер у западных команд, а его
+  # манифест был собран по документации.
+  #
+  # Порт снаружи и внутри ОДИН И ТОТ ЖЕ: nginx слушает тот, что стоит в
+  # external_url, поэтому «-p 3993:80» даёт контейнер, который здоров и молчит.
+  docker run -d --name "$NAME" --shm-size 256m -p "$PORT:$PORT" \
+    -e GITLAB_OMNIBUS_CONFIG="external_url 'http://localhost:$PORT'; gitlab_rails['initial_root_password']='ProbaProba123!'; puma['worker_processes']=2; sidekiq['max_concurrency']=5; prometheus_monitoring['enable']=false; gitlab_rails['gitlab_shell_ssh_port']=2222" \
+    gitlab/gitlab-ce:17.5.1-ce.0 >/dev/null
+  echo ">> gitlab поднимается, это долго"
+  for _ in $(seq 1 100); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://localhost:$PORT/api/v4/version" || true)
+    [ "$code" = "401" ] && break
+    sleep 20
+  done
+  [ "$code" = "401" ] || { echo "!! gitlab не поднялся" >&2; exit 1; }
+
+  # Токен только на чтение: коннектор обязан работать с наименьшими правами.
+  TOKEN=probaprobaprobaproba
+  docker exec "$NAME" gitlab-rails runner "
+    u = User.find_by_username('root')
+    t = u.personal_access_tokens.find_by(name: 'proba') ||
+        u.personal_access_tokens.create!(name: 'proba', scopes: ['read_api'], expires_at: 1.year.from_now)
+    t.set_token('$TOKEN'); t.save!
+    p = Project.find_by(path: 'dogovory') ||
+        Projects::CreateService.new(u, name: 'Договоры', path: 'dogovory',
+          namespace_id: u.namespace.id, visibility_level: 0, initialize_with_readme: false).execute
+    ['${TASKS[0]}', '${TASKS[1]}', '${TASKS[2]}', '${TASKS[3]}'].each do |title|
+      next if p.issues.find_by(title: title)
+      Issues::CreateService.new(container: p, current_user: u,
+        params: {title: title, description: 'обсудили на звонке'}, perform_spam_check: false).execute
+    end
+  " >/dev/null 2>&1
 else
   PORT=3998
   docker run -d --name "$NAME" -p "$PORT:3000" redmine:5 >/dev/null
