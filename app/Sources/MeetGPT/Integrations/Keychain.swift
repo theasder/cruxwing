@@ -52,7 +52,15 @@ struct SystemKeychain: KeychainStore {
     /// Adding `keychain-access-groups` to the dev signature is NOT an
     /// alternative: without a team prefix the system rejects the entitlement and
     /// kills the process on launch.
-    static var usesDataProtectionKeychain: Bool { !Config.isDevBuild }
+    static var usesDataProtectionKeychain: Bool { usesDataProtection(isDevBuild: Config.isDevBuild) }
+
+    /// Чистая, чтобы утверждение можно было проверить обеими ветками.
+    ///
+    /// Набор идёт в dev-сборке, то есть `Config.isDevBuild` там ВСЕГДА true.
+    /// Проверка, сравнивавшая атрибут с этим же выражением, была верна при
+    /// любом поведении и молчала ровно про ту ветку, которая уезжает людям, —
+    /// тот самый случай, что §2.3 плана уже описывает про учётные данные.
+    static func usesDataProtection(isDevBuild: Bool) -> Bool { !isDevBuild }
 
     private let bundleIdentifier: String
     private let accountNamespace: String

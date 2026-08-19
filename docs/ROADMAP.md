@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2865 and 621 | README, maintainer run |
+| App and core tests | 2866 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1385,6 +1385,27 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**A check I wrote three days ago asserted nothing at all.** «Tokens stay on this
+Mac» pinned four properties, and the fifth — that credentials go into the modern
+data-protection keychain — compared the value in the attributes dictionary
+against the very expression that had put it there. True under any behaviour.
+Worse, the suite runs in a dev build, where that expression is `false`, so the
+one assertion about the shipped build was `false == false`.
+
+This is the defect §2.3 already describes — «the old test asked whether
+credentials happened to be present in whatever build ran it and asserted the
+matching branch» — committed again, by me, in a suite written to close a
+different hole.
+
+The rule is a pure function now, `usesDataProtection(isDevBuild:)`, checked on
+both inputs: a distribution build gets the modern keychain, a dev build keeps
+the classic one, because rebuilding changes the signature and the modern
+keychain would treat every rebuild as a different application.
+
+The demonstration is the part worth keeping: inverting that function is **caught
+by the new check and missed by the old one**. Suspecting a tautology and showing
+it are different things, and the harness makes showing it cheap.
 
 **One switch holds several doors, and it was unguarded.** `Config.isDevBuild`
 reads `Secrets.devMode`, and twenty-five places depend on it: content-bearing

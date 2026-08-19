@@ -44,11 +44,25 @@ struct TokensStayOnThisMacTests {
                 "источник замолчит при запертом экране, и это будет выглядеть поломкой")
     }
 
-    @Test("данные кладутся в современную связку ключей")
-    func usesDataProtectionKeychain() {
+    // Прежняя редакция этой проверки была тавтологией: она сравнивала значение
+    // из словаря с тем же выражением, которое его туда и положило. Набор идёт в
+    // dev-сборке, где ответ false, — то есть про сборку, которая уезжает людям,
+    // проверка не говорила ничего и оставалась зелёной при любом поведении.
+    @Test("в сборке для людей — современная связка ключей, в dev — нет")
+    func dataProtectionKeychainDependsOnTheBuild() {
         // Классическая связка спрашивает пароль диалогом при доступе из другой
-        // сборки — на этом уже обжигались с ai.wheespr.meetgpt.
-        let value = attributes()[kSecUseDataProtectionKeychain as String]
-        #expect(value as? Bool == SystemKeychain.usesDataProtectionKeychain)
+        // сборки — на этом уже обжигались с ai.wheespr.meetgpt. Поэтому у людей
+        // она должна быть современной.
+        #expect(SystemKeychain.usesDataProtection(isDevBuild: false),
+                "в сборке для распространения токены лягут в классическую связку")
+        // А в dev-сборке — наоборот: там пересборка меняет подпись, и
+        // современная связка каждый раз считала бы это чужим приложением.
+        #expect(!SystemKeychain.usesDataProtection(isDevBuild: true))
+    }
+
+    @Test("словарь несёт ровно тот выбор, который сделало правило")
+    func attributesCarryTheChoice() {
+        let value = attributes()[kSecUseDataProtectionKeychain as String] as? Bool
+        #expect(value == SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild))
     }
 }
