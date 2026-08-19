@@ -15,7 +15,8 @@ struct RussianTrackerGroundingTests {
     /// Один ответ на любой запрос: тест про маршрут, а не про разбор JSON —
     /// его проверяет RussianTrackersTests.
     private func manager(seeding services: [RussianTrackers.Service],
-                         answer: String = #"[{"id": 314, "title": "Лимиты на выгрузку"}]"#)
+                         answer: String = #"[{"id": 314, "title": "Лимиты на выгрузку"}]"#,
+                         memory: ConnectorCaseMemory = ConnectorCaseMemory())
         -> (MCPConnectionManager, () -> Int) {
         let keychain = InMemoryKeychain()
         let store = RussianTrackerStore(store: keychain)
@@ -32,9 +33,18 @@ struct RussianTrackerGroundingTests {
                     HTTPURLResponse(url: request.url!, statusCode: 200,
                                     httpVersion: nil, headerFields: nil)!)
         }
+        // Своя память и свой кэш на каждый вызов помощника.
+        //
+        // Раньше набор звал `ConnectorCaseMemory.shared.forget()`, чтобы начать
+        // с чистого листа. Начинал — и стирал знание наборов, идущих рядом:
+        // именно это описано в AutoOrchestratorFailoverTests как «глобальное
+        // состояние, которое соседние наборы меняют параллельно». Своя память
+        // даёт ту же чистоту, ничего не ломая у соседей.
         return (MCPConnectionManager(tokenStore: keychain,
                                      notificationCenter: NotificationCenter(),
-                                     trackerHTTP: http),
+                                     trackerHTTP: http,
+                                     connectorCache: ConnectorCache(),
+                                     connectorCaseMemory: memory),
                 { calls.value })
     }
 
@@ -52,10 +62,6 @@ struct RussianTrackerGroundingTests {
 
     @Test("WEEEK участвует в подсказке как обычный трекер")
     func weeekGrounds() async {
-        // Память про регистр общая на процесс, поэтому набор начинает с чистой:
-        // иначе соседняя проверка, уже спросившая этот сервис, меняет здесь
-        // число обращений, и падение зависит от порядка запуска.
-        await ConnectorCaseMemory.shared.forget()
         let answer = #"{"success":true,"tasks":[{"id":19,"title":"Лимиты WEEEK"}],"hasMore":false}"#
         let (manager, calls) = self.manager(seeding: [.weeek], answer: answer)
         let snippets = await manager.groundingSnippets(goal: "лимиты")
@@ -139,6 +145,33 @@ struct RussianTrackerGroundingTests {
         #expect(ConnectorProbeStrategy.probe(forTracker: "notion") == nil,
                 "не трекер, а MCP-сервер со своей подсказкой")
     }
+
+    @Test("хранилище слушает переданную ему память, а не общую")
+    func storeObeysTheInjectedMemory() async {
+        // Положительный контроль, а не отрицательный. Первая редакция портила
+        // ОБЩУЮ память и требовала, чтобы здесь ничего не изменилось, — и
+        // проходила при любом коде: подделка ложилась не под тот ключ, и
+        // проверка молча ничего не проверяла. Здесь наоборот: память передаётся
+        // внутрь, и если хранилище её слушает, число обращений ОБЯЗАНО
+        // измениться. Слушает общую — подделка не подействует, и проверка
+        // упадёт.
+        let memory = ConnectorCaseMemory()
+        let answer = #"{"success":true,"tasks":[{"id":19,"title":"Лимиты WEEEK"}],"hasMore":false}"#
+        let (plain, plainCalls) = self.manager(seeding: [.weeek], answer: answer, memory: memory)
+        _ = await plain.groundingSnippets(goal: "лимиты")
+        let withoutKnowledge = plainCalls()
+
+        let taught = ConnectorCaseMemory()
+        await taught.learn(.foldsCase, service: "weeek", host: nil)
+        for host in ["https://api.weeek.net/public/v1", "api.weeek.net"] {
+            await taught.learn(.foldsCase, service: "weeek", host: host)
+        }
+        let (second, secondCalls) = self.manager(seeding: [.weeek], answer: answer, memory: taught)
+        _ = await second.groundingSnippets(goal: "лимиты")
+
+        #expect(secondCalls() < withoutKnowledge,
+                "переданная память не спрашивается: было \(withoutKnowledge), стало \(secondCalls())")
+    }
 }
 
 /// Считает вызовы: замыкание `Sendable`, поэтому счётчик под замком.
@@ -147,4 +180,5 @@ private final class Counter: @unchecked Sendable {
     private var count = 0
     func bump() { lock.lock(); count += 1; lock.unlock() }
     var value: Int { lock.lock(); defer { lock.unlock() }; return count }
+
 }

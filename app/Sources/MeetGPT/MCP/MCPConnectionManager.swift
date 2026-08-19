@@ -286,11 +286,21 @@ final class MCPConnectionManager: ObservableObject {
          notesHTTP: TeamNotes.HTTP? = nil,
          westernHTTP: WesternTrackers.HTTP? = nil,
          telegramHTTP: TelegramSupergroups.HTTP? = nil,
-         telegramArchive: TelegramMessageArchive? = nil) {
+         telegramArchive: TelegramMessageArchive? = nil,
+         // Своя память и свой кэш — чтобы набор мог не трогать общие.
+         //
+         // Проверки шли параллельно и делили одну память на процесс: та, что
+         // хотела начать с чистого листа, звала `forget()` у ОБЩЕЙ и стирала
+         // знание соседей. По умолчанию здесь по-прежнему общие — приложению
+         // память и нужна общая.
+         connectorCache: ConnectorCache = .shared,
+         connectorCaseMemory: ConnectorCaseMemory = .shared) {
         let customServers = Self.loadCustomServers()
         self.customServers = customServers
         self.tokenStore = tokenStore
-        self.trackerStore = RussianTrackerStore(store: tokenStore)
+        self.trackerStore = RussianTrackerStore(store: tokenStore,
+                                                cache: connectorCache,
+                                                caseMemory: connectorCaseMemory)
         self.providerKeys = ProviderKeyStore(store: tokenStore)
         self.trackerHTTP = trackerHTTP ?? RussianTrackers.live
         self.messengerHTTP = messengerHTTP ?? WorkMessengers.live

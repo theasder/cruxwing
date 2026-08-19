@@ -287,8 +287,21 @@ public struct RussianTrackers {
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
+        // Кэш и память передаются, а не теряются.
+        //
+        // Их здесь не было, и у единственного трекера, описанного манифестом
+        // (WEEEK), это стоило дорого: движок брал СВЕЖИЕ кэш и память на каждый
+        // поиск. Значит кэш на полторы минуты не работал ни разу — один и тот же
+        // вопрос уходил к вендору столько раз, сколько его задали, — а плата за
+        // знание про регистр бралась не один раз на сервис, а на КАЖДЫЙ поиск:
+        // второе написание спрашивалось всегда. Мы сами удваивали нагрузку тому,
+        // на чей троттлинг потом жалуются.
+        //
+        // Остальные четыре семейства передавали их с самого начала; это
+        // расхождение и нашлось, когда набор попробовал подложить свою память.
         let connector = ManifestConnector(manifest: manifest, token: token,
-                                          host: service.host(secondary: secondary), http: http)
+                                          host: service.host(secondary: secondary),
+                                          cache: cache, caseMemory: caseMemory, http: http)
         do {
             return try await connector.search(query, limit: limit).map {
                 Issue(key: $0.key.hasPrefix("#") ? String($0.key.dropFirst()) : $0.key,

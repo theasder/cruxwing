@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2885 and 640 | README, maintainer run |
+| App and core tests | 2886 and 640 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -900,6 +900,36 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**Chasing the shared-state flake found a live defect instead.** The suite that
+grounds Russian trackers began by calling `ConnectorCaseMemory.shared.forget()`,
+with a comment explaining that the memory is process-wide and a neighbour would
+otherwise change its call count. Starting clean is right; doing it by wiping the
+**global** is how a suite protects itself by breaking everyone else — the same
+coupling `AutoOrchestratorFailoverTests` describes as «global state that other
+suites mutate in parallel». The store now takes its cache and memory as
+dependencies (defaulting to the shared ones, because an application wants that
+memory to outlive one screen), and the suite passes its own.
+
+Proving the isolation is what found the real problem. Two attempts failed to
+catch a mutation that reverted the injection, because with a clean global a
+private instance is indistinguishable from the shared one, and a poisoned global
+landed under a key nothing read. Written as a **positive** control instead — teach
+the *injected* memory and require the connector to obey it — it exposed why: for
+Russian trackers the memory never arrived at the engine at all.
+
+`RussianTrackers` holds a cache and a case memory and built its manifest
+connector **without passing either**, so WEEEK — the one Russian tracker
+described as data — got a **fresh cache and a fresh memory on every search**. The
+90-second cache therefore never worked for it: the same question asked three
+times in an hour went to the vendor three times. And the one-off «cost of
+knowing» about case folding was paid on *every* search, so both spellings were
+always sent. We were doubling the load on a service whose throttling we would
+then have complained about. The other four families passed them from the start;
+the divergence surfaced only when a test tried to supply its own.
+
+None of this is proven to be the flake either. It is a defect found while looking
+for one.
 
 **Thirteen tests were reading the maintainer's keychain.** Every number this
 plan publishes rests on the suite meaning something, and a suite whose answer

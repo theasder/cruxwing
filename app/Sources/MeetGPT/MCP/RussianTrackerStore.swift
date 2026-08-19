@@ -13,9 +13,26 @@ import OrakulCore
 struct RussianTrackerStore: Sendable {
 
     private let store: KeychainStore
+    /// Память о сервисах — не глобальная переменная, а зависимость.
+    ///
+    /// Здесь стояло `.shared` в пяти местах, то есть общая на процесс память и
+    /// общий кэш. Наборы идут параллельно, и один из них звал
+    /// `ConnectorCaseMemory.shared.forget()`, чтобы начать с чистого листа —
+    /// стирая заодно то, что уже узнали соседи. Отсюда и запись в
+    /// AutoOrchestratorFailoverTests про «глобальное состояние, которое соседние
+    /// наборы меняют параллельно».
+    ///
+    /// По умолчанию — те же общие, чтобы приложение вело себя как прежде:
+    /// знание про сервис ценно ровно тем, что живёт дольше одного экрана.
+    private let cache: ConnectorCache
+    private let caseMemory: ConnectorCaseMemory
 
-    init(store: KeychainStore = SystemKeychain.shared) {
+    init(store: KeychainStore = SystemKeychain.shared,
+         cache: ConnectorCache = .shared,
+         caseMemory: ConnectorCaseMemory = .shared) {
         self.store = store
+        self.cache = cache
+        self.caseMemory = caseMemory
     }
 
     private func account(_ service: RussianTrackers.Service) -> String {
@@ -119,7 +136,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = token(for: service), isConfigured(service) else { return nil }
         return RussianTrackers(service: service, token: token,
                                secondary: secondary(for: service),
-                               destination: destination(for: service), cache: .shared, caseMemory: .shared, http: http)
+                               destination: destination(for: service), cache: cache, caseMemory: caseMemory, http: http)
     }
 
     /// Сервисы, готовые отвечать на запрос. Это и есть список, который видит
@@ -254,7 +271,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = notesToken(for: service) else { return nil }
         let client = TeamNotes(service: service, token: token,
                                host: notesHost(for: service),
-                               values: notesFields(for: service), cache: .shared, caseMemory: .shared, http: http)
+                               values: notesFields(for: service), cache: cache, caseMemory: caseMemory, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -346,7 +363,7 @@ struct RussianTrackerStore: Sendable {
         let client = SelfHostedTrackers(service: service, token: token,
                                         host: selfHostedHost(for: service),
                                         values: selfHostedFields(for: service),
-                                        cache: .shared, caseMemory: .shared, http: http)
+                                        cache: cache, caseMemory: caseMemory, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -412,7 +429,7 @@ struct RussianTrackerStore: Sendable {
                        http: @escaping WesternTrackers.HTTP) -> WesternTrackers? {
         guard let token = westernToken(for: service) else { return nil }
         let client = WesternTrackers(service: service, token: token,
-                                     values: westernFields(for: service), cache: .shared, caseMemory: .shared, http: http)
+                                     values: westernFields(for: service), cache: cache, caseMemory: caseMemory, http: http)
         return client.isConfigured ? client : nil
     }
 
@@ -500,7 +517,7 @@ struct RussianTrackerStore: Sendable {
         guard let token = messengerToken(for: service) else { return nil }
         let client = WorkMessengers(service: service, token: token,
                                     secondary: messengerSecondary(for: service),
-                                    scope: messengerScope(for: service), cache: .shared, caseMemory: .shared, http: http)
+                                    scope: messengerScope(for: service), cache: cache, caseMemory: caseMemory, http: http)
         return client.isConfigured ? client : nil
     }
 
