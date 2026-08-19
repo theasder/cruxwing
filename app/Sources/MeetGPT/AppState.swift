@@ -7871,9 +7871,23 @@ final class AppState: ObservableObject {
         // приложил сам. `promptContext` кладёт это в запрос к модели целиком,
         // поэтому обращение к модели может лежать именно здесь.
         let attached = contextFiles.map { "\($0.name)\n\($0.text)" }.joined(separator: "\n")
+        // И сама расшифровка — четвёртый источник, и единственный, который
+        // посторонний наполняет ГОЛОСОМ.
+        //
+        // Довод в пользу трёх соседей здесь верен слово в слово: обращение к
+        // модели, лежащее во входе, в ответе следа не оставляет — модель
+        // сделает, что просили, и напишет обычную фразу. Расшифровка при этом
+        // уезжает в запрос наравне с остальным, а написать в неё может любой,
+        // кто на звонке говорит: чужой участник, гость, звук из ролика.
+        //
+        // Смотрим ровно тот срез, который видела модель, — тем же
+        // `promptTranscript`, а не своей выборкой: иначе сторож проверял бы
+        // текст, которого в запросе не было.
+        let spoken = promptTranscript(cap: 12_000)
         let signal = PromptInjectionGuard.signal(in: aiResponse)
             ?? PromptInjectionGuard.signal(in: lastConnectorContext)
             ?? PromptInjectionGuard.signal(in: attached)
+            ?? PromptInjectionGuard.signal(in: spoken)
         pendingAnswerAction = PendingAnswerAction(
             id: action.id,
             action: action,
