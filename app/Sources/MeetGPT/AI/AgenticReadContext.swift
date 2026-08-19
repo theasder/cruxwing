@@ -30,18 +30,28 @@ final class AgenticReadContext: @unchecked Sendable {
         turnSink = onTurnComplete
     }
 
+    // Снимок под замком делается в СИНХРОННОЙ функции.
+    //
+    // Замок и раньше не удерживался через await — значение копировалось и
+    // сразу отпускалось. Но в Swift 6 `NSLock.lock()` внутри async-функции
+    // запрещён сам по себе, независимо от того, что идёт следом: компилятор
+    // называет это ошибкой языка. Приложение перестало бы собираться.
+    private func currentExecutorProvider() -> (() async -> AgenticReadExecutor?)? {
+        lock.lock(); defer { lock.unlock() }
+        return executorProvider
+    }
+
+    private func currentRecordingProvider() -> (() async -> Bool)? {
+        lock.lock(); defer { lock.unlock() }
+        return recordingProvider
+    }
+
     func executor() async -> AgenticReadExecutor? {
-        lock.lock()
-        let provider = executorProvider
-        lock.unlock()
-        return await provider?()
+        await currentExecutorProvider()?()
     }
 
     func isRecording() async -> Bool {
-        lock.lock()
-        let provider = recordingProvider
-        lock.unlock()
-        return await provider?() ?? false
+        await currentRecordingProvider()?() ?? false
     }
 
     func record(_ turn: AgenticReadStep.Turn) {

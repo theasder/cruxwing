@@ -1392,10 +1392,32 @@ They are gone. The safe replacement already existed — `Recorder`, lock-protect
 core now holds at **zero**, enforced: a returning warning fails the script.
 
 The application is measured rather than cleaned, because the numbers say why:
-**52 distinct sites**, of which 45 are one deprecated SwiftUI call. Zero of them
-are Swift-6-fatal. Demanding zero there would mean the first person to meet an
-unrelated deprecation switches the check off; the two-class rule stands for the
-app, the zero rule for the core.
+**52 distinct sites**, of which 45 are one deprecated SwiftUI call. Demanding
+zero there would mean the first person to meet an unrelated deprecation switches
+the check off; the two-class rule stands for the app, the zero rule for the core.
+
+**Correction, 2026-08-21: «zero of them are Swift-6-fatal» was wrong — there
+were six.** The number came from a list built with `warning: [^;]+`, and the
+phrase «this is an error in the Swift 6 language mode» begins after the
+semicolon. My own pattern cut off the evidence and I published the result.
+
+Five are fixed. Four were `NSLock` taken inside an `async` function — the code
+was already careful, copying under the lock and releasing before any `await`,
+but Swift 6 forbids the call itself, so the reads moved into synchronous
+helpers. The fifth was the reference to `OutboundRedactionLog.shared` from the
+gateway, which runs off the main actor: `record` was already nonisolated and
+hops before touching state, so only the reference needed opening.
+
+The sixth is named rather than papered over: `SamplePlayback` assigns `clock` in
+an initializer SwiftUI requires to be nonisolated. `nonisolated` on the stored
+property does not apply (`any SampleClock` is not Sendable) and
+`nonisolated(unsafe)` does not silence it; the real fix touches onboarding
+construction, which is not worth one warning today. Both attempts are written
+down so nobody repeats them.
+
+The count is now ratcheted at one, and the script forces a rebuild before
+counting — an incremental build prints nothing, so the threshold would have been
+met by silence.
 
 Two mistakes of mine on the way, both caught by mutation rather than by reading:
 the ratchet did not fire at first because the script built the core **twice** and

@@ -37,12 +37,21 @@ count() { grep -c "warning:" "$1" 2>/dev/null || true; }
 CORE=$(mktemp)
 trap 'rm -f "$OUT" "$CORE"' EXIT
 
+# Пересборка вынуждается: иначе проверяется не код, а список того, что
+# случайно изменилось с прошлого раза. Пошаговая сборка молчит, и порог «ноль»
+# выполняется сам собой — именно так эта проверка один раз и «прошла».
+# Цена — пара минут; она платится один раз перед отправкой, а не на каждое
+# сохранение.
+touch_sources() { find "$1" -name "*.swift" -exec touch {} +; }
+
 echo ">> сборка ядра с наборами"
+touch_sources mvp/Sources; touch_sources mvp/Tests
 swift build --package-path mvp --build-tests 2>&1 > "$CORE"
 cat "$CORE" >> "$OUT"
 echo "   предупреждений: $(count "$CORE")"
 
 echo ">> сборка приложения"
+touch_sources app/Sources
 swift build --package-path app 2>&1 | tee -a "$OUT" >/dev/null
 echo "   всего предупреждений: $(count "$OUT")"
 
@@ -69,6 +78,27 @@ if [ "${CORE_WARNINGS:-0}" != "0" ]; then
   exit 1
 fi
 echo ">> ядро: предупреждений нет"
+
+# У приложения свой порог — не ноль, а «не больше, чем было».
+#
+# 2026-08-21 их было шесть: четыре про NSLock внутри async-функции и два про
+# изоляцию главного актора. Пять убраны, осталось одно, названное в
+# SamplePlayback. Ноль требовать нельзя — сорок пять устаревших вызовов SwiftUI
+# рядом, и красный прогон на них означал бы отключённую проверку. А вот расти
+# этому числу незачем: каждое такое место — файл, который не соберётся на языке
+# Swift 6.
+APP_FATAL_LIMIT=1
+APP_FATAL=$(grep -c "error in the Swift 6 language mode" "$OUT" 2>/dev/null || true)
+# Одно и то же предупреждение печатается на каждую единицу компиляции, поэтому
+# считаются РАЗНЫЕ места, а не строки.
+APP_FATAL=$(grep -oE "[A-Za-z]+\.swift:[0-9]+:[0-9]+: warning: .*error in the Swift 6" "$OUT" \
+            | sort -u | wc -l | tr -d ' ')
+if [ "${APP_FATAL:-0}" -gt "$APP_FATAL_LIMIT" ]; then
+  grep -oE "[A-Za-z]+\.swift:[0-9]+:[0-9]+: warning: .*error in the Swift 6" "$OUT" | sort -u >&2
+  echo "!! мест, которые не соберутся на Swift 6: ${APP_FATAL} (было ${APP_FATAL_LIMIT})" >&2
+  exit 1
+fi
+echo ">> приложение: мест, смертельных для Swift 6, — ${APP_FATAL:-0} из ${APP_FATAL_LIMIT} допустимых"
 
 if grep -nE "warning:.*($FATAL)" "$OUT" >&2; then
   echo "!! вычисленное значение выброшено — именно так пропало предупреждение о внедрении" >&2

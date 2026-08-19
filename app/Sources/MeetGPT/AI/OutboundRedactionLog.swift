@@ -12,7 +12,21 @@ import Foundation
 /// filter that produced them.
 @MainActor
 final class OutboundRedactionLog: ObservableObject {
-    static let shared = OutboundRedactionLog()
+    /// Ссылка доступна отовсюду, состояние — только с главного актора.
+    ///
+    /// Запись о вычеркнутом приходит из шлюза, который работает не на главном
+    /// акторе: сам `record` помечен `nonisolated` и прыгает на главный до того,
+    /// как трогает счётчики. Мешала только ССЫЛКА — и в Swift 6 это уже ошибка
+    /// сборки, а не замечание.
+    ///
+    /// `unsafe` тут про то, что компилятор не может проверить обещание, а не
+    /// про то, что его нет: значение неизменяемое, единственный вход снаружи
+    /// главного актора — `record`, и он ничего не читает и не пишет до прыжка.
+    nonisolated(unsafe) static let shared = OutboundRedactionLog()
+
+    /// Неизолированный: единственное, что он делает, — заводит пустые
+    /// счётчики до того, как объект кому-то виден.
+    nonisolated init() {}
 
     /// Counts by kind, newest session only. Counts rather than the matched
     /// text for the summary line — "2 card numbers" is what a user needs to

@@ -37,6 +37,19 @@ final class SamplePlayback: ObservableObject {
     static let frameSeconds: Double = 0.12
 
     private let script: SampleCall
+    /// Единственное место, которое не соберётся на языке Swift 6.
+    ///
+    /// Инициализатор намеренно вне главного актора: SwiftUI строит
+    /// `@StateObject` в своём, неизолированном контексте. Присваивание
+    /// изолированного свойства оттуда Swift 6 считает ошибкой.
+    ///
+    /// Пробовал и записал, чтобы не пробовали заново: `nonisolated` на
+    /// хранимом свойстве не подходит (тип `any SampleClock` не Sendable),
+    /// `nonisolated(unsafe)` предупреждение не снимает. Настоящее решение —
+    /// либо изолировать инициализатор и проверить, что представление всё ещё
+    /// строится, либо вынести часы из класса. И то и другое трогает
+    /// онбординг ради одного предупреждения, поэтому здесь оно названо, а не
+    /// замазано.
     private let clock: any SampleClock
     private var startedAt: Double?
     private var running = false
