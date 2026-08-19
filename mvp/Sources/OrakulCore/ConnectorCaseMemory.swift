@@ -68,10 +68,34 @@ public actor ConnectorCaseMemory {
         askedToSlowDown.contains(key(service, host))
     }
 
+    /// Ищет ли этот сервис по началу слова.
+    ///
+    /// Вопрос основой помогает не везде, и это измерено, а не предположено.
+    /// BookStack и Redmine ищут по вхождению, и «тариф» находит «тарифами».
+    /// Gitea сравнивает слова целиком: на живой установке 2026-08-19 «тарифы»
+    /// нашли две задачи, а «тариф» — НОЛЬ. Там вопрос основой — чистая трата
+    /// чужого сервера.
+    ///
+    /// Признак однозначный: основа короче слова, значит по вхождению она
+    /// нашла бы не меньше. Вернулась пустота там, где слово целиком что-то
+    /// нашло, — сервис ищет словами. Из двух пустых, как и с регистром, не
+    /// следует ничего.
+    private var ignoresStems: Set<String> = []
+
+    public func stemsAreUseless(service: String, host: String?) -> Bool {
+        ignoresStems.contains(key(service, host))
+    }
+
+    public func learnStemIsUseless(service: String, host: String?) {
+        ignoresStems.insert(key(service, host))
+    }
+
     /// Забыть всё. Нужно наборам: память общая на процесс, и без этого
     /// соседние проверки начинают зависеть от порядка — общий кэш однажды уже
     /// переносил ответы между наборами, идущими рядом.
-    public func forget() { known.removeAll(); askedToSlowDown.removeAll() }
+    public func forget() {
+        known.removeAll(); askedToSlowDown.removeAll(); ignoresStems.removeAll()
+    }
 
     public func learn(_ behaviour: Behaviour, service: String, host: String?) {
         guard behaviour != .unknown else { return }

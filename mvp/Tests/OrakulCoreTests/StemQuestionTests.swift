@@ -166,4 +166,70 @@ struct StemQuestionTests {
         let all = await asked.all
         #expect(!all.contains("тариф"), "спросили основой, хотя ответ и так полон: \(all)")
     }
+
+    @Test("у перечисления склонение стоит ноль запросов")
+    func listingMatchesInflectedFormsForFree() async throws {
+        // Отбор здесь наш, значит сравнивать можно основами, ничего не
+        // спрашивая. Измерено на живом Plane: задача «Пересчитать смету
+        // вместе с тарифами» вопросом «тарифы» не находилась вовсе.
+        let asked = Asked()
+        let http: ManifestConnector.HTTP = { request in
+            await asked.add(request.url!.absoluteString)
+            let json = #"{"total_count":1,"next_page_results":false,"results":[{"name":"Пересчитать смету вместе с тарифами","description_html":"<p>x</p>","sequence_id":7,"state":"u"}]}"#
+            return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                                     httpVersion: nil, headerFields: [:])!)
+        }
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "plane" })
+        let items = try await ManifestConnector(manifest: manifest, token: "ключ",
+                                                host: "https://plane.company.ru",
+                                                values: ["workspace": "w", "project": "p"],
+                                                http: http).run("тарифы").items
+        #expect(items.count == 1, "косвенная форма не нашлась при своём же отборе")
+        let count = await asked.all.count
+        #expect(count == 1, "за склонение заплатили запросами: \(count)")
+    }
+
+    @Test("две строки без номера не слипаются в одну")
+    func itemsWithoutKeysAreNotDeduplicated() async throws {
+        // У вики страница обозначается путём, а не номером, и в выдаче на
+        // месте номера стоит прочерк. Считать прочерк обозначением — значит
+        // объявить одинаковыми ВСЕ строки такого сервиса: на живом Wiki.js
+        // 2026-08-19 сервис отдавал две страницы, а до человека доезжала одна.
+        let first = ManifestConnector.Item(key: ManifestConnector.Item.noKey, title: "Тарифы и лимиты",
+                                           context: "", author: "", state: "", service: "wikijs")
+        let second = ManifestConnector.Item(key: ManifestConnector.Item.noKey, title: "Смета на квартал",
+                                            context: "", author: "", state: "", service: "wikijs")
+        let merged = ManifestConnector.merge([first], [second], limit: 10)
+        #expect(merged.count == 2, "слились в одну: \(merged.map(\.title))")
+    }
+
+    @Test("сервис, ищущий слова целиком, основой больше не беспокоят")
+    func serviceThatIgnoresStemsIsAskedOnlyOnce() async throws {
+        // Измерено на живой Gitea 2026-08-19: «тарифы» нашли две задачи,
+        // «тариф» — ноль. Там вопрос основой — трата чужого сервера, и после
+        // первого такого ответа он не повторяется.
+        let asked = Asked()
+        let memory = ConnectorCaseMemory()
+        let http: ManifestConnector.HTTP = { request in
+            let query = URLComponents(string: request.url!.absoluteString)?.queryItems?
+                .first { $0.name == "query" }?.value ?? ""
+            await asked.add(query)
+            // Слова целиком: находит только точную форму.
+            let hit = query.lowercased() == "тарифы"
+            let json = hit
+                ? #"{"data":[{"id":1,"name":"Тарифы с декабря","preview_html":{"name":"Тарифы","content":"..."}}],"total":1}"#
+                : #"{"data":[],"total":0}"#
+            return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                                     httpVersion: nil, headerFields: [:])!)
+        }
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "bookstack" })
+        let make = { ManifestConnector(manifest: manifest, token: "id:секрет",
+                                       host: "https://wiki.company.ru",
+                                       cache: ConnectorCache(), caseMemory: memory, http: http) }
+        _ = try await make().run("тарифы")
+        #expect(await memory.stemsAreUseless(service: "bookstack", host: "https://wiki.company.ru"))
+        _ = try await make().run("лимиты")
+        let all = await asked.all
+        #expect(!all.contains("лимит"), "спросили основой сервис, который её игнорирует: \(all)")
+    }
 }

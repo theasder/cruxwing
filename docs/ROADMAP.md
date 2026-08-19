@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2866 and 633 | README, maintainer run |
+| App and core tests | 2866 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -845,6 +845,51 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**The stem question was measured on one service, and five say different
+things.** A day-old feature verified against a single install is the same
+mistake as a manifest written from documentation, so the live probe was raised
+for all five self-hostable services — and the probe's own fixture turned out to
+be part of the problem: every seeded row carried the word in the **same** form
+the question uses. It tested one declension out of all of them, which is the
+rarest case in speech. Each service now gets a row whose only mention is
+oblique, and the probe fails if that row does not come back.
+
+| Service | Asked `тарифы` | Asked `тариф` | What it means |
+|---|---|---|---|
+| BookStack | 1 of 2 | **2 of 2** | matches by prefix — the stem question wins |
+| Redmine | 1 of 2 | 2 of 2 | `LIKE` by substring — same |
+| Wiki.js | 1 of 2 | 2 of 2 | same |
+| Nextcloud | file names | works | same |
+| Gitea | 2 found | **0** | matches whole words — the stem finds nothing here |
+
+Three defects fell out of running more than one service, and two of them are
+older than the stem question:
+
+* **Gitea got a question that cannot help it, and Redmine got none at all.**
+  The rule «ask with the stem only if the other spelling brought nothing» meant
+  a byte-comparing service — where the other spelling nearly always brings
+  something — was never asked with a stem. On live Gitea and Redmine the
+  oblique row never reached the person. The answer must not depend on which of
+  two independent gaps happened to fire first: all three answers are merged now,
+  bounded by the same rule as before — only while there is room in the answer.
+* **Wiki.js could never return more than one row from a second question.** Its
+  pages have no number, so every row carried the placeholder «—» where a number
+  goes, and the merge treated that placeholder as an identity: two different
+  pages counted as one. Live, the service sent two and the person saw one. This
+  predates today — the case question has been silently capped the same way since
+  it shipped.
+* **With listing connectors the declension costs nothing and was not being
+  done.** There the selection is ours, so comparing stems needs no request at
+  all — where a searching service charges a third question for the same find.
+  Live Plane did not find «Пересчитать смету вместе с тарифами» at all; now it
+  does, with one request, not two.
+
+And Gitea taught the connector something to remember: a stem is shorter than the
+word, so a service that matches by substring would find no less by it. Coming
+back empty where the whole word found something means the service matches whole
+words — recorded per service, and it is not asked again. Measurement, not a
+setting somebody has to know.
 
 **The word as it was spoken is not the word that lies in someone else's
 base.** A person asks «тарифы», the page says «тарифами», and no third-party

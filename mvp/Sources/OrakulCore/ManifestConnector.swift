@@ -71,6 +71,11 @@ public struct ManifestConnector {
     }
 
     public struct Item: Equatable, Sendable {
+        /// Номера у строки нет: у вики страница обозначается путём, а не
+        /// номером. Прочерк — то, что видит человек, а не признак строки:
+        /// сливать по нему две разные страницы нельзя.
+        public static let noKey = "—"
+
         public let key: String
         public let title: String
         /// Слова вокруг совпадения. Пусто у трекеров: они отдают задачу, а не
@@ -242,6 +247,11 @@ public struct ManifestConnector {
                 outcome = Outcome(items: try parse(try await fetch(query: trimmed, limit: limit)),
                                   coverage: .searched)
             }
+            // Находки трёх вопросов складываются здесь: слово человека, оно же
+            // с другой буквы, оно же основой. Ни один из трёх не отменяет
+            // остальных.
+            var found = outcome.items
+
             // Пусто по-русски — спросим тем же словом с другой буквы.
             //
             // Измерено на живых установках 2026-08-19: Redmine и Nextcloud с
@@ -285,11 +295,14 @@ public struct ManifestConnector {
                                                service: manifest.id, host: host)
                     }
 
-                    if merged.count > outcome.items.count {
-                        let both = Outcome(items: merged, coverage: outcome.coverage)
-                        await cache.store(both, service: manifest.id, host: host, query: trimmed)
-                        return both
-                    }
+                    // Раньше здесь стоял возврат: нашлось новое — отдаём и
+                    // уходим. Из-за него сервис, сравнивающий байты, никогда
+                    // не получал вопроса основой: второй вопрос у него почти
+                    // всегда что-то приносит. Измерено на живых Gitea и
+                    // Redmine — запись со словом «тарифами» не доезжала до
+                    // человека вовсе. Ответ не должен зависеть от того, какая
+                    // из двух независимых нехваток случилась первой.
+                    found = merged
                 }
             }
 
@@ -316,7 +329,8 @@ public struct ManifestConnector {
             // уже вернул столько строк, сколько человек попросил, лишние
             // находки он всё равно не увидит, а обращение к чужому серверу
             // стоит. Так удвоение приходится на бедные ответы, а не на все.
-            if manifest.scan == nil, outcome.items.count < limit,
+            if manifest.scan == nil, found.count < limit,
+               !(await caseMemory.stemsAreUseless(service: manifest.id, host: host)),
                !(await caseMemory.isSlowedDown(service: manifest.id, host: host)) {
                 let stem = RecallIndex.searchToken(for: trimmed)
                 // Порога длины здесь нет намеренно, и сначала он здесь стоял.
@@ -329,18 +343,22 @@ public struct ManifestConnector {
                 if stem != trimmed {
                     // Как и с регистром: провал уточнения не должен стоить
                     // ответа, который у человека уже есть.
-                    let second = (try? parse(try await fetch(query: stem, limit: limit))) ?? []
-                    let merged = Self.merge(outcome.items, second, limit: limit)
-                    if merged.count > outcome.items.count {
-                        let both = Outcome(items: merged, coverage: outcome.coverage)
-                        await cache.store(both, service: manifest.id, host: host, query: trimmed)
-                        return both
+                    let third = (try? parse(try await fetch(query: stem, limit: limit))) ?? []
+                    // Основа короче слова: сервис, ищущий по вхождению, нашёл
+                    // бы по ней не меньше. Пустота там, где слово целиком
+                    // что-то нашло, означает поиск словами целиком — и больше
+                    // основой этот сервис не беспокоим.
+                    if third.isEmpty, !found.isEmpty {
+                        await caseMemory.learnStemIsUseless(service: manifest.id, host: host)
                     }
+                    found = Self.merge(found, third, limit: limit)
                 }
             }
 
-            await cache.store(outcome, service: manifest.id, host: host, query: trimmed)
-            return outcome
+            let answer = found.count > outcome.items.count
+                ? Outcome(items: found, coverage: outcome.coverage) : outcome
+            await cache.store(answer, service: manifest.id, host: host, query: trimmed)
+            return answer
         } catch ConnectorError.rateLimited(let retryAfter) {
             // Раз просят реже — перестаём спрашивать вторым написанием.
             await caseMemory.slowDown(service: manifest.id, host: host)
@@ -398,6 +416,10 @@ public struct ManifestConnector {
         var total: Int?
         var exhausted = false
 
+        // Основа вопроса считается один раз на поиск, а не на строку: строк
+        // до пятисот, и разбор на каждой был бы платой ни за что.
+        let needleStem = needle.contains(where: { $0 == " " })
+            ? needle : RecallIndex.searchToken(for: needle)
         for page in 0..<pages {
             let data = try await fetch(query: query, limit: limit, page: page)
             let rows = try rows(in: data)
@@ -417,7 +439,16 @@ public struct ManifestConnector {
                     let text = manifest.response.stripTags == true
                         ? Self.withoutTags(Self.string(at: path, in: row))
                         : Self.string(at: path, in: row)
-                    return text.lowercased().contains(needle)
+                    if text.lowercased().contains(needle) { return true }
+                    // Здесь отбор наш, а значит склонение стоит НОЛЬ запросов:
+                    // у сервиса, который сам ищет, за ту же находку платят
+                    // третьим вопросом. Сравниваем основы — тем же разбором,
+                    // которым ищется по своим расшифровкам.
+                    //
+                    // Только для вопроса из одного слова: у словосочетания
+                    // основы нет, а «основа» от него была бы обрубком фразы.
+                    guard needleStem != needle else { return false }
+                    return RecallIndex.tokens(text).contains(needleStem)
                 }
             }.compactMap(item(from:))
 
@@ -602,7 +633,7 @@ public struct ManifestConnector {
         let label = manifest.response.key.lazy.compactMap { row[$0] as? String }
             .first { !$0.isEmpty }
         let author = manifest.response.author.map { Self.scalar(at: $0, in: row) } ?? ""
-        return Item(key: number.map { "#\($0)" } ?? label ?? "—",
+        return Item(key: number.map { "#\($0)" } ?? label ?? Item.noKey,
                     title: title,
                     context: context,
                     author: author,
@@ -629,11 +660,18 @@ public struct ManifestConnector {
     /// вики номера страницы нет вовсе, и без второго признака одна страница
     /// показалась бы человеку дважды.
     static func merge(_ first: [Item], _ second: [Item], limit: Int) -> [Item] {
-        var seen = Set(first.map { $0.key.isEmpty ? $0.title : $0.key })
+        // Прочерк — не обозначение, а его отсутствие. Считать его обозначением
+        // значит объявить одинаковыми ВСЕ строки сервиса, который номеров не
+        // даёт: у Wiki.js так и было, и второй вопрос там не мог добавить ни
+        // одной страницы — на живой установке 2026-08-19 сервис отдавал две, а
+        // до человека доезжала одна.
+        let mark = { (item: Item) in
+            item.key.isEmpty || item.key == Item.noKey ? item.title : item.key
+        }
+        var seen = Set(first.map(mark))
         var merged = first
-        for item in second {
-            let mark = item.key.isEmpty ? item.title : item.key
-            if seen.insert(mark).inserted { merged.append(item) }
+        for item in second where seen.insert(mark(item)).inserted {
+            merged.append(item)
         }
         return Array(merged.prefix(limit))
     }
