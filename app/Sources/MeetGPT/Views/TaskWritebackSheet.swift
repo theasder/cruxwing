@@ -98,8 +98,7 @@ struct TaskWritebackSheet: View {
                 switch target {
                 case .mcp(let server):
                     let result = try await mcp.createTrackerItem(item, on: server)
-                    let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
-                    states[index] = .done(trimmed.isEmpty ? "Задача создана." : String(trimmed.prefix(160)))
+                    states[index] = .done(TaskWriteback.outcome(of: result))
                 case .russian(let service):
                     guard let client = mcp.trackerStore.client(for: service, http: mcp.trackerHTTP) else {
                         states[index] = .failed("Трекер не настроен")

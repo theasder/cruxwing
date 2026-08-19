@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2919 and 655 | README, maintainer run |
+| App and core tests | 2924 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -2005,6 +2005,14 @@ Played as the attacker against the real code. What landed:
 | Rename a response field (`title` → `heading`) | Rows arrive, shape is recognised, every row yields nothing, and the answer is «ничего не нашлось» — forever, for every question | Rows present but **none** readable is a format change, not an empty result: refused loudly. One unreadable row among good ones is still skipped |
 | Drop the «there is more» field | The scan fell back to «short page means the end», so a full page read as `.wholeList` — part presented as whole, exactly what §7.2 forbids | A declared marker that is absent means unknown, so coverage stays `.latest` and the answer says «last N», never «all» |
 | Throttle instead of blocking (429) | «Трекер ответил ошибкой 429» — the word «ошибка» sends a person to reissue a token that is fine | Its own case, with `Retry-After` when the service sends it, and the text says the token is not the problem |
+| Accept a write and do nothing (empty body, no error flag) | The MCP path calls a tool, throws only when the server marks an error, and rendered the empty answer as «Задача создана.» — the most expensive false sentence in the product: a person leaves the call believing the commitment is recorded | No answer, no claim. The service's own words are shown when there are any; silence is reported as silence, with «Проверьте в трекере». The Russian-tracker twin never had this — `parseCreated` refuses a response with no key, so what reaches the screen is the key itself, and the key is the proof |
+
+Writing has a failure the reading side does not: a server can accept the call
+and do nothing. Reading wrong is arguable — you can compare the quote with what
+you remember. A task that was never created leaves nothing to compare against
+until the week is over. So the rule for the write-back is the narrower one:
+**say only what the service said.** Anything else is our sentence about their
+state.
 
 What already held, and why it is worth naming: HTTP 200 with an error in the
 body (`requireTrue`), a refusal in a GraphQL `errors` array, an HTML login page

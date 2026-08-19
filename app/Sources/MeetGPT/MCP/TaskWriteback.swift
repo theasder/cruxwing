@@ -33,6 +33,27 @@ enum TaskWriteback {
         return tools.first(where: { $0.isCreateTool })
     }
 
+    /// Что сказать человеку про ответ сервера на создание задачи.
+    ///
+    /// «Задача создана» — утверждение о том, чего мы не видели. Обращение
+    /// считается успешным, когда сервер не поставил признак ошибки; сервер,
+    /// который ничего не сделал, отвечает ПУСТОТОЙ и признака не ставит.
+    /// Пустой ответ прямо превращался в «Задача создана.» — уверенная фраза о
+    /// том, чего не было, в самом дорогом месте: человек уходит со звонка,
+    /// считая обязательство записанным.
+    ///
+    /// Правило простое и проверяемое: слова сервиса важнее наших. Есть ответ —
+    /// показываем его. Нет ответа — так и говорим, потому что подтверждения у
+    /// нас нет.
+    static func outcome(of response: String) -> String {
+        let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return "Отправлено, но сервис ничего не ответил — подтверждения нет. "
+                 + "Проверьте в трекере."
+        }
+        return String(trimmed.prefix(160))
+    }
+
     /// Fold a task's metadata into a description block. Placeholder markers
     /// ("[OWNER?]", "[DUE?]") are dropped — never write an unstated value.
     static func describe(_ item: TasksArtifact.Item) -> String {
