@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2876 and 636 | README, maintainer run |
+| App and core tests | 2882 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -845,6 +845,34 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**Three doors, and the one that mattered most was the last to be found.**
+Closing the connector door raised the obvious question: how many doors are
+there? Text from outside enters this app three ways, and now each cleans at the
+threshold rather than at the dozen places that read it.
+
+* **Connector findings** — closed the day before.
+* **Attached files and folders.** This is the path the code itself flags as
+  carrying a Fireflies transcript: a competitor's product exports a file, the
+  person attaches it, and it goes into the prompt whole. Nobody reads forty
+  thousand characters of someone else's transcript closely, and invisible
+  characters are not readable at all. The cleaning sits in `ImportedContextFile`
+  itself — the text simply cannot be held with invisible characters in it, so no
+  reader can forget. **The synthesized `Codable` decoder bypassed that
+  initializer**, which would have made the fix true only until the next restart:
+  a saved session would restore exactly what was cleaned. The decoder now goes
+  through the same door. File **names** are cleaned too — a direction override in
+  a filename is an old trick for showing a person one extension and running
+  another.
+* **MCP tool output.** One funnel, `callToolText`, carries the answer of *any*
+  MCP server — including the competitor's own, which is how their transcripts
+  arrive in the first place.
+
+None of this makes the app safe against a determined attacker, and the existing
+comment in the injection guard says the right thing about that: a guard is a
+tripwire, and the boundary is that writes require confirmation. What it does
+remove is the cheapest version of the attack — the one where a task title
+carries a paragraph nobody can see.
 
 **The sanitizer was guarding the door nothing hostile comes through.**
 `BundledSkillSanitizer` strips zero-width, bidi and Unicode Tag characters out

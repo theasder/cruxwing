@@ -774,7 +774,13 @@ final class MCPConnectionManager: ObservableObject {
                 context: telemetryContext,
                 status: .success,
                 startedAt: telemetryStartedAt)
-            return text
+            // Третья и последняя дверь для чужого текста: сюда приезжает ответ
+            // ЛЮБОГО сервера MCP, включая сервер конкурента. Первые две —
+            // находки коннекторов и приложенные файлы. Невидимые знаки
+            // снимаются здесь, у выхода из единственной воронки, а не у каждого
+            // читателя: читателей больше десятка, и забыть у одного значит
+            // открыть дверь целиком.
+            return InvisibleText.strip(text)
         } catch {
             let status = ConnectorTelemetryRecord.StatusCategory.classify(error)
             connectorTelemetry.record(
