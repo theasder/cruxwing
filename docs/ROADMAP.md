@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 322 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 323 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2886 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1050,6 +1050,22 @@ setting.
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
 
+**Sixth sighting, and a second instance of the race I said had none.** A view
+test waited until the manager reported «connecting» and then inspected the
+rendered row — two different moments, because the published change reaches the
+view after the state changes. Under a full run the row still carried its
+«Подключить» button and the check failed.
+
+That is exactly the shape found in the blind-spot suite, and the sweep that
+followed reported no second instance. The sweep was wrong, and its limit is
+instructive: it looked for a bare `#expect` after a wait, and here the assertion
+sits inside a helper (`expectMissingButton`), so the pattern did not match. A
+scan for a shape finds the shape it was told to look for.
+
+The wait now covers the rendered view rather than the state behind it. Two
+instances of one class are still not a diagnosis of all six sightings, and the
+remaining four have not been explained.
+
 **Fourth sighting of the flake, and it is always the same neighbourhood.** This
 time `BlindSpotSchedulerRaceTests` again, a different check
 («a non-cooperative stale provider»), failing on a wait that never completed and
@@ -1846,7 +1862,7 @@ person's machine, in the middle of a live meeting, and «wait, I am parsing» is
 the whole objective. Compression makes it cheaper for the sender: a megabyte
 that unpacks into a gigabyte costs them nothing.
 
-Eight megabytes is the ceiling, checked **before** parsing and in two places:
+8 MB is the ceiling, checked **before** parsing and in two places:
 in the engine, and in the shared session for the connectors that parse by hand.
 The number has room by design — a hundred issues with descriptions is tens of
 kilobytes, and a limit that trips on a normal answer is a denial of service we
@@ -1926,7 +1942,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **23 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **24 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -1938,6 +1954,14 @@ ceiling on English strings in the interface, the numbers §5.2 quotes about
 `build.sh`, the page limit §7.2 names, the manifest count §6.2 names, and the
 timeouts §10.1 names. Each is recomputed from code on every run, so «measured on
 the 17th» cannot quietly become a memory.
+
+§10.1 was pinned by halves until 2026-08-21: its timeouts were checked, its
+**response ceiling and memory window were prose**. Both are read from the code
+now — and so is the phrase «in two places», because that is a count and not a
+turn of speech: remove one of the two checks and the sentence still reads
+correctly. One number there stays deliberately unpinned, «это ответ 120 с назад»,
+because it is an example of what a person sees rather than a constant; pinning it
+would tie the plan to a sample.
 
 The last three were added 2026-08-20 after the same failure twice in two days:
 a number that was true when written and false a fortnight later, sitting in a

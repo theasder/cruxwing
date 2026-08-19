@@ -133,6 +133,18 @@ struct MCPAppsConnectionStateViewTests {
         let task = Task { await manager.connect(target) }
         defer { driver.release(with: tools()) }
         await waitUntil { driver.started && manager.state(of: target.id) == .connecting }
+        // Ждём ВИД, а не только состояние управляющего.
+        //
+        // Состояние «подключаюсь» и перерисованная строка — разные мгновения:
+        // сначала меняется состояние, потом до вида доезжает публикация. На
+        // свободной машине разрыва не видно, под полным прогоном — видно, и
+        // проверка падала на «Подключить всё ещё на месте». Тот же класс, что
+        // в проверке слепых зон: ждали один признак, утверждали про другой.
+        await waitUntil {
+            guard let row = try? self.row(manager: manager, state: state) else { return false }
+            return (try? row.find(button: "Отмена")) != nil
+                && (try? row.find(button: "Подключить")) == nil
+        }
 
         let inspected = try row(manager: manager, state: state)
         #expect(throws: Never.self) {

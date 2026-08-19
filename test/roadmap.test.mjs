@@ -137,6 +137,32 @@ describe('ROADMAP', () => {
     }
   });
 
+  test('предел размера и окно памяти в §10.1 — те же, что в коде', () => {
+    // Числа §10.1 были закреплены наполовину: сроки — да, а потолок ответа и
+    // срок памяти жили в прозе. Ровно так же выглядели причины «остаётся
+    // кодом» в §6.2 — верные на день написания и не сверяемые ни с чем; две из
+    // четырёх к моменту проверки уже протухли.
+    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const bytes = /maximumResponseBytes = (\d+) \* 1024 \* 1024/.exec(engine);
+    assert.ok(bytes, 'потолок ответа не найден в движке — разбор сломан');
+    const audit = section('10.1');
+    assert.ok(audit.includes(`${bytes[1]} MB`),
+      `§10.1 называет не тот потолок: в коде ${bytes[1]} МБ`);
+
+    // И «в двух местах» — это счёт, а не оборот речи: снимут одну проверку,
+    // и фраза останется верной на вид.
+    const places = ['ManifestConnector.swift', 'ConnectorSession.swift']
+      .filter((f) => read('mvp', 'Sources', 'OrakulCore', f).includes('maximumResponseBytes'));
+    assert.equal(places.length, 2,
+      `потолок проверяется в ${places.length} местах, а §10.1 обещает два`);
+
+    const cache = read('mvp', 'Sources', 'OrakulCore', 'ConnectorCache.swift');
+    const window = /freshFor: TimeInterval = (\d+)/.exec(cache);
+    assert.ok(window, 'окно памяти не найдено — разбор сломан');
+    assert.ok(audit.includes(`${window[1]} seconds`),
+      `§10.1 называет не то окно памяти: в коде ${window[1]} с`);
+  });
+
   test('пределы по времени в §10.1 те же, что в коде', () => {
     // Раздел про недружелюбного вендора однажды уже приписал защиту не тому
     // пределу: байт в секунду держался будто бы восьмисекундным таймаутом, а
