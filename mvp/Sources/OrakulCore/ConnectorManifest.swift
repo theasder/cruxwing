@@ -297,7 +297,8 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
 
     /// Имена всех подстановок манифеста, кроме тех, что заполняет движок.
     func placeholders() -> Set<String> {
-        let builtin: Set<String> = ["query", "limit", "token", "basic", "page", "perPage"]
+        let builtin: Set<String> = ["query", "limit", "token", "basic", "page", "perPage",
+                                    "tokenHead", "tokenTail"]
         var texts = [request.path]
         texts += request.query.flatMap { [$0.name, $0.value] }
         texts += request.headers.flatMap { [$0.name, $0.value] }

@@ -86,4 +86,47 @@ import FoundationNetworking
         #expect(manifest.first?.text == "Тарифы с декабря")
         #expect(manifest.first?.author == "@anya:company.ru")
     }
+
+    @Test("Rocket.Chat: ключ режется на две половины и уезжает в два заголовка")
+    func rocketChatSplitsTheCredential() async throws {
+        // Единственный, кому нужны ДВА значения. Человек вписывает их одной
+        // строкой через двоеточие — четвёртое поле в настройках осталось бы
+        // пустым, потому что пару выдают вместе.
+        let json = #"{"messages":[{"msg":"Тарифы с декабря","u":{"username":"anya"}}],"success":true}"#
+        let recorder = Recorder()
+        let http: WorkMessengers.HTTP = { request in
+            recorder.record(request)
+            return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                                     httpVersion: nil, headerFields: [:])!)
+        }
+        let client = WorkMessengers(service: .rocketChat, token: "tok-abc:user-42",
+                                    secondary: Self.host, scope: "GENERAL", http: http)
+        let manifest = try await client.search("тарифы")
+        let legacy = try await client.legacySearch(
+            "тарифы", host: WorkMessengers.Service.rocketChat.host(secondary: Self.host) ?? Self.host)
+
+        #expect(manifest.map(\.text) == legacy.map(\.text))
+        #expect(manifest.map(\.author) == legacy.map(\.author))
+        #expect(manifest.first?.author == "anya", "автор лежит на этаж глубже, в u.username")
+
+        let first = try #require(recorder.first)
+        #expect(first.value(forHTTPHeaderField: "X-Auth-Token") == "tok-abc")
+        #expect(first.value(forHTTPHeaderField: "X-User-Id") == "user-42")
+        // Комната обязательна по документации вендора: поиск идёт внутри неё.
+        let items = URLComponents(url: first.url!, resolvingAgainstBaseURL: false)?.queryItems
+        #expect(items?.contains { $0.name == "roomId" && $0.value == "GENERAL" } == true)
+        #expect(items?.contains { $0.name == "searchText" && $0.value == "тарифы" } == true)
+    }
+
+    @Test("ключ без двоеточия не даёт чужому заголовку чужое значение")
+    func halfOfACredentialWithoutASeparator() {
+        // Человек вписал один токен вместо пары: голова — весь ключ, хвост
+        // пуст. Отдать хвосту тот же ключ значило бы послать сервису
+        // идентификатор пользователя, которым он не является.
+        #expect(ManifestConnector.half(of: "tok-abc", .head) == "tok-abc")
+        #expect(ManifestConnector.half(of: "tok-abc", .tail) == "")
+        // Двоеточие ПЕРВОЕ: у пароля приложения оно может быть внутри.
+        #expect(ManifestConnector.half(of: "id:pa:ss", .head) == "id")
+        #expect(ManifestConnector.half(of: "id:pa:ss", .tail) == "pa:ss")
+    }
 }

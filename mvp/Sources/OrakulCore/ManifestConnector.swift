@@ -734,6 +734,20 @@ public struct ManifestConnector {
         follow(path, from: row) as? String ?? ""
     }
 
+    enum Half { case head, tail }
+
+    /// Часть ключа до первого двоеточия или после него. Без двоеточия голова —
+    /// весь ключ, а хвост пуст: это «человек вписал не пару», и заголовок
+    /// уедет пустым, а не с чужим значением.
+    static func half(of token: String, _ part: Half) -> String {
+        guard let separator = token.firstIndex(of: ":") else {
+            return part == .head ? token : ""
+        }
+        return part == .head
+            ? String(token[token.startIndex..<separator])
+            : String(token[token.index(after: separator)...])
+    }
+
     private func fill(_ template: String, query: String, limit: Int, page: Int = 0) -> String {
         var filled = template
             .replacingOccurrences(of: "{query}", with: query)
@@ -746,6 +760,20 @@ public struct ManifestConnector {
             // а требовать от человека закодировать пароль руками — значит
             // получать в поле то, что он закодировал неправильно.
             .replacingOccurrences(of: "{basic}", with: Data(token.utf8).base64EncodedString())
+            // Половины ключа, записанного через двоеточие.
+            //
+            // Rocket.Chat просит ДВА значения — токен и идентификатор
+            // пользователя — и кладёт их в два РАЗНЫХ заголовка. Человек
+            // вписывает их одной строкой: четвёртое поле в настройках
+            // гарантированно осталось бы пустым, а пара всё равно выдаётся
+            // вместе. `{basic}` рядом решает соседнюю задачу — ту же пару, но
+            // склеенной и в base64, — и подменить одно другим нельзя.
+            //
+            // Двоеточие первое: у Nextcloud пароль приложения может содержать
+            // двоеточие, и разрезать по последнему значило бы отдать сервису
+            // обрубок вместо ключа.
+            .replacingOccurrences(of: "{tokenHead}", with: Self.half(of: token, .head))
+            .replacingOccurrences(of: "{tokenTail}", with: Self.half(of: token, .tail))
             .replacingOccurrences(of: "{page}", with: String(page))
             .replacingOccurrences(of: "{perPage}", with: String(manifest.scan?.perPage ?? limit))
         for (name, value) in values {

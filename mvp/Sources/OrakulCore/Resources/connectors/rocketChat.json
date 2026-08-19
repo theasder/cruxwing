@@ -1,0 +1,30 @@
+{
+  "id": "rocketChat",
+  "title": "Rocket.Chat",
+  "docs": "https://developer.rocket.chat/apidocs/search-message",
+  "verifiedOn": "2026-08-21",
+  "note": "Свой сервер. Ищет ВНУТРИ ОДНОЙ комнаты — roomId обязателен по документации вендора, поэтому у сервиса есть третье поле, и это не наша прихоть. Ключей тоже два: токен и идентификатор пользователя уезжают в разные заголовки (X-Auth-Token и X-User-Id), а человек вписывает их одной строкой через двоеточие — отдельное четвёртое поле в настройках гарантированно осталось бы пустым, ведь пару выдают вместе. Сообщение приходит в msg, автор — в u.username.",
+  "parameters": [
+    { "name": "room", "title": "Комната", "example": "GENERAL" }
+  ],
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/chat.search",
+    "query": [
+      { "name": "roomId", "value": "{room}" },
+      { "name": "searchText", "value": "{query}" },
+      { "name": "count", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "X-Auth-Token", "value": "{tokenHead}" },
+      { "name": "X-User-Id", "value": "{tokenTail}" }
+    ]
+  },
+  "response": {
+    "list": ["messages"],
+    "title": ["msg"],
+    "author": ["u", "username"],
+    "key": [],
+    "state": []
+  }
+}

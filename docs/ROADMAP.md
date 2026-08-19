@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 646 | README, maintainer run |
+| App and core tests | 2886 and 648 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 19**, and the number is counted from that directory rather
+**Today there are 20**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -681,13 +681,30 @@ records what that costs — Linear takes the key with **no** prefix, and confusi
 the two returns a 401 indistinguishable from an expired key. The prefix is now
 asserted per service, including Битрикс24 having no header at all.
 
+**Rocket.Chat is the twelfth, and it cost the format its last small property —
+2026-08-21.** Its blocker was real: one credential goes into **two** headers,
+`X-Auth-Token` and `X-User-Id`, from a single colon-joined string a person
+pastes. The format could put a whole credential into a header and base64 it for
+Basic; it could not cut one in half. Now `{tokenHead}` and `{tokenTail}` do, and
+the split is at the **first** colon — an application password may contain one,
+and splitting at the last would hand the service a fragment instead of a key.
+Without a colon the head is the whole key and the tail is empty, because sending
+the same string as a user id is worse than sending nothing. The room id it also
+needs is an ordinary parameter, and mandatory by the vendor's own rule.
+
+**Adding one file broke a different connector, and that is worth knowing.** The
+new placeholders were not in the engine's builtin list, so validation rejected
+the manifest — and because `bundled()` throws while every caller reads it with
+`try?`, **one invalid manifest silently removes all of them**. Every
+manifest-driven service quietly reverted to its hand-written path, and the
+visible symptom was Zulip losing its markup stripping: a failure two services
+away from the cause. Shipping such a file is prevented by
+`SecretInAddressTests.bundledManifestsPass`, which validates every bundled
+manifest — the guard held, but the failure it produces points elsewhere, and that
+is worth remembering the next time a manifest is added.
+
 **Still code, and now for reasons that were re-checked rather than remembered:**
 
-* **Rocket.Chat** splits one credential into two headers — `X-Auth-Token` and
-  `X-User-Id` come from a single colon-joined string a person pastes. The format
-  can put a whole credential into a header, and base64 it for Basic; it cannot
-  cut one in half. It also needs a room id, because its search runs inside one
-  room by the vendor's own rule.
 
 
 * **Яндекс Трекер.** The old wording — «searches by POST with a body and a second

@@ -221,15 +221,19 @@ describe('ROADMAP', () => {
     // Числа здесь пересчитываются из кода на каждом прогоне; у причин такой
     // проверки не было. «Остаётся кодом» — утверждение о коде ровно в той же
     // мере, что и «четырнадцать манифестов».
-    const described = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
-                                          'Resources', 'connectors'))
-      .filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
-    const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24',
-                            'Rocket.Chat': 'rocketChat' };
+    // Идентификаторы — из файлов, а не из их имён: по полю `id` ищет движок, а
+    // имя файла лишь соглашение. Эта же проверка сначала сверяла имена и
+    // объявила `rocketChat` необъяснённым, когда файл назывался иначе.
+    const connectorsDir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                                  'Resources', 'connectors');
+    const described = readdirSync(connectorsDir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => JSON.parse(readFileSync(resolve(connectorsDir, f), 'utf8')).id);
+    const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24' };
     const stillCode = section('6.2').slice(section('6.2').indexOf('Still code'));
     for (const [name, id] of Object.entries(claimedAsCode)) {
       assert.ok(stillCode.includes(name), `§6.2 больше не называет ${name} среди остающихся кодом`);
-      assert.ok(!described.includes(id.toLowerCase()),
+      assert.ok(!described.map((d) => d.toLowerCase()).includes(id.toLowerCase()),
         `§6.2 зовёт ${name} кодом, а манифест для него уже написан`);
     }
 
@@ -245,7 +249,8 @@ describe('ROADMAP', () => {
                              'WorkMessengers.swift'), 'utf8');
     const inCode = [...enums.matchAll(/public enum Service: String[^{]*\{\s*\n\s*case ([^\n]+)/g)]
       .flatMap((m) => m[1].split(',').map((n) => n.trim()));
-    const silent = inCode.filter((id) => !described.includes(id.toLowerCase()))
+    const lowered = described.map((id) => id.toLowerCase());
+    const silent = inCode.filter((id) => !lowered.includes(id.toLowerCase()))
       .filter((id) => !Object.values(claimedAsCode).includes(id));
     assert.deepEqual(silent, [],
       `сервисы без манифеста и без причины в §6.2: ${silent.join(', ')}`);
@@ -296,9 +301,16 @@ describe('ROADMAP', () => {
     // про Plane, у которого нет case в Service, — то есть ни один вопрос
     // человека до него не доходит. Файл в ресурсах читается как работающий
     // коннектор, потому что он загружается, проверяется и покрыт набором.
-    const ids = readdirSync(resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'Resources', 'connectors'))
+    // Идентификатор берётся ИЗ ФАЙЛА, а не из его имени.
+    //
+    // Достижимость решает поле `id`: движок ищет манифест по `$0.id ==
+    // service.rawValue`. Имя файла — соглашение, и оно однажды разошлось:
+    // `rocketchat.json` с идентификатором `rocketChat` был вполне достижим, а
+    // проверка объявила его брошенным. Сверять надо то, по чему ищет код.
+    const dir = resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'Resources', 'connectors');
+    const ids = readdirSync(dir)
       .filter((name) => name.endsWith('.json'))
-      .map((name) => name.replace(/\.json$/, ''));
+      .map((name) => JSON.parse(readFileSync(resolve(dir, name), 'utf8')).id);
     assert.ok(ids.length >= 5, `манифестов нашлось ${ids.length} — проверка была бы пустой`);
 
     // Достижим тот, чей id совпадает с case в Service одного из четырёх файлов.
