@@ -48,37 +48,10 @@ enum BundledSkillSanitizer {
 
     /// Strip zero-width / bidi / tag characters that can hide instructions.
     ///
-    /// The Unicode Tags block is the one that matters most: U+E0000–U+E007F maps
-    /// one-to-one onto ASCII and renders as nothing at all, so a whole paragraph
-    /// of instructions can ride inside what looks like an empty line. The corpus
-    /// is clean of all of these today; this is the gate for the next ingest.
+    /// Живёт в `InvisibleText`: тот же список нужен находкам коннекторов, а
+    /// одна и та же защита в двух копиях расходится молча.
     static func stripInvisibleControls(_ text: String) -> String {
-        String(text.unicodeScalars.filter { scalar in
-            switch scalar.value {
-            case 0x00AD:                            // soft hyphen
-                return false
-            case 0x061C:                            // Arabic letter mark
-                return false
-            case 0x180E:                            // Mongolian vowel separator
-                return false
-            case 0x200B, 0x200C, 0x200D:            // zero-width space/non-joiner/joiner
-                return false
-            case 0x200E, 0x200F:                    // LTR / RTL marks
-                return false
-            case 0x2060...0x2064:                   // word joiner + invisible operators
-                return false
-            case 0xFEFF:                            // BOM / zero-width no-break space
-                return false
-            case 0x202A...0x202E, 0x2066...0x2069:  // bidi overrides / isolates
-                return false
-            case 0xE0000...0xE007F:                 // Unicode Tags — invisible ASCII
-                return false
-            case 0xFFF9...0xFFFB:                   // interlinear annotation controls
-                return false
-            default:
-                return true
-            }
-        })
+        InvisibleText.strip(text)
     }
 
     /// Neutralize lines that look like chat-role markers (`SYSTEM:`, `<system>`).

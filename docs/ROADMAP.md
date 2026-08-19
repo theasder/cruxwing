@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2871 and 636 | README, maintainer run |
+| App and core tests | 2876 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -845,6 +845,35 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**The sanitizer was guarding the door nothing hostile comes through.**
+`BundledSkillSanitizer` strips zero-width, bidi and Unicode Tag characters out
+of vendored `SKILL.md` bodies, and its own comment says the skill corpus «is
+clean of all of these today». It is. Meanwhile the text that arrives from
+services we do not control — a task title in someone's tracker, a wiki page, a
+Fireflies transcript — reached the prompt untouched.
+
+The comment names the vector it was defending against: **U+E0000–E007F maps
+one-to-one onto ASCII and renders as nothing at all**, so a whole paragraph of
+instructions fits inside what looks like an empty line. A hostile vendor does
+not need to hide an instruction in a skill file; a ticket title is enough, and
+the person reading that ticket in their tracker sees nothing unusual.
+
+The strip now happens on the way into a prompt, at the door built the day
+before — one place, all six paths. And the check ordering came out of a test I
+got wrong: I asserted that cleaning makes hidden text *visible* to the injection
+guard. It does not — it deletes it, so the attempt never reaches the model and
+the person never learns it happened. So detection now looks **through** the
+obfuscation itself: `PromptInjectionGuard` unmasks the Tags block before
+matching, while the prompt still receives only cleaned text. Unmasking into the
+prompt would have meant writing the hidden instruction out in plain letters —
+doing the vendor's work for it.
+
+Two other structure attacks were measured and are already handled: JSON nested
+half a million deep is refused by the parser on **both** Darwin and Linux
+(worth measuring rather than assuming — this is the class where the two
+platforms have diverged three times), and a 200 MB response is refused before
+parsing.
 
 **The command line told the truth about coverage and the app did not.** A
 bounded listing presented as a search is the same class as a confident sentence

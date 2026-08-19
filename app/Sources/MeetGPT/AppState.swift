@@ -666,7 +666,13 @@ final class AppState: ObservableObject {
     /// Проверка `zapis-nahodok.test.mjs` держит это правило: `renderGrounding`
     /// в `AppState` зовётся только отсюда.
     func groundingBlock(_ snippets: [GroundingSnippet]) -> String {
-        let block = PromptWorkflows.renderGrounding(snippets)
+        // Чистка невидимых знаков ровно здесь, на входе чужого текста в запрос.
+        // Заголовок задачи и страница вики приезжают от сервиса, которым мы не
+        // управляем, а блок Unicode Tags повторяет ASCII один в один и не
+        // отображается ничем: целый абзац указаний помещается внутрь пустой на
+        // вид строки. Такая же чистка стояла у встроенных методичек — то есть у
+        // входа, про который в том же файле написано «корпус сегодня чист».
+        let block = InvisibleText.strip(PromptWorkflows.renderGrounding(snippets))
         lastConnectorContext = block
         return block
     }

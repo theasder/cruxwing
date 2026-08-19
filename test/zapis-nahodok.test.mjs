@@ -20,12 +20,19 @@ const code = source
 
 test('находки рендерятся только через дверь, которая ведёт запись', () => {
   const direct = [...code.matchAll(/PromptWorkflows\.renderGrounding\(/g)];
-  const insideTheDoor = code.includes(
-    'func groundingBlock(_ snippets: [GroundingSnippet]) -> String {\n' +
-    '        let block = PromptWorkflows.renderGrounding(snippets)\n' +
-    '        lastConnectorContext = block'
-  );
-  assert.ok(insideTheDoor, 'сама дверь пропала или изменилась — правило проверять нечем');
+  // Дверь ищем по свойствам, а не по точному тексту тела.
+  //
+  // Первая редакция сверяла три строки дословно и упала на первой же законной
+  // правке двери — добавили чистку невидимых знаков, и сторож объявил, что
+  // двери больше нет. Сторож, падающий на любой правке, учит людей его
+  // ослаблять; поэтому проверяется то, ради чего он написан: дверь существует,
+  // зовёт рендер и записывает то же, что отдаёт.
+  const door = code.slice(code.indexOf('func groundingBlock('));
+  const body = door.slice(0, door.indexOf('\n    }'));
+  assert.ok(door.startsWith('func groundingBlock('), 'дверь пропала — правило проверять нечем');
+  assert.match(body, /PromptWorkflows\.renderGrounding\(snippets\)/);
+  assert.match(body, /lastConnectorContext = block/);
+  assert.match(body, /return block/);
   assert.equal(direct.length, 1,
     `renderGrounding зовётся ${direct.length} раз(а) — мимо двери, значит запись потеряется`);
 });
