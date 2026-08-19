@@ -293,7 +293,8 @@ extension MCPConnectionManager {
             for (offset, service) in teamServices.enumerated() {
                 let index: Int = targets.count + offset
                 group.addTask {
-                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: service.rawValue)
+                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: service.rawValue,
+                                                                 destination: .literalSearch)
                     guard let text = await TeamConnectors.search(service, query: query, cap: maxCharsPerSource),
                           !text.isEmpty else { return (index, nil) }
                     return (index, GroundingSnippet(
@@ -309,7 +310,8 @@ extension MCPConnectionManager {
                 let index: Int = targets.count + teamServices.count + offset
                 group.addTask {
                     let query = ConnectorProbeStrategy.query(
-                        goal: goal, serverID: service.rawValue)
+                        goal: goal, serverID: service.rawValue,
+                        destination: .literalSearch)
                     guard let text = await store.searchText(
                         service, query: query, cap: maxCharsPerSource, http: http),
                           !text.isEmpty else { return (index, nil) }
@@ -338,7 +340,8 @@ extension MCPConnectionManager {
                 let http = notesHTTP
                 group.addTask {
                     let query = ConnectorProbeStrategy.query(
-                        goal: goal, serverID: service.rawValue)
+                        goal: goal, serverID: service.rawValue,
+                        destination: .literalSearch)
                     guard let client = store.notesClient(for: service, http: http) else { return (index, nil) }
                     // Срок тот же, что у MCP-инструмента: зависший сервис должен
                     // стоить одного источника, а не всего ответа на звонке.
@@ -391,7 +394,8 @@ extension MCPConnectionManager {
                 let http = selfHostedHTTP
                 group.addTask {
                     let query = ConnectorProbeStrategy.query(
-                        goal: goal, serverID: service.rawValue)
+                        goal: goal, serverID: service.rawValue,
+                        destination: .literalSearch)
                     guard let client = store.selfHostedClient(for: service, http: http) else { return (index, nil) }
                     // Срок тот же, что у MCP-инструмента: зависший сервис должен
                     // стоить одного источника, а не всего ответа на звонке.
@@ -454,7 +458,8 @@ extension MCPConnectionManager {
                 let http = messengerHTTP
                 group.addTask {
                     let query = ConnectorProbeStrategy.query(
-                        goal: goal, serverID: service.rawValue)
+                        goal: goal, serverID: service.rawValue,
+                        destination: .literalSearch)
                     guard let client = store.messengerClient(for: service, http: http) else { return (index, nil) }
                     // Срок тот же, что у MCP-инструмента: зависший сервис должен
                     // стоить одного источника, а не всего ответа на звонке.
@@ -515,7 +520,8 @@ extension MCPConnectionManager {
                     try? await source.ensureStarted(
                         token: token, allowedChatIDs: chatIDs,
                         botID: botID)
-                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "telegram")
+                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "telegram",
+                                                                 destination: .literalSearch)
                     let hits = await source.search(query, limit: 10)
                     guard !hits.isEmpty else { return (index, nil) }
                     let text = hits.map { hit in
@@ -536,7 +542,8 @@ extension MCPConnectionManager {
                 let store = trackerStore
                 let http = trackerHTTP
                 group.addTask {
-                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "github")
+                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "github",
+                                                                 destination: .literalSearch)
                     guard let client = store.githubClient(http: http) else { return (index, nil) }
                     // Срок тот же, что у MCP-инструмента: зависший сервис должен
                     // стоить одного источника, а не всего ответа на звонке.
@@ -598,7 +605,8 @@ extension MCPConnectionManager {
                 let http = westernHTTP
                 group.addTask {
                     let query = ConnectorProbeStrategy.query(
-                        goal: goal, serverID: service.rawValue)
+                        goal: goal, serverID: service.rawValue,
+                        destination: .literalSearch)
                     guard let client = store.westernClient(for: service, http: http) else {
                         return (index, nil)
                     }
@@ -652,7 +660,8 @@ extension MCPConnectionManager {
                 var index: Int = westernBase
                 index += westernServices.count
                 group.addTask {
-                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "notes-local")
+                    let query = ConnectorProbeStrategy.query(goal: goal, serverID: "notes-local",
+                                                            destination: .literalSearch)
                     // Срок тот же, что у сетевых источников. Диск обычно
                     // быстрее сети, но хранилище на сетевом диске — нет, и
                     // ждать его весь звонок не стоит.

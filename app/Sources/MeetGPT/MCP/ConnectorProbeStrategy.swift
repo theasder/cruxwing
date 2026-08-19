@@ -144,8 +144,32 @@ enum ConnectorProbeStrategy: Sendable {
     /// what the user cares about; the hint follows to bias the connector's own
     /// ranking. Bounded — several connector search APIs degrade badly on long
     /// queries, matching on stray terms rather than the subject.
-    static func query(goal: String, serverID: String, maxChars: Int = 320) -> String {
+    /// Кому уходит запрос: инструменту MCP или прямому поиску сервиса.
+    ///
+    /// Различие не формальное. Инструмент MCP запрос ТОЛКУЕТ — подсказка
+    /// смещает то, что он вернёт. Прямой коннектор передаёт слово в параметр
+    /// поиска ДОСЛОВНО, и подсказка превращается в одиннадцать лишних слов
+    /// внутри условия отбора.
+    ///
+    /// Измерено на живом Redmine 2026-08-21: «тарифы» — одна находка, «тарифы —
+    /// открытые задачи, что уже в работе, недавние баги по обсуждаемому» — НОЛЬ.
+    /// Подсказка не сместила выдачу, она её стёрла.
+    ///
+    /// Утечка вышла из совпадения имён: `linear` есть и среди серверов MCP, и
+    /// среди своих коннекторов, поэтому прямой поиск Linear получал английскую
+    /// подсказку в поле `searchIssues(term:)`. WEEEK и Kaiten получали русскую.
+    public enum Destination {
+        /// Инструмент, который запрос толкует. Подсказка помогает.
+        case interpretingTool
+        /// Поиск сервиса по слову. Подсказка обнуляет выдачу.
+        case literalSearch
+    }
+
+    static func query(goal: String, serverID: String,
+                      destination: Destination = .interpretingTool,
+                      maxChars: Int = 320) -> String {
         let base = goal.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard destination == .interpretingTool else { return String(base.prefix(maxChars)) }
         guard let hint = byServerID[serverID]?.queryHint
             ?? byTeamService[serverID]?.queryHint
             ?? probe(forTracker: serverID)?.queryHint else {

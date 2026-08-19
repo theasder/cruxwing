@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 326 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2904 and 652 | README, maintainer run |
+| App and core tests | 2908 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1204,6 +1204,30 @@ What is **not** established: that any of this is the cause of the rare full-run
 failures seen twice this week. Three consecutive full runs after the change were
 green, which proves nothing about a one-in-twenty event. The environment
 dependency was real and is removed; the flake is still open.
+
+**A hint meant to bias a ranking search was emptying a filtering one —
+2026-08-21.** Each source gets a `queryHint` appended to the question: «тарифы
+с декабря — открытые задачи, что уже в работе, недавние баги по обсуждаемому».
+For a tool that **interprets** the request — an MCP server deciding what to
+return — that biases the answer, which is what it was written for. A direct
+connector puts the string into the vendor's search parameter **literally**, and
+eleven extra words become eleven extra conditions.
+
+Measured on the live Redmine rather than argued: «тарифы» finds one issue,
+«тарифы — открытые задачи, что уже в работе, недавние баги по обсуждаемому»
+finds **zero**. The hint did not bias the result, it erased it.
+
+The leak came from a name collision. `linear` exists both as an MCP server and
+as one of our own connectors, so a direct Linear search carried an English hint
+straight into `searchIssues(term:)`; WEEEK and Kaiten carried the Russian one.
+Every branch now declares which kind of destination it is talking to, and one
+caller — the MCP tool — deliberately keeps its hint, because there the hint
+works.
+
+Getting the check right took two tries, and the wrong one is the useful part: it
+first demanded that **every** call be marked as a literal search, which would have
+taken the hint away from the one place it belongs. The rule is «exactly one
+caller interprets», and it is asserted by name.
 
 **The search query is the one thing that leaves this machine, and it could
 carry the meeting verbatim.** A connected app is asked a question distilled from
