@@ -1,0 +1,25 @@
+{
+  "id": "yougile",
+  "title": "YouGile",
+  "docs": "https://ru.yougile.com/api-v2#/operations/TaskController_search",
+  "verifiedOn": "2026-08-21",
+  "note": "Российский трекер, облако одно — адрес не спрашивается. Поиск по названию задачи: GET /task-list с параметром title. Список приезжает под ключом content, а не массивом верхнего уровня. Content-Type требуется вендором на каждом запросе, включая GET, — это его правило, а не наша привычка.",
+  "request": {
+    "method": "GET",
+    "path": "/task-list",
+    "query": [
+      { "name": "title", "value": "{query}" },
+      { "name": "limit", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" },
+      { "name": "Content-Type", "value": "application/json" }
+    ]
+  },
+  "response": {
+    "list": ["content"],
+    "title": ["title"],
+    "key": ["id"],
+    "state": []
+  }
+}

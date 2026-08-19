@@ -225,7 +225,7 @@ describe('ROADMAP', () => {
                                           'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
     const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24',
-                            'Rocket.Chat': 'rocketChat', 'YouGile': 'yougile' };
+                            'Rocket.Chat': 'rocketChat' };
     const stillCode = section('6.2').slice(section('6.2').indexOf('Still code'));
     for (const [name, id] of Object.entries(claimedAsCode)) {
       assert.ok(stillCode.includes(name), `§6.2 больше не называет ${name} среди остающихся кодом`);

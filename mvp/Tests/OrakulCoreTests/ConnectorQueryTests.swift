@@ -142,7 +142,11 @@ struct ConnectorQueryTests {
                                                host: nil, scope: nil)
         let answer = await ConnectorQuery.ask(
             settings, query: "лимиты",
-            trackerRUHTTP: stub(#"[{"key": "YG-3", "summary": "Готово"}]"#))
+            // Форма — YouGile: список под `content`, заголовок в `title`.
+            // Голый массив с `summary` разбирал общий рукописный разбор, пока
+            // YouGile был кодом; с манифестом сервис описан по своей
+            // документации, и чужая форма — это «ответ не понят».
+            trackerRUHTTP: stub(#"{"content": [{"id": "YG-3", "title": "Готово"}]}"#))
         #expect(answer.text.contains("YG-3"), "YouGile попросил лишнего: «\(answer.text)»")
     }
 

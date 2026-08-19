@@ -43,6 +43,21 @@ struct RussianTrackersTests {
         }
     }
 
+    /// Пустая выдача в форме, которую отдаёт ИМЕННО этот сервис.
+    ///
+    /// Общий «[]» на всех работал, пока разбор был общим и терпел любую форму.
+    /// С манифестами так больше нельзя, и правильно: у Kaiten массив, у YouGile
+    /// обёртка content, у WEEEK свой конверт с признаком success. Кормить
+    /// сервис чужой формой — значит проверять выдумку; это уже ловилось на
+    /// проверке «разные формы разбираются одинаково».
+    private func emptyAnswer(for service: RussianTrackers.Service) -> String {
+        switch service {
+        case .weeek:   return #"{"success":true,"tasks":[],"hasMore":false}"#
+        case .yougile: return #"{"content":[]}"#
+        default:       return "[]"
+        }
+    }
+
     private func client(_ service: RussianTrackers.Service,
                         http: @escaping RussianTrackers.HTTP) -> RussianTrackers {
         RussianTrackers(service: service, token: "t0ken",
@@ -52,9 +67,7 @@ struct RussianTrackersTests {
     @Test("каждый сервис ходит по своему адресу и со своим токеном")
     func requestShape() async throws {
         for service in RussianTrackers.Service.allCases {
-            let response = service == .weeek
-                ? #"{"success":true,"tasks":[],"hasMore":false}"# : "[]"
-            let (http, recorder) = stub(json: response)
+            let (http, recorder) = stub(json: emptyAnswer(for: service))
             _ = try await client(service, http: http).search("тарифы")
 
             // Первый запрос, а не последний: на пустой выдаче коннектор
@@ -72,6 +85,22 @@ struct RussianTrackersTests {
             let auth = request.value(forHTTPHeaderField: "Authorization") ?? ""
             #expect(auth.contains("t0ken") || url.contains("t0ken"),
                     "\(service.title): ключ не уехал ни заголовком, ни адресом")
+
+            // И ПРИСТАВКА, а не только сам ключ.
+            //
+            // «Ключ уехал» проходило и без «Bearer »: мутация, снявшая
+            // приставку у YouGile, не поймалась. Ошибка в приставке даёт 401,
+            // неотличимый от истёкшего ключа, — этот же вывод записан в плане
+            // про Linear, где приставки, наоборот, быть не должно. Догадка
+            // здесь стоит человеку вечера.
+            switch service {
+            case .kaiten, .yougile, .weeek:
+                #expect(auth == "Bearer t0ken", "\(service.title): приставка не та")
+            case .yandexTracker:
+                #expect(auth == "OAuth t0ken", "\(service.title): приставка не та")
+            case .bitrix24:
+                #expect(auth.isEmpty, "у вебхука Битрикса заголовка быть не должно")
+            }
         }
     }
 
@@ -97,9 +126,7 @@ struct RussianTrackersTests {
     @Test("GET-трекеры кодируют запрос как одно значение")
     func getServicesCarryTheQueryInTheURL() async throws {
         for service in [RussianTrackers.Service.kaiten, .yougile, .weeek] {
-            let response = service == .weeek
-                ? #"{"success":true,"tasks":[],"hasMore":false}"# : "[]"
-            let (http, recorder) = stub(json: response)
+            let (http, recorder) = stub(json: emptyAnswer(for: service))
             _ = try await client(service, http: http).search("тарифы")
             // Первый запрос: с пустой выдачей коннектор спрашивает второй раз тем
             // же словом с заглавной буквы. Проверяется кодирование слова человека.
@@ -138,14 +165,17 @@ struct RussianTrackersTests {
         let (http, recorder) = stub(json: #"{"content":[]}"#)
         _ = try await client(.yougile, http: http).search("лимиты&limit=1000")
 
-        let url = try #require(recorder.last?.url)
+        // Первый запрос — со словом человека. За ним движок спрашивает тем же
+        // словом с заглавной и основой слова, и `last` проверял бы уже не то,
+        // что уносило запрос человека.
+        let url = try #require(recorder.first?.url)
         let components = try #require(URLComponents(
             url: url, resolvingAgainstBaseURL: false))
         #expect(components.path == "/api-v2/task-list")
         #expect(components.queryItems?.filter { $0.name == "limit" }.map(\.value) == ["10"])
         #expect(components.queryItems?.first { $0.name == "title" }?.value
                 == "лимиты&limit=1000")
-        #expect(recorder.last?.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        #expect(recorder.first?.value(forHTTPHeaderField: "Content-Type") == "application/json")
     }
 
     @Test("WEEEK success=false — отказ, а не пустая выдача")
@@ -199,7 +229,10 @@ struct RussianTrackersTests {
                 == "bpf3crucp1v28b74p3rk")
         #expect(recorderCloud.last?.value(forHTTPHeaderField: "X-Org-ID") == nil)
 
-        let (http2, recorder2) = stub()
+        // YouGile описан манифестом: заглушка — в его собственной форме,
+        // иначе движок справедливо отвечает «не понял ответ», и проверка про
+        // заголовки падает по причине, к заголовкам не относящейся.
+        let (http2, recorder2) = stub(json: emptyAnswer(for: .yougile))
         _ = try await client(.yougile, http: http2).search("q")
         #expect(recorder2.last?.value(forHTTPHeaderField: "X-Org-ID") == nil)
         #expect(recorder2.last?.value(forHTTPHeaderField: "X-Cloud-Org-ID") == nil)
@@ -227,13 +260,19 @@ struct RussianTrackersTests {
         #expect(recorder.count == 0)
     }
 
-    @Test("401 и 403 читаются как «не тот токен», прочее — как код")
+    @Test("401 и 403 — разные починки, прочее — как код")
     func errorsAreDistinguished() async {
-        for status in [401, 403] {
-            let (http, _) = stub(status: status)
-            await #expect(throws: RussianTrackers.TrackerError.unauthorised(.yougile)) {
-                try await client(.yougile, http: http).search("q")
-            }
+        // Раньше здесь оба кода читались как «не тот токен». Для 403 это совет
+        // мимо: токен настоящий, а права `search` ему не выдали, и перевыпуск
+        // ничего не изменит. Ровно этот урок записан в плане про Пачку; YouGile
+        // получил его вместе с переходом на манифест.
+        let (unauthorised, _) = stub(status: 401)
+        await #expect(throws: RussianTrackers.TrackerError.unauthorised(.yougile)) {
+            try await client(.yougile, http: unauthorised).search("q")
+        }
+        let (forbidden, _) = stub(status: 403)
+        await #expect(throws: RussianTrackers.TrackerError.forbidden(.yougile)) {
+            try await client(.yougile, http: forbidden).search("q")
         }
         let (http, _) = stub(status: 500)
         await #expect(throws: RussianTrackers.TrackerError.http(.yougile, 500)) {
@@ -311,9 +350,18 @@ struct RussianTrackersTests {
     func garbageIsAnError() async {
         // Пустой список сказал бы «задач нет», хотя правда — «сервис ответил
         // мусором». Для того, кто ищет свою задачу, это разные вещи.
-        let (http, _) = stub(json: "<html>502 Bad Gateway</html>")
+        // И страница отличается от мусора: движок узнаёт HTML и говорит
+        // «сервис вернул страницу, а не данные» — обычно это вход по паролю
+        // на месте API. Совет тогда другой: не «токен плохой», а «адрес ведёт
+        // не туда».
+        let (page, _) = stub(json: "<html>502 Bad Gateway</html>")
+        await #expect(throws: RussianTrackers.TrackerError.webPage(.yougile)) {
+            try await client(.yougile, http: page).search("q")
+        }
+        // Не-JSON, который и не страница, остаётся «не понял ответ».
+        let (garbage, _) = stub(json: "не json и не страница")
         await #expect(throws: RussianTrackers.TrackerError.unreadable(.yougile)) {
-            try await client(.yougile, http: http).search("q")
+            try await client(.yougile, http: garbage).search("q")
         }
     }
 
@@ -333,7 +381,7 @@ struct RussianTrackersTests {
 
     @Test("запрос не висит дольше бюджета остальных источников")
     func requestHasADeadline() async throws {
-        let (http, recorder) = stub()
+        let (http, recorder) = stub(json: emptyAnswer(for: .yougile))
         _ = try await client(.yougile, http: http).search("q")
         // Восемь секунд — тот же дедлайн, что у MCP-источников: один зависший
         // сервис стоит одного источника, а не всего ответа.

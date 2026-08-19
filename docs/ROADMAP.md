@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 18**, and the number is counted from that directory rather
+**Today there are 19**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -653,21 +653,36 @@ lives, and Kaiten's manifest is asserted to **refuse** a foreign shape. A
 description of a service that reads «anything vaguely similar» is a guess with a
 schema.
 
-**YouGile is next, and its divergences are already named** rather than left as a
-surprise: putting it on a manifest changes four behaviours, and each is the
-engine being stricter than the shared parser — 403 separated from 401 (the
-Пачка lesson, above), a login page recognised as a page, a foreign envelope
-refused instead of guessed, and the term's own spelling asked before the stem.
-Four test expectations pin the older, looser behaviour and must move with it.
-That is a piece of work, not a JSON file, and pretending otherwise is how a
-migration lands half-done.
+**YouGile is the eleventh — 2026-08-21 — and the four divergences named the day
+before are what the work consisted of.** Each was the engine being stricter than
+the shared parser, so each is an upgrade its users now get:
+
+* **403 no longer reads as «bad token».** The token is genuine and the `search`
+  right was never granted; «reissue your token» is advice that cannot work. The
+  Пачка lesson, applied to a second service.
+* **A login page is called a page.** HTML where JSON belongs usually means the
+  address points at a web form, not at an API — a different repair from a bad
+  key. «Not JSON and not a page» stays «could not read the answer», and both are
+  asserted, because collapsing them was the original defect.
+* **A foreign envelope is refused instead of guessed.**
+* **The person's own spelling goes first**, with the case and stem questions
+  behind it.
+
+The shared stubs had to go with it, and that is the more general lesson: tests
+fed every Russian tracker one `[]`, which worked only while one tolerant parser
+served five vendors. Each service is now stubbed in **its own** shape — array for
+Kaiten, `content` for YouGile, the success envelope for WEEEK. A stub in the
+wrong shape tests a service that does not exist.
+
+**A mutation found a hole in the oldest check of the family:** «each service
+travels to its own address with its own key» passed with `Bearer ` removed from
+YouGile's header. The key was there, the prefix was not, and the plan already
+records what that costs — Linear takes the key with **no** prefix, and confusing
+the two returns a 401 indistinguishable from an expired key. The prefix is now
+asserted per service, including Битрикс24 having no header at all.
 
 **Still code, and now for reasons that were re-checked rather than remembered:**
 
-* **YouGile** — not blocked, but not free either. A manifest for it changes four
-  behaviours at once, each of them the engine being stricter than the shared
-  parser, and four test expectations pin the looser ones. Named above in full;
-  it stays code until that work is done rather than half-done.
 * **Rocket.Chat** splits one credential into two headers — `X-Auth-Token` and
   `X-User-Id` come from a single colon-joined string a person pastes. The format
   can put a whole credential into a header, and base64 it for Basic; it cannot
@@ -986,6 +1001,13 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**Fourth sighting of the flake, and it is always the same neighbourhood.** This
+time `BlindSpotSchedulerRaceTests` again, a different check
+(«a non-cooperative stale provider»), failing on a wait that never completed and
+passing alone. Four observations now, every one in a suite that coordinates
+concurrent work. That is not yet a diagnosis and is written here as an
+observation rather than one.
 
 **One of the three flaky failures had a race written into the check itself.**
 `BlindSpotSchedulerRaceTests` waited until the activity counter reported one
