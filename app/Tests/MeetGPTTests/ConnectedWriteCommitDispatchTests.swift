@@ -114,7 +114,10 @@ struct ConnectedWriteCommitDispatchTests {
                 action: staged.action,
                 payload: .fields(scenario.edited))], "\(scenario.id) must receive exactly the edited payload once")
             #expect(state.answerActionResult ==
-                "Created in \(scenario.serverName) — https://fake.connected/\(scenario.id)/42")
+                // Строка переведена вместе с кодом: её читает человек, а сообщения
+                // приложения по-русски (§6.4). Смысл проверки прежний — ровно
+                // один ответ и ровно с этим адресом.
+                "Создано в \(scenario.serverName) — https://fake.connected/\(scenario.id)/42")
             #expect(state.pendingAnswerAction == nil)
             #expect(state.runningAnswerAction == nil)
         }

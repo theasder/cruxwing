@@ -18,7 +18,11 @@ import { stripComments } from './swift-source.mjs';
 const STATE = 'app/Sources/MeetGPT/AppState.swift';
 
 /// Свойства, чьё значение вид показывает человеку без изменений.
-const SHOWN = ['lastError', 'transcriptEnhanceNote', 'localDiarizationNote'];
+const SHOWN = ['lastError', 'transcriptEnhanceNote', 'localDiarizationNote',
+               // Добавлено 2026-08-21: строка «Saved …» нашлась не этой
+               // проверкой, а соседней — про права на файлы. Список свойств
+               // сторожит ровно то, что в нём перечислено, и это его предел.
+               'answerActionResult'];
 
 /// Названия сервисов — не английский текст, а имена. «Deepgram: …» это префикс
 /// сообщения самого сервиса, и переводить его значило бы выдумывать за него.

@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 301 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 304 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2861 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1358,6 +1358,30 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Third finding of the same kind, so it stopped being a finding and became a
+rule.** The audio itself goes to disk: `ExternalTranscriber` writes the call as
+a WAV for the engine to read. On macOS the temporary directory belongs to one
+user; on Linux it is `/tmp`, shared, so for the length of the transcription the
+recording was readable by **every user of the machine**. The command line is
+the Linux surface, which is what §6.1 is for.
+
+`test/soderzhimoe-na-diske.test.mjs` now asks every file that writes to disk
+whether it sets permissions, instead of me finding them one at a time. Two
+answers were missing: that WAV, and a document downloaded from somebody's Google
+Drive into a temporary file.
+
+Exemptions are written with their reason, and the list is checked **against
+reality in both directions**: a file that stops writing to disk must leave the
+list. That already caught one — `DevCallDiagnostics` was exempted for opening
+files with `Darwin.open` and `fchmod`, which means the scan never saw it as a
+writer at all, so the exemption was protecting nothing.
+
+Three English sentences turned up beside the writes, on a property the
+user-visible-strings check did not know about — «Saved …», «Created in … », «Done
+— … accepted it». Translated, and `answerActionResult` added to that list. Worth
+saying plainly: the second check found what the first was built for, because a
+hand-written list of properties guards exactly what is in it.
 
 **And so were the saved calls, which is the larger half.** Yesterday's finding
 was one log file; asking the same question of everything that writes to disk

@@ -7926,9 +7926,9 @@ final class AppState: ObservableObject {
                 // reads as a crash even when it worked. Show the link if the
                 // result carries one; otherwise a plain sentence.
                 if let url = Self.firstHTTPSURL(in: result) {
-                    answerActionResult = "Created in \(destinationName) — \(url.absoluteString)"
+                    answerActionResult = "Создано в \(destinationName) — \(url.absoluteString)"
                 } else {
-                    answerActionResult = "Done — \(destinationName) accepted it."
+                    answerActionResult = "Готово — \(destinationName) принял."
                 }
             }
         } catch {
@@ -8147,7 +8147,7 @@ final class AppState: ObservableObject {
 
             guard panel.runModal() == .OK, let url = panel.url else { return }
             try data.write(to: url, options: .atomic)
-            answerActionResult = "Saved \(url.lastPathComponent)."
+            answerActionResult = "Сохранено: \(url.lastPathComponent)."
         } catch {
             lastError = "Выгрузка в Word не удалась: \(error.localizedDescription)"
         }

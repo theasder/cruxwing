@@ -212,6 +212,17 @@ public struct ExternalTranscriber: Transcriber {
 
         let audio = FileManager.default.temporaryDirectory
             .appendingPathComponent("orakul-\(UUID().uuidString).wav")
+        // Права 0600 ДО записи, а не после.
+        //
+        // Здесь на диск ложится сам звук созвона. На macOS временный каталог
+        // свой у каждого пользователя, а на Linux — это /tmp, общий: файл с
+        // обычными правами там читает любой пользователь машины, пока движок
+        // работает. Командная строка живёт как раз на Linux (план, §6.1).
+        //
+        // Сначала пустой файл с правами, потом запись в него: `write(to:)` на
+        // существующий файл права сохраняет, а создаёт — с обычными.
+        _ = FileManager.default.createFile(atPath: audio.path, contents: nil,
+                                           attributes: [.posixPermissions: 0o600])
         try WAVFile.encode(samples: samples).write(to: audio)
         defer { try? FileManager.default.removeItem(at: audio) }
 

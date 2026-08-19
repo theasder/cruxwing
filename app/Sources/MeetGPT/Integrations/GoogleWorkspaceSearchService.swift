@@ -167,7 +167,12 @@ enum GoogleWorkspaceSearchService {
         let suffix = (name as NSString).pathExtension
         let temporary = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + (suffix.isEmpty ? "" : ".\(suffix)"))
-        try data.write(to: temporary, options: .atomic)
+        // Права 0600 до записи: сюда скачивается документ из чужого Диска —
+        // содержимое, а не служебный файл. Сначала пустой файл с правами, потом
+        // запись: `.atomic` создал бы свой файл со своими правами.
+        _ = FileManager.default.createFile(atPath: temporary.path, contents: nil,
+                                           attributes: [.posixPermissions: 0o600])
+        try data.write(to: temporary)
         defer { try? FileManager.default.removeItem(at: temporary) }
 
         guard let imported = try? await ContextImporter.importFile(at: temporary) else { return nil }
