@@ -2472,7 +2472,7 @@ final class AppState: ObservableObject {
             guard !snippets.isEmpty else {
                 connectedGlossarySuggestionStatus = .empty
                 connectedGlossarySuggestionMessage =
-                    "Connected apps returned no names or technical terms to review."
+                    "В подключённых приложениях не нашлось имён и терминов, которые стоило бы разобрать."
                 return
             }
 
@@ -2513,7 +2513,7 @@ final class AppState: ObservableObject {
             guard let result, !result.suggestions.isEmpty else {
                 connectedGlossarySuggestionStatus = .empty
                 connectedGlossarySuggestionMessage =
-                    "No new terms were found beyond your current dictionary."
+                    "Ничего нового сверх вашего словаря не нашлось."
                 return
             }
             connectedGlossarySuggestions = result.suggestions
@@ -10535,7 +10535,7 @@ final class AppState: ObservableObject {
                           }) {
         let text = WeeklyDigest.build(audience: audience, store: store ?? sessionStore)
         write(text)
-        digestCopyNotice = "\(audience.heading) copied — paste it wherever it belongs."
+        digestCopyNotice = "\(audience.heading): скопировано — вставьте, куда нужно."
         devCallDiagnostics.record(event: "weekly_digest_copied",
                                   fields: ["audience": audience.rawValue,
                                            "chars": "\(text.count)"])

@@ -651,12 +651,26 @@ handed to a view. «Запись уйдёт в AssemblyAI with your own key» li
 Russian sentence, and «partial merge — transcript left unchanged» was printed
 under a button, both outside the counted directories.
 
-`test/vidimye-stroki-vne-vidov.test.mjs` counts the properties a view prints
-verbatim — `lastError`, `transcriptEnhanceNote`, `localDiarizationNote`: fifty-odd
-assignments, and each must carry Cyrillic. The list of properties is written by
-hand on purpose, because «a string in AppState» is not the same as «text for a
-person»: keys, identifiers and log lines live there too, and a scan that counted
-them would report a number nobody could act on.
+`test/vidimye-stroki-vne-vidov.test.mjs` checks the properties a view prints
+verbatim: each assignment must carry Cyrillic. «A string in AppState» is not the
+same as «text for a person» — keys, identifiers and log lines live there too, and
+a scan counting those would report a number nobody could act on.
+
+**The population is derived now, not listed — 2026-08-21.** The hand-written list
+held four properties and guarded exactly those four: the fifth English string was
+found by the neighbouring check about file permissions, which is the limit a hand
+list always has. The properties are now found where they reach a person — inside
+`Text(...)` in the views, directly or through an `if let` binding — which gives
+**32** instead of four, and the four remain as a floor rather than the whole
+answer.
+
+Three more English sentences turned up in the difference: «Connected apps
+returned no names or technical terms to review», «No new terms were found beyond
+your current dictionary», «… copied — paste it wherever it belongs». The check
+proves it is doing the deriving, not leaning on the floor: a mutation that puts
+English back on `connectedGlossarySuggestionMessage` — a property the old list
+never contained — fails, and so does one that breaks the parser into finding only
+the four.
 
 Vendor names are allowed through — «Deepgram: …» prefixes a message the service
 wrote, and translating that would be inventing words on its behalf.
