@@ -8350,6 +8350,25 @@ final class AppState: ObservableObject {
         run(prompt: pending.prompt, images: pending.images)
     }
 
+    /// Чем спрашивать подключённые приложения, когда цель звонка не названа.
+    ///
+    /// Здесь стоял хвост расшифровки — последние 500 знаков дословной беседы, —
+    /// и он уходил КАЖДОМУ подключённому сервису как поисковый запрос. В том
+    /// числе Fireflies, чей владелец продаёт конкурирующий продукт: чтобы
+    /// улучшить слияние их же данными, мы отдавали им кусок разговора.
+    ///
+    /// Поиску нужен запрос, а не стенограмма. Берём то, что мы сами написали:
+    /// цель звонка, иначе краткое изложение. Нет ни того ни другого — не
+    /// спрашиваем вовсе: подсказка станет беднее, а разговор останется дома.
+    /// Пустая строка тут была бы худшим исходом — сервисы ответили бы
+    /// «что угодно», и это выглядело бы как работа.
+    nonisolated static func groundingQuery(goal: String, digest: String) -> String? {
+        let goal = goal.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !goal.isEmpty { return goal }
+        let digest = digest.trimmingCharacters(in: .whitespacesAndNewlines)
+        return digest.isEmpty ? nil : digest
+    }
+
     /// Grounding already in the cache, rendered for the assessment prompt. Never
     /// fetches: an empty result simply means tier 2 reasons without app context.
     private func cachedGroundingDigest() -> String {
@@ -9806,10 +9825,8 @@ final class AppState: ObservableObject {
         // Pull connected-app context (Notion/CRM/trackers/…) so the merge can
         // correct names and project terms — not just ASR common sense.
         var grounding: [GroundingSnippet] = []
-        if useConnectedAppsInPrompts, let mcp {
-            let query = goalSnapshot.isEmpty
-                ? String(SystemInstructions.formatEntries(whisperSnapshot).suffix(500))
-                : goalSnapshot
+        if useConnectedAppsInPrompts, let mcp,
+           let query = Self.groundingQuery(goal: goalSnapshot, digest: digestSnapshot) {
             grounding = await mcp.groundingSnippets(
                 goal: query,
                 includeTeam: true,

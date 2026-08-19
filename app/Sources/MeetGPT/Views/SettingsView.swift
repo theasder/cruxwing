@@ -612,7 +612,10 @@ private struct TranscriptionSettingsTab: View {
 
     private var connectedGlossaryCostCaption: String {
         let model = LLMCatalog.background(for: Config.selectedModel)
-        let credits = CreditCostEstimate.credits(model: model.id, inputTokens: 0)
+        // Стоимость здесь не называется: считать её при inputTokens: 0 значит
+        // печатать ноль. Строка вычислялась и выбрасывалась — предупреждение
+        // компилятора про неё нашла scripts/proverka-preduprezhdenij.sh в тот
+        // день, когда её научили ронять прогон.
         return "Прочитает не больше \(ConnectedGlossarySuggestionService.maxSources) коротких выдержек из приложений и отранжирует найденные термины моделью \(model.label). Транскрипт звонка при этом никуда не уходит."
     }
 

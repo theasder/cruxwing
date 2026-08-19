@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 298 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2849 and 618 | README, maintainer run |
+| App and core tests | 2853 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1358,6 +1358,27 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Asking what the competitor receives found the transcript being used as a
+search string.** The Fireflies fetch itself is clean — it sends `limit` and
+`format`, nothing of the meeting, and matches by time window on this machine. The
+leak was one line further on: when a call has no stated goal, the grounding query
+was the **last 500 characters of the verbatim transcript**, trimmed to 320 and
+sent to every connected app. Including Fireflies. To improve a merge with their
+data, we handed them a piece of the conversation.
+
+A search needs a query, not a stenogram. It now uses what we wrote ourselves —
+the call goal, else the digest — and when there is neither, it asks nobody. An
+empty string would have been the worst of the three: the services answer
+«anything» and it looks like work.
+
+**The warning check written yesterday earned itself immediately.** Building after
+the change surfaced a pre-existing `was never used` in `SettingsView`: a credit
+cost computed and dropped inside a caption about cost. Printing it would have
+been worse than dropping it — it is computed with `inputTokens: 0`, so the
+honest number is zero — and the line is gone. That caption's other claim,
+«транскрипт звонка при этом никуда не уходит», is true and pinned by a counter
+that records `transcriptCharsSent: 0`.
 
 **The compiler had said so, and nobody read it.** Yesterday's dropped signal was
 not silent after all — reverting the fix prints
