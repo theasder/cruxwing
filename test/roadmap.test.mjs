@@ -168,6 +168,24 @@ describe('ROADMAP', () => {
       '§10.1 не называет свою сессию — а сторож её ловит');
   });
 
+  test('числа из кода в плане — те же, что в коде', () => {
+    // Прозу про защиты этот файл уже ловил на трёх устаревших утверждениях.
+    // Числа стареют так же и заметны ещё меньше: «три манифеста» и «предел 10»
+    // выглядят одинаково правдоподобно и когда верны, и когда нет.
+    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const limit = Number(/scanPageLimit = (\d+)/.exec(engine)[1]);
+    assert.ok(limit > 0, 'предел страниц не найден в движке — разбор сломан');
+    assert.ok(section('7.2').includes(`scanPageLimit\` = ${limit}`),
+      `§7.2 называет не тот предел страниц: в коде ${limit}`);
+
+    const manifests = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                                          'Resources', 'connectors'))
+      .filter((f) => f.endsWith('.json')).length;
+    assert.ok(manifests >= 10, `манифестов нашлось ${manifests} — разбор сломан`);
+    assert.ok(section('6.2').includes(`Today there are ${manifests}`),
+      `§6.2 не называет сегодняшнее число манифестов (${manifests})`);
+  });
+
   test('число коннекторов в тексте сходится с кодом', () => {
     // Слово «шестнадцать» стареет ровно тогда, когда добавляют
     // семнадцатый, — и этого никто не замечает, потому что добавление

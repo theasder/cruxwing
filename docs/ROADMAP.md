@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 293 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 294 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -465,6 +465,9 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
+**Today there are 14**, and the number is counted from that directory rather
+than remembered: «three» dated to the day it was true reads, two weeks later,
+like a project that stopped.
 The engine carries the rules the five hand-written connectors established
 (plan §2.2): an 8-second deadline, distinguishable errors, «read soft, write
 strict», and 2xx-with-an-unknown-shape treated as a refusal rather than an
@@ -1300,7 +1303,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **21 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **22 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -1309,8 +1312,15 @@ an address and a read date; README points here.
 
 **Counts measured, not remembered** — own connectors, page-and-doc tests, the
 ceiling on English strings in the interface, the numbers §5.2 quotes about
-`build.sh`. Each is recomputed from code on every run, so «measured on the 17th»
-cannot quietly become a memory.
+`build.sh`, the page limit §7.2 names, the manifest count §6.2 names, and the
+timeouts §10.1 names. Each is recomputed from code on every run, so «measured on
+the 17th» cannot quietly become a memory.
+
+The last three were added 2026-08-20 after the same failure twice in two days:
+a number that was true when written and false a fortnight later, sitting in a
+sentence that still reads correctly. «Three manifests» is the clearest case —
+accurate on the day, and by now it describes a project that stopped, while
+fourteen ship.
 
 **Claims against code** — a service called connected exists in the code and the
 reverse; a manifest is unreachable exactly when this file says it is; the scan
