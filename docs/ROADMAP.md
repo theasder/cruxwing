@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 330 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2908 and 655 | README, maintainer run |
+| App and core tests | 2914 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1233,6 +1233,33 @@ What is **not** established: that any of this is the cause of the rare full-run
 failures seen twice this week. Three consecutive full runs after the change were
 green, which proves nothing about a one-in-twenty event. The environment
 dependency was real and is removed; the flake is still open.
+
+**The one place a competitor's text rewrites the user's own record — 2026-08-21.**
+Transcript enhancement reconciles the on-device Whisper capture with a Fireflies
+cloud transcript. Source B is therefore text supplied by a service that sells a
+competing product, and it enters a prompt whose output **replaces the record of
+the person's own meeting**. Invisible characters from that path are already
+stripped at the MCP funnel; an instruction written in ordinary letters is not,
+and should not be — catching that is the job of checking the outcome.
+
+The system prompt has a rule for it: «NEVER invent decisions, commitments, or
+facts absent from A and B». That is an instruction to a model, not a guard. It
+tells the model how to behave and verifies nothing.
+
+Now the outcome is checked: an entry sharing **not one** content word with either
+source cannot be a reconciliation of them — it was not there. The threshold is the
+mildest possible on purpose, because reconciliation legitimately rewords: it
+repairs ASR garbles and rebuilds sentences, and demanding matching words would
+forbid the work itself. A line with no content words at all («да», «ага») is not
+an invention either — there is nothing in it to check.
+
+When it fires, the whole enhancement is refused and the record is left untouched,
+which is stated to the person. A meeting record is what someone will cite a month
+later; one added line in it is worse than an unreconciled transcript.
+
+The check on the pure rule passed while the rule was **not called at all** — the
+mutation that deleted the call site went unnoticed until a test drove the real
+`enhance` with a stubbed model returning an unsupported line.
 
 **Every connected service was being told an internal name — 2026-08-21.** Not
 by any code: without an explicit `User-Agent`, the system builds one from the
