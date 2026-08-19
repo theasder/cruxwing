@@ -109,7 +109,8 @@ final class TeamWatcher: ObservableObject {
     static var auditLogURL: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("MeetGPT", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
+                                                 attributes: [.posixPermissions: 0o700])
         return dir.appendingPathComponent("team-watch.log")
     }
 
@@ -117,16 +118,34 @@ final class TeamWatcher: ObservableObject {
     /// can't grow without bound.
     private static let auditMaxBytes: UInt64 = 512 * 1024
 
+    /// Права 0600 на файле и 0700 на каталоге.
+    ///
+    /// В этом файле лежит чужая переписка: строки из рабочего чата, куда
+    /// человек нас пустил. По умолчанию он создавался с обычными правами —
+    /// читать его мог любой процесс, запущенный под тем же пользователем, в том
+    /// числе программа, которой доступ к чату никто не давал.
+    ///
+    /// Соседний DevCallDiagnostics так и делает (0700 на каталог, 0600 на
+    /// файл), и здесь это просто не было сделано.
+    /// Вход для набора: сама запись приватная, а проверять права надо.
+    static func auditForTesting(_ line: String) { audit(line) }
+
     private static func audit(_ line: String) {
         rotateIfNeeded()
+        let url = auditLogURL
         let data = Data((line + "\n").utf8)
-        if let handle = try? FileHandle(forWritingTo: auditLogURL) {
+        if let handle = try? FileHandle(forWritingTo: url) {
             defer { try? handle.close() }
             _ = try? handle.seekToEnd()
             try? handle.write(contentsOf: data)
         } else {
-            try? data.write(to: auditLogURL)
+            // Создание и права — одним действием: файл не должен существовать
+            // ни мгновения с чужими правами.
+            FileManager.default.createFile(atPath: url.path, contents: data,
+                                           attributes: [.posixPermissions: 0o600])
         }
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                               ofItemAtPath: url.path)
     }
 
     /// Once the log passes `auditMaxBytes`, move it aside to a single `.1`

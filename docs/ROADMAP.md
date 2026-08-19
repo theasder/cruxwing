@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 301 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2857 and 618 | README, maintainer run |
+| App and core tests | 2861 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1358,6 +1358,26 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Somebody else's chat was sitting on disk with ordinary permissions.**
+`TeamWatcher` writes a line per keyword match into
+`~/Library/Application Support/MeetGPT/team-watch.log`, and that line carries up
+to 140 characters of a message from a work chat — Slack, Mattermost, Пачка —
+that a person let us watch. The size was thought about (512 KB, one rotation);
+the permissions were not, so any process running as that user could read it,
+including a program nobody granted access to that chat.
+
+It is `0600` now, with `0700` on the directory, exactly as `DevCallDiagnostics`
+next door already does. That precedent is the point: the rule existed in the
+repository and this file simply had not been asked.
+
+**The behavioural tests could not see the whole property, so a structural one
+was added.** A mutation that creates the file with ordinary permissions and
+fixes them a line later passes every check — the window in which the file is
+readable lasts microseconds, and a test looks after it closes. Creation now
+carries the permissions in the same call, and that is pinned by reading the
+source. Writing the check only after the mutation walked past it is the honest
+order.
 
 **The parent product's name is now asked about once, everywhere.** Yesterday's
 fix covered two files, which is how every previous instance of this was found —
