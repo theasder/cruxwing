@@ -113,7 +113,11 @@ struct SelfHostedTrackersTests {
                                           host: "git.company.ru",
                                           http: http).search("синхронизация")
 
-        let request = try #require(recorder.last)
+        // Первый запрос, а не последний: на пустой выдаче коннектор спрашивает ещё
+        // раз тем же словом с заглавной буквы — у Redmine и Nextcloud с базой по
+        // умолчанию «тарифы» не находит «Тарифы». Здесь проверяется, КУДА уезжает
+        // слово человека, а это первый запрос.
+        let request = try #require(recorder.first)
         let url = try #require(request.url)
         let items = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems)
         #expect(items.first { $0.name == parameter }?.value == "синхронизация",

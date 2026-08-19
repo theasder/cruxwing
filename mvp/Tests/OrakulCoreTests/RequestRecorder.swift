@@ -23,6 +23,9 @@ final class Recorder: @unchecked Sendable {
         requests.append(request)
     }
     var last: URLRequest? { lock.lock(); defer { lock.unlock() }; return requests.last }
+    /// Первый запрос — тот, что унёс слово человека. Коннектор может
+    /// спросить второй раз с заглавной буквы, и тогда `last` уже не про то.
+    var first: URLRequest? { lock.lock(); defer { lock.unlock() }; return requests.first }
     var count: Int { lock.lock(); defer { lock.unlock() }; return requests.count }
     var all: [URLRequest] { lock.lock(); defer { lock.unlock() }; return requests }
 }

@@ -235,6 +235,35 @@ public struct ManifestConnector {
                 outcome = Outcome(items: try parse(try await fetch(query: trimmed, limit: limit)),
                                   coverage: .searched)
             }
+            // Пусто по-русски — спросим тем же словом с другой буквы.
+            //
+            // Измерено на живых установках 2026-08-19: Redmine и Nextcloud с
+            // базой по умолчанию (SQLite) сравнивают строки побайтово выше
+            // ASCII, и «тарифы» не находит «Тарифы». Расшифровка отдаёт слова
+            // строчными — так говорят, — поэтому на маленькой самостоятельной
+            // установке половина ответов пропадала молча. Для человека это
+            // выглядит не как чужая база, а как продукт, который не находит.
+            //
+            // Второй запрос стоит ровно там, где первый ничего не дал: на
+            // обычном пути лишних обращений нет, а «ничего не нашлось» и так
+            // конец разговора. Одна попытка, только при кириллице в слове.
+            // Только там, где ищет САМ сервис.
+            //
+            // У перечисления (`scan`) отбор идёт у нас: `walk` сравнивает
+            // приведённые к строчным строки, то есть регистр там уже не при чём.
+            // Второй проход по десяти страницам чужого сервера не дал бы ни
+            // одной новой находки и удвоил бы объявленную границу — это поймал
+            // набор «страниц читается не больше объявленного», и поймал верно.
+            if manifest.scan == nil, outcome.items.isEmpty,
+               let variant = Self.caseVariant(of: trimmed) {
+                let second = Outcome(items: try parse(try await fetch(query: variant, limit: limit)),
+                                     coverage: .searched)
+                if !second.items.isEmpty {
+                    await cache.store(second, service: manifest.id, host: host, query: trimmed)
+                    return second
+                }
+            }
+
             await cache.store(outcome, service: manifest.id, host: host, query: trimmed)
             return outcome
         } catch ConnectorError.rateLimited(let retryAfter) {
@@ -505,6 +534,23 @@ public struct ManifestConnector {
         if let text = node as? String { return text }
         if let number = node as? Int { return String(number) }
         return ""
+    }
+
+    /// То же слово с другим регистром первой буквы, или nil.
+    ///
+    /// Только для кириллицы: у латиницы `LIKE` в SQLite регистр и так
+    /// приводит, поэтому второй запрос там был бы чистой платой чужому
+    /// серверу без единого нового ответа.
+    ///
+    /// Меняется ПЕРВАЯ буква, а не всё слово: «тарифы» → «Тарифы» — это то, с
+    /// чего начинается заголовок задачи или имя файла. Верхний регистр целиком
+    /// («ТАРИФЫ») людям не свойственен, и лишний запрос за ним не оправдан.
+    static func caseVariant(of query: String) -> String? {
+        guard query.contains(where: { $0.isCyrillicLetter }) else { return nil }
+        guard let first = query.first, first.isLetter else { return nil }
+        let flipped = first.isLowercase ? first.uppercased() : first.lowercased()
+        let variant = flipped + query.dropFirst()
+        return variant == query ? nil : variant
     }
 
     /// Шаг пути: ключ словаря или, если шаг — число, элемент массива.

@@ -57,7 +57,11 @@ struct RussianTrackersTests {
             let (http, recorder) = stub(json: response)
             _ = try await client(service, http: http).search("тарифы")
 
-            let request = try #require(recorder.last)
+            // Первый запрос, а не последний: на пустой выдаче коннектор
+            // спрашивает ещё раз тем же словом с заглавной буквы — у Redmine и
+            // Nextcloud с базой по умолчанию «тарифы» не находит «Тарифы».
+            // Здесь проверяется, КАК уезжает слово человека, а это первый запрос.
+            let request = try #require(recorder.first)
             let url = try #require(request.url?.absoluteString)
             #expect(url.hasPrefix(service.host(secondary: secondary(for: service))),
                     "\(service.title): чужой хост")
@@ -97,7 +101,9 @@ struct RussianTrackersTests {
                 ? #"{"success":true,"tasks":[],"hasMore":false}"# : "[]"
             let (http, recorder) = stub(json: response)
             _ = try await client(service, http: http).search("тарифы")
-            let request = try #require(recorder.last)
+            // Первый запрос: с пустой выдачей коннектор спрашивает второй раз тем
+            // же словом с заглавной буквы. Проверяется кодирование слова человека.
+            let request = try #require(recorder.first)
             let url = try #require(request.url?.absoluteString)
             // Кириллица должна уехать в процентном кодировании, иначе URL не
             // соберётся и сервис ответит 400.

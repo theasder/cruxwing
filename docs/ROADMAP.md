@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2839 and 604 | README, maintainer run |
+| App and core tests | 2839 and 610 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1301,6 +1301,38 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**«Nothing the connector can do» lasted one day.** Yesterday's entry recorded
+case-sensitive Russian search on SQLite-backed installs and called it the
+service's business. That was too quick. The transcript hands us lowercase words
+because that is how people speak, so on those installs answers vanished — and
+from the person's chair that is not somebody else's database, it is a product
+that does not find things.
+
+An empty answer is already the end of the conversation, so a second question
+costs nothing there: when the service itself did the searching, the word
+contains Cyrillic, and the result came back empty, the connector asks once more
+with the first letter flipped. Measured against live Nextcloud: the service
+returns **0** entries for «вход», the connector returns «Вход по SSO.md».
+
+Bounds are deliberate. Only on an empty result — no extra request on the path
+that worked. Only for Cyrillic — Latin case is folded by every database, so the
+request would be paid for nothing. Only the first letter — «ТАРИФЫ» is not how
+people write. And **only where the service searches**: a listing (`scan`) is
+filtered on our side, already case-insensitively, so a retry there would buy
+nothing and double a bound that §7.2 exists to keep. That last limit was not
+foresight — the test «страниц читается не больше объявленного» failed and was
+right.
+
+**Stated limit:** partial results suppress the retry. Redmine returns one of two
+matching tasks for «тарифы» and the second stays unseen, because from here one
+result is indistinguishable from all of them. Fixing that means learning that a
+given host compares bytes and then always asking twice — worth doing, not done
+here.
+
+Three existing tests read the last recorded request; the retry made that the
+second one. They now read the first, which is what they always meant: the
+question is where the person's word goes.
 
 **Two services out of four search Russian case-sensitively, and it is the same
 cause.** Nextcloud 29 was verified live and behaves exactly as Redmine did:

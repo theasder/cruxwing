@@ -176,7 +176,11 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
     }
 }
 
-private extension Character {
+/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся
+/// ManifestConnector, когда решает, повторять ли поиск с другой буквы. Второе
+/// определение того же самого разошлось бы с первым — в этом репозитории так
+/// уже расходились списки меток и списки исключений.
+extension Character {
     var isCyrillicLetter: Bool {
         unicodeScalars.contains { $0.value >= 0x0400 && $0.value <= 0x04FF }
     }
