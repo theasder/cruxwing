@@ -139,7 +139,9 @@ struct WorkMessengersTests {
                                             secondary: "zulip.company.ru",
                                             http: http).search("тарифы")
 
-        let request = try #require(recorder.last)
+        // Первый запрос — тот, что унёс слово человека: за ним движок задаёт
+        // вопрос основой («тариф»), и `last` проверял бы уже не то.
+        let request = try #require(recorder.first)
         let url = try #require(request.url?.absoluteString)
         #expect(url.hasPrefix("https://zulip.company.ru/api/v1/messages"))
         // Оператор `search` — это и есть полнотекстовый поиск по содержимому.

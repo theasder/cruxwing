@@ -1,0 +1,28 @@
+{
+  "id": "zulip",
+  "title": "Zulip",
+  "docs": "https://zulip.com/api/get-messages",
+  "verifiedOn": "2026-08-21",
+  "note": "Свой сервер. Поиск идёт «сужением» — список фильтров в JSON внутри параметра narrow; оператор search и есть полнотекстовый поиск по содержимому сообщений. Якорь newest и num_after=0: нужны последние сообщения, а не окно вокруг произвольного. Ключ приходит парой «почта:ключ API» через двоеточие и уезжает в Basic закодированным — тем же способом, что у Nextcloud. Текст сообщения приходит с разметкой, поэтому stripTags: человеку на звонке HTML не читают.",
+  "request": {
+    "method": "GET",
+    "path": "/api/v1/messages",
+    "query": [
+      { "name": "anchor", "value": "newest" },
+      { "name": "num_before", "value": "{limit}" },
+      { "name": "num_after", "value": "0" },
+      { "name": "narrow", "value": "[{\"operator\":\"search\",\"operand\":\"{query}\"}]" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Basic {basic}" }
+    ]
+  },
+  "response": {
+    "list": ["messages"],
+    "title": ["content"],
+    "author": ["sender_full_name"],
+    "key": [],
+    "state": [],
+    "stripTags": true
+  }
+}

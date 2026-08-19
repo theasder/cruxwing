@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 640 | README, maintainer run |
+| App and core tests | 2886 and 643 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 15**, and the number is counted from that directory rather
+**Today there are 16**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -596,11 +596,33 @@ a third question with the stem of the word, «last» was no longer the person's
 word. The hand-written branch never asked it. The check reads the first request
 now, which is what `Recorder.first` was written for.
 
-**Still code, deliberately, and now for stated reasons:** Zulip wants Basic auth
-built from two halves, Matrix a nested body, Битрикс24 keeps the key in the path
-— and that one is not merely unimplemented: the engine **refuses** secrets in
-addresses, so describing Битрикс24 as data would mean removing a guard. Яндекс
-Трекер searches by POST with a body and a second credential. Each is a separate
+**Zulip is the eighth, and its stated reason had expired — 2026-08-21.** It was
+listed here as «wants Basic auth built from two halves», which stopped being true
+the day Nextcloud arrived: the format has carried `{basic}` — the token base64'd
+for an `Authorization: Basic` header — ever since. The reason was accurate when
+written and outlived the thing it described, which is the failure this file keeps
+catching in its own numbers and had not yet looked for in its own explanations.
+Nothing new was needed: search by «narrow», the term inside a JSON filter in a
+query parameter, and the credentials as one colon-joined string.
+
+**Messenger parity did not exist and does now.** Self-hosted trackers had it;
+messengers had three manifests and no second implementation to compare against.
+It compares `legacySearch` — the genuinely different path — with the manifest for
+Пачка, Mattermost and Zulip, and Mattermost's row asserts the **order** survives
+both ways.
+
+It also records a divergence rather than erasing it, exactly as the earlier one
+did: Zulip returns `content` as rendered HTML, and the hand-written branch put it
+into the prompt as it came — «`<p>Тарифы <strong>с декабря</strong></p>`» reaching
+a person mid-call. The manifest strips the markup. The parity check asserts the
+two differ *and* what each produces, so it stays a decision instead of becoming
+the next person's discovery.
+
+**Still code, deliberately, and now for stated reasons:** Matrix wants a nested
+body, Битрикс24 keeps the key in the path — and that one is not merely
+unimplemented: the engine **refuses** secrets in addresses, so describing
+Битрикс24 as data would mean removing a guard. Яндекс Трекер searches by POST
+with a body and a second credential. Each is a separate
 property of the format; descriptors must cover the frequent case, not every
 case.
 
