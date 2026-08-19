@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 308 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 313 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2865 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1385,6 +1385,30 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The method itself was the weakest guard here.** Mutation is how this file
+separates a watchman from an ornament, and it was improvised in the shell every
+time. It lied four times: twice the replacement never applied because the anchor
+was absent — the run stayed green and I wrote «сторож слеп» about nothing —
+once `set -e` killed the script with the mutation still in the tree, so the next
+run took its «baseline» from a spoiled file, and once zsh executed backticks
+inside the command as a substitution.
+
+`scripts/mutaciya.py` refuses all four. The replacement must be found and must
+change the file, restoration is verified by checksum, the command's exit status
+is carried out whole, and the answer is the exit code: **0 caught, 1 blind, 2
+nothing to spoil**. That last one matters most — a replacement that finds no
+anchor is the failure that reads like success.
+
+It is checked by tests of its own, which is the point rather than a formality: a
+tool nobody verifies is exactly the ornament it exists to detect. Five cases,
+including a command killed mid-run, because that is how the tree got a mutation
+left in it the first time.
+
+Adding the rule to CONTRIBUTING made three other checks fail, and all three were
+right: the pull-request form must carry every rule the document states, the page
+must say how many rules there are, and the landing snapshot must be updated by
+hand — deliberately, which is what the snapshot is for.
 
 **Everything this application can talk to is now written down, and the list is
 the check.** «Data stays on the machine» was enforced against **our** server
