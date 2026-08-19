@@ -86,3 +86,31 @@ test('подложенная фраза находится, ключ — нет'
   assert.ok(!ALLOWED.some((p) => p.test(prose)), 'фраза принята за ключ');
   assert.ok(ALLOWED.some((p) => p.test(key)), 'ключ принят за фразу');
 });
+
+// Чем продукт представляется НАРУЖУ — три места, и все три публичным именем.
+//
+// Заголовок User-Agent без явной установки система собирает из имени
+// исполняемого файла: у собранного приложения это «MeetGPT» — внутреннее имя
+// цели, которого нет ни на странице, ни в интерфейсе. Измерено 2026-08-21 на
+// своём сервере, записавшем настоящий запрос коннектора.
+//
+// Пути на диске (Application Support/MeetGPT) сюда не входят намеренно: они
+// никуда не уезжают, а переименование осиротило бы данные тех, у кого продукт
+// уже стоит.
+test('наружу продукт представляется публичным именем', () => {
+  const session = readFileSync('mvp/Sources/OrakulCore/ConnectorSession.swift', 'utf8');
+  assert.match(session, /return "orakul\/\\\(version \?\? "0"\)"/,
+    'User-Agent коннекторов не собран из публичного имени');
+  assert.match(session, /httpAdditionalHeaders = \["User-Agent": userAgent\]/,
+    'заголовок не поставлен на общую сессию — часть коннекторов представится сама');
+
+  const mcp = readFileSync('app/Sources/MeetGPT/MCP/MCPConnectionManager.swift', 'utf8');
+  assert.match(mcp, /mcpClientName\s*=\s*"orakul"/,
+    'серверу MCP мы называемся не публичным именем');
+
+  const docx = readFileSync('app/Sources/MeetGPT/Export/AssistantDOCXExporter.swift', 'utf8');
+  assert.ok(docx.includes('<Application>orakul</Application>'),
+    'документ Word говорит, что его сделал кто-то другой');
+  assert.ok(docx.includes('<dc:creator>orakul</dc:creator>'),
+    'у документа Word чужой автор');
+});

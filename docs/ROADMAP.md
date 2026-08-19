@@ -29,8 +29,8 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 326 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2908 and 652 | README, maintainer run |
+| Page and doc checks | 327 tests, all green | `npm test`, run 2026-08-18 |
+| App and core tests | 2908 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1204,6 +1204,29 @@ What is **not** established: that any of this is the cause of the rare full-run
 failures seen twice this week. Three consecutive full runs after the change were
 green, which proves nothing about a one-in-twenty event. The environment
 dependency was real and is removed; the flake is still open.
+
+**Every connected service was being told an internal name — 2026-08-21.** Not
+by any code: without an explicit `User-Agent`, the system builds one from the
+**executable file's name**, and the shipped bundle's executable is `MeetGPT` —
+the old target name, which appears nowhere on the page or in the interface. A
+server of my own, recording a real connector request, answered the question:
+«MeetGPT/… CFNetwork/… Darwin/24.6.0». Every connected service saw that,
+a competitor's included, along with the machine's macOS version.
+
+Connectors now introduce themselves deliberately — `orakul/<version>`, on the
+shared session rather than per connector, and with nothing about the machine.
+Naming yourself is politeness and some APIs require it; listing your OS version
+to a stranger is a fingerprint, not an introduction.
+
+The wider rule is now pinned rather than this one instance: **three places speak
+outward** — the connector `User-Agent`, the name given to an MCP server, and the
+author recorded inside an exported Word document — and all three must carry the
+public name. The last two were already right; nothing said they had to stay that
+way, and a document travels further than a request.
+
+On-disk paths (`Application Support/MeetGPT`) are deliberately outside that rule:
+they go nowhere, and renaming them would orphan the data of everyone who already
+has the product installed.
 
 **A hint meant to bias a ranking search was emptying a filtering one —
 2026-08-21.** Each source gets a `queryHint` appended to the question: «тарифы
