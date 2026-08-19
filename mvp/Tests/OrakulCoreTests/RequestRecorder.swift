@@ -41,3 +41,28 @@ func stubHTTPResponse(status: Int = 200) -> HTTPURLResponse {
     HTTPURLResponse(url: URL(string: "https://example.invalid")!, statusCode: status,
                     httpVersion: nil, headerFields: [:])!
 }
+
+/// Флаг и счётчик для подставного HTTP — по той же причине, что и `Recorder`.
+///
+/// Замыкание запроса вызывается из другого места, чем набор его читает, и
+/// захваченная `var` в Swift 6 — уже не предупреждение, а ошибка сборки.
+/// Наборы перестанут собираться в тот день, когда пакет перейдёт на язык 6.
+final class Flag: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = false
+    func raise() { lock.lock(); value = true; lock.unlock() }
+    var isSet: Bool { lock.lock(); defer { lock.unlock() }; return value }
+}
+
+/// Счётчик для СИНХРОННОГО чтения.
+///
+/// В ConnectorQueryTests уже есть `Counter` — актор, и он правильный там, где
+/// значение читают из async-кода. Здесь читатель синхронный (`() -> Int`), и
+/// актор потребовал бы await у каждого читателя. Разные имена, потому что это
+/// разные вещи; одно имя на две — это столкновение, а не переиспользование.
+final class SyncCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+    func tick() { lock.lock(); value += 1; lock.unlock() }
+    var count: Int { lock.lock(); defer { lock.unlock() }; return value }
+}

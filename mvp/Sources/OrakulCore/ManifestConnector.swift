@@ -274,7 +274,7 @@ public struct ManifestConnector {
                     // придушил второй (429), и человек терял выдачу, которая
                     // у него уже была. Второй вопрос — это уточнение; провал
                     // уточнения означает «не узнали», а не «не нашли».
-                    let second = (try? await parse(try await fetch(query: variant, limit: limit))) ?? []
+                    let second = (try? parse(try await fetch(query: variant, limit: limit))) ?? []
                     let merged = Self.merge(outcome.items, second, limit: limit)
 
                     if known == .unknown, !second.isEmpty || !outcome.items.isEmpty {

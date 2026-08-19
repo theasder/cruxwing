@@ -1380,6 +1380,30 @@ honest number is zero — and the line is gone. That caption's other claim,
 «транскрипт звонка при этом никуда не уходит», is true and pinned by a counter
 that records `transcriptCharsSent: 0`.
 
+**Counted properly, the core had 62 warnings and now has none.** The check
+written yesterday only sees files that get recompiled, which it says about
+itself — so this rebuilt everything. The core and its tests carried 62 warnings,
+every one of them «this is an error in the Swift 6 language mode»: captured
+variables mutated from concurrent code. Not style. On the day the package moves
+to that language mode, the suites stop compiling.
+
+They are gone. The safe replacement already existed — `Recorder`, lock-protected
+— and the rest took two more of the same shape, `Flag` and `SyncCounter`. The
+core now holds at **zero**, enforced: a returning warning fails the script.
+
+The application is measured rather than cleaned, because the numbers say why:
+**52 distinct sites**, of which 45 are one deprecated SwiftUI call. Zero of them
+are Swift-6-fatal. Demanding zero there would mean the first person to meet an
+unrelated deprecation switches the check off; the two-class rule stands for the
+app, the zero rule for the core.
+
+Two mistakes of mine on the way, both caught by mutation rather than by reading:
+the ratchet did not fire at first because the script built the core **twice** and
+checked the silent incremental second pass; and a mechanical rename turned
+`seen.last` into `seen.recorder.last` in twelve places. The plan's earlier
+«four» was an incremental measurement, which is how a number can be honest and
+wrong at once.
+
 **The compiler had said so, and nobody read it.** Yesterday's dropped signal was
 not silent after all — reverting the fix prints
 

@@ -145,9 +145,9 @@ struct RussianTrackerCreateTests {
     @Test("нечисловое место назначения — отказ, а не подстановка нуля",
           arguments: [RussianTrackers.Service.kaiten, .weeek, .bitrix24])
     func nonNumericDestinationRefuses(service: RussianTrackers.Service) async throws {
-        var reached = false
+        let reached = Flag()
         let http: RussianTrackers.HTTP = { request in
-            reached = true
+            reached.raise()
             let response = HTTPURLResponse(url: request.url!, statusCode: 200,
                                            httpVersion: nil, headerFields: [:])!
             return (Data(#"{"id": 1}"#.utf8), response)
@@ -156,15 +156,15 @@ struct RussianTrackerCreateTests {
             _ = try await client(service, destination: "Разработка", http: http)
                 .createIssue(title: "Выкатить биллинг")
         }
-        #expect(!reached, "запрос всё-таки ушёл — значит доска подменена молча")
+        #expect(!reached.isSet, "запрос всё-таки ушёл — значит доска подменена молча")
     }
 
     @Test("без токена, без места и без названия запрос не уходит",
           arguments: ["токен", "место", "название"])
     func refusesIncompleteSetup(missing: String) async throws {
-        var reached = false
+        let reached = Flag()
         let http: RussianTrackers.HTTP = { request in
-            reached = true
+            reached.raise()
             return (Data("{}".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
                                                      httpVersion: nil, headerFields: [:])!)
         }
@@ -177,7 +177,7 @@ struct RussianTrackerCreateTests {
         await #expect(throws: RussianTrackers.TrackerError.notConfigured(.yandexTracker)) {
             _ = try await tracker.createIssue(title: missing == "название" ? "   " : "Задача")
         }
-        #expect(!reached, "сеть тронули, хотя настройка неполная")
+        #expect(!reached.isSet, "сеть тронули, хотя настройка неполная")
     }
 
     @Test("чужой код ответа превращается в свою ошибку, а не в успех",

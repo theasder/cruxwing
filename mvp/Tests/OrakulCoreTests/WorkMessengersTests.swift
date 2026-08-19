@@ -266,14 +266,14 @@ struct WorkMessengersTests {
 @Suite("Пара значений в одном поле")
 struct PairedTokenTests {
     private func stub() -> (WorkMessengers.HTTP, () -> Int) {
-        var calls = 0
+        let calls = SyncCounter()
         let http: WorkMessengers.HTTP = { _ in
-            calls += 1
+            calls.tick()
             return (Data("{}".utf8), HTTPURLResponse(
                 url: URL(string: "https://chat.company.ru")!, statusCode: 401,
                 httpVersion: nil, headerFields: [:])!)
         }
-        return (http, { calls })
+        return (http, { calls.count })
     }
 
     /// Раньше неполная пара уходила в сеть, возвращалась 401 и подпись «токен

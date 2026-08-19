@@ -184,8 +184,10 @@ struct ExternalTranscriberTests {
         // байты, строгий UTF-8 вернул nil, и весь текст пропал под сообщением
         // «движок промолчал». Настоящий движок с одним сбойным байтом стоил бы
         // человеку целого созвона.
-        var mixed = Data("Решили выкатить в прод.".utf8)
-        mixed.append(contentsOf: [0xFF, 0xFE])
+        // `let`, а не `var`: замыкание уходит в параллельный код, и захват
+        // изменяемой переменной в Swift 6 — ошибка сборки, а не замечание.
+        // Собрать значение до захвата дешевле, чем городить замок.
+        let mixed = Data("Решили выкатить в прод.".utf8) + Data([0xFF, 0xFE])
         let transcriber = ExternalTranscriber(
             command: "engine -f {файл}",
             run: { _, _, _ in String(decoding: mixed, as: UTF8.self) })

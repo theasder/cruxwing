@@ -343,13 +343,16 @@ struct YandexOrgHeaderTests {
 @Suite("Битрикс24")
 struct Bitrix24Tests {
     private func stub(json: String) -> (RussianTrackers.HTTP, () -> URLRequest?) {
-        var last: URLRequest?
+        // Общий Recorder вместо захваченной переменной: Swift 6 считает
+        // изменение захваченной переменной в параллельном коде ошибкой, и
+        // набор попросту перестанет собираться.
+        let recorder = Recorder()
         let http: RussianTrackers.HTTP = { request in
-            last = request
+            recorder.record(request)
             return (Data(json.utf8), HTTPURLResponse(
                 url: request.url!, statusCode: 200, httpVersion: nil, headerFields: [:])!)
         }
-        return (http, { last })
+        return (http, { recorder.last })
     }
 
     private func client(http: @escaping RussianTrackers.HTTP,
@@ -443,14 +446,17 @@ struct Bitrix24Tests {
 @Suite("Вебхук Битрикса вставляют целиком")
 struct BitrixWebhookPasteTests {
     private func stub() -> (RussianTrackers.HTTP, () -> URLRequest?) {
-        var last: URLRequest?
+        // Общий Recorder вместо захваченной переменной: Swift 6 считает
+        // изменение захваченной переменной в параллельном коде ошибкой, и
+        // набор попросту перестанет собираться.
+        let recorder = Recorder()
         let http: RussianTrackers.HTTP = { request in
-            last = request
+            recorder.record(request)
             return (Data("{\"result\": {\"tasks\": []}}".utf8),
                     HTTPURLResponse(url: request.url!, statusCode: 200,
                                     httpVersion: nil, headerFields: [:])!)
         }
-        return (http, { last })
+        return (http, { recorder.last })
     }
 
     /// Битрикс показывает вебхук одной строкой. Требовать вырезать середину и
