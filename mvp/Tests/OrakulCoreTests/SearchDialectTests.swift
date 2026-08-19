@@ -17,7 +17,7 @@ import Foundation
 @Suite struct SearchDialectTests {
 
     /// Сервисы, у которых это проверено по документации вендора.
-    static let dialects = ["slack", "trello", "bookstack", "mattermost", "jira"]
+    static let dialects = ["slack", "trello", "bookstack", "mattermost", "jira", "rocketChat"]
 
     private func manifest(_ id: String) throws -> ConnectorManifest {
         try #require(ConnectorManifest.usable().first { $0.id == id }, "нет манифеста «\(id)»")
@@ -69,11 +69,12 @@ import Foundation
         // внутри операнда текст уже обычная строка. У Redmine, Gitea и
         // Nextcloud параметр литеральный по документации.
         //
-        // Rocket.Chat сюда не попал сознательно: «расширенный синтаксис» в
-        // документации упомянут, а перечня операторов в ней нет. Правило
-        // репозитория одно и то же для чтения и для защиты: не нашли у
-        // вендора — остаётся вопросом, а не догадкой.
-        for id in ["zulip", "redmine", "gitea", "nextcloud", "rocketChat"] {
+        // Rocket.Chat стоял здесь один день. Тогда перечня операторов у
+        // вендора найти не удалось, и правило репозитория одно для чтения и
+        // для защиты: не нашли — остаётся вопросом, а не догадкой. Нашлось —
+        // в его собственном хранилище документации, — и он переехал наверх.
+        // Вопрос закрывается фактом, а не сроком давности.
+        for id in ["zulip", "redmine", "gitea", "nextcloud"] {
             let manifest = try manifest(id)
             var texts = manifest.request.query.map(\.value)
             texts.append(manifest.request.body ?? "")

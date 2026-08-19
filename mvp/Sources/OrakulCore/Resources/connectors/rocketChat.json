@@ -3,27 +3,53 @@
   "title": "Rocket.Chat",
   "docs": "https://developer.rocket.chat/apidocs/search-message",
   "verifiedOn": "2026-08-21",
-  "note": "Свой сервер. Ищет ВНУТРИ ОДНОЙ комнаты — roomId обязателен по документации вендора, поэтому у сервиса есть третье поле, и это не наша прихоть. Ключей тоже два: токен и идентификатор пользователя уезжают в разные заголовки (X-Auth-Token и X-User-Id), а человек вписывает их одной строкой через двоеточие — отдельное четвёртое поле в настройках гарантированно осталось бы пустым, ведь пару выдают вместе. Сообщение приходит в msg, автор — в u.username.",
+  "note": "Свой сервер. Ищет ВНУТРИ ОДНОЙ комнаты — roomId обязателен по документации вендора, поэтому у сервиса есть третье поле, и это не наша прихоть. Ключей тоже два: токен и идентификатор пользователя уезжают в разные заголовки (X-Auth-Token и X-User-Id), а человек вписывает их одной строкой через двоеточие — отдельное четвёртое поле в настройках гарантированно осталось бы пустым, ведь пару выдают вместе. Сообщение приходит в msg, автор — в u.username. Слово уходит в {queryWords}: searchText у Rocket.Chat — язык, а не строка. Вендор описывает from:, has:star, is:pinned, has:pin, has:url, has:link, has:location, has:map, before:, after:, on:, order: — и, в отличие от соседей, ещё и регулярные выражения. Последнее здесь и есть главное: скобка или звёздочка из живой речи превращает вопрос в ШАБЛОН, а не в слово.",
   "parameters": [
-    { "name": "room", "title": "Комната", "example": "GENERAL" }
+    {
+      "name": "room",
+      "title": "Комната",
+      "example": "GENERAL"
+    }
   ],
   "request": {
     "method": "GET",
     "path": "/api/v1/chat.search",
     "query": [
-      { "name": "roomId", "value": "{room}" },
-      { "name": "searchText", "value": "{query}" },
-      { "name": "count", "value": "{limit}" }
+      {
+        "name": "roomId",
+        "value": "{room}"
+      },
+      {
+        "name": "searchText",
+        "value": "{queryWords}"
+      },
+      {
+        "name": "count",
+        "value": "{limit}"
+      }
     ],
     "headers": [
-      { "name": "X-Auth-Token", "value": "{tokenHead}" },
-      { "name": "X-User-Id", "value": "{tokenTail}" }
+      {
+        "name": "X-Auth-Token",
+        "value": "{tokenHead}"
+      },
+      {
+        "name": "X-User-Id",
+        "value": "{tokenTail}"
+      }
     ]
   },
   "response": {
-    "list": ["messages"],
-    "title": ["msg"],
-    "author": ["u", "username"],
+    "list": [
+      "messages"
+    ],
+    "title": [
+      "msg"
+    ],
+    "author": [
+      "u",
+      "username"
+    ],
     "key": [],
     "state": []
   }

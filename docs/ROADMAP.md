@@ -1758,12 +1758,13 @@ whatever was typed, and during a call the app passes the goal — free text, up 
 free-form, and the only thing that matters is whether that parameter is a string
 or a language.
 
-Four more read it as a language, each confirmed in the vendor's own
+Five more read it as a language, each confirmed in the vendor's own
 documentation: **Slack** (`in:`, `from:`, `has:`, `before:`, `after:`),
 **Mattermost** (`from:`, `in:`, `before:`, `after:`, `on:`), **Trello**
-(`@member`, `#label`, `board:`, `is:open`) and **BookStack** (`{created_by:me}`,
-`[tag=value]`, an exact phrase in quotes, a leading minus). All four now take
-`{queryWords}`.
+(`@member`, `#label`, `board:`, `is:open`), **BookStack** (`{created_by:me}`,
+`[tag=value]`, an exact phrase in quotes, a leading minus) and **Rocket.Chat**
+(`from:`, `has:star`, `is:pinned`, `has:url`, `before:`, `after:`, `on:`,
+`order:`)[^rocketchat]. All five now take `{queryWords}`.
 
 The likely trigger is not an attack, it is Russian. A colon after a word is
 ordinary speech — «Тарифы: пересмотр», «Сроки: до пятницы» — and that fragment
@@ -1801,10 +1802,19 @@ same as everywhere else in this file: not found means it stays a question.
 Where the line was **not** crossed matters as much. Zulip builds its expression
 on our side — a `narrow` with a `search` operator — so inside the operand the
 text is already a plain string. Redmine, Gitea and Nextcloud take a literal
-parameter by their docs. Rocket.Chat was left alone deliberately: its
-documentation mentions «advanced search syntax» and never lists the operators,
-and the repository's rule is the same for defending as for reading — not found
-in the vendor's docs means it stays a question, not a guess.
+parameter by their docs. Rocket.Chat was left alone for exactly one day: its
+own site mentions «advanced search syntax» without listing the operators, and
+the repository's rule is the same for defending as for reading — not found in
+the vendor's docs means it stays a question, not a guess. The list is in the
+vendor's own documentation repository, which is where BookStack's shape was
+settled too, so the question closed on a fact rather than on age.
+
+Rocket.Chat also turned out to be the strongest case of the five, and for a
+reason none of the others share: it accepts **regular expressions** in the
+search text. Elsewhere a stray character misreads as an operator; here a
+bracket or an asterisk out of ordinary speech turns the question into a
+**pattern**. `{queryWords}` removes exactly those characters, which is why one
+rule covers both.
 
 One case the rule alone does not cover: a question made *only* of punctuation.
 It strips to nothing, `text ~ ""` means «give me everything», and the server
@@ -3557,3 +3567,4 @@ honest about itself.
 [^confdc]: Confluence Data Center, `GET /rest/api/search`: parameters `cql`, `cqlcontext`, `excerpt` (default `highlight`), `expand`, `start`, `limit` (default 25), `includeArchivedSpaces` (default false); 400 «if the query cannot be parsed». The declared 200 schema is «Search Page Response of Search Result», an **array** of `{title, excerpt, url, resultGlobalContainer, iconCssClass, lastModified, friendlyLastModified}` — with no `results` envelope. read 2026-08-19: https://docs.atlassian.com/ConfluenceServer/rest/8.9.0/
 [^compass]: Compass, userbot API (the vendor's own documentation repository, `getCompass/userbot`, read 2026-08-20): base `https://userbot.getcompass.com/api/v3/` for the cloud and `https://<host>/userbot/api/v3/` on-premise, POST with `application/json`. The complete method list is `user/send`, `group/send`, `thread/send`, `message/addReaction`, `message/removeReaction`, `user/getList`, `group/getList`, `command/update`, `command/getList`, `webhook/setVersion`, `webhook/getVersion`, `file/getUrl` — no search, no history. The webhook receives only messages whose text starts with a slash. https://github.com/getCompass/userbot/blob/master/README_ru.md
 [^slackassistant]: Slack, `assistant.search.context` (read 2026-08-20): bot token needs `search:read.files`, `search:read.public`, `search:read.users` — public channels only — while a user token needs those plus `search:read.im`, `search:read.mpim`, `search:read.private`; arguments `query` (required) and, separately, `modifiers`, plus `limit` (default 20, **max 20**), `sort` (`score` or `timestamp`), `channel_types` (default `public_channel`), `content_types` (default `messages`), `cursor`, `before`/`after`, `highlight`, `disable_semantic_search`; response `{ok, results: {messages: [{author_name, channel_name, message_ts, content, permalink, …}], files, channels}, response_metadata: {next_cursor}}`. https://docs.slack.dev/reference/methods/assistant.search.context
+[^rocketchat]: Rocket.Chat, message search filters (the vendor's own documentation repository, read 2026-08-20): `from:me` / `from:user.name`, `has:star`, `is:pinned` or `has:pin`, `has:url` or `has:link`, `has:location` or `has:map`, `before:dd/mm/yyyy`, `after:dd/mm/yyyy`, `on:dd/mm/yyyy`, `order:desc` / `order:descend` / `order:descending` — and the search text itself accepts **regular expressions**. https://github.com/RocketChat/docs/blob/main/use-rocket.chat/user-guides/rooms/discussions/search-messages-in-discussion.md
