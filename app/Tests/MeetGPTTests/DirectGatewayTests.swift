@@ -123,7 +123,9 @@ struct DirectGatewayTests {
     }
 
     @MainActor
-    @Test("пустого поля в сборке мало — важно, что возвращает Config")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("пустого поля в сборке мало — важно, что возвращает Config", .enabled(if: Config.backendBaseURL.isEmpty))
     func emptyBuildValueMeansNoBackendAtRuntime() {
         // Проверки одного build.sh не хватило, и это уже второй такой случай в
         // этом файле. Тогда тест смотрел в `.env`, пока сборка форсила своё;
@@ -133,7 +135,6 @@ struct DirectGatewayTests {
         #expect(!Config.backendBaseURL.contains("cruxwing"),
                 "orakul обращается к серверу другого продукта: \(Config.backendBaseURL)")
 
-        guard Config.backendBaseURL.isEmpty else { return }  // сборка с сервером — не наш случай
         let state = AppState()
         #expect(!state.wheesprAvailable, "предлагается вход в несуществующий аккаунт")
         #expect(!state.ledgerConfigured, "показывается счёт без сервера")

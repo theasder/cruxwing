@@ -107,20 +107,22 @@ struct BackendErrorMessageTests {
         AppState(llm: MockLLMGateway(response: "unused"))
     }
 
-    @Test("a refused connection names the backend and what to do")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("a refused connection names the backend and what to do", .enabled(if: Config.llmViaBackend && !Config.backendBaseURL.isEmpty))
     func namesTheBackend() {
         let message = state().explain(URLError(.cannotConnectToHost))
-        guard Config.llmViaBackend, !Config.backendBaseURL.isEmpty else { return }
 
         #expect(message.contains(Config.backendBaseURL))
         #expect(message.contains("LLM_GATEWAY=backend"))
         #expect(!message.contains("Could not connect to the server."))
     }
 
-    @Test("no network is reported as no network, not as a backend problem")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("no network is reported as no network, not as a backend problem", .enabled(if: Config.llmViaBackend))
     func offlineIsDistinct() {
         let message = state().explain(URLError(.notConnectedToInternet))
-        guard Config.llmViaBackend else { return }
         #expect(message.lowercased().contains("сет"))
     }
 

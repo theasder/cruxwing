@@ -40,14 +40,16 @@ struct LiveDuplexDiagnosticsTests {
 @MainActor
 @Suite("Identified live prompt surfaces")
 struct LivePromptSurfaceStateTests {
-    @Test("mandatory notices are isolated and instance-owned")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная
+    // и читается как покрытие.
+    @Test("mandatory notices are isolated and instance-owned", .enabled(if: Config.isDevBuild))
     func mandatoryNoticeOwnership() {
         // `debugPresentMandatoryNotice` is `guard Config.isDevBuild` — the whole
         // surface is compiled out of a dist build, so asserting it works there
         // fails on a feature that is absent on purpose. `notarize.sh` regenerates
         // Secrets.swift with devMode "0", which leaves the tree in that state for
         // whatever `swift test` runs next.
-        guard Config.isDevBuild else { return }   // dist builds: feature absent
 
         let state = AppState()
 

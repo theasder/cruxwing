@@ -11,10 +11,12 @@ struct DevTierOverrideTests {
     private let key = "dev.tierOverride"
     private let purchasedKey = "billing.purchasedTier"
 
-    @Test("live entitlement scope masks but never mutates a saved preview")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной. С выходом по guard она отчитывается
+    // как пройденная и читается как покрытие.
+    @Test("live entitlement scope masks but never mutates a saved preview", .enabled(if: Config.isDevBuild))
     @MainActor
     func liveEntitlementScopeIsProcessLocal() throws {
-        guard Config.isDevBuild else { return }
         let defaults = UserDefaults.standard
         let savedPreview = defaults.string(forKey: key)
         let savedPurchased = defaults.string(forKey: purchasedKey)
@@ -74,9 +76,11 @@ struct DevTierOverrideTests {
         #expect(defaults.string(forKey: key) == Tier.premium.rawValue)
     }
 
-    @Test("override drives currentTier and clears back to the real plan")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной. С выходом по guard она отчитывается
+    // как пройденная и читается как покрытие.
+    @Test("override drives currentTier and clears back to the real plan", .enabled(if: Config.isDevBuild))
     func overrideRoundTrip() {
-        guard Config.isDevBuild else { return }   // dist builds: feature absent
         let saved = UserDefaults.standard.string(forKey: key)
         defer {
             if let saved { UserDefaults.standard.set(saved, forKey: key) }
@@ -98,9 +102,11 @@ struct DevTierOverrideTests {
         #expect(Config.currentTier == real)
     }
 
-    @Test("preview unlocks and relocks the model catalog")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной. С выходом по guard она отчитывается
+    // как пройденная и читается как покрытие.
+    @Test("preview unlocks and relocks the model catalog", .enabled(if: Config.isDevBuild))
     func modelCatalogFollowsPreview() {
-        guard Config.isDevBuild else { return }
         let saved = UserDefaults.standard.string(forKey: key)
         defer {
             if let saved { UserDefaults.standard.set(saved, forKey: key) }

@@ -175,13 +175,15 @@ struct CombinatorialStateTests {
     }
 
     @MainActor
-    @Test("a quota latch survives every state until a new call clears it")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная
+    // и читается как покрытие.
+    @Test("a quota latch survives every state until a new call clears it", .enabled(if: Config.isDevBuild))
     func quotaLatchIsSticky() {
         // `debugLatchQuota` is dev-only (`guard Config.isDevBuild`), so in a dist
         // build the latch never sets and every point fails on a feature that is
         // meant to be absent. Skip rather than assert the impossible — the same
         // rule DevTierOverrideTests already applies.
-        guard Config.isDevBuild else { return }   // dist builds: feature absent
 
         for point in Self.allPoints where !point.recording {
             let app = state(at: point)

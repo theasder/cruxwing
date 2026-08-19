@@ -140,9 +140,10 @@ struct AppStateTranscriptionTests {
         #expect(await mock.prewarmCount == 0)
     }
 
-    @Test("a transcribe failure on the local engine surfaces as failed")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("a transcribe failure on the local engine surfaces as failed", .enabled(if: Config.transcriptionEngineValue == .local))
     func dispatchErrorFailsLocal() async {
-        guard Config.transcriptionEngineValue == .local else { return }
         let mock = MockTranscriptionService()
         await mock.setTranscribeError(testError("model gone"))
         let state = AppState(transcriber: mock)
@@ -164,9 +165,10 @@ struct AppStateTranscriptionTests {
         #expect(state.lastError == nil)
     }
 
-    @Test("an error from a cleared recording cannot fail the current UI")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("an error from a cleared recording cannot fail the current UI", .enabled(if: Config.transcriptionEngineValue == .local))
     func staleErrorSkipped() async {
-        guard Config.transcriptionEngineValue == .local else { return }
         let mock = MockTranscriptionService()
         await mock.setTranscribeError(testError("old model error"))
         await mock.setPause(true)

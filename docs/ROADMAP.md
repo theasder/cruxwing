@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 333 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2919 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -2209,6 +2209,25 @@ fourteen ship.
 reverse; a manifest is unreachable exactly when this file says it is; the scan
 bound here equals the engine's; §8's package promises hold against the packaging
 scripts; a queue row shows what it depends on.
+
+**A test that skips itself reports as passed — eleven of them did — 2026-08-21.**
+The vacuous-check shape had now appeared three times in a week, always the same:
+`guard <build state> else { return }` above every assertion in the body. Swift
+Testing counts that as a pass. The suite says green, the number goes up, and not
+one assertion ran.
+
+Measured rather than estimated. Of fourteen tests skipping on build
+configuration, **eleven assert nothing in this build** — `isDevBuild` is false,
+`llmViaBackend` is false, the backend URL and the Google client ids are empty.
+One of the eleven carries twenty assertions.
+
+They are `.enabled(if:)` now, which is what Swift Testing provides for exactly
+this and what `LiveConnectorProbe` already used: a skipped test is **reported as
+skipped**. The count went from 10 skipped to 21, and the eleven stopped counting
+themselves as coverage. `test/proverki-ne-molchat.test.mjs` keeps the shape out.
+
+Nothing was deleted: these checks are real in the other configuration. What
+changed is that the suite no longer claims to have run them.
 
 **Guards that cannot fire — and the rule is not only a type.** The check asked
 which *types* named `Guard`/`Sanitizer`/`Policy`/`Validator`/`Checker` nobody

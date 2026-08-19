@@ -89,12 +89,15 @@ struct GoogleAnalyticsCatalogTests {
         #expect(descriptor.fixedLoopbackPort == nil)
     }
 
-    @Test("does not reuse the app's own Google client or the Gmail one")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной. С выходом по guard она отчитывается
+    // как пройденная и читается как покрытие — в этой сборке так молчали
+    // одиннадцать проверок, одна из них с двадцатью утверждениями.
+    @Test("does not reuse the app's own Google client or the Gmail one", .enabled(if: !Config.googleAnalyticsClientID.isEmpty))
     func usesASeparateClient() {
         // Verification tier is per consent screen. If analytics.readonly turns out
         // to be Restricted rather than Sensitive, that obligation must land here
         // and not on sign-in.
-        guard !Config.googleAnalyticsClientID.isEmpty else { return }
         #expect(Config.googleAnalyticsClientID != Config.googleClientID)
         #expect(Config.googleAnalyticsClientID != Config.gmailClientID)
     }

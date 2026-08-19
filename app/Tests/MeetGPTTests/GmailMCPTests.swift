@@ -215,11 +215,14 @@ struct GmailCatalogTests {
         #expect(descriptor.fixedLoopbackPort == nil)
     }
 
-    @Test("does not reuse the app's own Google client")
+    // `.enabled(if:)`, а не `guard … else { return }`: пропущенная проверка
+    // должна ЧИСЛИТЬСЯ пропущенной. С выходом по guard она отчитывается
+    // как пройденная и читается как покрытие — в этой сборке так молчали
+    // одиннадцать проверок, одна из них с двадцатью утверждениями.
+    @Test("does not reuse the app's own Google client", .enabled(if: !Config.gmailClientID.isEmpty && !Config.googleClientID.isEmpty))
     func usesASeparateClient() {
         // Same client would mean same consent screen, which would drag sign-in
         // and the Calendar/Docs/Sheets grant into Gmail's Restricted tier.
-        guard !Config.gmailClientID.isEmpty, !Config.googleClientID.isEmpty else { return }
         #expect(Config.gmailClientID != Config.googleClientID)
     }
 }

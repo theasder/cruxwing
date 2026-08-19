@@ -38,14 +38,13 @@ final class ServerWhisperMockURLProtocol: URLProtocol {
 
 @Suite("Server Whisper transcription", .serialized)
 struct ServerWhisperTranscriptionTests {
-    @Test("missing backend URL throws before upload")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("missing backend URL throws before upload", .enabled(if: Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     func missingBackend() async throws {
         // When BACKEND_URL resolves empty the service fails closed. If this
         // build has a product default backend, skip — availability is covered
         // by Config.engineAvailable(.server).
-        guard Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return
-        }
         let service = ServerWhisperTranscription(
             session: ServerWhisperMockURLProtocol.session(),
             language: "en",
@@ -56,7 +55,9 @@ struct ServerWhisperTranscriptionTests {
         }
     }
 
-    @Test("missing sign-in token throws before upload")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("missing sign-in token throws before upload", .enabled(if: !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     func missingToken() async {
         let service = ServerWhisperTranscription(
             session: ServerWhisperMockURLProtocol.session(),
@@ -65,19 +66,15 @@ struct ServerWhisperTranscriptionTests {
         )
         // Only assert when a backend is configured; otherwise the backend
         // check fires first.
-        guard !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return
-        }
         await #expect(throws: (any Error).self) {
             _ = try await service.transcribe(wav: Data(count: 100))
         }
     }
 
-    @Test("a 200 response is decoded to trimmed text")
+    // `.enabled(if:)`, а не выход по guard: пропущенная проверка должна
+    // ЧИСЛИТЬСЯ пропущенной, иначе она отчитывается как пройденная.
+    @Test("a 200 response is decoded to trimmed text", .enabled(if: !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
     func success() async throws {
-        guard !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return
-        }
         ServerWhisperMockURLProtocol.responder = { request in
             #expect(request.url?.path.hasSuffix("/api/transcribe") == true)
             #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test-token")
