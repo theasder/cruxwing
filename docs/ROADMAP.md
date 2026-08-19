@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 323 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 652 | README, maintainer run |
+| App and core tests | 2890 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1157,6 +1157,34 @@ What is **not** established: that any of this is the cause of the rare full-run
 failures seen twice this week. Three consecutive full runs after the change were
 green, which proves nothing about a one-in-twenty event. The environment
 dependency was real and is removed; the flake is still open.
+
+**Stalling is cheaper than refusing, and it left no trace at all.** The
+fan-out wraps every source in a deadline, and that deadline returns `nil` for
+two different things: the service refused, or the service never answered. A
+refusal has been recorded and shown in settings since the work above; **silence
+was recorded nowhere**. A service that simply takes its time dropped out of every
+answer, permanently and invisibly — indistinguishable from a product that stopped
+finding things. For a party that would rather not say no out loud, that is the
+cheapest lever there is.
+
+Silence is now recorded as itself, in all five families, and it names the budget
+it exceeded rather than inventing words on the service's behalf.
+
+Writing the check first caught a defect in the fix: a timeout **overwrote** a
+spoken refusal. «Не ответил за 8 с» in place of «invalid_token — Token revoked»
+sends a person to check their network instead of their token, and our
+description of silence is poorer information than the vendor's own sentence.
+Silence fills quiet now; it does not displace speech. Success clears both, or a
+service that hung once would wear the label after a week of answering.
+
+**And a suspect for the flake was eliminated by measurement.** The recorded
+causes name «wall-clock deadlines in the code under test», and nine grounding
+tests run against the real eight-second budget. Pinning it looked like the fix —
+until the deadline was set to **one millisecond** and every one of them still
+passed: the stubbed work wins the race before the timer is scheduled. So the
+deadline does not govern those checks, the wrapping would have been ceremony that
+can never fire, and it was reverted rather than kept as a fix that isn't one. One
+suspect fewer, four sightings still unexplained.
 
 **A competitor does not have to attack us — revoking access is quieter, and
 we were making it quieter still.** `ConnectorHealth` records the words a service

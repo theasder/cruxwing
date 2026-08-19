@@ -363,7 +363,12 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let hits, !hits.isEmpty else { return (index, nil) }
+                    guard let hits else {
+                        await ConnectorHealth.shared.recordTimeout(
+                            service: service.rawValue, seconds: Self.groundingDeadline)
+                        return (index, nil)
+                    }
+                    guard !hits.isEmpty else { return (index, nil) }
                     let text = hits.prefix(10)
                         .map { "[\($0.title)] \($0.context)" }
                         .joined(separator: "\n")
@@ -411,7 +416,16 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let outcome, !outcome.items.isEmpty else { return (index, nil) }
+                    // Молчание тоже записывается: `withMCPDeadline` отдаёт nil
+                    // и на отказе, и на истёкшем сроке, а для человека это
+                    // разные починки. Отказ уже записан выше, в `catch`;
+                    // здесь остаётся тот случай, когда сервис просто тянул.
+                    guard let outcome else {
+                        await ConnectorHealth.shared.recordTimeout(
+                            service: service.rawValue, seconds: Self.groundingDeadline)
+                        return (index, nil)
+                    }
+                    guard !outcome.items.isEmpty else { return (index, nil) }
                     // Состояние задачи в тексте: «уже закрыто» меняет смысл
                     // находки на противоположный. Охват — по той же причине:
                     // часть списка, выданная за весь, меняет смысл ответа так
@@ -465,7 +479,12 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let hits, !hits.isEmpty else { return (index, nil) }
+                    guard let hits else {
+                        await ConnectorHealth.shared.recordTimeout(
+                            service: service.rawValue, seconds: Self.groundingDeadline)
+                        return (index, nil)
+                    }
+                    guard !hits.isEmpty else { return (index, nil) }
                     // Автор попадает в текст: «это писала Полина» меняет вес
                     // находки, а по одному тексту сообщения этого не видно.
                     let text = hits.prefix(10)
@@ -542,7 +561,12 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let items, !items.isEmpty else { return (index, nil) }
+                    guard let items else {
+                        await ConnectorHealth.shared.recordTimeout(
+                            service: "github", seconds: Self.groundingDeadline)
+                        return (index, nil)
+                    }
+                    guard !items.isEmpty else { return (index, nil) }
                     // Состояние задачи попадает в текст: «уже закрыто» меняет
                     // смысл находки на противоположный, а по одному заголовку
                     // этого не видно.
@@ -602,7 +626,16 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let outcome, !outcome.items.isEmpty else { return (index, nil) }
+                    // Молчание тоже записывается: `withMCPDeadline` отдаёт nil
+                    // и на отказе, и на истёкшем сроке, а для человека это
+                    // разные починки. Отказ уже записан выше, в `catch`;
+                    // здесь остаётся тот случай, когда сервис просто тянул.
+                    guard let outcome else {
+                        await ConnectorHealth.shared.recordTimeout(
+                            service: service.rawValue, seconds: Self.groundingDeadline)
+                        return (index, nil)
+                    }
+                    guard !outcome.items.isEmpty else { return (index, nil) }
                     let text = Self.withCoverage(
                         outcome.items.prefix(10)
                             .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
