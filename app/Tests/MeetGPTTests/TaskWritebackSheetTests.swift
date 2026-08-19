@@ -25,7 +25,17 @@ struct TaskWritebackSheetTests {
         #expect(throws: Never.self) { try sut.find(text: "Отправить задачи в трекер") }
         #expect(throws: Never.self) { try sut.find(text: "Ship the beta") }
         #expect(throws: Never.self) { try sut.find(text: "Write the RFC") }
-        #expect(throws: Never.self) { try sut.find(text: "Владелец: Alex") }
+        // Владелец теперь идёт строкой внутри общего описания, а не отдельным
+        // текстом: лист показывает ровно то, что уедет в трекер, и собирает это
+        // той же функцией, что тело запроса. Проверяется прежнее — владельца
+        // человек видит, — но искать надо в той форме, в которой он есть.
+        #expect(throws: Never.self) {
+            try sut.find(textWhere: { s, _ in s.contains("Владелец: Alex") })
+        }
+        // И то, что раньше уезжало, не показавшись.
+        #expect(throws: Never.self) {
+            try sut.find(textWhere: { s, _ in s.contains("Заведено со звонка в orakul") })
+        }
         // No connected tracker → the connect hint, not a filed state.
         #expect(throws: Never.self) {
             try sut.find(textWhere: { s, _ in s.contains("Подключите трекер в «Настройки") })

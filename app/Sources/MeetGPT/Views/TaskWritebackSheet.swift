@@ -105,7 +105,14 @@ struct TaskWritebackSheet: View {
                         states[index] = .failed("Трекер не настроен")
                         return
                     }
-                    let issue = try await client.createIssue(title: item.task, description: item.owner)
+                    // То же тело, что уходит по пути MCP, и то же, что человек
+                    // видел в списке. Здесь стояло `description: item.owner` —
+                    // в описание задачи уезжала одна фамилия, а срок, признак
+                    // готовности и источник терялись по дороге. Два пути,
+                    // отправлявшие разное, — это два разных обещания на одну
+                    // кнопку.
+                    let issue = try await client.createIssue(
+                        title: item.task, description: TaskWriteback.describe(item))
                     // Показываем ключ, а не «готово»: по нему задачу можно
                     // найти, и он же доказывает, что она действительно создана.
                     states[index] = .done("Создана \(issue.key)")
@@ -129,8 +136,20 @@ private struct TaskRow: View {
                 Text(item.task)
                     .font(Typo.callout.weight(.medium)).foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
-                if let owner = item.owner, !owner.contains("[OWNER?]"), !owner.isEmpty {
-                    Text("Владелец: \(owner)").font(Typo.caption).foregroundStyle(Theme.inkTertiary)
+                // Показывается ровно то, что уедет в трекер, и той же функцией,
+                // которая это тело собирает.
+                //
+                // Раньше в строке стоял один владелец, а в запрос уходили ещё
+                // срок, признак готовности и источник — то есть «Источник:
+                // решили поднять тарифы», кусок разговора, который человек в
+                // момент согласия не видел. Трекер бывает чужим: у Jira и
+                // Notion свои владельцы, и один из них продаёт конкурирующий
+                // продукт. Согласие на «завести задачу» не то же самое, что
+                // согласие отправить туда цитату.
+                if !TaskWriteback.describe(item).isEmpty {
+                    Text(TaskWriteback.describe(item))
+                        .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 statusLine
             }

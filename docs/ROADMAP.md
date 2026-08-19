@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 294 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2839 and 618 | README, maintainer run |
+| App and core tests | 2843 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -617,7 +617,7 @@ consent a condition of entry rather than a promise.
 
 ### 6.4 Russian strings to the end
 
-Measured 2026-08-18: of 447 string literals in `Views/` and `Onboarding/`, 23
+Measured 2026-08-18: of 446 string literals in `Views/` and `Onboarding/`, 23
 carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
 not a work list**: what is left is names (`GitHub`, `orakul`), bare
 interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
@@ -1337,6 +1337,30 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**What leaves for the tracker is now what the person was shown.** The
+confirmation sheet asks permission to file a task and displayed the title and
+the owner. The request carried more: the due date, the done-check, and
+«Источник: …» — a line of the conversation. A tracker is often somebody else's
+(Jira, Notion; one of those owners sells a competing product), and agreeing to
+file a task is not agreeing to send them a quotation.
+
+Both are fixed at once, because they were the same defect seen twice: the sheet
+now renders `TaskWriteback.describe(item)` — the function that builds the body —
+so the text shown and the text sent cannot differ. And the second write path,
+for Russian trackers, sent `description: item.owner`: one surname in the
+description field, with the deadline, the done-check and the source silently
+dropped. Two paths sending different things is two promises behind one button.
+Both send the same body now.
+
+Four mutations hold it: either path reverted, the source line removed, and the
+`[OWNER?]` placeholder allowed through — that last one would put «Владелец:
+[OWNER?]» into somebody else's tracker, where it reads like a name.
+
+The first version of the test passed for the wrong reason and had to be fixed:
+it scanned the sheet for `description: item.owner` and found it **in my own
+comment**, which quotes the old line to explain the change. A text check that
+reads comments checks the comment.
 
 **Auditing the audit: §10.1 carried three false claims, and one of them
 credited a defence that does nothing.** Yesterday's duplicate guard happened
