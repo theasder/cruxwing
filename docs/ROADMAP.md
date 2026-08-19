@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 294 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2846 and 618 | README, maintainer run |
+| App and core tests | 2848 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1337,6 +1337,31 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The warning before audio leaves named another product, in English.** Asking
+the outbound question of the largest path — the recording itself — found the
+sentence a person reads before sending a colleague's voice to a cloud
+transcriber. It interpolated `diarizeDestination`, which returned «AssemblyAI
+with your own key»: an English fragment inside a Russian sentence («запись уйдёт
+в …»). The other branch returned «Cruxwing's backend (OpenAI)» — telling somebody
+who installed **orakul** that their meeting goes to a product they never heard
+of.
+
+That branch cannot run in a shipped build: `llmViaBackend` needs a backend
+address, and the DIST build refuses to bake one (§2.3). Unreachable is not a
+reason to leave a stranger's name in it — reachability changes with one line of
+the build script, and the text is read by eye.
+
+Both branches now answer in Russian and name nobody else, and both are pinned:
+the mutation that restores «Cruxwing» fails, and so does the one that restores
+the English fragment.
+
+**Why nothing caught it:** the ceiling on English strings (§6.4) counts `Views/`
+and `Onboarding/`. This sentence is assembled in `AppState.swift`, so it was
+never in the population being measured — the same shape as the census guard that
+watched one family out of five, and the copy guard that scanned one directory
+out of six. The measurement was honest about its two directories; what it could
+not say is that user-facing text is written outside them.
 
 **The same question asked of export gave the same answer.** Yesterday's defect
 — the sheet showing less than the request carried — is a class, so the

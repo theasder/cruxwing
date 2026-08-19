@@ -2122,7 +2122,21 @@ final class AppState: ObservableObject {
     /// it reads nothing — requiring the main actor for a string lookup would be
     /// isolation for its own sake.
     nonisolated static func diarizeDestination(onServer: Bool) -> String {
-        onServer ? "Cruxwing's backend (OpenAI)" : "AssemblyAI with your own key"
+        // По-русски и без чужого названия.
+        //
+        // Строка подставляется в русское предупреждение («запись уйдёт в …»),
+        // и до 2026-08-20 давала смесь языков: «уйдёт в AssemblyAI with your
+        // own key». Ветка сервера при этом называла ДРУГОЙ ПРОДУКТ — Cruxwing,
+        // — то есть человеку, поставившему orakul, сообщали, что его звонок
+        // уходит туда, о чём он не просил. В собранном orakul эта ветка
+        // недостижима: DIST-сборка отказывается печь адрес сервера (§2.3), а
+        // без него `llmViaBackend` ложно. Недостижимая ветка — не повод
+        // оставлять в ней чужое имя: достижимость меняется одной строкой в
+        // сборке, а текст читают глазами.
+        //
+        // Счётчик английских строк (§6.4) сюда не смотрит: он считает Views и
+        // Onboarding, а это AppState. Текст для человека собирается и здесь.
+        onServer ? "сервер расшифровки, указанный в сборке" : "AssemblyAI по вашему ключу"
     }
 
     var canDiarize: Bool {
