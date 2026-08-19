@@ -3,29 +3,59 @@
   "title": "Trello",
   "docs": "https://developer.atlassian.com/cloud/trello/rest/api-group-search/",
   "verifiedOn": "2026-08-18",
-  "note": "GET /1/search с обязательным query. Проверено 2026-08-18: ключ и токен можно слать заголовком «OAuth oauth_consumer_key=…, oauth_token=…» — так и сделано, чтобы секрет не оставался в адресе, где он попадёт в журналы прокси. partial=true обязателен: без него ищутся только целые слова, и «тариф» не находит «тарифы» — человек решит, что поиск сломан. modelTypes=cards отсекает доски и участников: в подсказке нужны карточки. Номер карточки — idShort, число внутри доски.",
+  "note": "GET /1/search с обязательным query. Проверено 2026-08-18: ключ и токен можно слать заголовком «OAuth oauth_consumer_key=…, oauth_token=…» — так и сделано, чтобы секрет не оставался в адресе, где он попадёт в журналы прокси. partial=true обязателен: без него ищутся только целые слова, и «тариф» не находит «тарифы» — человек решит, что поиск сломан. modelTypes=cards отсекает доски и участников: в подсказке нужны карточки. Номер карточки — idShort, число внутри доски. Слово уходит в {queryWords}: параметр query у Trello — язык с операторами (@участник, #метка, board:, is:open), а не строка. Вопрос приходит из речи, и слово с двоеточием сервис прочёл бы как оператор.",
   "parameters": [
-    { "name": "key", "title": "Ключ приложения", "example": "a1b2c3d4e5f6a7b8c9d0e1f2" }
+    {
+      "name": "key",
+      "title": "Ключ приложения",
+      "example": "a1b2c3d4e5f6a7b8c9d0e1f2"
+    }
   ],
   "request": {
     "method": "GET",
     "path": "/1/search",
     "query": [
-      { "name": "query", "value": "{query}" },
-      { "name": "modelTypes", "value": "cards" },
-      { "name": "cards_limit", "value": "{limit}" },
-      { "name": "partial", "value": "true" },
-      { "name": "card_fields", "value": "name,desc,idShort,url" }
+      {
+        "name": "query",
+        "value": "{queryWords}"
+      },
+      {
+        "name": "modelTypes",
+        "value": "cards"
+      },
+      {
+        "name": "cards_limit",
+        "value": "{limit}"
+      },
+      {
+        "name": "partial",
+        "value": "true"
+      },
+      {
+        "name": "card_fields",
+        "value": "name,desc,idShort,url"
+      }
     ],
     "headers": [
-      { "name": "Authorization", "value": "OAuth oauth_consumer_key=\"{key}\", oauth_token=\"{token}\"" }
+      {
+        "name": "Authorization",
+        "value": "OAuth oauth_consumer_key=\"{key}\", oauth_token=\"{token}\""
+      }
     ]
   },
   "response": {
-    "list": ["cards"],
-    "title": ["name"],
-    "context": ["desc"],
-    "key": ["idShort"],
+    "list": [
+      "cards"
+    ],
+    "title": [
+      "name"
+    ],
+    "context": [
+      "desc"
+    ],
+    "key": [
+      "idShort"
+    ],
     "state": []
   }
 }

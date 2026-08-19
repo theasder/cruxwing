@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2924 and 660 | README, maintainer run |
+| App and core tests | 2924 and 663 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1741,6 +1741,37 @@ characters are not stored in the index and cannot be searched for. They are
 replaced with a **space**, not deleted — «Wi-Fi» without the hyphen becomes
 «WiFi», a word the index does not contain, while «Wi Fi» is exactly what it
 does. Deleting would have looked tidier and quietly lost matches.
+
+**Jira was the first, and a sweep found it was not the only one.** The question
+reaching a connector is not a single stemmed word: the command line passes
+whatever was typed, and during a call the app passes the goal — free text, up to
+320 characters. So the question that lands in somebody else's search parameter is
+free-form, and the only thing that matters is whether that parameter is a string
+or a language.
+
+Four more read it as a language, each confirmed in the vendor's own
+documentation: **Slack** (`in:`, `from:`, `has:`, `before:`, `after:`),
+**Mattermost** (`from:`, `in:`, `before:`, `after:`, `on:`), **Trello**
+(`@member`, `#label`, `board:`, `is:open`) and **BookStack** (`{created_by:me}`,
+`[tag=value]`, an exact phrase in quotes, a leading minus). All four now take
+`{queryWords}`.
+
+The likely trigger is not an attack, it is Russian. A colon after a word is
+ordinary speech — «Тарифы: пересмотр», «Сроки: до пятницы» — and that fragment
+was being read as an *instruction* rather than as the words to look for. There
+is no error in that: the service answers, the answer is simply about something
+else, and the person sees a confident «ничего не нашлось» where there was
+something. An attempt to redirect the question on purpose looks exactly the
+same in the text, which is why both are disarmed by the same rule rather than
+by telling them apart.
+
+Where the line was **not** crossed matters as much. Zulip builds its expression
+on our side — a `narrow` with a `search` operator — so inside the operand the
+text is already a plain string. Redmine, Gitea and Nextcloud take a literal
+parameter by their docs. Rocket.Chat was left alone deliberately: its
+documentation mentions «advanced search syntax» and never lists the operators,
+and the repository's rule is the same for defending as for reading — not found
+in the vendor's docs means it stays a question, not a guess.
 
 One case the rule alone does not cover: a question made *only* of punctuation.
 It strips to nothing, `text ~ ""` means «give me everything», and the server
