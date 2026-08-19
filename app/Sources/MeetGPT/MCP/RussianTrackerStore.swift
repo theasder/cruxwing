@@ -578,7 +578,21 @@ struct RussianTrackerStore: Sendable {
     func searchText(_ service: RussianTrackers.Service, query: String, cap: Int = 3000,
                     http: @escaping RussianTrackers.HTTP = RussianTrackers.live) async -> String? {
         guard let client = client(for: service, http: http) else { return nil }
-        guard let issues = try? await client.search(query), !issues.isEmpty else { return nil }
+        // Отказ записывается, а не глотается вместе с `try?`.
+        //
+        // Здесь его не было вовсе: российские трекеры — единственное семейство,
+        // которое молчало и в записи, и в настройках. Отозванный токен выглядел
+        // как «в трекере ничего нет», а это разные вещи, и человеку нужна
+        // вторая, чтобы пойти и починить.
+        let issues: [RussianTrackers.Issue]
+        do {
+            issues = try await client.search(query)
+            await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
+        } catch {
+            await ConnectorHealth.shared.record(service: service.rawValue, error: error)
+            return nil
+        }
+        guard !issues.isEmpty else { return nil }
         return issues.prefix(10)
             .map { "[\($0.key)] \($0.title)" }
             .joined(separator: "\n")

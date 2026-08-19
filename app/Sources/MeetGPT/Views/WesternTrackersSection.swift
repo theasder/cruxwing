@@ -31,6 +31,7 @@ private struct WesternTrackerRow: View {
     @State private var token = ""
     @State private var fields: [String: String] = [:]
     @State private var isConfigured = false
+    @State private var refusal: ConnectorHealth.Refusal?
 
     private var store: RussianTrackerStore { mcp.trackerStore }
 
@@ -54,6 +55,19 @@ private struct WesternTrackerRow: View {
                 .accessibilityIdentifier("settings.western.\(service.rawValue).connect")
             }
 
+            // Отказ сервиса виден там же, где его настраивают.
+            //
+            // Записывался он для всех семейств, а показывался у двух. Для Linear, Trello и Plane
+            // отозванный токен выглядел как «ничего не нашлось» — то есть как
+            // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
+            // стороны: доступ отзывают молча, и молчит тогда наш экран.
+            if let refusal {
+                Text("Последний отказ: \(refusal.words)")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.western.\(service.rawValue).refusal")
+            }
             if isExpanded {
                 Text(service.credentialHint)
                     .font(Typo.caption)
@@ -98,6 +112,7 @@ private struct WesternTrackerRow: View {
             }
         }
         .onAppear(perform: load)
+        .task { await loadRefusal() }
     }
 
     /// Правило спрашивается у ядра — иначе кнопка разрешает сохранить то, что
@@ -105,6 +120,10 @@ private struct WesternTrackerRow: View {
     private var canSave: Bool {
         WesternTrackers(service: service, token: token, values: fields,
                         http: { _ in (Data(), HTTPURLResponse()) }).isConfigured
+    }
+
+    private func loadRefusal() async {
+        refusal = await ConnectorHealth.shared.refusal(for: service.rawValue)
     }
 
     private func load() {

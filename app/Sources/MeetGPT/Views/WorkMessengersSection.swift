@@ -172,6 +172,7 @@ private struct WorkMessengerRow: View {
     @State private var secondary = ""
     @State private var scope = ""
     @State private var isConfigured = false
+    @State private var refusal: ConnectorHealth.Refusal?
 
     private var store: RussianTrackerStore { mcp.trackerStore }
 
@@ -196,6 +197,19 @@ private struct WorkMessengerRow: View {
                 .accessibilityIdentifier("settings.messenger.\(service.rawValue).connect")
             }
 
+            // Отказ сервиса виден там же, где его настраивают.
+            //
+            // Записывался он для всех семейств, а показывался у двух. Для мессенджеров
+            // отозванный токен выглядел как «ничего не нашлось» — то есть как
+            // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
+            // стороны: доступ отзывают молча, и молчит тогда наш экран.
+            if let refusal {
+                Text("Последний отказ: \(refusal.words)")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.messenger.\(service.rawValue).refusal")
+            }
             if isExpanded {
                 Text(service.credentialHint)
                     .font(Typo.caption)
@@ -259,6 +273,7 @@ private struct WorkMessengerRow: View {
             }
         }
         .onAppear(perform: load)
+        .task { await loadRefusal() }
     }
 
     /// Неполный набор сохранять нельзя: настройка выглядела бы законченной, а
@@ -270,6 +285,10 @@ private struct WorkMessengerRow: View {
         if service.needsScope,
            scope.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
         return true
+    }
+
+    private func loadRefusal() async {
+        refusal = await ConnectorHealth.shared.refusal(for: service.rawValue)
     }
 
     private func load() {

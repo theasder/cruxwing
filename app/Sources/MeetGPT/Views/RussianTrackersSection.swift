@@ -40,6 +40,7 @@ private struct GitHubRow: View {
     @State private var token = ""
     @State private var repositories = ""
     @State private var isReady = false
+    @State private var refusal: ConnectorHealth.Refusal?
 
     private var store: RussianTrackerStore { mcp.trackerStore }
 
@@ -69,6 +70,16 @@ private struct GitHubRow: View {
                     .accessibilityIdentifier("settings.github.connect")
             }
 
+            // Отказ сервиса виден там же, где его настраивают. Для GitHub
+            // отозванный токен выглядел как «ничего не нашлось» — то есть как
+            // продукт, который стал хуже отвечать.
+            if let refusal {
+                Text("Последний отказ: \(refusal.words)")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.github.refusal")
+            }
             if isExpanded {
                 Text(GitHubConnector.credentialHint)
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
@@ -108,6 +119,11 @@ private struct GitHubRow: View {
             }
         }
         .onAppear(perform: load)
+        .task { await loadRefusal() }
+    }
+
+    private func loadRefusal() async {
+        refusal = await ConnectorHealth.shared.refusal(for: "github")
     }
 
     private func load() {
@@ -131,6 +147,7 @@ private struct RussianTrackerRow: View {
     @State private var secondary = ""
     @State private var destination = ""
     @State private var isConfigured = false
+    @State private var refusal: ConnectorHealth.Refusal?
     @State private var canFileTasks = false
 
     var body: some View {
@@ -154,6 +171,19 @@ private struct RussianTrackerRow: View {
                 .accessibilityIdentifier("settings.tracker.\(service.rawValue).connect")
             }
 
+            // Отказ сервиса виден там же, где его настраивают.
+            //
+            // Записывался он для всех семейств, а показывался у двух. Для российских трекеров
+            // отозванный токен выглядел как «ничего не нашлось» — то есть как
+            // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
+            // стороны: доступ отзывают молча, и молчит тогда наш экран.
+            if let refusal {
+                Text("Последний отказ: \(refusal.words)")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.tracker.\(service.rawValue).refusal")
+            }
             if isExpanded {
                 Text(service.credentialHint)
                     .font(Typo.caption)
@@ -213,6 +243,7 @@ private struct RussianTrackerRow: View {
             }
         }
         .onAppear(perform: load)
+        .task { await loadRefusal() }
     }
 
     /// Сохранять половину ключа нельзя: настройка будет выглядеть законченной и
@@ -221,6 +252,10 @@ private struct RussianTrackerRow: View {
         guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
         guard service.needsSecondary else { return true }
         return !secondary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func loadRefusal() async {
+        refusal = await ConnectorHealth.shared.refusal(for: service.rawValue)
     }
 
     private func load() {

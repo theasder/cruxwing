@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2882 and 636 | README, maintainer run |
+| App and core tests | 2885 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -845,6 +845,32 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**A competitor does not have to attack us — revoking access is quieter, and
+we were making it quieter still.** `ConnectorHealth` records the words a service
+refuses us with, and two settings sections displayed them: own servers and
+knowledge bases. The other three did not. For Linear, Trello, Plane, GitHub and
+the messengers, a revoked token looked exactly like «nothing found» — which is
+the product appearing to get worse at answering rather than a door being shut.
+
+The Russian trackers were worse: they never recorded a refusal at all. A `try?`
+turned every error into an empty result, so the information did not exist to be
+displayed.
+
+The difference between «your tracker has nothing about this» and «your tracker
+refused us» is the difference between a product that got worse and an action the
+person can take. Both are now recorded and both are shown, in the place where
+the source is configured.
+
+The rule is pinned rather than the instances: **every settings section that asks
+for a token shows that source's last refusal.** A section is recognised by the
+credential hint it shows — where a token is asked for, a source is configured.
+Add a sixth family tomorrow and the check names it.
+
+Telegram is deliberately outside the rule, and there is a check saying so: its
+archive is read from disk, so there is no vendor there to refuse. Left silent it
+would look like the same oversight; a test that fails if it ever reaches for the
+network keeps that a decision.
 
 **Three doors, and the one that mattered most was the last to be found.**
 Closing the connector door raised the obvious question: how many doors are
