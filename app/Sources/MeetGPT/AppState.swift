@@ -7009,8 +7009,15 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Create a Notion page from the current answer + prompt + blind spots via
+    /// Create a Notion page from **the whole dialog** — every earlier prompt and
+    /// answer of this session, then the current pair and the blind spots — via
     /// the connected Notion MCP server, then open it. Fails soft.
+    ///
+    /// Сказано так, потому что раньше здесь стояло «current answer + prompt +
+    /// blind spots», а уезжал весь разговор: `earlierExchanges` передаётся
+    /// строкой ниже. То же обещание висело на подсказке кнопки. Notion — чужой
+    /// сервис, и объём того, что туда уходит, человек должен знать ДО нажатия,
+    /// а не по странице, которая откроется.
     func exportAssistantAnswerToNotion() async {
         guard let mcp, mcp.canExportToNotion else {
             lastError = "Подключите Notion в настройках, чтобы создать страницу."

@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 294 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2843 and 618 | README, maintainer run |
+| App and core tests | 2846 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1337,6 +1337,27 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The same question asked of export gave the same answer.** Yesterday's defect
+— the sheet showing less than the request carried — is a class, so the
+neighbouring path was asked too. The button's tooltip promised «ответ вместе с
+запросом и слепыми зонами». What leaves is the **whole dialog**: every earlier
+prompt and every earlier answer of the session, to Notion or Google Docs, both
+somebody else's service.
+
+The code was not wrong. `NotionExport` says plainly that the page is the dialog
+rather than its last answer, and that is the better product. The tooltip was
+wrong, and so was the function's own doc comment, which listed the three things
+and not the fourth it passes on the next line. Both now say the dialog.
+
+Held in **both** directions by one check: if the call keeps sending
+`earlierExchanges`, the tooltip must say so; if somebody later decides to send
+only the last answer, the tooltip must shrink with it. A promise pinned in one
+direction only becomes false the first time the code gets smaller.
+
+For a product whose argument is that the recording stays on the machine, the
+size of what a button ships to a third party is not a detail — it is the
+argument.
 
 **What leaves for the tracker is now what the person was shown.** The
 confirmation sheet asks permission to file a task and displayed the title and

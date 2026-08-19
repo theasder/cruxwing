@@ -230,7 +230,7 @@ struct AIStudioView: View {
                 .fixedSize()
                 .disabled(exportingDOCX || exportingElsewhere)
                 .accessibilityLabel("Поделиться ответом")
-                .help("Скопировать ответ или выгрузить его — вместе с запросом и слепыми зонами — в Word, Google Docs или Notion")
+                .help("Скопировать ответ или выгрузить весь разговор — все запросы и ответы этой сессии, вместе со слепыми зонами — в Word, Google Docs или Notion")
             }
         }
     }
