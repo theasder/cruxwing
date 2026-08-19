@@ -9115,7 +9115,16 @@ final class AppState: ObservableObject {
         let raw = try? await llm.streamChat(
             system: system, user: "Recent transcript:\n\(recent)",
             model: LLMCatalog.fastAudit(for: Config.selectedModel)) { _ in }
-        return PromptWorkflows.sanitizeDerivedQuery(raw ?? "")
+        guard let query = PromptWorkflows.sanitizeDerivedQuery(raw ?? "") else { return nil }
+        // Цитата вместо терминов — не уезжает.
+        //
+        // Запрос идёт в каждое подключённое приложение, в том числе к сервису
+        // конкурента. Модель должна вернуть слова для поиска; вернув кусок
+        // фразы, она отдаёт содержание встречи. Отказ здесь не теряет ответ:
+        // выше остаётся широкий запрос по цели звонка — менее точный и не
+        // выносящий сказанное.
+        guard !PromptWorkflows.looksLikeAQuote(query, of: recent) else { return nil }
+        return query
     }
 
     /// The team's recent ledger decisions as one grounding snippet — silent nil

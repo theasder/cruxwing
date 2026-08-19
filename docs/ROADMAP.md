@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 323 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2890 and 652 | README, maintainer run |
+| App and core tests | 2898 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1157,6 +1157,28 @@ What is **not** established: that any of this is the cause of the rare full-run
 failures seen twice this week. Three consecutive full runs after the change were
 green, which proves nothing about a one-in-twenty event. The environment
 dependency was real and is removed; the flake is still open.
+
+**The search query is the one thing that leaves this machine, and it could
+carry the meeting verbatim.** A connected app is asked a question distilled from
+the transcript by a model — and one of the apps a person may connect is a service
+that sells transcripts. Sending «тарифы декабрь Германия» is a search. Sending
+«мы решили поднять тарифы с декабря на пятнадцать процентов для клиентов» is
+handing over what was said. The only bounds on that string were its length (300
+characters) and a ban on newlines: 299 characters of speech passed.
+
+A derived query that shares **six consecutive words** with the transcript is now
+refused, and the broad goal-based query goes instead. Erring this way is cheap —
+a wider search — while erring the other way spends the product's whole promise.
+
+The rule took three attempts, and the wrong two are the interesting part. It
+began as «eight words and forty characters», and the first check showed forty
+characters is the wrong measure: «тогда пересчитаю лимиты и вернусь в» is a real
+sentence fragment and thirty-five characters, because Russian function words are
+short. Replacing characters with a count of content words looked better and was
+nearly inert — any six words of live speech contain three longer than three
+letters, and **the mutation that deleted that condition passed the suite**. A
+condition that almost never fires is not strictness, it is the appearance of it.
+What remains is one rule that can be said out loud.
 
 **Stalling is cheaper than refusing, and it left no trace at all.** The
 fan-out wraps every source in a deadline, and that deadline returns `nil` for
