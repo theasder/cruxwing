@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 305 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 308 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2865 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1385,6 +1385,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Everything this application can talk to is now written down, and the list is
+the check.** «Data stays on the machine» was enforced against **our** server
+(§3) and connectors were made to use one door — but the sentence a person reads
+is about everybody, and that had no check at all. A first analytics call, crash
+reporter or update ping would be one string literal in one file.
+
+Counted: **41 hosts**, and every one falls into a category a person chose —
+model providers reached with their own key, MCP endpoints they connected, Google
+APIs after consent in a browser, a connector they configured, and loopback for
+the OAuth return. Three are not addresses at all: `schemas.openxmlformats.org`,
+`purl.org` and `www.w3.org` are XML namespace names inside a `.docx` built on
+this machine and never fetched.
+
+There is no telemetry, no crash reporting, no update check. That was already
+true; now a new address fails the run until somebody writes what it is and why
+the person agreed to it, the list is refused if it outlives the code, and the
+usual names — Sentry, Crashlytics, Segment, Firebase — are refused by name.
+
+Two of the four mutations reported green and were not: the edit had not applied,
+because I left the `assert` off the replacement. That is the second time in this
+file; a mutation without a check that it landed is a green light for nothing.
 
 **The tokens were already staying on the machine, and nothing said so.** The
 Keychain holds keys to work trackers, wikis and messengers — and to Fireflies,
