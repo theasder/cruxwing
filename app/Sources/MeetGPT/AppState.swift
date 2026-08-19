@@ -593,6 +593,17 @@ final class AppState: ObservableObject {
 
     @Published var status: RecordingStatus = .idle
     @Published var transcriptionState: TranscriptionState = .idle
+    /// Что сказать человеку, если строк нет, потому что нет звука.
+    ///
+    /// «Слушаю. Строки появятся по ходу разговора» верно ровно тогда, когда
+    /// звук идёт. Устройство, занятое другим приложением, и отозванное
+    /// разрешение выглядят на экране так же — молчанием, в котором человек
+    /// ждёт. Счётчики в `AudioChunkBuffer` знают разницу и до сих пор писали её
+    /// только в системный журнал, то есть сопровождающему, а не тому, кто
+    /// сидит на звонке.
+    @Published private(set) var audioTrouble: String?
+    /// Когда начали слушать — для отсрочки: устройство просыпается не мгновенно.
+    private var listeningSince: Date?
     @Published var transcriptionPerformanceNotice: TranscriptionPerformanceNotice?
 
     // First-run pre-flight: live permission status the onboarding screen shows.
@@ -892,6 +903,31 @@ final class AppState: ObservableObject {
     @Published private(set) var microphoneLostDuringRecording = false
 
     /// Микрофон не удалось вернуть после смены аудиоустройства.
+    /// Раз в несколько секунд спросить у пути звука, идёт ли звук вообще.
+    ///
+    /// Не по приходу буфера: когда буферов НЕТ, спрашивать некому — а это и
+    /// есть тот случай, ради которого проверка написана. Поэтому отдельный
+    /// опрос, живущий ровно столько, сколько идёт запись.
+    func watchForSilentInput() {
+        listeningSince = Date()
+        audioTrouble = nil
+        Task { @MainActor [weak self] in
+            while let self, self.isRecording {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                guard self.isRecording, let since = self.listeningSince else { break }
+                // Микрофон И системный звук: человек мог включить только одно,
+                // поэтому «ничего не пришло» — это ноль у ОБОИХ. Требовать
+                // буферов от выключенного источника значило бы кричать всегда.
+                let received = (self.micChunker?.receivedBufferCount ?? 0)
+                    + (self.systemChunker?.receivedBufferCount ?? 0)
+                self.audioTrouble = AudioChunkBuffer.trouble(
+                    buffersIn: received,
+                    secondsListening: Date().timeIntervalSince(since))
+            }
+            self?.audioTrouble = nil
+        }
+    }
+
     func noteMicrophoneLost() {
         guard isRecording else { return }
         microphoneLostDuringRecording = true
@@ -9363,6 +9399,9 @@ final class AppState: ObservableObject {
             // Runs only after capture actually started, so a failed start keeps
             // the current workspace intact.
             resetForNewRecording()
+            // Спрашиваем путь звука, идёт ли звук: «Слушаю» без единого буфера
+            // выглядит на экране точно так же, как «Слушаю» с речью.
+            watchForSilentInput()
             let startedAt = Date()
             recordingStartedAt = startedAt
             // `resetForNewRecording` deliberately clears the previous call's

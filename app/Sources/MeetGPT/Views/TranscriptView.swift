@@ -27,7 +27,8 @@ struct TranscriptView: View {
         Group {
             if state.transcript.isEmpty && state.provisionalLines.isEmpty {
                 TranscriptEmptyState(recording: state.status == .recording,
-                                     transcription: state.transcriptionState)
+                                     transcription: state.transcriptionState,
+                                     audioTrouble: state.audioTrouble)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // AppKit rather than a SwiftUI list: `.textSelection(.enabled)`
@@ -293,6 +294,8 @@ private struct TranscribingRow: View {
 private struct TranscriptEmptyState: View {
     let recording: Bool
     let transcription: AppState.TranscriptionState
+    /// Путь звука молчит — сказать об этом важнее, чем повторять «слушаю».
+    var audioTrouble: String?
 
     private struct Presentation {
         let symbol: String
@@ -328,6 +331,17 @@ private struct TranscriptEmptyState: View {
                 detail: "\(message)\n\nCheck your connection, or switch the transcription engine in Settings (Deepgram / Whisper API).",
                 showDots: false)
         case .idle, .ready:
+            // «Строки появятся по ходу разговора» — обещание, верное ровно
+            // тогда, когда звук идёт. Занятое другим приложением устройство и
+            // отозванное разрешение выглядят так же: тишина, в которой человек
+            // ждёт. Если путь звука говорит, что буферов нет вовсе, — говорим.
+            if let trouble = audioTrouble {
+                return Presentation(
+                    symbol: "exclamationmark.triangle", tint: Theme.amber, soft: Theme.dangerSoft,
+                    title: "Звука нет",
+                    detail: trouble,
+                    showDots: false)
+            }
             return Presentation(
                 symbol: "ear", tint: Theme.recordRed, soft: Theme.dangerSoft,
                 title: "Слушаю",

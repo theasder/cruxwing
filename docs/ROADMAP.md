@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 323 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2898 and 652 | README, maintainer run |
+| App and core tests | 2904 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1198,6 +1198,29 @@ nearly inert — any six words of live speech contain three longer than three
 letters, and **the mutation that deleted that condition passed the suite**. A
 condition that almost never fires is not strictness, it is the appearance of it.
 What remains is one rule that can be said out loud.
+
+**«Слушаю. Строки появятся по ходу разговора» is a promise, and it was made
+whether or not any sound was arriving.** The audio path already knew: counters
+in `AudioChunkBuffer` were added after a case of «listening, no transcript», and
+the fix at the time was to write them to the system log — a message to the
+maintainer, not to the person sitting on the call. On screen, a device held by
+another application and a room full of speech looked identical.
+
+That case is not exotic. While a person is choosing between products, a
+competitor's recorder is usually running on the same machine, and the device may
+well be taken.
+
+The distinction the counters exist for is now the rule: **zero buffers** means
+the path is broken and is said out loud; **buffers arriving quietly** is a quiet
+room and is not — announcing trouble to someone who is simply silent teaches them
+to ignore the warning. There is a twenty-second grace, because a device does not
+wake instantly and a warning that blinks on every start is worth nothing.
+
+Two of my own checks were too weak and mutation said so. One asserted the view
+merely *mentions* the flag — `if false, let trouble = audioTrouble` passed it,
+because a branch switched off from outside still looks like a branch. The other
+measured the distance from `resetForNewRecording()` to the watcher call and found
+the function's own declaration two hundred thousand characters away.
 
 **Stalling is cheaper than refusing, and it left no trace at all.** The
 fan-out wraps every source in a deadline, and that deadline returns `nil` for
