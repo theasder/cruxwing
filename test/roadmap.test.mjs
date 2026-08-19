@@ -168,6 +168,39 @@ describe('ROADMAP', () => {
       '§10.1 не называет свою сессию — а сторож её ловит');
   });
 
+  test('каждый сторож границы из §3 существует и что-то проверяет', () => {
+    // §3 говорит про себя: «не разговоры о ценностях: каждая строка ломает
+    // сборку или прогон». Держится это на именах в столбце «чем закреплено», и
+    // проверить их было нечем: переименованный набор оставил бы в плане
+    // обещание защиты, которой нет. Ровно тот класс, который §13 уже знает, —
+    // сторож, которого нельзя позвать, — только на уровне самого плана.
+    const borders = section('3');
+    const named = [...borders.matchAll(/`([A-Za-z][A-Za-z0-9_]*Tests|[a-z-]+\.test\.mjs|LiveConnectorProbe)`/g)]
+      .map(([, name]) => name);
+    const unique = [...new Set(named)];
+    assert.ok(unique.length >= 5,
+      `в §3 нашлось ${unique.length} имён сторожей — разбор сломан`);
+
+    const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/OrakulCoreTests', 'test'];
+    for (const name of unique) {
+      const isSwift = !name.endsWith('.mjs');
+      const candidates = roots.flatMap((root) => {
+        try {
+          return readdirSync(resolve(here, '..', root))
+            .filter((file) => file === name || file === `${name}.swift` || file.startsWith(name))
+            .map((file) => resolve(here, '..', root, file));
+        } catch { return []; }
+      });
+      assert.ok(candidates.length > 0,
+        `§3 закрепляет границу за «${name}», а такого набора нет`);
+
+      const body = readFileSync(candidates[0], 'utf8');
+      const hasTests = isSwift ? /@Test\b/.test(body) : /\btest\(/.test(body);
+      assert.ok(hasTests,
+        `«${name}» существует, но не содержит ни одной проверки — граница не закреплена ничем`);
+    }
+  });
+
   test('числа из кода в плане — те же, что в коде', () => {
     // Прозу про защиты этот файл уже ловил на трёх устаревших утверждениях.
     // Числа стареют так же и заметны ещё меньше: «три манифеста» и «предел 10»

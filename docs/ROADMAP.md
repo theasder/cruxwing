@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 304 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 305 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2865 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -105,6 +105,19 @@ id is refused even with credentials.
 
 Not values talk: every line breaks a build or a run when violated. A plan that
 needs them cancelled is a bad plan, not a bold one.
+
+**And the column that says so is now checked itself — 2026-08-21.** Each border
+names what enforces it, and nothing verified that the name still points at
+anything: renaming `NoTariffsTests` would leave this table promising a guard that
+no longer exists, in the one section that claims every line is enforced. All six
+were verified by hand this week and all six were real — which is exactly when the
+rule is free to write down.
+
+The check requires two things of every name here: that a suite by that name
+exists, and that it contains at least one test. A file that survives a rename but
+loses its assertions enforces nothing while looking like it does — the same
+defect §13 already records as «a guard that cannot fire», one level up, in the
+plan itself.
 
 **A second line had a hole of its own, found the same way.** «Data stays on the
 machine» rested on one test of one call (`claimDeviceTrial`) while nineteen files
@@ -1338,7 +1351,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **22 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **23 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
