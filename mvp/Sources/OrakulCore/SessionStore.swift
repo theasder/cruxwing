@@ -43,7 +43,15 @@ public struct SessionStore: Sendable {
         guard isUsableAsFilename(session.id) else {
             throw StoreError.identifierUnusableAsFilename(session.id)
         }
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        // Права 0700 на каталоге и 0600 на файлах.
+        //
+        // Здесь лежат расшифровки целиком — то, ради чего продукт и говорит
+        // «запись остаётся на вашем компьютере». Про сеть это было правдой, а
+        // на самом компьютере файлы создавались обычными правами: их читал любой
+        // процесс под тем же пользователем. Довод «данные остаются у вас»
+        // означает и это тоже.
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -54,7 +62,22 @@ public struct SessionStore: Sendable {
         // теряется ровно там, где она нужна.
         let destination = url(for: session.id)
         let temporary = root.appendingPathComponent(".\(session.id).tmp")
-        try data.write(to: temporary, options: .atomic)
+        // Права задаются при СОЗДАНИИ временного файла: он и станет постоянным
+        // после переименования. Поправить их следом значило бы оставить окно, в
+        // котором расшифровка лежит открытой, — короткое, но настоящее.
+        try? FileManager.default.removeItem(at: temporary)
+        // Сначала пустой файл с нужными правами, потом запись в него.
+        //
+        // Результат `createFile` намеренно не проверяется: если каталог закрыт,
+        // об этом скажет `write` — настоящей ошибкой системы, которую командная
+        // строка переводит человеку как «Нет прав на запись». Первая версия
+        // бросала здесь свою ошибку и подменяла причину; набор это поймал.
+        //
+        // Запись без `.atomic`: атомарность даёт переименование ниже, а
+        // `.atomic` создало бы ещё один файл со своими правами и стёрло эти.
+        _ = FileManager.default.createFile(atPath: temporary.path, contents: nil,
+                                           attributes: [.posixPermissions: 0o600])
+        try data.write(to: temporary)
         // Замена — снятие старого файла и переименование, а не `replaceItemAt`.
         // Причина не во вкусе: в swift-corelibs-foundation этот метод на
         // повторном сохранении отвечает NSFileNoSuchFileError (код 4), то есть

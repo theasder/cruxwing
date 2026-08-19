@@ -124,9 +124,23 @@ struct SessionStore {
     /// Write (or overwrite) a session. Errors are surfaced to the caller —
     /// losing a meeting silently is exactly what this store exists to prevent.
     func save(_ session: SavedSession) throws {
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        // Права как у ядра: 0700 на каталог, 0600 на файл. Здесь лежат
+        // расшифровки и чужие сообщения — то самое, про что продукт говорит
+        // «остаётся на вашем компьютере». Про сеть это правда; на самом
+        // компьютере файлы были открыты любому процессу пользователя.
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
         let data = try encoder.encode(session)
-        try data.write(to: url(for: session.id), options: .atomic)
+        let destination = url(for: session.id)
+        // Пустой файл с правами, потом запись в него: `.atomic` создал бы свой
+        // файл со своими правами и стёр эти.
+        if !FileManager.default.fileExists(atPath: destination.path) {
+            _ = FileManager.default.createFile(atPath: destination.path, contents: nil,
+                                               attributes: [.posixPermissions: 0o600])
+        }
+        try data.write(to: destination)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                               ofItemAtPath: destination.path)
     }
 
     /// All sessions, newest first. Unreadable files are skipped, never fatal.

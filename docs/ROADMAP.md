@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 301 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2861 and 618 | README, maintainer run |
+| App and core tests | 2861 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1358,6 +1358,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**And so were the saved calls, which is the larger half.** Yesterday's finding
+was one log file; asking the same question of everything that writes to disk
+found the transcripts themselves — `SessionStore` in the core, `SessionStore` in
+the application, and the Telegram archive — all created with ordinary
+permissions, in both packages.
+
+«Запись остаётся на вашем компьютере» is the product's whole argument. It was
+true about the network from the first day. On the computer itself, any process
+running as that user could read every meeting. The sentence means this too.
+
+All three now create their directories `0700` and their files `0600`. The write
+had to change shape for it: `.atomic` makes its own file with its own
+permissions and replaces yours, so the file is created empty with the mode it
+must keep, and written into afterwards.
+
+**The first version swallowed the reason for a failure.** Creating the file
+returns a Bool, and turning that into «unusable identifier» replaced the system's
+«permission denied» — a person who could not save a call would have been told
+the wrong thing. The suite caught it: the command line has a test that the
+person reads «Нет прав на запись». `createFile`'s result is now deliberately
+ignored, and the write reports the real error.
 
 **Somebody else's chat was sitting on disk with ordinary permissions.**
 `TeamWatcher` writes a line per keyword match into

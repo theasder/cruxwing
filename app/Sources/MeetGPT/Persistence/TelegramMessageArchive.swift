@@ -162,12 +162,23 @@ actor TelegramMessageArchive {
     }
 
     private func persist() throws {
+        // Права как у ядра: 0700 на каталог, 0600 на файл. Здесь лежат
+        // расшифровки и чужие сообщения — то самое, про что продукт говорит
+        // «остаётся на вашем компьютере». Про сеть это правда; на самом
+        // компьютере файлы были открыты любому процессу пользователя.
         try FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700])
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
-        try encoder.encode(snapshot).write(to: fileURL, options: .atomic)
+        if !FileManager.default.fileExists(atPath: fileURL.path) {
+            _ = FileManager.default.createFile(atPath: fileURL.path, contents: nil,
+                                               attributes: [.posixPermissions: 0o600])
+        }
+        try encoder.encode(snapshot).write(to: fileURL)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
+                                               ofItemAtPath: fileURL.path)
     }
 
     private static func key(for message: TelegramSupergroups.Message) -> String {
