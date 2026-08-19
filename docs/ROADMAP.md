@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 288 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 292 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1308,6 +1308,29 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Every defence written against a hostile service lives behind one door, and
+nothing was holding it shut.** The redirect refusal — which on Linux is the only
+thing keeping a token from an address the vendor chose, measured — the streaming
+size limit and the time bound are all in `ConnectorSession`. No connector family
+implements any of them. They get them by going through that door.
+
+All seven families do, checked one by one. The point is what a new one would
+do: `URLSession.shared.data(for: request)` compiles, looks ordinary, passes
+every test that family has, and quietly revokes all three protections at once.
+The difference is invisible in review because it is about what the code does
+**not** say.
+
+`test/odna-dver-v-set.test.mjs` refuses a session built anywhere in the core but
+that one file, requires every family's transport to lead to it, and checks the
+application's side too — the app injects these transports and could inject
+anything. Mutations: a family routed past the door, a family with its own
+session, a brand-new family file added, and an application default replaced by a
+raw closure. All four fail.
+
+The check is worth its weight for the same reason the census one was: today the
+answer is «all of them», and that is exactly when a rule costs nothing to write
+down.
 
 **The census in §2.2 had lost six connectors, and the guard was watching one
 family out of five.** Slack, Plane, GitFlic, BookStack, Wiki.js and Nextcloud
