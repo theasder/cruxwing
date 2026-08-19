@@ -25,7 +25,7 @@ public enum ConnectorQuery {
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip", "slack",
-           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "outline", "bookstack", "wikijs", "nextcloud", "github", "linear", "trello", "заметки"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "jira", "outline", "bookstack", "wikijs", "nextcloud", "github", "linear", "trello", "заметки"]
 
     public struct Settings {
         public let service: String

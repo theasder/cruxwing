@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2924 and 655 | README, maintainer run |
+| App and core tests | 2924 and 660 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -55,14 +55,14 @@ the next step is capturing which neighbour wrote what, not another guess.
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
 | Work messengers | Пачка, Mattermost, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
-| Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic | `SelfHostedTrackers.swift` |
+| Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Jira на своём сервере | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
 | Code in the cloud | GitHub, personal token, `GET /search/issues` | `GitHubConnector.swift` |
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
-Total: 25 own connectors, 11 western via MCP.
+Total: 26 own connectors, 11 western via MCP.
 
 **Bold means checked against the service running, not against its
 documentation** — Gitea, Redmine, Wiki.js and Nextcloud, each started in a
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 20**, and the number is counted from that directory rather
+**Today there are 21**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -1120,7 +1120,8 @@ setting.
 |---|---|---|
 | **Slack** | **Connected 2026-08-18 — see the decision below**[^slack] | Open: the method is marked legacy and the vendor points at `assistant.search.context`. Moving there waits until it is clear what scopes it demands |
 | **Plane**, open, self-hosted | **Connected 2026-08-18, verified against a live install 2026-08-19** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `description_html`[^plane] | Nothing blocking. The cursor `perPage:page:is_prev` is confirmed — the live service answered `100:1:0` to a request for `100:0:0`. Two other fields were not what the docs promised: see below |
-| **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
+| **Jira on an own server** («Jira на своём сервере») | **Connected 2026-08-19.** `GET /rest/api/2/search`, `jql` / `maxResults` / `fields`, header `Authorization: Bearer <personal token>` (PATs exist from Jira Core 8.14); response `{startAt, maxResults, total, issues:[{id, key, fields}]}`, so the title is `fields.summary` and the state is `fields.status.name`[^jiradc] | Nothing blocking, and nothing verified live either: Data Center needs a licence, so this is a docs-only connector and says so in its manifest. It is the first service whose search takes an **expression**, not a word — see below |
+| **Confluence on an own server** | `GET /rest/api/search` with `cql` and `limit` (default 25) is documented[^confdc] | **Not connected, and the reason is worth keeping.** The vendor's own schema for that method declares a bare array of results, while every third-party account of a real install describes `{results: […], totalSize, …}`. One of the two is wrong, and picking by guess is how a connector answers «ничего не нашлось» forever. Unblocked by an install where the shape can be seen — the same bar the rest of this table is held to |
 | **BookStack** | **Connected 2026-08-18, verified against a live install 2026-08-19.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. The live answer matched the manifest field for field — reading the vendor's source, not only its docs, is why. What it did reveal is about Russian, not about BookStack: see «the word as spoken is not the word in the base» below |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
@@ -1719,6 +1720,43 @@ to prevent.
 The western layer also covers eleven MCP servers, and adding there is one
 line in the catalog (plan §2.2). The shortage sits elsewhere: sources that work
 **without our server and without the developer's account**.
+
+**The first connector whose search takes an expression, not a word.** Every
+service before Jira received the question as a *value*: `search=тарифы`,
+`q=тарифы`, `term=тарифы`. Jira receives it inside JQL — `jql=text ~ "тарифы"` —
+and that is a different kind of place. A quotation mark inside the word closes
+the string, and whatever follows stops being text that is searched for and
+becomes part of the **condition** that searches.
+
+Where the question comes from decides how much that matters: it is assembled
+from speech on the call. A sentence said out loud with a quote in it would not
+change the answer — it would change the question, and the person would get a
+confident answer to something nobody asked. That is the same door as slipping
+instructions into a transcript, opened from a different side.
+
+So the manifest asks for `{queryWords}` rather than `{query}`, and the engine
+strips the characters that break somebody else's search language. Nothing is
+lost by it, and that is the vendor's statement rather than our estimate: those
+characters are not stored in the index and cannot be searched for. They are
+replaced with a **space**, not deleted — «Wi-Fi» without the hyphen becomes
+«WiFi», a word the index does not contain, while «Wi Fi» is exactly what it
+does. Deleting would have looked tidier and quietly lost matches.
+
+One case the rule alone does not cover: a question made *only* of punctuation.
+It strips to nothing, `text ~ ""` means «give me everything», and the server
+would honestly return its first N issues under a question nobody asked. Asking
+for nothing and asking for everything are one keystroke apart, so the connector
+refuses to send it.
+
+Two guards fired while this was being written, and both were right. The
+manifest check knew only one way for a question to reach a service, and declared
+Jira an unbounded listing. And a test beside it kept its **own copy** of that
+same rule, which had gone stale the moment the engine learned a second way —
+the copy is a second place to remember, and it is forgotten exactly when the
+rule changes. Replacing the copy with a call to the real rule turned out to
+assert nothing at all, because the manifests reaching it had already passed
+that rule; the strictness of that test lives in the `try` above the loop, which
+a mutation confirmed.
 
 ### 7.5 Closed with cause — do not reopen
 
@@ -3403,3 +3441,6 @@ honest about itself.
 [^gitverse]: GitVerse, public API: base `api.gitverse.ru`, `Authorization: Bearer` or `token`, mandatory header `Accept: application/vnd.gitverse.object+json;version=1`, paging `page` / `per_page` (max 100); the issue **list** is documented as returning pull requests only — «На данный момент содержит только запросы на слияние (Pull Requests)», entry 13 in the repositories section, re-read 2026-08-18: https://gitverse.ru/docs/public-api/repositories/ and https://gitverse.ru/docs/developers/public-api/
 [^gitflic]: GitFlic: base `api.gitflic.ru` (self-hosted `host:8080/rest-api`), auth `Authorization: token <access token>`, 500 requests an hour — https://docs.gitflic.ru/latest/api/intro/; issue list `GET /project/{ownerAlias}/{projectAlias}/issue` with `_embedded.issueModelList[]` carrying `title`, `description`, `localId`, `status.title` — https://docs.gitflic.ru/api/issue/; paging `page` from zero and `size` (default 10), response `page` object with `size`, `totalElements`, `totalPages`, `number` — https://docs.gitflic.ru/api/pagination/. All three read 2026-08-18
 [^yonote]: Yonote, developer page (API v1 and v2 preview), read 2026-08-17: https://yonote.ru/developers
+
+[^jiradc]: Jira Data Center, `GET /rest/api/2/search`: parameters `jql`, `startAt`, `maxResults` (default 50, ceiling set by the `jira.search.views.default.max` property), `validateQuery` (default true), `fields`, `expand`; response example `{"expand":"names,schema","startAt":0,"maxResults":50,"total":1,"issues":[{"id":"10001","self":…,"key":"HSP-1"}]}`. Taken from the vendor's own WADL (`jira-rest-plugin.wadl`), not from a retelling, read 2026-08-19: https://docs.atlassian.com/software/jira/docs/api/REST/9.12.0/ — personal tokens go in `Authorization: Bearer <token>` and exist from Jira Core 8.14 / Confluence 7.9: https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html — reserved characters in text search (`+ - & | ! ( ) { } [ ] ^ ~ * ? \ :`) are not stored in the index, and a double quote inside a JQL string is escaped as `\"`: https://confluence.atlassian.com/jirasoftwareserver/search-syntax-for-text-fields-939938747.html
+[^confdc]: Confluence Data Center, `GET /rest/api/search`: parameters `cql`, `cqlcontext`, `excerpt` (default `highlight`), `expand`, `start`, `limit` (default 25), `includeArchivedSpaces` (default false); 400 «if the query cannot be parsed». The declared 200 schema is «Search Page Response of Search Result», an **array** of `{title, excerpt, url, resultGlobalContainer, iconCssClass, lastModified, friendlyLastModified}` — with no `results` envelope. read 2026-08-19: https://docs.atlassian.com/ConfluenceServer/rest/8.9.0/

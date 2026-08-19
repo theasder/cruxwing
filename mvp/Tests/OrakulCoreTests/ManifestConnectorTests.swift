@@ -274,18 +274,18 @@ struct ManifestConnectorTests {
                 "манифестов нашлось \(manifests.count) — проверка была бы пустой")
         for manifest in manifests {
             #expect(manifest.docs.hasPrefix("http"), "«\(manifest.id)» без документации")
-            // Слово может ехать параметром или телом — у Outline параметров
-            // нет вовсе. С 2026-08-18 (§7.2) допустим и третий случай:
-            // перечисление, но только объявленное границей и отбором.
-            let inQuery = manifest.request.query.contains { $0.value.contains("{query}") }
-            let inBody = manifest.request.body?.contains("{query}") ?? false
-            if let scan = manifest.scan {
-                #expect(!scan.match.isEmpty, "«\(manifest.id)»: перечисление без отбора")
-                #expect(scan.pages >= 1 && scan.pages <= ManifestConnector.scanPageLimit,
-                        "«\(manifest.id)»: перечисление без границы")
-            } else {
-                #expect(inQuery || inBody, "«\(manifest.id)» без параметра поиска")
-            }
+            // Здесь стояла копия проверки из `validate()`, и копия отстала:
+            // движок научился второму способу передать слово (`{queryWords}`,
+            // внутрь выражения JQL), а тест продолжал искать только `{query}`
+            // и объявил исправный манифест сломанным.
+            //
+            // Позвать здесь `validate()` было бы видимостью работы: список
+            // приходит из `bundled()`, а тот уже прогнал проверку и бросил бы
+            // на первом негодном файле. Строгость этого теста — в `try` на
+            // строке выше, и это не рассуждение: мутация, поднявшая границу
+            // перечисления у Plane выше потолка, роняет именно его.
+            //
+            // Значит внутри цикла остаётся то, чего `validate()` НЕ смотрит.
             #expect(manifest.verifiedOn.count == 10,
                     "«\(manifest.id)»: дата проверки не в виде ГГГГ-ММ-ДД")
         }

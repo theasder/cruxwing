@@ -230,6 +230,14 @@ public struct ManifestConnector {
         guard !trimmed.isEmpty else {
             return Outcome(items: [], coverage: manifest.scan == nil ? .searched : .wholeList(scanned: 0))
         }
+        // Вопрос из одних служебных знаков — не вопрос, и молчать об этом
+        // дороже, чем кажется. Там, где слово уходит внутрь кавычек,
+        // `text ~ ""` для чужого сервера означает «отдай всё»: он честно
+        // вернул бы первые N задач, и они встали бы под вопрос, которого
+        // никто не задавал.
+        if quotesTheQuery, Self.words(of: trimmed).isEmpty {
+            return Outcome(items: [], coverage: manifest.scan == nil ? .searched : .wholeList(scanned: 0))
+        }
 
         // Тот же вопрос за последние полторы минуты — это тот же вопрос. На
         // звонке «что решили по срокам» спрашивают трижды за час, и три
@@ -748,9 +756,48 @@ public struct ManifestConnector {
             : String(token[token.index(after: separator)...])
     }
 
+    /// Манифест просит очищенный вопрос — значит, чужой сервис разбирает его
+    /// как выражение, а не как строку, и пустая середина там опасна.
+    private var quotesTheQuery: Bool {
+        var texts = [manifest.request.path, manifest.request.body ?? ""]
+        texts += manifest.request.query.map(\.value)
+        texts += manifest.request.headers.map(\.value)
+        return texts.contains { $0.contains("{queryWords}") }
+    }
+
+    /// Вопрос, из которого убраны знаки, ломающие чужой язык поиска.
+    ///
+    /// JQL и CQL берут слово в кавычки: `text ~ "тарифы"`. Кавычка внутри
+    /// слова закрывает строку, и остаток вопроса становится продолжением
+    /// ЗАПРОСА к чужому серверу — не текстом, который ищут, а условием, по
+    /// которому ищут. Вопрос собирается из речи на звонке, то есть приходит
+    /// снаружи: сказанная вслух фраза с кавычкой меняла бы не ответ, а сам
+    /// вопрос, и человек получил бы уверенный ответ не на то, что спросил.
+    /// Это тот же класс, что и подмешивание указаний в расшифровку, только
+    /// дверь другая.
+    ///
+    /// Терять при этом нечего, и это не наша оценка, а слова вендора:
+    /// служебные знаки `+ - & | ! ( ) { } [ ] ^ ~ * ? \ :` в индекс не
+    /// попадают, искать их нельзя, и поиск с ними даёт тот же результат, что
+    /// и без них.
+    ///
+    /// Замена на ПРОБЕЛ, а не удаление. «Wi-Fi» без дефиса станет «WiFi» —
+    /// одно слово, которого в индексе нет; «Wi Fi» — ровно то, что там лежит.
+    /// Удаление здесь выглядело бы аккуратнее и молча теряло бы находки.
+    static func words(of query: String) -> String {
+        // Кавычки обоих видов: JQL допускает и `"…"`, и `'…'`, а CQL в
+        // примерах вендора пользуется одинарными.
+        let breaking = CharacterSet(charactersIn: "+-&|!(){}[]^~*?\\:\"'")
+        return query.components(separatedBy: breaking)
+            .joined(separator: " ")
+            .split(separator: " ", omittingEmptySubsequences: true)
+            .joined(separator: " ")
+    }
+
     private func fill(_ template: String, query: String, limit: Int, page: Int = 0) -> String {
         var filled = template
             .replacingOccurrences(of: "{query}", with: query)
+            .replacingOccurrences(of: "{queryWords}", with: Self.words(of: query))
             .replacingOccurrences(of: "{limit}", with: String(limit))
             .replacingOccurrences(of: "{token}", with: token)
             // `{basic}` — тот же токен, но в base64, для заголовка

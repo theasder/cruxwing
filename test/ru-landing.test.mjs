@@ -18,12 +18,11 @@ describe('Cruxwing Russian developer landing', () => {
   test('does not change the existing Orakul landing', () => {
     // Слепок, а не список правил: страница orakul — чужой продукт для этой
     // работы, и любое её изменение обязано быть намеренным. Обновлять слепок
-    // руками — это и есть «намеренно». Последний раз обновлён 2026-08-21:
-    // правил в форме пулл-реквеста стало восемь — добавилось «проверять
-    // сторожа мутацией, и мутацию тоже», и страница называет их число.
+    // руками — это и есть «намеренно». Последний раз обновлён 2026-08-19:
+    // в перечень подключённого добавилась Jira на своём сервере.
     const rootLanding = readFileSync(resolve(root, 'public', 'index.html'));
     const hash = createHash('sha256').update(rootLanding).digest('hex');
-    assert.equal(hash, 'a01876c66428692871a4a325b586083b28bad94c96b930838176bcbb20d346b6');
+    assert.equal(hash, '2f7e2495f66a60cb568239e1afbee3898a9ca3ac13e1956953287a7b3f55a134');
   });
 
   test('declares Russian metadata and the requested production route', () => {

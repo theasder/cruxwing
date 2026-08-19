@@ -46,7 +46,7 @@ public struct SelfHostedTrackers {
     }
 
     public enum Service: String, CaseIterable, Sendable {
-        case gitlab, gitea, redmine, plane, gitflic
+        case gitlab, gitea, redmine, plane, gitflic, jira
 
         public var title: String {
             switch self {
@@ -55,6 +55,7 @@ public struct SelfHostedTrackers {
             case .redmine: return "Redmine"
             case .plane:  return "Plane"
             case .gitflic: return "GitFlic"
+            case .jira:   return "Jira на своём сервере"
             }
         }
 
@@ -71,6 +72,11 @@ public struct SelfHostedTrackers {
                 // человек выбирает сервис до того, как задаст первый вопрос, и
                 // «ищет не сервис, а мы» — это то, что меняет его ожидания.
                 return "Ключ API из настроек Plane, адрес сервера и два поля из адреса вашего проекта. Поиска по слову у Plane нет: orakul просматривает последние задачи и отбирает их у себя — сколько именно просмотрено, пишется под ответом"
+            case .jira:
+                // «Data Center», а не просто «Jira»: в облаке путь другой, и
+                // человек с облачной Jira, вписав сюда свой адрес, получил бы
+                // отказ без объяснения, почему именно.
+                return "Личный токен (в профиле, раздел личных токенов доступа — есть начиная с Jira 8.14) и адрес вашего сервера. Это своя установка, а не облачная Jira: облачная подключается через MCP"
             case .gitflic:
                 return "Токен доступа из профиля GitFlic, адрес (api.gitflic.ru или своя сборка) и псевдонимы владельца и проекта. Поиска по слову у GitFlic нет: orakul просматривает последние задачи проекта и отбирает их у себя — сколько именно просмотрено, пишется под ответом"
             }
@@ -83,6 +89,7 @@ public struct SelfHostedTrackers {
             case .redmine: return "адрес сервера, например redmine.company.ru"
             case .plane: return "адрес сервера, например api.plane.so"
             case .gitflic: return "адрес, например api.gitflic.ru"
+            case .jira: return "адрес сервера, например jira.company.ru"
             }
         }
 
@@ -300,7 +307,11 @@ public struct SelfHostedTrackers {
         // Запасного пути у Plane нет и не будет: он не переписан с рук на
         // манифест, а сразу описан данными. Писать ему второй, ручной запрос
         // значило бы держать две дороги там, где первая появилась вчера.
-        case .plane, .gitflic: throw ConnectorError.manifestMissing
+        // Jira здесь по той же причине, и есть вторая: слово уходит внутрь
+        // кавычек JQL. Ручной запрос пришлось бы учить тому же экранированию,
+        // и второе место, где его можно забыть, дороже отсутствующего
+        // запасного пути.
+        case .plane, .gitflic, .jira: throw ConnectorError.manifestMissing
 
         case .gitlab:
             var components = URLComponents(string: "\(host)/api/v4/search")

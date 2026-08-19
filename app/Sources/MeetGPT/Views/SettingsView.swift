@@ -754,7 +754,7 @@ private struct ConnectedAppsTab: View {
                 }
 
                 SettingsSection(title: "Открытые трекеры на своём сервере",
-                                caption: "GitLab, Gitea (а также Forgejo — это форк Gitea с тем же API), Redmine, Plane и GitFlic команда поднимает у себя, поэтому кроме токена нужен адрес сервера. GitHub подключается выше: у него адрес один и тот же. У Plane и GitFlic поиска по слову нет — orakul просматривает последние задачи и пишет под ответом, сколько именно просмотрел.") {
+                                caption: "GitLab, Gitea (а также Forgejo — это форк Gitea с тем же API), Redmine, Plane, GitFlic и Jira команда поднимает у себя, поэтому кроме токена нужен адрес сервера. Jira здесь только своя: облачная подключается через MCP выше. GitHub подключается выше: у него адрес один и тот же. У Plane и GitFlic поиска по слову нет — orakul просматривает последние задачи и пишет под ответом, сколько именно просмотрел.") {
                     SelfHostedTrackersSection()
                 }
 

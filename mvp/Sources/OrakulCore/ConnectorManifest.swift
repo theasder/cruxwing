@@ -255,8 +255,18 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         // Слово может ехать и в параметре, и в теле: у Outline поиск это
         // `POST {"query": …}`, параметров у него нет вовсе. Требование то же —
         // слово человека обязано куда-то попасть, иначе это перечисление.
-        let inQuery = request.query.contains { $0.value.contains("{query}") }
-        let inBody = request.body?.contains("{query}") ?? false
+        //
+        // `{queryWords}` — то же слово, но очищенное от знаков, ломающих чужой
+        // язык поиска: у Jira оно едет внутри выражения JQL, а не отдельным
+        // параметром. Для этой проверки разницы нет — важно, что слово
+        // человека доезжает. Проверка знала только `{query}` и объявила
+        // манифест Jira перечислением без границы; она была права ровно в том,
+        // что ничего не знала о втором способе.
+        let asks = { (text: String) in
+            text.contains("{query}") || text.contains("{queryWords}")
+        }
+        let inQuery = request.query.contains { asks($0.value) }
+        let inBody = request.body.map(asks) ?? false
 
         if let scan {
             // Перечисление принимается только с границей и с отбором — §7.2.
@@ -304,7 +314,7 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
 
     /// Имена всех подстановок манифеста, кроме тех, что заполняет движок.
     func placeholders() -> Set<String> {
-        let builtin: Set<String> = ["query", "limit", "token", "basic", "page", "perPage",
+        let builtin: Set<String> = ["query", "queryWords", "limit", "token", "basic", "page", "perPage",
                                     "tokenHead", "tokenTail"]
         var texts = [request.path]
         texts += request.query.flatMap { [$0.name, $0.value] }
