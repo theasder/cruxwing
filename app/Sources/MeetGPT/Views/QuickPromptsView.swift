@@ -220,7 +220,7 @@ struct PromptEditorView: View {
             HStack(spacing: Space.s) {
                 TextField("✨", text: $draft.icon)
                     .textFieldStyle(.plain)
-                    .onChange(of: draft.icon) { draft.icon = String($0.prefix(2)) }
+                    .onChange(of: draft.icon) { draft.icon = String($1.prefix(2)) }
                     .multilineTextAlignment(.center)
                     .font(.system(size: 18))
                     .frame(width: 44, height: 36)

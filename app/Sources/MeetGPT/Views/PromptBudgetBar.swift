@@ -214,21 +214,21 @@ struct PromptBudgetBar: View {
         .sheet(isPresented: $showSignIn) {
             SignInSheet().environmentObject(state)
         }
-        .onChange(of: state.aiStreaming) { streaming in
+        .onChange(of: state.aiStreaming) { _, streaming in
             guard !streaming else { return }
             refreshCreditUsage()
         }
-        .onChange(of: state.wheesprConnected) { connected in
+        .onChange(of: state.wheesprConnected) { _, connected in
             if connected {
                 refreshCreditUsage()
             } else {
                 creditLoader.clear()
             }
         }
-        .onChange(of: state.currentTier) { _ in
+        .onChange(of: state.currentTier) {
             refreshCreditUsage()
         }
-        .onChange(of: state.computeUsageRevision) { _ in refreshCreditUsage() }
+        .onChange(of: state.computeUsageRevision) { refreshCreditUsage() }
         .onDisappear { creditLoader.cancel() }
     }
 

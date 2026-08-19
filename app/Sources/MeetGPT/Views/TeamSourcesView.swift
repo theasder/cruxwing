@@ -63,7 +63,7 @@ struct TeamSourcesView: View {
                 Toggle("", isOn: $watchEnabled)
                     .labelsHidden().toggleStyle(.switch)
                     .onChange(of: watchEnabled) {
-                        Config.teamWatchEnabled = $0
+                        Config.teamWatchEnabled = $1
                         TeamWatcher.shared.apply()
                     }
             }

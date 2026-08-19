@@ -8647,7 +8647,7 @@ final class AppState: ObservableObject {
         UsageTracker.recordAIRequest()
         refreshTier()
         let snapshot = transcript
-        var context = promptContext(
+        let context = promptContext(
             query: prompt + "\n" + effectiveCallGoal)
         // Cross-meeting recall (roadmap F1) считается ниже, внутри `aiTask`, и
         // НЕ на главном акторе.

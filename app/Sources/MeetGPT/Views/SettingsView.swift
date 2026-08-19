@@ -110,7 +110,7 @@ private struct GeneralSettingsTab: View {
                         ForEach(AppAppearance.allCases) { mode in Text(mode.label).tag(mode) }
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
-                    .onChange(of: appearance) { state.setAppearance($0) }
+                    .onChange(of: appearance) { state.setAppearance($1) }
                     .accessibilityLabel("Оформление")
                     .accessibilityIdentifier("settings.general.theme")
                 }
@@ -128,7 +128,7 @@ private struct GeneralSettingsTab: View {
                         }
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
-                    .onChange(of: readingScale) { state.readingTextScale = $0 }
+                    .onChange(of: readingScale) { state.readingTextScale = $1 }
                     .accessibilityLabel("Размер текста")
                     .accessibilityIdentifier("settings.general.readingTextSize")
                 }
@@ -183,7 +183,7 @@ private struct GeneralSettingsTab: View {
                             .background(Theme.surfaceSunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
                                 .strokeBorder(Theme.hairline, lineWidth: 1))
-                            .onChange(of: customRole) { Config.userCustomRole = $0 }
+                            .onChange(of: customRole) { Config.userCustomRole = $1 }
                             .accessibilityLabel("Своя роль")
                             .accessibilityIdentifier("settings.general.custom-role")
                     }
@@ -198,7 +198,7 @@ private struct GeneralSettingsTab: View {
                     Spacer()
                     Toggle("", isOn: $callDetection)
                         .labelsHidden().toggleStyle(.switch)
-                        .onChange(of: callDetection) { Config.callDetectionEnabled = $0; state.applyCallDetectionSettings() }
+                        .onChange(of: callDetection) { Config.callDetectionEnabled = $1; state.applyCallDetectionSettings() }
                         .accessibilityLabel("Сообщать о звонках")
                         .accessibilityIdentifier("settings.general.call-detection")
                 }
@@ -209,7 +209,7 @@ private struct GeneralSettingsTab: View {
                     Toggle("", isOn: $ignoreMedia)
                         .labelsHidden().toggleStyle(.switch)
                         .disabled(!callDetection)
-                        .onChange(of: ignoreMedia) { Config.ignoreMediaApps = $0 }
+                        .onChange(of: ignoreMedia) { Config.ignoreMediaApps = $1 }
                         .accessibilityLabel("Игнорировать музыку и видео")
                         .accessibilityIdentifier("settings.general.ignore-media")
                 }
@@ -223,7 +223,7 @@ private struct GeneralSettingsTab: View {
                     Spacer()
                     Toggle("", isOn: $blindSpotBanners)
                         .labelsHidden().toggleStyle(.switch)
-                        .onChange(of: blindSpotBanners) { Config.blindSpotTextNotificationsEnabled = $0 }
+                        .onChange(of: blindSpotBanners) { Config.blindSpotTextNotificationsEnabled = $1 }
                         .accessibilityLabel("Плашки слепых зон")
                         .accessibilityIdentifier("settings.general.blindSpotBanners")
                 }
@@ -239,7 +239,7 @@ private struct GeneralSettingsTab: View {
                     Spacer()
                     Toggle("", isOn: $reminders)
                         .labelsHidden().toggleStyle(.switch)
-                        .onChange(of: reminders) { Config.meetingRemindersEnabled = $0; state.applyReminderSettings() }
+                        .onChange(of: reminders) { Config.meetingRemindersEnabled = $1; state.applyReminderSettings() }
                         .accessibilityLabel("Напоминать перед встречами")
                         .accessibilityIdentifier("settings.general.reminders")
                 }
@@ -256,7 +256,7 @@ private struct GeneralSettingsTab: View {
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
                     .disabled(!reminders)
-                    .onChange(of: reminderMinutes) { Config.meetingReminderMinutes = $0; state.applyReminderSettings() }
+                    .onChange(of: reminderMinutes) { Config.meetingReminderMinutes = $1; state.applyReminderSettings() }
                     .accessibilityLabel("За сколько напоминать")
                     .accessibilityIdentifier("settings.general.reminder-lead-time")
                 }
@@ -321,7 +321,7 @@ private struct TranscriptionSettingsTab: View {
                         }
                         .labelsHidden().pickerStyle(.menu)
                         .frame(maxWidth: 220)
-                        .onChange(of: transcriptionLanguage) { Config.transcriptionLanguage = $0 }
+                        .onChange(of: transcriptionLanguage) { Config.transcriptionLanguage = $1 }
                         .accessibilityLabel("Язык расшифровки")
                         .accessibilityIdentifier("settings.transcription.language")
                     }
@@ -335,7 +335,7 @@ private struct TranscriptionSettingsTab: View {
                         Spacer()
                         Toggle("", isOn: $micNoiseSuppression)
                             .labelsHidden().toggleStyle(.switch)
-                            .onChange(of: micNoiseSuppression) { Config.micNoiseSuppressionEnabled = $0 }
+                            .onChange(of: micNoiseSuppression) { Config.micNoiseSuppressionEnabled = $1 }
                             .accessibilityLabel("Шумоподавление Apple")
                             .accessibilityIdentifier("settings.transcription.aec")
                     }
@@ -349,7 +349,7 @@ private struct TranscriptionSettingsTab: View {
                         Spacer()
                         Toggle("", isOn: $firefliesEnhance)
                             .labelsHidden().toggleStyle(.switch)
-                            .onChange(of: firefliesEnhance) { Config.firefliesTranscriptEnhanceEnabled = $0 }
+                            .onChange(of: firefliesEnhance) { Config.firefliesTranscriptEnhanceEnabled = $1 }
                             .accessibilityLabel("Дополнять транскрипт из Fireflies")
                             .accessibilityIdentifier("settings.transcription.fireflies-enhance")
                     }
@@ -368,7 +368,7 @@ private struct TranscriptionSettingsTab: View {
                         // An explicit pick is never rewritten by the default
                         // correction that downgrades over-provisioned machines.
                         Config.localModelChosenByUser = true
-                        Config.localWhisperModel = $0
+                        Config.localWhisperModel = $1
                     }
                     .accessibilityLabel("Модель распознавания на устройстве")
                     .accessibilityIdentifier("settings.transcription.local-model")
@@ -383,7 +383,7 @@ private struct TranscriptionSettingsTab: View {
                         Spacer()
                         Toggle("", isOn: $adaptiveLocal)
                             .labelsHidden().toggleStyle(.switch)
-                            .onChange(of: adaptiveLocal) { Config.adaptiveLocalWhisperEnabled = $0 }
+                            .onChange(of: adaptiveLocal) { Config.adaptiveLocalWhisperEnabled = $1 }
                             .accessibilityLabel("Подстройка распознавания")
                             .accessibilityIdentifier("settings.transcription.adaptive")
                     }
@@ -402,7 +402,7 @@ private struct TranscriptionSettingsTab: View {
                             Toggle("", isOn: $postStopFinalPass)
                                 .labelsHidden().toggleStyle(.switch)
                                 .onChange(of: postStopFinalPass) {
-                                    Config.transcriptionPostStopFinalPassEnabled = $0
+                                    Config.transcriptionPostStopFinalPassEnabled = $1
                                 }
                                 .accessibilityLabel("Уточнять локальную расшифровку после остановки")
                                 .accessibilityIdentifier("settings.transcription.post-stop-final-pass")
@@ -420,7 +420,7 @@ private struct TranscriptionSettingsTab: View {
                             Toggle("", isOn: $localSpeakerLabels)
                                 .labelsHidden().toggleStyle(.switch)
                                 .onChange(of: localSpeakerLabels) {
-                                    Config.localDiarizationEnabled = $0
+                                    Config.localDiarizationEnabled = $1
                                 }
                                 .accessibilityLabel("Определять говорящих на этом Mac")
                                 .accessibilityIdentifier(
@@ -439,7 +439,7 @@ private struct TranscriptionSettingsTab: View {
                             .frame(maxWidth: 90)
                             .disabled(!localSpeakerLabels)
                             .onChange(of: remoteSpeakerCount) {
-                                Config.localDiarizationRemoteSpeakerCount = $0
+                                Config.localDiarizationRemoteSpeakerCount = $1
                             }
                             .accessibilityLabel("Число голосов собеседников")
                             .accessibilityIdentifier(
@@ -457,7 +457,7 @@ private struct TranscriptionSettingsTab: View {
                             Spacer()
                             Toggle("", isOn: $assemblyDiarization)
                                 .labelsHidden().toggleStyle(.switch)
-                                .onChange(of: assemblyDiarization) { Config.assemblyAIDiarizationEnabled = $0 }
+                                .onChange(of: assemblyDiarization) { Config.assemblyAIDiarizationEnabled = $1 }
                                 .accessibilityLabel("Разрешить облачное определение говорящих")
                                 .accessibilityIdentifier("settings.transcription.assembly-diarization")
                         }
@@ -485,8 +485,8 @@ private struct TranscriptionSettingsTab: View {
                             }
                         }
                         .onChange(of: glossary) {
-                            Config.transcriptionGlossary = $0
-                            state.noteConnectedGlossaryManualEdit($0)
+                            Config.transcriptionGlossary = $1
+                            state.noteConnectedGlossaryManualEdit($1)
                         }
                         .accessibilityLabel("Свой словарь распознавания")
                         .accessibilityIdentifier("settings.transcription.glossary")
@@ -938,7 +938,7 @@ private struct AccountPrivacyTab: View {
                     Spacer()
                     Toggle("", isOn: $outboundRedaction)
                         .labelsHidden()
-                        .onChange(of: outboundRedaction) { Config.outboundRedactionEnabled = $0 }
+                        .onChange(of: outboundRedaction) { Config.outboundRedactionEnabled = $1 }
                         .accessibilityLabel("Фильтровать исходящие запросы")
                         .accessibilityIdentifier("settings.privacy.outbound-redaction")
                 }
@@ -952,7 +952,7 @@ private struct AccountPrivacyTab: View {
                         TextEditor(text: $redactionTerms)
                             .font(Typo.mono)
                             .frame(height: 64)
-                            .onChange(of: redactionTerms) { Config.redactionTermsRaw = $0 }
+                            .onChange(of: redactionTerms) { Config.redactionTermsRaw = $1 }
                             .accessibilityIdentifier("settings.privacy.redaction-terms")
                     }
                 }
@@ -981,7 +981,7 @@ private struct AccountPrivacyTab: View {
                     Spacer()
                     Toggle("", isOn: $shareAnalytics)
                         .labelsHidden().toggleStyle(.switch)
-                        .onChange(of: shareAnalytics) { Config.funnelOptOut = !$0 }
+                        .onChange(of: shareAnalytics) { Config.funnelOptOut = !$1 }
                         .accessibilityLabel("Отправлять обезличенную статистику")
                         .accessibilityIdentifier("settings.privacy.analytics")
                 }
@@ -1002,7 +1002,7 @@ private struct AccountPrivacyTab: View {
                         }
                         .labelsHidden()
                         .frame(width: 170)
-                        .onChange(of: devTierPreview) { state.setDevTierOverride(Tier(rawValue: $0)) }
+                        .onChange(of: devTierPreview) { state.setDevTierOverride(Tier(rawValue: $1)) }
                         .accessibilityLabel("Посмотреть тариф")
                         .accessibilityIdentifier("settings.developer.preview-plan")
                     }
@@ -1392,7 +1392,7 @@ struct SignInSheet: View {
             }
         }
         .padding(Space.xl).frame(width: 420).background(Theme.canvas)
-        .onChange(of: state.wheesprConnected) { if $0 { dismiss() } }
+        .onChange(of: state.wheesprConnected) { if $1 { dismiss() } }
     }
 
     // MARK: Social account login (equal prominence when enabled)

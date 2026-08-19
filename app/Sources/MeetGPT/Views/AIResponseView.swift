@@ -107,24 +107,24 @@ struct ResponseView: View {
                     )
                 }
                 .scrollContentBackground(.hidden)
-                .onChange(of: state.aiResponse) { _ in
+                .onChange(of: state.aiResponse) {
                     guard state.aiStreaming, followsLatest else { return }
                     scheduleAutomaticScroll(proxy)
                 }
-                .onChange(of: state.aiStreaming) { streaming in
+                .onChange(of: state.aiStreaming) { _, streaming in
                     if streaming {
                         followsLatest = true
                         lastAutomaticScrollAt = nil
                     }
                     scheduleAutomaticScroll(proxy, throttled: false)
                 }
-                .onChange(of: state.submittedPromptPreview) { prompt in
+                .onChange(of: state.submittedPromptPreview) { _, prompt in
                     guard prompt != nil else { return }
                     followsLatest = true
                     lastAutomaticScrollAt = nil
                     scheduleAutomaticScroll(proxy, throttled: false)
                 }
-                .onChange(of: followsLatest) { isFollowing in
+                .onChange(of: followsLatest) { _, isFollowing in
                     if !isFollowing {
                         pendingAutomaticScroll?.cancel()
                         pendingAutomaticScroll = nil
@@ -134,13 +134,13 @@ struct ResponseView: View {
                     pendingAutomaticScroll?.cancel()
                     pendingAutomaticScroll = nil
                 }
-                .onChange(of: state.followUpPrompts.count) { _ in
+                .onChange(of: state.followUpPrompts.count) {
                     scheduleAutomaticScroll(proxy, throttled: false)
                 }
-                .onChange(of: state.aiResponsePrompt) { _ in
+                .onChange(of: state.aiResponsePrompt) {
                     scheduleAutomaticScroll(proxy, throttled: false)
                 }
-                .onChange(of: state.aiHistory.count) { _ in
+                .onChange(of: state.aiHistory.count) {
                     scheduleAutomaticScroll(proxy, throttled: false)
                 }
                 .overlay(alignment: .bottomTrailing) {

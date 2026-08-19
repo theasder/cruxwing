@@ -76,7 +76,7 @@ struct CaptureCheckStep: View {
         // nobody saw; cleared as soon as system audio is heard, because a stale
         // flag would meet a user whose problem was fixed months ago with
         // «relaunching did not help» the first time anything else went quiet.
-        .onChange(of: probe.verdict) { _ in
+        .onChange(of: probe.verdict) {
             if advice == .relaunch { memory.noteAdvised() }
             if probe.verdict == .pass || probe.verdict == .systemOnly { memory.clear() }
         }

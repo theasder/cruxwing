@@ -269,7 +269,7 @@ struct MCPImportSheet: View {
             }
             .pickerStyle(.menu)   // native macOS pop-up, consistent app-wide
             .accessibilityIdentifier("connected-import.app")
-            .onChange(of: serverID) { id in
+            .onChange(of: serverID) { _, id in
                 toolName = ""
                 errorText = nil
                 guard let server = mcp.servers.first(where: { $0.id == id }),

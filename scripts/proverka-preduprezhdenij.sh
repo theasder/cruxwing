@@ -88,6 +88,9 @@ echo ">> ядро: предупреждений нет"
 # этому числу незачем: каждое такое место — файл, который не соберётся на языке
 # Swift 6.
 APP_FATAL_LIMIT=1
+# И общий порог: 2026-08-21 приложение приведено с 52 мест к одному. Держать
+# достигнутое дешевле, чем возвращаться к списку через месяц.
+APP_TOTAL_LIMIT=1
 APP_FATAL=$(grep -c "error in the Swift 6 language mode" "$OUT" 2>/dev/null || true)
 # Одно и то же предупреждение печатается на каждую единицу компиляции, поэтому
 # считаются РАЗНЫЕ места, а не строки.
@@ -99,6 +102,14 @@ if [ "${APP_FATAL:-0}" -gt "$APP_FATAL_LIMIT" ]; then
   exit 1
 fi
 echo ">> приложение: мест, смертельных для Swift 6, — ${APP_FATAL:-0} из ${APP_FATAL_LIMIT} допустимых"
+
+APP_TOTAL=$(grep -oE "MeetGPT/[A-Za-z/]+\.swift:[0-9]+:[0-9]+: warning: " "$OUT" | sort -u | wc -l | tr -d ' ')
+if [ "${APP_TOTAL:-0}" -gt "$APP_TOTAL_LIMIT" ]; then
+  grep -oE "MeetGPT/[A-Za-z/]+\.swift:[0-9]+:[0-9]+: warning: [^;]*" "$OUT" | sort -u >&2
+  echo "!! мест с предупреждениями в приложении: ${APP_TOTAL} (держим ${APP_TOTAL_LIMIT})" >&2
+  exit 1
+fi
+echo ">> приложение: мест с предупреждениями — ${APP_TOTAL:-0} из ${APP_TOTAL_LIMIT}"
 
 if grep -nE "warning:.*($FATAL)" "$OUT" >&2; then
   echo "!! вычисленное значение выброшено — именно так пропало предупреждение о внедрении" >&2

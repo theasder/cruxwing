@@ -1419,6 +1419,25 @@ The count is now ratcheted at one, and the script forces a rebuild before
 counting — an incremental build prints nothing, so the threshold would have been
 met by silence.
 
+**And then the other 45 went too — 2026-08-21 the application is at one warning
+site.** They were all `onChange(of:perform:)`, deprecated in macOS 14, in three
+shapes: an unused parameter, a named one, and the shorthand `$0`. The first two
+are a rename; the third is the interesting one, because `$0` in the old
+single-parameter closure is the **new** value, which in the two-parameter form is
+`$1`. Getting that backwards would have swapped every «what it became» for «what
+it was» — silently, in 27 places.
+
+One test had to change with it: ViewInspector drives the modifier through
+`callOnChange`, and the one-parameter overload no longer matches. The
+two-parameter one exists in the version already vendored, so the check kept its
+meaning and changed its call.
+
+Both thresholds are held now — one site total, one Swift-6-fatal — and both were
+proved by putting a deprecated call back and watching the script fail.
+
+The single remaining site is the `SamplePlayback` initializer described above,
+still deliberately unfixed.
+
 Two mistakes of mine on the way, both caught by mutation rather than by reading:
 the ratchet did not fire at first because the script built the core **twice** and
 checked the silent incremental second pass; and a mechanical rename turned

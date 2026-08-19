@@ -82,7 +82,7 @@ extension View {
     /// Retires a tip because its feature was USED. Using beats reading, so
     /// someone who found the control on their own never sees the tip about it.
     func retiringCoachTip(_ tip: CoachTip, when used: Bool) -> some View {
-        onChange(of: used) { isUsed in
+        onChange(of: used) { _, isUsed in
             guard let next = CoachTipRetirement.retiring(
                 tip, used: isUsed, in: Config.coachTipsRetired) else { return }
             Config.coachTipsRetired = next

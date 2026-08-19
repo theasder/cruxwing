@@ -147,7 +147,7 @@ struct ContentView: View {
         // a notification. The gate is re-run rather than forcing the first step:
         // a user who already granted both permissions should land on the sample
         // call, not sit through a capture check with nothing left to ask for.
-        .onChange(of: state.onboardingReplayToken) { _ in
+        .onChange(of: state.onboardingReplayToken) {
             onboardingStep = OnboardingGate.step(
                 lastCompleted: Config.onboardingStep,
                 microphoneGranted: state.micGranted,
@@ -437,7 +437,7 @@ private struct MeetingColumn: View {
                         .pickerStyle(.menu)
                         .frame(width: 64)
                         .onChange(of: postCallRemoteSpeakerCount) {
-                            Config.localDiarizationRemoteSpeakerCount = $0
+                            Config.localDiarizationRemoteSpeakerCount = $1
                         }
                         .accessibilityLabel("Число голосов собеседников")
                         .accessibilityIdentifier(

@@ -69,7 +69,7 @@ struct ModelSelectionRows: View {
             }
             .labelsHidden().pickerStyle(.menu)
             .frame(maxWidth: 280)
-            .onChange(of: provider) { newValue in
+            .onChange(of: provider) { _, newValue in
                 Config.selectedProvider = newValue
                 version = LLMCatalog.autoID          // provider change resets version
                 Config.selectedVersion = version
@@ -92,7 +92,7 @@ struct ModelSelectionRows: View {
                     }
                 }
                 .labelsHidden().pickerStyle(.menu).fixedSize()
-                .onChange(of: version) { Config.selectedVersion = $0 }
+                .onChange(of: version) { Config.selectedVersion = $1 }
                 .accessibilityLabel("Версия модели")
                 .accessibilityIdentifier("settings.ai.model-version")
             }

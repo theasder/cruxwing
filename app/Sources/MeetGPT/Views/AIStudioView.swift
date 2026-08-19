@@ -484,7 +484,7 @@ private struct AskComposer: View {
         // Text pushed from elsewhere (a transcript selection). Appends rather
         // than replaces so a half-typed question survives, and focuses the field
         // because the quote is only half the prompt — the user still asks it.
-        .onChange(of: state.composerDraft) { draft in
+        .onChange(of: state.composerDraft) { _, draft in
             guard let draft, !draft.isEmpty else { return }
             let existing = text.trimmingCharacters(in: .whitespacesAndNewlines)
             text = existing.isEmpty ? draft : existing + "\n\n" + draft
@@ -496,7 +496,7 @@ private struct AskComposer: View {
                       allowsMultipleSelection: attachKind != .folder) { result in
             handleImport(result)
         }
-        .onChange(of: state.contextFiles.map(\.id)) { ids in
+        .onChange(of: state.contextFiles.map(\.id)) { _, ids in
             attachmentFeedback.reconcile(contextFileIDs: Set(ids))
         }
     }

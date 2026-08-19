@@ -155,16 +155,20 @@ struct OnboardingTests {
         let view = Text("anchor").retiringCoachTip(.recordingType, when: false)
         let sut = try view.inspect()
 
+        // Два значения, а не одно: модификатор переведён на двухпараметрический
+        // `onChange` — однопараметрический объявлен устаревшим в macOS 14.
+        // Проверяется то же самое; изменился вызов, а не смысл.
+
         // Still automatic — the user has not touched the chip.
-        try sut.callOnChange(newValue: false)
+        try sut.callOnChange(oldValue: false, newValue: false)
         #expect(Config.coachTipsRetired.isEmpty)
 
         // The moment they pick a type by hand, the tip is done.
-        try sut.callOnChange(newValue: true)
+        try sut.callOnChange(oldValue: false, newValue: true)
         #expect(Config.coachTipsRetired.contains(CoachTip.recordingType.id))
 
         // And it stays done — a later flip back does not resurrect it.
-        try sut.callOnChange(newValue: false)
+        try sut.callOnChange(oldValue: true, newValue: false)
         #expect(Config.coachTipsRetired.contains(CoachTip.recordingType.id))
     }
 
