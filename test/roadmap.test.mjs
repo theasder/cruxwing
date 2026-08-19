@@ -305,6 +305,52 @@ describe('ROADMAP', () => {
       `§6.2 не называет сегодняшнее число манифестов (${manifests})`);
   });
 
+  // Сервисы, чей параметр поиска — язык, а не строка, перечислены в §7.4
+  // словами. Список этот не украшение: он говорит, кому вопрос уходит
+  // обезоруженным, и по нему сверяются, когда добавляют шестого. Манифест
+  // переводят на {queryWords} одной строкой, а абзац остаётся прежним — и
+  // читается как действующий перечень, которым он больше не является.
+  test('перечень языковых сервисов в §7.4 — тот же, что в манифестах', () => {
+    const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                        'Resources', 'connectors');
+    const dialects = readdirSync(dir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => JSON.parse(readFileSync(resolve(dir, f), 'utf8')))
+      .filter((m) => {
+        const templates = (m.request.query ?? []).map((q) => q.value)
+          .concat(m.request.body ?? '');
+        return templates.some((t) => t.includes('{queryWords}'));
+      });
+
+    assert.ok(dialects.length >= 2,
+      `языковых манифестов нашлось ${dialects.length} — разбор сломан`);
+
+    // Искать по всему §7.4 бесполезно, и это показала мутация: Slack, Trello,
+    // BookStack и Mattermost стоят там в таблице подключённого независимо от
+    // того, что написано про язык поиска. Переименуй их в нужном абзаце — и
+    // проверка всё равно нашла бы имя строкой выше. Поэтому берётся ровно тот
+    // абзац, который делает утверждение.
+    const whole = section('7.4');
+    const from = whole.indexOf('was the first, and a sweep');
+    const to = whole.indexOf('The likely trigger');
+    assert.ok(from >= 0 && to > from, '§7.4 потерял абзац про язык поиска');
+    // Начало абзаца — от его первой строки, а не от середины найденной фразы.
+    const start = whole.lastIndexOf('\n\n', from) + 2;
+    const text = whole.slice(start, to);
+
+    for (const manifest of dialects) {
+      assert.ok(text.includes(manifest.title),
+        `${manifest.title} обезоруживает вопрос, а абзац §7.4 о нём молчит`);
+    }
+
+    // Ещё и счёт словом: имя, оставшееся в абзаце от прежней редакции, сам по
+    // себе перечень выше не поймает — он проверяет только одну сторону.
+    const words = ['ноль', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven'];
+    const others = dialects.length - 1;   // Jira названа в том же абзаце отдельно
+    assert.ok(text.includes(`${words[others]} more read it as a language`),
+      `§7.4 обещает другое число языковых сервисов, а их ${others} кроме Jira`);
+  });
+
   test('число коннекторов в тексте сходится с кодом', () => {
     // Слово «шестнадцать» стареет ровно тогда, когда добавляют
     // семнадцатый, — и этого никто не замечает, потому что добавление

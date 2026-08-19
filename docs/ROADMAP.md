@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 337 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 338 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2939 and 667 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1751,7 +1751,7 @@ replaced with a **space**, not deleted — «Wi-Fi» without the hyphen becomes
 «WiFi», a word the index does not contain, while «Wi Fi» is exactly what it
 does. Deleting would have looked tidier and quietly lost matches.
 
-**Jira was the first, and a sweep found it was not the only one.** The question
+**Jira («Jira на своём сервере» in Settings) was the first, and a sweep found it was not the only one.** The question
 reaching a connector is not a single stemmed word: the command line passes
 whatever was typed, and during a call the app passes the goal — free text, up to
 320 characters. So the question that lands in somebody else's search parameter is
@@ -2321,7 +2321,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **24 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **25 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -2341,7 +2341,7 @@ letter directly against a Latin one inside a literal — while allowing the two
 places where the alphabets legitimately touch: a character class in a pattern
 (`[A-Za-zА-Яа-я]`) and a vowel inventory with no spaces (`aeiouyаеёиоуыэюя`).
 
-**Counts measured, not remembered** — own connectors, page-and-doc tests, the
+**Counts measured, not remembered** — own connectors, the services whose search parameter is a language (both the names in §7.4 and how many there are), page-and-doc tests, the
 ceiling on English strings in the interface, the numbers §5.2 quotes about
 `build.sh`, the page limit §7.2 names, the manifest count §6.2 names, and the
 timeouts §10.1 names. Each is recomputed from code on every run, so «measured on
