@@ -2,25 +2,49 @@
   "id": "wikijs",
   "title": "Wiki.js",
   "docs": "https://docs.requarks.io/dev/api",
-  "verifiedOn": "2026-08-18",
-  "note": "Только GraphQL: один адрес /graphql и POST с запросом в теле, параметров у запроса нет. Проверено 2026-08-18 по документации и по схеме вендора (server/graph/schemas/page.graphql): search(query: String!) отдаёт PageSearchResponse с results[{id, title, description, path, locale}], suggestions и totalHits. Токен из «Administration → API Access», заголовок Bearer. Ограничение выдачи задаёт сам сервис: параметра limit у search нет, поэтому {limit} в запросе не участвует. Отказ приходит кодом 200 с errors[0].message — оттуда и берутся слова для человека. id у страницы строковый, поэтому номера в выдаче нет: у вики его роль играет заголовок.",
+  "verifiedOn": "2026-08-19",
+  "note": "Только GraphQL: один адрес /graphql и POST с запросом в теле, параметров у запроса нет. Проверено 2026-08-18 по документации и по схеме вендора (server/graph/schemas/page.graphql): search(query: String!) отдаёт PageSearchResponse с results[{id, title, description, path, locale}], suggestions и totalHits. Токен из «Administration → API Access», заголовок Bearer. Ограничение выдачи задаёт сам сервис: параметра limit у search нет, поэтому {limit} в запросе не участвует. Отказ приходит кодом 200 с errors[0].message — оттуда и берутся слова для человека. id у страницы строковый, поэтому номера в выдаче нет: у вики его роль играет заголовок. Проверено на живом Wiki.js 2 (контейнер с Postgres, scripts/zhivaya-proba.sh) 2026-08-19: поиск нашёл обе страницы со словом «тарифы» и не показал третью. Отказ проверен там же и отдельно: при снятом у гостей праве чтения сервис отвечает кодом 200, data.pages: null и errors[0].message = «Forbidden» — то есть ровно той формой, ради которой в манифесте объявлены errorMessage и errorCode. Локаль ru у Wiki.js по умолчанию не установлена, и страница с ней не создаётся вовсе (внешний ключ на locale); на поиск по русскому слову это не влияет.",
   "request": {
     "method": "POST",
     "path": "/graphql",
     "query": [],
     "headers": [
-      { "name": "Authorization", "value": "Bearer {token}" },
-      { "name": "Content-Type", "value": "application/json" }
+      {
+        "name": "Authorization",
+        "value": "Bearer {token}"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
     ],
     "body": "{\"query\": \"{ pages { search(query: \\\"{query}\\\") { results { id title description path locale } totalHits } } }\"}"
   },
   "response": {
-    "list": ["data", "pages", "search", "results"],
-    "title": ["title"],
-    "context": ["description"],
+    "list": [
+      "data",
+      "pages",
+      "search",
+      "results"
+    ],
+    "title": [
+      "title"
+    ],
+    "context": [
+      "description"
+    ],
     "key": [],
     "state": [],
-    "errorMessage": ["errors", "0", "message"],
-    "errorCode": ["errors", "0", "extensions", "code"]
+    "errorMessage": [
+      "errors",
+      "0",
+      "message"
+    ],
+    "errorCode": [
+      "errors",
+      "0",
+      "extensions",
+      "code"
+    ]
   }
 }

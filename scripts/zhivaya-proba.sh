@@ -8,6 +8,7 @@
 #
 #     bash scripts/zhivaya-proba.sh gitea
 #     bash scripts/zhivaya-proba.sh redmine
+#     bash scripts/zhivaya-proba.sh wikijs
 #
 # Сервис поднимается, наполняется тремя задачами (две со словом «тарифы», одна
 # без), коннектор ищет это слово, контейнер удаляется. Токен создаётся здесь же
@@ -21,14 +22,18 @@ KEEP="${ORAKUL_PROBE_KEEP:-0}"
 TASKS=("Поднять тарифы с декабря" "Починить вход по SSO" "Тарифы: пересчитать лимиты")
 
 case "$SERVICE" in
-  gitea|redmine) ;;
-  *) echo "Использование: $0 gitea|redmine" >&2; exit 2 ;;
+  gitea|redmine|wikijs) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
 cleanup() {
   if [ "$KEEP" = "1" ]; then echo ">> контейнер ${NAME} оставлен (ORAKUL_PROBE_KEEP=1)"; return; fi
   docker rm -f "$NAME" >/dev/null 2>&1 || true
+  # У Wiki.js своя база и своя сеть: без них следующий запуск поднимется
+  # поверх прошлых данных, и «нашлось» будет про них.
+  docker rm -f "${NAME}-db" >/dev/null 2>&1 || true
+  docker network rm "${NAME}-net" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -72,6 +77,27 @@ if [ "$SERVICE" = gitea ]; then
       -d "{\"title\":\"$t\",\"body\":\"обсудили на звонке\"}" \
       "http://localhost:$PORT/api/v1/repos/proba/dogovory/issues" >/dev/null
   done
+elif [ "$SERVICE" = wikijs ]; then
+  PORT=3997
+  # Wiki.js без базы не поднимается, поэтому контейнера два и своя сеть между
+  # ними. Наполнение вынесено в scripts/nastroit-wikijs.py: там четыре запроса
+  # GraphQL подряд, и в строке командной оболочки они нечитаемы.
+  docker network create "${NAME}-net" >/dev/null 2>&1 || true
+  docker run -d --name "${NAME}-db" --network "${NAME}-net" \
+    -e POSTGRES_DB=wiki -e POSTGRES_USER=wiki -e POSTGRES_PASSWORD=wikipass \
+    postgres:15-alpine >/dev/null
+  docker run -d --name "$NAME" --network "${NAME}-net" \
+    -e DB_TYPE=postgres -e DB_HOST="${NAME}-db" -e DB_PORT=5432 \
+    -e DB_USER=wiki -e DB_PASS=wikipass -e DB_NAME=wiki \
+    -p "$PORT:3000" requarks/wiki:2 >/dev/null
+  wait_for "http://localhost:$PORT/" 40
+
+  PASS='ProbaProba123!'
+  curl -s -X POST "http://localhost:$PORT/finalize" -H "Content-Type: application/json" \
+    -d "{\"adminEmail\":\"proba@example.com\",\"adminPassword\":\"$PASS\",\"adminPasswordConfirm\":\"$PASS\",\"siteUrl\":\"http://localhost:$PORT\",\"telemetry\":false}" >/dev/null
+  sleep 6
+  wait_for "http://localhost:$PORT/" 20
+  TOKEN=$(python3 scripts/nastroit-wikijs.py "$PORT" "$PASS")
 else
   PORT=3998
   docker run -d --name "$NAME" -p "$PORT:3000" redmine:5 >/dev/null
@@ -102,7 +128,7 @@ ORAKUL_PROBE_QUERY="$QUERY" \
 swift test --package-path app --filter LiveConnectorProbe 2>&1 \
   | grep -E '^  — |✔ Test "коннектор|✘' || true
 
-# Ответ «ничего не нашлось» — тоже зелёный набор: проба сообщает, что сервис
-# ответил. Поэтому здесь отдельно требуем, чтобы нашлось хоть что-то: две из
-# трёх задач содержат слово.
-echo ">> если выше нет ни одной строки «— #», коннектор ответил пустотой"
+# Ответ «ничего не нашлось» — тоже зелёный набор: проба сообщает лишь то, что
+# сервис ответил. Две записи из трёх содержат слово, поэтому пустая выдача здесь
+# значит поломку, а не отсутствие данных.
+echo ">> если выше нет ни одной строки «— », коннектор ответил пустотой"

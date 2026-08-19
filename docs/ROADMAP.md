@@ -1247,7 +1247,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea and Redmine were checked that way 2026-08-19 |
+| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea, Redmine and Wiki.js were checked that way 2026-08-19 |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
@@ -1301,6 +1301,26 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Wiki.js is now verified by a script rather than by hand.** Yesterday it was
+stood up manually, and the bug it exposed took the rest of the tick — so the
+verification itself was never made repeatable and never recorded, which is the
+state this file exists to prevent. `scripts/zhivaya-proba.sh wikijs` now starts
+Postgres and Wiki.js on their own network, finalises the install, enables the
+API, mints a key, writes three pages and searches: thirty-eight seconds from
+nothing to an answer, containers and network removed afterwards.
+
+Two things about that service are worth knowing before somebody spends an
+evening on them, and both are in the manifest note now. An API key created while
+the API is switched off is issued happily and then refused on use — which looks
+exactly like a broken connector. And the `ru` locale is not installed by
+default, so a page created with it fails on a foreign key; the page text is
+Russian regardless, which is what the search is actually about.
+
+The refusal path is verified in the same place: with guest read revoked, Wiki.js
+answers `200`, `data.pages: null`, `errors[0].message: "Forbidden"` — the exact
+shape the manifest declares `errorMessage` and `errorCode` for, and the one that
+spent two days masquerading as «nothing found».
 
 **The chain was four links long and every link broke silently.** Following the
 same question one layer further — does this reach the person? — the answer was
