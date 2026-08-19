@@ -81,8 +81,8 @@ private struct MCPServerRow: View {
         case .connected(let count):
             let workflows = appState.promptWorkflowCount(using: "mcp:\(server.id)")
             return workflows > 0
-                ? "\(count) tools · \(workflows) prompt workflow\(workflows == 1 ? "" : "s") ready"
-                : "\(count) tools · no relevant prompt workflows"
+                ? "\(count) инструментов · сценариев готово: \(workflows)"
+                : "\(count) инструментов · подходящих сценариев нет"
         case .connecting:           return nil
         case .disconnecting:        return "Завершаю отключение…"
         case .failed(let message):  return message
@@ -329,7 +329,7 @@ struct MCPImportSheet: View {
 
     private var queryPrompt: String {
         guard let tool = selectedTool else { return "query" }
-        return Self.stringArgumentKey(for: tool) ?? "no text input for this tool"
+        return Self.stringArgumentKey(for: tool) ?? "у этого инструмента нет текстового поля"
     }
 
     private func run() {
@@ -346,7 +346,7 @@ struct MCPImportSheet: View {
                 let text = try await mcp.callImportToolText(
                     server: server, tool: tool, arguments: arguments)
                 guard !text.isEmpty else {
-                    errorText = "\(tool.name) returned no text."
+                    errorText = "\(tool.name) ответил без текста."
                     running = false
                     return
                 }

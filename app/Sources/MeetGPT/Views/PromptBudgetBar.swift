@@ -308,8 +308,8 @@ private struct ConnectedAppBadge: View {
         }
         .buttonStyle(.plain)
         .help(isMuted
-            ? "\(app.name) is connected but not used. Click to use it again."
-            : ["\(app.name) is connected — click to skip it on this call", app.detail]
+            ? "\(app.name) подключено, но не используется. Нажмите, чтобы вернуть в работу."
+            : ["\(app.name) подключено — нажмите, чтобы пропустить на этом звонке", app.detail]
                 .compactMap { $0 }
                 .joined(separator: " · "))
         .accessibilityElement(children: .combine)
@@ -483,9 +483,9 @@ enum CreditBadge: Equatable {
     /// number, the claim degrades to the shape that is still true rather than
     /// inventing one.
     static func trialText(_ remaining: Int, monthly: Int?, compact: Bool) -> String {
-        if compact { return "\(remaining) cr · sign up" }
-        let offer = monthly.map { "sign up for \($0) a month" } ?? "sign up for more every month"
-        return "\(remaining) credits · \(offer)"
+        if compact { return "\(remaining) кр · регистрация" }
+        let offer = monthly.map { "регистрация — \($0) в месяц" } ?? "регистрация — больше каждый месяц"
+        return "\(remaining) кредитов · \(offer)"
     }
 
     /// Both states name something the user can do about them.
@@ -497,13 +497,13 @@ enum CreditBadge: Equatable {
     func label(compact: Bool) -> String {
         switch self {
         case .notApplicable: return ""
-        case .loading: return compact ? "· cr…" : "· credits loading"
-        case .remaining(let value): return compact ? "· \(value) cr" : "· \(value) credits left"
+        case .loading: return compact ? "· кр…" : "· кредиты загружаются"
+        case .remaining(let value): return compact ? "· \(value) кр" : "· осталось \(value) кредитов"
         case .trial(let value, let monthly):
             return "· " + Self.trialText(value, monthly: monthly, compact: compact)
-        case .stale: return compact ? "· cr stale" : "· balance last checked"
-        case .signedOut: return compact ? "· sign in" : "· sign in for free credits"
-        case .unavailable: return compact ? "· cr —" : "· credits unavailable"
+        case .stale: return compact ? "· кр устар." : "· баланс проверялся"
+        case .signedOut: return compact ? "· вход" : "· войдите — кредиты бесплатно"
+        case .unavailable: return compact ? "· кр —" : "· кредиты недоступны"
         }
     }
 
@@ -512,8 +512,8 @@ enum CreditBadge: Equatable {
     func leadingLabel(compact: Bool) -> String {
         switch self {
         case .notApplicable: return ""
-        case .loading: return compact ? "cr…" : "credits loading…"
-        case .remaining(let value): return compact ? "\(value) cr left" : "\(value) credits left"
+        case .loading: return compact ? "кр…" : "кредиты загружаются…"
+        case .remaining(let value): return compact ? "\(value) кр" : "осталось \(value) кредитов"
         case .trial(let value, let monthly):
             return Self.trialText(value, monthly: monthly, compact: compact)
         case .stale: return compact ? "cr stale" : "credits: last checked"
@@ -653,24 +653,24 @@ struct PromptBudgetControl: View {
         // Mirror the visual order: credits lead when they exist.
         switch creditBadge {
         case .notApplicable: break
-        case .loading: parts.append("credit balance loading")
-        case .remaining(let value): parts.append("\(value) compute credits remaining")
+        case .loading: parts.append("баланс кредитов загружается")
+        case .remaining(let value): parts.append("осталось \(value) кредитов на вычисления")
         case .trial(let value, let monthly):
-            parts.append("\(value) free compute credits remaining, no account needed")
-            parts.append(monthly.map { "sign up for \($0) every month" }
-                         ?? "sign up for a monthly allowance")
-        case .stale: parts.append("credit balance last checked; open details for the previous total")
-        case .signedOut: parts.append("signed out; sign in for free credits")
-        case .unavailable: parts.append("credit balance unavailable")
+            parts.append("осталось \(value) бесплатных кредитов, учётная запись не нужна")
+            parts.append(monthly.map { "зарегистрируйтесь — \($0) каждый месяц" }
+                         ?? "зарегистрируйтесь — будет месячный запас")
+        case .stale: parts.append("баланс кредитов давно не проверялся; откройте подробности — там прошлое значение")
+        case .signedOut: parts.append("вы не вошли; войдите — кредиты бесплатно")
+        case .unavailable: parts.append("баланс кредитов недоступен")
         }
         if let predictedCredits {
             let qualifier: String
             switch costSeverity {
             case .routine: qualifier = ""
-            case .notable: qualifier = ", a large share of the remaining balance"
-            case .unaffordable: qualifier = ", more than the remaining balance"
+            case .notable: qualifier = ", это заметная доля остатка"
+            case .unaffordable: qualifier = ", это больше, чем остаток"
             }
-            parts.append("this prompt is estimated at about \(predictedCredits) credits\(qualifier)")
+            parts.append("этот запрос оценивается примерно в \(predictedCredits) кредитов\(qualifier)")
         }
         parts.append("сейчас на входе примерно \(TokenEstimate.label(estimate.totalTokens)) токенов")
         parts.append("Нажмите, чтобы раскрыть")
@@ -741,10 +741,10 @@ struct BudgetSummary: View {
     private func creditSpendStatus(compact: Bool) -> some View {
         Group {
             if let predictedCredits {
-                Text(compact ? "· ~\(predictedCredits) cr" : "· ~\(predictedCredits) credits this prompt")
+                Text(compact ? "· ~\(predictedCredits) кр" : "· ~\(predictedCredits) кредитов на этот запрос")
                     .foregroundStyle(severityColor)
             } else {
-                Text(compact ? "· base" : "· base input rate")
+                Text(compact ? "· база" : "· базовая ставка за вход")
                     .foregroundStyle(Theme.accentText)
             }
         }
@@ -930,7 +930,7 @@ struct PromptBudgetDetails: View {
                                  detail: nil, color: Theme.speakerYou)
                 }
                 BreakdownRow(label: "Общие инструкции", tokens: estimate.instructionsTokens,
-                             detail: "button adds more", color: Theme.inkTertiary)
+                             detail: "кнопка добавляет ещё", color: Theme.inkTertiary)
             }
 
             Text("Оценка неполная: она не учитывает сам запрос и инструкции, которые добавляет нажатая кнопка. Настоящее число токенов зависит ещё от языка и выбранной модели, а подтянутый контекст приложений может оказаться меньше.")
@@ -956,7 +956,7 @@ struct PromptBudgetDetails: View {
             perPrompt: predictedCredits) {
             parts.append(prompts == 1
                 ? "ещё примерно один запрос такого размера"
-                : "about \(prompts) more prompts this size")
+                : "ещё примерно \(prompts) запросов такого размера")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }

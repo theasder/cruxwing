@@ -23,7 +23,10 @@ struct CreditBadgeStateTests {
             let signedOut = CreditBadge.signedOut.label(compact: compact)
             let unavailable = CreditBadge.unavailable.label(compact: compact)
             #expect(signedOut != unavailable, "compact=\(compact)")
-            #expect(signedOut.lowercased().contains("sign in"), "compact=\(compact): \(signedOut)")
+            // Проверяется НАЗВАНО ЛИ ДЕЙСТВИЕ, а не одно слово: в короткой форме
+            // это «вход», в полной — «войдите», и обе называют то же самое.
+            #expect(signedOut.contains("вход") || signedOut.contains("войдите"),
+                    "compact=\(compact): \(signedOut)")
         }
     }
 
@@ -51,11 +54,11 @@ struct CreditBadgeStateTests {
             for compact in [true, false] {
                 let text = badge.label(compact: compact)
                 #expect(!text.contains("0 cr"), "\(badge) rendered a zero balance: \(text)")
-                #expect(!text.contains("0 credits"), "\(badge) rendered a zero balance: \(text)")
+                #expect(!text.contains("0 кредитов"), "\(badge) rendered a zero balance: \(text)")
             }
         }
         // A real zero IS shown as a number — that is a balance, not an error.
-        #expect(CreditBadge.remaining(0).label(compact: false).contains("0 credits"))
+        #expect(CreditBadge.remaining(0).label(compact: false).contains("0 кредитов"))
     }
 
     @Test("every state has a distinct compact and full label")

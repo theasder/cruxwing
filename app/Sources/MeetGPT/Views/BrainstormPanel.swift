@@ -462,7 +462,7 @@ struct FullContextChip: View {
     private var label: String {
         let quote = state.fullContextQuote
         if state.fullContextRequested {
-            return "\(quote.credits) credits · full context"
+            return "\(quote.credits) кредитов · весь контекст"
         }
         return state.fullContextQuote.truncated ? "Транскрипт обрезается" : "Весь контекст"
     }
@@ -517,12 +517,12 @@ struct SocraticChip: View {
         guard state.socraticWillWithhold else { return "Сократ · лимит вопросов исчерпан" }
         let remaining = state.socraticRemainingExchanges
         return remaining == 1 ? "Сократ · остался 1 вопрос"
-                              : "Socratic · \(remaining) questions left"
+                              : "Сократ · осталось вопросов: \(remaining)"
     }
 
     private var helpText: String {
         state.status == .recording
-            ? "Answers with questions. Limited to \(SocraticMode.maxExchangesRecording) "
+            ? "Отвечает вопросами. Не больше \(SocraticMode.maxExchangesRecording) "
               + "по ходу звонка — ⌘⇧A даёт прямой ответ."
             : "Отвечает вопросами. ⌘⇧A — прямой ответ."
     }

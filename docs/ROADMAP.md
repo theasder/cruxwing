@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 323 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 326 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2904 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -911,9 +911,37 @@ on, so comments are stripped before literals are read.
 Notifications were checked at the same time and are clean — the only non-Russian
 strings there are identifiers and macOS sound names.
 
-**A fourth surface may still exist, and the honest thing is to keep saying so.**
-Three are watched now: view literals, `AppState` properties printed verbatim, and
-error text. Nothing here proves there is no fifth.
+**The fourth surface was found the next day — 2026-08-21: phrases ASSEMBLED
+from parts.** The count above measures literals handed to `Text` / `Label` /
+`Button`, and is exactly right about them. A sentence built with interpolation
+never reaches it: «`\(app.name) is connected — click to skip it on this call`»
+arrives as a `detail:` argument, an `accessibilityLabel(...)`, or is appended to
+an array of parts. «No English sentence remains on those two surfaces» was true
+of what was measured and false of the screen.
+
+The clearest case is the one that proves the point: in a **single array** of
+VoiceOver labels, «сейчас на входе примерно…» sat beside «credit balance
+loading». A blind Russian-speaking person heard half the badge in English —
+which is precisely the half §6.4 already warned «stays English because nobody
+sees it».
+
+Thirty-eight phrases translated across seven views, and
+`test/frazy-v-vidah.test.mjs` now watches the population.
+
+Two exclusions are deliberate and tested, because a scan that flags them teaches
+people to disable it: an accessibility **identifier** is a name the suites search
+by, not speech, and a list of proper nouns («orakul, RICE, ARR, Kubernetes…») is
+names, not English. Both were found by the scan flagging them first.
+
+And one exclusion was wrong in a way worth recording: «anything containing a
+slash» was meant to skip file paths and skipped a real sentence — «…в настройках
+(Deepgram / Whisper API)». A path is now recognised as a path (leading slash,
+`://`, or no spaces around the slash) rather than by the character appearing at
+all. The mutation that put the English sentence back had passed until then.
+
+**A fifth surface may still exist, and the honest thing is to keep saying so.**
+Four are watched now: view literals, `AppState` properties printed verbatim,
+error text, and assembled phrases.
 
 `grep` reads one line at a time, and a call split over two lines is invisible to
 it:

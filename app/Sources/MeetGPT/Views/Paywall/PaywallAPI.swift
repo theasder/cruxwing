@@ -198,9 +198,9 @@ enum PaywallAPI {
     /// takes effect immediately. Requires sign-in.
     static func redeemPromo(code: String) async throws -> PromoRedemption {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw LLMError.http("Promo", 400, "Enter a code.") }
+        guard !trimmed.isEmpty else { throw LLMError.http("Promo", 400, "Введите код.") }
         guard let token = await WheesprAuth.validAccessToken() else {
-            throw LLMError.http("Promo", 401, "Sign in to redeem a code.")
+            throw LLMError.http("Promo", 401, "Войдите, чтобы применить код.")
         }
 
         // 1) Validate — resolve the code to the plan it grants.
@@ -212,7 +212,7 @@ enum PaywallAPI {
         let (vData, _) = try await promoData(for: validate, path: "/api/promo")
         let vObj = (try? JSONSerialization.jsonObject(with: vData)) as? [String: Any]
         guard (vObj?["valid"] as? Bool) == true, let planID = vObj?["planId"] as? String else {
-            throw LLMError.http("Promo", 400, "That code isn’t valid or has expired.")
+            throw LLMError.http("Promo", 400, "Код неверен или истёк.")
         }
         let planName = ((vObj?["plan"] as? [String: Any])?["name"] as? String) ?? "your plan"
 
@@ -240,7 +240,7 @@ enum PaywallAPI {
     /// session, which we adopt so the granted tier is live immediately. No email.
     static func deviceRedeem(code: String) async throws -> PromoRedemption {
         let trimmed = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw LLMError.http("Promo", 400, "Enter a code.") }
+        guard !trimmed.isEmpty else { throw LLMError.http("Promo", 400, "Введите код.") }
         guard let url = URL(string: "\(root)/api/promo/device-redeem") else { throw LLMError.badResponse("Promo") }
 
         var request = URLRequest(url: url)
@@ -257,7 +257,7 @@ enum PaywallAPI {
               let sessionObj = obj["session"] as? [String: Any],
               let access = sessionObj["access_token"] as? String, !access.isEmpty,
               let refresh = sessionObj["refresh_token"] as? String, !refresh.isEmpty else {
-            throw LLMError.http("Promo", 400, "That code isn’t valid or has expired.")
+            throw LLMError.http("Promo", 400, "Код неверен или истёк.")
         }
 
         // Adopt the device session so entitlement is live (metered per device).

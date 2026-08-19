@@ -1045,8 +1045,8 @@ private struct AccountPrivacyTab: View {
     private static func devTierSummary(_ tier: Tier) -> String {
         let allowance = TariffAllowance.forTier(tier)
         let models = LLMCatalog.all.filter { $0.isAvailable(for: tier) }.count
-        return "\(models) models · \(allowance.copilotHours) h co-pilot · "
-            + "\(allowance.computeCredits) credits · \(allowance.groundedCycles) grounded cycles / mo"
+        return "\(models) моделей · \(allowance.copilotHours) ч второго пилота · "
+            + "\(allowance.computeCredits) кредитов · \(allowance.groundedCycles) циклов с контекстом в месяц"
     }
 }
 

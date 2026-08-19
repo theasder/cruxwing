@@ -328,7 +328,7 @@ private struct TranscriptEmptyState: View {
             return Presentation(
                 symbol: "exclamationmark.triangle", tint: Theme.recordRed, soft: Theme.dangerSoft,
                 title: "Расшифровка недоступна",
-                detail: "\(message)\n\nCheck your connection, or switch the transcription engine in Settings (Deepgram / Whisper API).",
+                detail: "\(message)\n\nПроверьте соединение или смените движок расшифровки в настройках (Deepgram / Whisper API).",
                 showDots: false)
         case .idle, .ready:
             // «Строки появятся по ходу разговора» — обещание, верное ровно

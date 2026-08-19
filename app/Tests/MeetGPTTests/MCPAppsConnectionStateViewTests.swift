@@ -251,7 +251,7 @@ struct MCPAppsConnectionStateViewTests {
 
         #expect(throws: Never.self) { try inspected.find(button: "Отключить") }
         #expect(throws: Never.self) {
-            try inspected.find(textWhere: { text, _ in text.hasPrefix("2 tools ·") })
+            try inspected.find(textWhere: { text, _ in text.hasPrefix("2 инструментов ·") })
         }
         expectMissingButton("Подключить", in: inspected)
         expectMissingButton("Переподключить", in: inspected)

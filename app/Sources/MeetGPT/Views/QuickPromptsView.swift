@@ -178,7 +178,7 @@ private struct FoldToggleChip: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .help(expanded ? "Показать меньше подсказок" : "Показать все подсказки")
-        .accessibilityLabel(expanded ? "Показать меньше подсказок" : "Show \(hiddenCount) more prompts")
+        .accessibilityLabel(expanded ? "Показать меньше подсказок" : "Показать ещё \(hiddenCount) кнопок")
         .animation(Motion.quick, value: hovering)
     }
 }

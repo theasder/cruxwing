@@ -241,9 +241,9 @@ struct PromptBudgetBarViewTests {
 
     @Test("every compact credit state has an explicit label")
     func compactCreditLabels() {
-        #expect(CreditBadge.loading.label(compact: true) == "· cr…")
-        #expect(CreditBadge.remaining(42).label(compact: true) == "· 42 cr")
-        #expect(CreditBadge.stale.label(compact: true) == "· cr stale")
-        #expect(CreditBadge.unavailable.label(compact: true) == "· cr —")
+        #expect(CreditBadge.loading.label(compact: true) == "· кр…")
+        #expect(CreditBadge.remaining(42).label(compact: true) == "· 42 кр")
+        #expect(CreditBadge.stale.label(compact: true) == "· кр устар.")
+        #expect(CreditBadge.unavailable.label(compact: true) == "· кр —")
     }
 }
