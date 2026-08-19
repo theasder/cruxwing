@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 298 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2853 and 618 | README, maintainer run |
+| App and core tests | 2857 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1358,6 +1358,27 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**orakul was introducing itself to every connected service as Cruxwing.** The
+MCP client sent `Client(name: "Cruxwing", version: "1.0.0")` on connect, and the
+OAuth registration sent `clientName: "Cruxwing"` — the name the owner of the
+service sees when granting access, and the one that stays in their list of
+permitted applications afterwards. Among those services is Fireflies, whose
+owner sells the competing product.
+
+The version was invented too: «1.0.0» against `0.1.0` in the bundle. In somebody
+else's crash report the version is the only thing that identifies us, so it now
+comes from the bundle rather than from a literal.
+
+Three more leftovers had crossed the same line: the fallback title for a task
+filed into a foreign tracker read «From a Cruxwing meeting» — English, and
+another product's name, landing in a person's Jira — and two on-screen warnings
+about the machine overheating named Cruxwing in English. All are ours and in
+Russian now.
+
+The check reads **string literals only**, not comments: the comment beside each
+fix quotes the old name to explain it, and a text scan that reads comments
+checks the comment. That mistake was made in this repository twice before.
 
 **Asking what the competitor receives found the transcript being used as a
 search string.** The Fireflies fetch itself is clean — it sends `limit` and

@@ -2881,7 +2881,7 @@ final class AppState: ObservableObject {
         let selection = Config.selectedModelID
         let name: String
         if selection == LLMCatalog.autoID || selection.hasPrefix("orchestrate:") {
-            name = "Cruxwing AI"
+            name = "orakul"
         } else if selection.hasPrefix("council:") {
             name = "AI Council"
         } else if selection.hasPrefix("auto:"),
@@ -2894,7 +2894,7 @@ final class AppState: ObservableObject {
     }
 
     private var workflowLocalApp: WorkflowApp {
-        WorkflowApp(id: "local:cruxwing", name: "Cruxwing", symbol: "macbook", kind: .local)
+        WorkflowApp(id: "local:orakul", name: "orakul", symbol: "macbook", kind: .local)
     }
 
     private func workflowAIApp(for model: LLMModel) -> WorkflowApp {
@@ -8056,7 +8056,10 @@ final class AppState: ObservableObject {
         let meeting = meetingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if !meeting.isEmpty { return meeting }
         let prompt = aiResponsePrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        return prompt.isEmpty ? "From a Cruxwing meeting" : String(prompt.prefix(120))
+        // Заголовок уезжает в чужой трекер как название задачи. Он был
+        // английским и назывался чужим продуктом — в Jira у человека
+        // появлялась строка «From a Cruxwing meeting».
+        return prompt.isEmpty ? "Со звонка в orakul" : String(prompt.prefix(120))
     }
 
     // MARK: - Save the answer as a document
@@ -11080,7 +11083,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "On-device captions are falling behind. Cruxwing will use \(LocalWhisperModel.title(for: recommended)) (\(recommended)) instead of \(current) for the next recording; audio stays on this Mac.",
+                message: "Расшифровка на компьютере не поспевает. Следующую запись orakul расшифрует моделью \(LocalWhisperModel.title(for: recommended)) (\(recommended)) вместо \(current). Звук при этом остаётся на этом компьютере.",
                 action: .none
             )
         case .coolerLocalModel(let current, let recommended):
@@ -11089,7 +11092,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "Your Mac is running hot while transcribing. Cruxwing will use the lighter \(LocalWhisperModel.title(for: recommended)) (\(recommended)) model for the next recording to keep it cool; audio stays on this Mac.",
+                message: "Компьютер греется на расшифровке. Следующую запись orakul расшифрует более лёгкой моделью \(LocalWhisperModel.title(for: recommended)) (\(recommended)), чтобы не грелся. Звук при этом остаётся на этом компьютере.",
                 action: .none
             )
         case .offerDeepgram:

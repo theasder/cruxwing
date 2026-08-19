@@ -916,7 +916,11 @@ final class MCPConnectionManager: ObservableObject {
             // code exchange, refresh and scope-step-up requests.
             endpointOverrides: Self.oauthEndpointOverrides(for: server.id),
             authorizationRedirectURI: URL(string: "http://127.0.0.1:\(port)/callback")!,
-            clientName: "Cruxwing",
+            // Имя приложения, которое видит владелец сервера при выдаче
+            // доступа и дальше в списке разрешённых приложений. Здесь стояло
+            // «Cruxwing»: человек нажимал «разрешить» продукту, которого не
+            // ставил, а в чужой учётной записи оставалась запись о нём.
+            clientName: Self.mcpClientName,
             authorizationDelegate: LoopbackAuthDelegate(
                 port: port,
                 // Both Google connectors need access_type=offline or the grant
@@ -941,9 +945,29 @@ final class MCPConnectionManager: ObservableObject {
             streaming: true,
             authorizer: authorizer
         )
-        let client = Client(name: "Cruxwing", version: "1.0.0")
+        // Имя, которым мы представляемся ЧУЖОМУ СЕРВЕРУ.
+        //
+        // Здесь стояло «Cruxwing, 1.0.0»: каждому подключённому серверу — в том
+        // числе Fireflies, чей владелец продаёт конкурирующий продукт, — orakul
+        // называл чужой продукт и выдуманную версию. Это не косметика: имя
+        // клиента уходит по сети, оседает в чужих журналах и в их статистике
+        // «кто нами пользуется». Своя строка — единственная честная.
+        //
+        // Версия берётся из пакета, а не пишется числом: «1.0.0» было неправдой
+        // с первого дня (в Info.plist 0.1.0), а версия в отчёте о сбое у
+        // вендора — единственное, по чему нас потом отличат.
+        let client = Client(name: Self.mcpClientName, version: Self.mcpClientVersion)
         _ = try await client.connect(transport: transport)
         return client
+    }
+
+    /// Как orakul представляется серверам MCP.
+    static let mcpClientName = "orakul"
+
+    /// Версия из собранного пакета; «неизвестно» вместо выдумки, если её нет.
+    static var mcpClientVersion: String {
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            ?? "unknown"
     }
 
     static func tokenStorageID(for serverID: String) -> String {
