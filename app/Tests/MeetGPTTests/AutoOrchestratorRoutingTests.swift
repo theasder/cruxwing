@@ -194,14 +194,22 @@ struct AutoOrchestratorRoutingTests {
 
     @Test("the auth fallback never returns the provider that just failed")
     func fallbackExcludesTheFailedProvider() {
+        // Настроенность ПОДСТАВЛЯЕТСЯ, а не читается с машины: здесь стоял
+        // `guard … else { continue }` поверх настоящей связки ключей, и на
+        // машине без ключей проверка не выполняла ни одного утверждения.
+        // Спрашиваем `providerFallbackModels` — то, что зовёт работа.
         for tier in [Tier.free, .pro, .premium, .ultra] {
             for provider in [LLMProvider.openAI, .anthropic, .google] {
-                guard let fallback = AutoOrchestrator.authFallbackModel(
-                    excluding: provider, tier: tier) else { continue }
-                #expect(fallback.provider != provider,
-                        "\(tier): fell back to the same provider \(provider)")
-                #expect(fallback.minTier.rank <= tier.rank,
-                        "\(tier): fell back to \(fallback.id), above the tier")
+                let fallbacks = AutoOrchestrator.providerFallbackModels(
+                    excluding: provider, tier: tier, hasImages: false,
+                    isConfigured: { _ in true })
+                #expect(!fallbacks.isEmpty, "\(tier), \(provider): запасных не нашлось")
+                for fallback in fallbacks {
+                    #expect(fallback.provider != provider,
+                            "\(tier): fell back to the same provider \(provider)")
+                    #expect(fallback.minTier.rank <= tier.rank,
+                            "\(tier): fell back to \(fallback.id), above the tier")
+                }
             }
         }
     }

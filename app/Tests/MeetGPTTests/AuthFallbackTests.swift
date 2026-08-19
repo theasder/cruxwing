@@ -21,16 +21,9 @@ struct AuthFallbackTests {
         #expect(category(LLMError.badResponse("Gemini")) == nil)
     }
 
-    @Test("fallback model comes from a different provider, allowed for the tier")
-    func fallbackModelSelection() {
-        for tier in Tier.allCases {
-            for provider in [LLMProvider.anthropic, .openAI] {
-                guard let fallback = AutoOrchestrator.authFallbackModel(
-                    excluding: provider, tier: tier) else { continue }
-                #expect(fallback.provider != provider)
-                #expect(fallback.isAvailable(for: tier))
-                #expect(fallback.provider.isConfigured)
-            }
-        }
-    }
+    // Проверка отбора запасных живёт в ProviderFallbackTests и спрашивает
+    // `providerFallbackModels` — то, что зовёт работа. Здесь стояла её копия
+    // через обёртку `authFallbackModel`, которую не звал никто, кроме набора; а
+    // перебор внутри шёл с `guard … else { continue }`, поэтому на машине без
+    // настроенных провайдеров не выполнялось ни одного утверждения.
 }

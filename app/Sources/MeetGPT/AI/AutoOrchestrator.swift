@@ -384,12 +384,6 @@ final class AutoOrchestrator: LLMGateway {
         return markers.contains { value.contains($0) }
     }
 
-    /// The strongest tier-allowed model from a different configured provider,
-    /// or nil when there is no direct-key alternate.
-    static func authFallbackModel(excluding provider: LLMProvider, tier: Tier) -> LLMModel? {
-        providerFallbackModels(excluding: provider, tier: tier, hasImages: false).first
-    }
-
     /// At most one strongest tier-allowed model per alternate provider.
     /// Capability rank orders vendors without relying on catalog display order.
     static func providerFallbackModels(

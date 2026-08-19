@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 333 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2914 and 655 | README, maintainer run |
+| App and core tests | 2919 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -2233,10 +2233,29 @@ moved onto the live classifier rather than deleted. A test that describes a
 superseded mechanism is worse than no test: it reads as coverage, and a change to
 the mechanism that *does* run leaves it green.
 
-`authFallbackModel` is in the same state and is **not** fixed here: it is
-uncalled, and the property its test asserts — a fallback from a different provider
-allowed for the tier — needs checking against wherever the live fallback list is
-built before anything is removed. Named rather than half-done.
+`authFallbackModel` was in the same state and is finished now — and what it hid
+was worse than a dead function. **The tested code was dead and the live code was
+untested.** `providerFallbackModels` — what actually chooses a replacement when a
+provider's key fails — had **no coverage at all**, while the one-line wrapper over
+it had two suites. Anyone reading the suite would conclude that fallback was
+checked.
+
+Worse, both of those tests were vacuous on any machine without provider keys:
+they iterated tiers with `guard … else { continue }` over the real keychain, so
+with an empty pool not one assertion ran. The same shape as the funding-fallback
+test found days ago — and the same fix: configuration is **injected** now, so the
+checks behave identically everywhere and cannot skip themselves.
+
+Six properties are asserted against the live resolver: never the provider that
+just failed, only configured providers, never above the person's tier, vision
+models only when the request carries images, one model per provider, strongest
+first. Four die under mutation.
+
+One property is deliberately **not** asserted, and the reason is written into the
+test: when two models have equal rank the order falls back to the provider's
+name, and today's catalogue has no equal ranks at all — measured, not assumed.
+A check there would assert nothing. Instead the test fails if equal ranks ever
+appear, which is the moment the branch becomes reachable and worth checking.
 
 **Three of them turned up in one week — a build halt
 reading a variable it had blanked itself, an entitlement check asserting
