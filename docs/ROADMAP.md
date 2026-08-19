@@ -946,6 +946,33 @@ setting.
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
 
+**One of the three flaky failures had a race written into the check itself.**
+`BlindSpotSchedulerRaceTests` waited until the activity counter reported one
+success, then asserted — with no wait — that the suggestion list held a
+particular title. Those are two different moments: the success is counted first,
+the list reaches the view after. On an idle machine the gap is invisible; under a
+full parallel run it is not, which is exactly the shape of «green alone, red in
+the full run». It now waits for the thing it asserts.
+
+Eight consecutive full runs after the fix were clean. That is close to no
+evidence: the failure rate recorded elsewhere in this file is «roughly one run in
+twenty», and eight runs cannot distinguish a fix from a quiet afternoon. What can
+be said is narrower and true: one check contained a race, that check is the one
+that failed, and it no longer contains it.
+
+A sweep for the same shape — a bare assertion following a wait on a *different*
+signal — turned up 25 candidates and, on reading, no second instance. Most are
+negative assertions («nothing was requested») where the absence of a wait is the
+point, and the rest wait for an operation to finish before reading its result,
+which is correct. A negative result worth writing down: the class is not
+widespread, so the remaining two failures need their own explanation rather than
+this one stretched to cover them.
+
+An experiment that failed is also worth recording, because it cost time: loading
+the machine deliberately to force the race reproduced nothing useful, because the
+eight-run hunt was still running and the two starved each other. Measuring under
+load requires owning the load.
+
 **Chasing the shared-state flake found a live defect instead.** The suite that
 grounds Russian trackers began by calling `ConnectorCaseMemory.shared.forget()`,
 with a comment explaining that the memory is process-wide and a neighbour would

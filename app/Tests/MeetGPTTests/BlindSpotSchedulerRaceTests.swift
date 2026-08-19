@@ -307,7 +307,17 @@ struct BlindSpotSchedulerRaceTests {
             #expect(await waitUntil { provider.requests.count == 1 })
             #expect(await waitUntil { state.blindSpotActivity().successes == 1 })
             #expect(state.blindSpotSchedulerStateForTesting()?.charactersAtLastRun != nil)
-            #expect(state.suggestions.map(\.title) == ["Confirm delivery date"])
+            // Ждём ИМЕННО то, что утверждаем.
+            //
+            // Здесь стояло голое утверждение сразу после ожидания успеха. Успех
+            // и публикация подсказки — разные мгновения: сначала засчитывается
+            // успех, потом список доезжает до вида. На свободной машине разрыв
+            // незаметен, на занятой полным прогоном — нет, и набор падал в
+            // полном прогоне, проходя в одиночку. Ждать один признак и
+            // утверждать другой — это гонка, записанная в проверку.
+            #expect(await waitUntil {
+                state.suggestions.map(\.title) == ["Confirm delivery date"]
+            }, "подсказка так и не доехала: \(state.suggestions.map(\.title))")
             state.setBlindSpotsEnabled(false)
         }
     }
