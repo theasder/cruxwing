@@ -119,9 +119,9 @@ enum AssistantDOCXExporter {
         var errorDescription: String? {
             switch self {
             case .archiveTooLarge:
-                return "The Word document is too large to package."
+                return "Документ Word слишком велик, чтобы его собрать."
             case .tooManyParts:
-                return "The Word document contains too many package parts."
+                return "В документе Word слишком много частей."
             }
         }
     }

@@ -7,9 +7,9 @@ enum WheesprAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noBackend:               return "This build isn't connected to a backend yet — sign-in is unavailable."
-        case .http(let code, let msg): return msg.isEmpty ? "Sign-in failed (\(code))." : msg
-        case .badResponse:             return "The server returned an unexpected response."
+        case .noBackend:               return "Эта сборка ещё не подключена к серверу — вход недоступен."
+        case .http(let code, let msg): return msg.isEmpty ? "Войти не удалось (\(code))." : msg
+        case .badResponse:             return "Сервер вернул неожиданный ответ."
         }
     }
 }

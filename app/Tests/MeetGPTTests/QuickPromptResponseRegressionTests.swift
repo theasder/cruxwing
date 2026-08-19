@@ -190,7 +190,7 @@ struct QuickPromptResponseRegressionTests {
 
         #expect(state.aiStreaming == false)
         #expect(AnswerFailure.looksLikeFailure(state.aiResponse))
-        #expect(state.aiResponse.contains("invalid response"))
+        #expect(state.aiResponse.contains("вернул неверный ответ"))
         #expect(state.hasContent)
         #expect(!state.canExportAssistantAnswer)
         #expect(state.dialogClipboardText.contains(state.aiResponse))
@@ -204,7 +204,7 @@ struct QuickPromptResponseRegressionTests {
         state.runPrompt(try advicePrompt())
         await settle(state)
 
-        #expect(state.aiResponse.contains("Test provider API error (503)"))
+        #expect(state.aiResponse.contains("Test provider ответил ошибкой (503)"))
         #expect(state.hasContent)
         #expect(!state.canExportAssistantAnswer)
         #expect(state.workflowSteps.first { $0.label == "Compose the answer" }?.status == .failed)

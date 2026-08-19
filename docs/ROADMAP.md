@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2885 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -688,9 +688,35 @@ the four.
 Vendor names are allowed through — «Deepgram: …» prefixes a message the service
 wrote, and translating that would be inventing words on its behalf.
 
-Two English notes were found by the first run and translated. The limit that
-remains is stated rather than closed: a fourth surface, printed from somewhere
-neither list watches, would be invisible to both.
+Two English notes were found by the first run and translated.
+
+**That limit is closed — 2026-08-21.** The surface neither list watched turned
+out to be **error text**, and it was the largest of the three: **65 English
+messages** across 22 files in `Integrations/`, `MCP/`, `Audio/`, `Context/`,
+`Export/` and `Transcription/`. «Sign in with Apple was cancelled.», «That file
+has no audio track to transcribe.», «Google sign-in could not be verified (state
+mismatch).» — sentences a person reads at the worst possible moment, in a product
+whose every other word is Russian. Sixty-three are translated; the two that
+remain are vendor prefixes (`Google: …`, `AssemblyAI: …`) in front of a message
+the service itself wrote, which §6.4 already exempts.
+
+`test/oshibki-po-russki.test.mjs` now watches that population. It matches braces
+rather than lines, for the reason recorded above — a call split across two lines
+is invisible to `grep`, and this population is full of them.
+
+Counting it exposed a smaller lesson about counting. The first version reported
+66 because it counted **comments** inside those blocks: the example
+«`<html>…502 Bad Gateway…nginx`» in `LLMGateway` exists precisely to explain why
+such text must never be shown to a person, and the scan booked that explanation
+as a violation. A count that flags its own reasoning is a count nobody can act
+on, so comments are stripped before literals are read.
+
+Notifications were checked at the same time and are clean — the only non-Russian
+strings there are identifiers and macOS sound names.
+
+**A fourth surface may still exist, and the honest thing is to keep saying so.**
+Three are watched now: view literals, `AppState` properties printed verbatim, and
+error text. Nothing here proves there is no fifth.
 
 `grep` reads one line at a time, and a call split over two lines is invisible to
 it:

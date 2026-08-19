@@ -17,9 +17,9 @@ final class LoopbackRedirectServer: @unchecked Sendable {
         case cancelled
         var errorDescription: String? {
             switch self {
-            case .portBusy: return "Local sign-in port is busy — try connecting again."
-            case .timeout:  return "Sign-in timed out. Please try again."
-            case .cancelled: return "Sign-in was cancelled."
+            case .portBusy: return "Порт для входа занят — попробуйте подключиться ещё раз."
+            case .timeout:  return "Время входа истекло. Попробуйте ещё раз."
+            case .cancelled: return "Вход отменён."
             }
         }
     }

@@ -36,8 +36,8 @@ struct BackendUnreachableTests {
         // BackendGateway throws exactly this on an unreachable backend; assert the
         // user-facing text is the outage message, not a raw connection error.
         let msg = LLMError.http("Backend", 502, "Bad Gateway").errorDescription ?? ""
-        #expect(msg.contains("temporarily unavailable"))
-        #expect(msg.lowercased().contains("on-device transcription"))
+        #expect(msg.contains("временно недоступны"))
+        #expect(msg.contains("расшифровка на этом компьютере"))
         #expect(!msg.contains("<"))
     }
 }

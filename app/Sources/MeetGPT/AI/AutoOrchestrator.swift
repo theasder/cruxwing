@@ -267,9 +267,9 @@ final class AutoOrchestrator: LLMGateway {
                 "\($0.provider.label) (\($0.category.rawValue))"
             }.joined(separator: ", ")
             if outputStarted {
-                return "The AI response was interrupted after output began, so it was not retried again. Providers attempted: \(summary)."
+                return "Ответ модели оборвался уже после начала, поэтому повторно он не запрашивался. Дайтеrs attempted: \(summary)."
             }
-            return "The configured AI providers could not complete this request. Providers attempted: \(summary)."
+            return "Настроенные провайдеры не смогли выполнить запрос. Пробовали: \(summary)."
         }
     }
 

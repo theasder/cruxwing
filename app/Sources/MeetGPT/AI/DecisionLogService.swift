@@ -148,8 +148,8 @@ enum DecisionLogService {
 
         var errorDescription: String? {
             switch self {
-            case .http(let code, let body): return "Ledger API error (\(code)): \(String(body.prefix(160)))"
-            case .malformed: return "Ledger API returned an unexpected shape."
+            case .http(let code, let body): return "Журнал решений ответил ошибкой (\(code)): \(String(body.prefix(160)))"
+            case .malformed: return "Журнал решений вернул ответ неизвестного вида."
             }
         }
     }

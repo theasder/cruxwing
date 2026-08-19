@@ -11,10 +11,10 @@ enum AppleAccountAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .cancelled: return "Sign in with Apple was cancelled."
-        case .unavailable: return "Sign in with Apple isn't available on this Mac."
-        case .noIdentityToken: return "Apple didn't return an identity token."
-        case .badToken: return "Apple returned an unreadable identity token."
+        case .cancelled: return "Вход через Apple отменён."
+        case .unavailable: return "Вход через Apple на этом Mac недоступен."
+        case .noIdentityToken: return "Apple не вернул опознавательный токен."
+        case .badToken: return "Apple вернул нечитаемый опознавательный токен."
         }
     }
 }

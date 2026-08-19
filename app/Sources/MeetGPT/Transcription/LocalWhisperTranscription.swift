@@ -9,7 +9,7 @@ enum LocalWhisperTranscriptionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .inferenceUnavailable:
-            return "On-device transcription couldn't recover from a macOS machine-learning error. Stop and start recording, or choose another transcription engine in Settings."
+            return "Расшифровка на этом компьютере не смогла оправиться от ошибки машинного обучения macOS. Остановите и начните запись заново или выберите другой движок расшифровки в настройках."
         }
     }
 }

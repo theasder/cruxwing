@@ -87,9 +87,9 @@ enum ContextImporter {
 
         var errorDescription: String? {
             switch self {
-            case .empty:               return "File contained no readable text."
-            case .unreadable(let e):   return "Could not read file: \(e)"
-            case .unsupported(let e):  return "Unsupported file type: .\(e)"
+            case .empty:               return "В файле не нашлось читаемого текста."
+            case .unreadable(let e):   return "Не удалось прочитать файл: \(e)"
+            case .unsupported(let e):  return "Файлы такого вида не поддерживаются: .\(e)"
             }
         }
     }

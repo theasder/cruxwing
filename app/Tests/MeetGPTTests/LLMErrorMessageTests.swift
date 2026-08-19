@@ -23,8 +23,8 @@ struct LLMErrorMessageTests {
     @Test("a 502 gateway page becomes a clean, actionable message")
     func gatewayOutageIsFriendly() {
         let msg = LLMError.http("Backend", 502, Self.nginx502).errorDescription ?? ""
-        #expect(msg.contains("temporarily unavailable"))
-        #expect(msg.lowercased().contains("on-device transcription"))
+        #expect(msg.contains("временно недоступны"))
+        #expect(msg.contains("расшифровка на этом компьютере"))
         // The whole point: no nginx page reaches the user.
         #expect(!msg.contains("<"))
         #expect(!msg.lowercased().contains("nginx"))
@@ -35,7 +35,7 @@ struct LLMErrorMessageTests {
     func gatewayTimeoutIsFriendly() {
         let body = "<html><head><title>504 Gateway Time-out</title></head><body><center>nginx</center></body></html>"
         let msg = LLMError.http("Backend", 504, body).errorDescription ?? ""
-        #expect(msg.contains("temporarily unavailable"))
+        #expect(msg.contains("временно недоступны"))
         #expect(!msg.contains("<"))
     }
 

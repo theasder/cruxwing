@@ -95,11 +95,11 @@ enum EfficiencyEngineService {
         var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Follow-ups need a backend — set BACKEND_URL."
+                return "Для напоминаний нужен сервер — задайте BACKEND_URL."
             case .http(let code, let message):
-                return message.isEmpty ? "Follow-up failed (\(code))." : message
+                return message.isEmpty ? "Напоминание не отправилось (\(code))." : message
             case .malformed:
-                return "The follow-up came back in an unreadable shape."
+                return "Ответ по напоминанию пришёл в нечитаемом виде."
             }
         }
     }

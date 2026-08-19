@@ -16,11 +16,11 @@ enum AssemblyAIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey:       return "Speaker diarization isn't available in this build."
-        case .badURL:           return "Invalid AssemblyAI endpoint."
-        case .http(let code):   return "AssemblyAI responded \(code)."
+        case .missingKey:       return "Разделение по говорящим в этой сборке недоступно."
+        case .badURL:           return "Неверный адрес AssemblyAI."
+        case .http(let code):   return "AssemblyAI ответил \(code)."
         case .failed(let m):    return "AssemblyAI: \(m)"
-        case .timedOut:         return "AssemblyAI transcription timed out."
+        case .timedOut:         return "AssemblyAI не успел расшифровать за отведённое время."
         }
     }
 }

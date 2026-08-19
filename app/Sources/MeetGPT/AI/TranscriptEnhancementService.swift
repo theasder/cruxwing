@@ -195,15 +195,15 @@ enum TranscriptEnhancementError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .emptyFireflies:
-            return "Fireflies returned an empty transcript."
+            return "Fireflies вернул пустую расшифровку."
         case .emptyWhisper:
-            return "There's no on-device transcript to enhance yet."
+            return "На этом компьютере ещё нет расшифровки, которую можно уточнить."
         case .unparseable(let detail):
-            return "Couldn't merge the transcripts (\(detail))."
+            return "Не удалось свести расшифровки (\(detail))."
         case .summaryOnly(let summary):
             return summary
         case .busy:
-            return "Transcript enhancement is already running."
+            return "Уточнение расшифровки уже идёт."
         }
     }
 }

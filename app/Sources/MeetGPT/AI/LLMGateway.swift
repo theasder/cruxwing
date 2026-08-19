@@ -219,12 +219,12 @@ enum LLMError: LocalizedError {
             // at the user is leaky and useless. Say what they can actually do:
             // AI is down, recording and on-device transcription are not.
             if Self.isGatewayOutage(code: code, body: body) {
-                return "AI features are temporarily unavailable — the service is down or restarting. "
-                     + "Recording and on-device transcription still work; try AI again in a moment."
+                return "Возможности ИИ временно недоступны: сервис не отвечает или перезапускается. "
+                     + "Запись и расшифровка на этом компьютере работают; попробуйте ИИ через минуту."
             }
-            return "\(provider) API error (\(code)): \(Self.strippedMessage(body))"
+            return "\(provider) ответил ошибкой (\(code)): \(Self.strippedMessage(body))"
         case .badResponse(let provider):
-            return "\(provider) returned an invalid response."
+            return "\(provider) вернул неверный ответ."
         }
     }
 

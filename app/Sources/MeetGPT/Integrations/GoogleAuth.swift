@@ -121,17 +121,17 @@ enum GoogleAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingClientID: return "Add GOOGLE_CLIENT_ID for the Google Desktop OAuth client and rebuild orakul."
-        case .missingClientSecret: return "Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild orakul."
-        case .badClientID:     return "That doesn't look like a Google OAuth client ID."
-        case .noServicesSelected: return "Select at least one Google Workspace service before connecting."
-        case .cancelled:       return "Google sign-in was cancelled."
-        case .noCode:          return "Google didn't return an authorization code."
-        case .stateMismatch:   return "Google sign-in could not be verified (state mismatch). Please try again."
+        case .missingClientID: return "Добавьте GOOGLE_CLIENT_ID от настольного клиента Google OAuth и соберите orakul заново."
+        case .missingClientSecret: return "Добавьте GOOGLE_CLIENT_SECRET от того же настольного клиента Google OAuth и соберите orakul заново."
+        case .badClientID:     return "Это не похоже на идентификатор клиента Google OAuth."
+        case .noServicesSelected: return "Выберите хотя бы одну службу Google Workspace перед подключением."
+        case .cancelled:       return "Вход через Google отменён."
+        case .noCode:          return "Google не вернул код авторизации."
+        case .stateMismatch:   return "Вход через Google не удалось подтвердить (не сошлось состояние). Попробуйте ещё раз."
         case .server(let code, let desc):
-            return desc.map { "Google: \($0)" } ?? "Google auth error: \(code)"
-        case .http(let code):  return "Google auth responded \(code)."
-        case .notConnected:    return "Connect Google Workspace first."
+            return desc.map { "Google: \($0)" } ?? "Ошибка входа через Google: \(code)"
+        case .http(let code):  return "Вход через Google ответил \(code)."
+        case .notConnected:    return "Сначала подключите Google Workspace."
         }
     }
 }
