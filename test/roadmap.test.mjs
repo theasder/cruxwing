@@ -137,6 +137,37 @@ describe('ROADMAP', () => {
     }
   });
 
+  test('пределы по времени в §10.1 те же, что в коде', () => {
+    // Раздел про недружелюбного вендора однажды уже приписал защиту не тому
+    // пределу: байт в секунду держался будто бы восьмисекундным таймаутом, а
+    // тот считает ПАУЗЫ и обнуляется на каждом принятом байте. Числа в тексте
+    // теперь берутся из кода, а не из памяти.
+    const session = read('mvp', 'Sources', 'OrakulCore', 'ConnectorSession.swift');
+    const values = [...session.matchAll(/timeoutIntervalForResource = (\d+)/g)]
+      .map(([, n]) => Number(n));
+    assert.equal(values.length, 2,
+      `в ConnectorSession нашлось ${values.length} значений предела — разбор сломан`);
+
+    const audit = section('10.1');
+    for (const value of values) {
+      assert.ok(new RegExp(`\\b${value}\\b`).test(audit),
+        `§10.1 не называет предел ${value} с, который стоит в коде`);
+    }
+  });
+
+  test('§10.1 называет оба написания своей сессии', () => {
+    // Сторож ловит и `URLSession.shared`, и `URLSession(configuration:)`.
+    // Текст, называющий одно, обещает половину защиты.
+    const test = read('mvp', 'Tests', 'OrakulCoreTests', 'RedirectPolicyTests.swift');
+    assert.ok(test.includes('URLSession.shared') && test.includes('URLSession('),
+      'проверка перестала ловить оба написания — тогда и текст менять не надо');
+
+    const audit = section('10.1');
+    assert.ok(audit.includes('URLSession.shared'), '§10.1 не называет `URLSession.shared`');
+    assert.ok(audit.includes('URLSession(configuration:)'),
+      '§10.1 не называет свою сессию — а сторож её ловит');
+  });
+
   test('число коннекторов в тексте сходится с кодом', () => {
     // Слово «шестнадцать» стареет ровно тогда, когда добавляют
     // семнадцатый, — и этого никто не замечает, потому что добавление

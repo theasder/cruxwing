@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 291 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 293 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1143,8 +1143,16 @@ Played as the attacker against the real code. What landed:
 
 What already held, and why it is worth naming: HTTP 200 with an error in the
 body (`requireTrue`), a refusal in a GraphQL `errors` array, an HTML login page
-instead of JSON, a byte-per-second response (the 8-second deadline), and a
-narrowed scope arriving as 403 with its own message rather than «bad token».
+instead of JSON, and a narrowed scope arriving as 403 with its own message
+rather than «bad token».
+
+**The byte-per-second response was listed here as held, and it was not.** The
+credit went to the 8-second `timeoutInterval` — which counts **gaps between
+bytes**, so one byte every seven seconds resets it forever. That is written in
+`ConnectorSession` in my own words, and this line survived anyway. What actually
+bounds it is `timeoutIntervalForResource`, added 2026-08-19: 60 seconds on
+macOS, 20 on Linux, where cancelling a task does not stop the transfer at all
+and time is the only bound there is.
 
 **The first pass covered half the code, which is worth recording as a finding
 of its own.** The rename attack was played against the manifest engine and
@@ -1158,10 +1166,19 @@ mutation showed the guard was there but unproven.
 
 **The worst finding was not an attack on the answer — it was on the token
 (2026-08-18).** `URLSession` follows a redirect **itself** and repeats the
-request at the new address, carrying `Authorization` with it. So a service
-answering `302 Location: https://collector.example/collect` collects our token,
-and needs nothing but that one line to do it. For a self-hosted address a typo
-is enough: a person writes the wrong domain, and the token goes there.
+request at the new address. So a service answering
+`302 Location: https://collector.example/collect` gets the request, and needs
+nothing but that one line. For a self-hosted address a typo is enough: a person
+writes the wrong domain, and the request goes there.
+
+Whether the **token** goes with it was stated here as a fact and turned out to
+depend on the system — measured 2026-08-19 against a hostile server, because
+until then nobody had run it. macOS strips `Authorization` when the host
+changes; Linux, corelibs 6.0.3, carries it whole, and the collector received
+`Bearer секретный-ключ`. The command line runs on Linux, so there the delegate
+below is the only thing between a work token and an address the vendor picked —
+and on both systems the request itself, including the search word the person
+said, still leaves.
 
 Every connector now goes through one session that refuses to follow a redirect
 to a different host, refuses an https → http downgrade, and treats a subdomain
@@ -1173,8 +1190,10 @@ leaving quietly.
 Two details that are easy to get wrong and are pinned by tests: host comparison
 ignores case (`Git.Company.RU` is the same host), and `http → https` stays
 allowed because that direction is a strengthening. A structural check scans the
-whole core directory for `URLSession.shared`, since one forgotten connector
-reduces the defence to nothing.
+whole core directory for a session built anywhere but behind that door — both
+`URLSession.shared` and `URLSession(configuration:)`, since a private session
+follows redirects just as happily and the second spelling went unchecked until
+2026-08-20.
 
 **The most valuable move needs no hostile vendor at all — only somebody who
 can write into one (2026-08-18).** A Jira ticket, a wiki page, a Slack message:
@@ -1281,7 +1300,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **19 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **21 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -1308,6 +1327,31 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**Auditing the audit: §10.1 carried three false claims, and one of them
+credited a defence that does nothing.** Yesterday's duplicate guard happened
+because I had not read that section before writing code for it. Reading it
+against the code found:
+
+* «a byte-per-second response (the 8-second deadline)» — listed as **held**.
+  It was not: `timeoutInterval` counts gaps between bytes, so one byte every
+  seven seconds resets it forever. That sentence is in `ConnectorSession` in my
+  own words, written the day the resource timeout was added, and this line
+  survived beside it;
+* the redirect carrying `Authorization` — stated flatly, measured a day later as
+  **platform-dependent**: macOS strips it, Linux carries it whole. The source
+  comment was corrected then and the plan was not;
+* the structural scan — described as looking for `URLSession.shared`, while a
+  private session is the same hole in the other spelling.
+
+All three are corrected with what was measured, including which system it was
+measured on. Two are now pinned rather than trusted: the timeouts named in
+§10.1 must be the numbers in `ConnectorSession`, and the spellings it names must
+be the ones the check actually looks for. Change a constant and the plan fails
+until it agrees.
+
+A section describing defences is the last place a stale sentence is noticed:
+everything in it sounds like something that was done.
 
 **I duplicated a guard, and the copy found a hole in the original.** Yesterday's
 entry below says nothing was holding that door shut. That was wrong: a check in
