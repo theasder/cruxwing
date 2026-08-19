@@ -27,14 +27,15 @@ function coreSources() {
     .map((name) => ({ name, code: stripComments(readFileSync(join(CORE, name), 'utf8')) }));
 }
 
-test('своя сессия не создаётся нигде, кроме одной двери', () => {
-  const offenders = coreSources()
-    .filter(({ code }) => /URLSession\s*\(/.test(code) || /URLSession\.shared/.test(code))
-    .map(({ name }) => name);
-  assert.deepEqual(offenders, [],
-    `эти файлы ходят в сеть мимо ConnectorSession: ${offenders.join(', ')}. ` +
-    'Запрет перенаправления, предел размера и предел по времени к ним не относятся.');
-});
+// Своя сессия в ядре здесь НЕ проверяется, и это не пропуск.
+//
+// Это делает `RedirectPolicyTests.connectorsUseTheGuardedSession` — он обходит
+// тот же каталог, стоит рядом с самим правилом и, в отличие от проверки
+// отсюда, идёт и на Linux, где запрет держит токен в одиночку. Написанная
+// вчера копия была вторым сторожем на одном правиле — тем самым, про который
+// в этом же наборе сказано: чинить придётся в двух местах, и одно забудут.
+// Копия убрана, а дыра, найденная при сличении, закрыта у оригинала: он ловил
+// только `URLSession.shared` и пропускал `URLSession(configuration:)`.
 
 test('каждая семья коннекторов ходит через эту дверь', () => {
   const families = coreSources().filter(({ code }) => code.includes('static let live'));

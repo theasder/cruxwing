@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 292 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 291 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1308,6 +1308,24 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**I duplicated a guard, and the copy found a hole in the original.** Yesterday's
+entry below says nothing was holding that door shut. That was wrong: a check in
+`RedirectPolicyTests` has walked the whole core directory for `URLSession.shared`
+since the redirect work — §10.1 even says so, and I did not read it before
+writing a second one.
+
+Two guards on one rule is the thing this file already forbids: two places to
+repair, and one gets forgotten. The copy is gone. What survived is the part the
+core test cannot see — that every family's transport leads to that door, and
+that the **application**, which injects these transports and could inject
+anything, defaults to them.
+
+Comparing the two paid for itself: the original looked for `URLSession.shared`
+and let `URLSession(configuration:)` through, which is the same hole by the
+other spelling — a private session follows redirects just as happily and knows
+nothing about the size or time bounds. It is closed, and both spellings are
+mutation-checked.
 
 **Every defence written against a hostile service lives behind one door, and
 nothing was holding it shut.** The redirect refusal — which on Linux is the only

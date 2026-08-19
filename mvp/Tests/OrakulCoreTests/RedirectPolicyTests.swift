@@ -66,6 +66,11 @@ import Foundation
         // Структурно: `URLSession.shared` следует за перенаправлением сама и
         // уносит токен. Один забытый коннектор сводит защиту к нулю, поэтому
         // проверяется весь каталог, а не отдельный файл.
+        //
+        // Своя сессия ищется наравне с общей. Дыра одинаковая: `URLSession(
+        // configuration:)` тоже идёт за перенаправлением и тоже не знает ни
+        // про предел размера, ни про предел по времени. Проверялась только
+        // `.shared`, то есть один из двух способов её проделать.
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -73,12 +78,14 @@ import Foundation
         let files = (try? FileManager.default.contentsOfDirectory(at: root,
                                                                   includingPropertiesForKeys: nil)) ?? []
         var offenders: [String] = []
-        for file in files where file.pathExtension == "swift" {
+        // Кроме самой двери: сессию строит она, в том и смысл.
+        for file in files where file.pathExtension == "swift"
+            && file.lastPathComponent != "ConnectorSession.swift" {
             let text = (try? String(contentsOf: file, encoding: .utf8)) ?? ""
             let code = text.split(separator: "\n", omittingEmptySubsequences: false)
                 .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
                 .joined(separator: "\n")
-            if code.contains("URLSession.shared") {
+            if code.contains("URLSession.shared") || code.contains("URLSession(") {
                 offenders.append(file.lastPathComponent)
             }
         }
