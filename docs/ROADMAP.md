@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 317 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2866 and 636 | README, maintainer run |
+| App and core tests | 2871 and 636 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -845,6 +845,39 @@ setting.
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**The command line told the truth about coverage and the app did not.** A
+bounded listing presented as a search is the same class as a confident sentence
+about something that never happened — and it was shipping. `orakul search` has
+printed «просмотрены последние 500 из 1500» since the bound existed. During a
+call, the same finding reached the model with no such line: every branch of the
+fan-out called `search`, whose own comment in the core says «то же самое без
+охвата, для тех, кто его всё равно не показывает». Only the local-notes branch,
+which uses a different client, appended it.
+
+Two kinds of silence came out of that:
+
+* **a part of a list given as the whole.** Two connectors are listings —
+  `plane` and `gitflic` — bounded at five pages of a hundred. A model handed 500
+  rows out of 1500 with no note answers «в Plane этого нет», and it is a
+  reasonable thing to say about what it was given;
+* **an answer from memory given as an answer from now.** Any service that asks
+  us to slow down is answered from cache, and coverage is what says «this is a
+  60-second-old answer». On a call the difference between now and a minute ago
+  is sometimes the whole point — the task has just been closed.
+
+Both branches that can carry coverage now do, through a helper that reserves
+room for the note and truncates the **list** instead: appending after truncation
+would return a string longer than the limit, and truncating after appending
+would drop the note exactly when there are many findings — which is when it
+matters most.
+
+Two things about the checks. The structural one first anchored on the first
+occurrence of `selfhosted:` in the file, which is in identifier parsing far
+above the fan-out — the same «guard looking at one corner» this plan keeps
+recording. And its first version asserted only that the helper is called: a
+mutation passing an empty note straight through went unnoticed, because calling
+the helper with nothing looks exactly like obeying the rule.
 
 **GitLab verified against a live install on 2026-08-19 — the manifest held,
 and the guard beside it did not.** GitLab is the most common own-server among

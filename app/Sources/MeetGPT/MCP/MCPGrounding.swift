@@ -401,9 +401,9 @@ extension MCPConnectionManager {
                     // так же, как «в вики про это ничего нет». Отозванный
                     // токен иначе неотличим от продукта, который стал хуже
                     // отвечать, и чинить человек пойдёт не то.
-                    let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
+                    let outcome = await withMCPDeadline(seconds: Self.groundingDeadline) {
                         do {
-                            let found = try await client.search(query)
+                            let found = try await client.run(query)
                             await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
                             return found
                         } catch {
@@ -411,13 +411,16 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let items, !items.isEmpty else { return (index, nil) }
+                    guard let outcome, !outcome.items.isEmpty else { return (index, nil) }
                     // Состояние задачи в тексте: «уже закрыто» меняет смысл
-                    // находки на противоположный.
-                    let text = items.prefix(10)
-                        .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
-                        .joined(separator: "\n")
-                        .prefix(maxCharsPerSource).description
+                    // находки на противоположный. Охват — по той же причине:
+                    // часть списка, выданная за весь, меняет смысл ответа так
+                    // же сильно.
+                    let text = Self.withCoverage(
+                        outcome.items.prefix(10)
+                            .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
+                            .joined(separator: "\n"),
+                        note: outcome.note, limit: maxCharsPerSource)
                     return (index, GroundingSnippet(
                         serverName: service.title, toolName: "search",
                         text: text, sourceID: "selfhosted:\(service.rawValue)",
@@ -583,9 +586,15 @@ extension MCPConnectionManager {
                     // так же, как «в вики про это ничего нет». Отозванный
                     // токен иначе неотличим от продукта, который стал хуже
                     // отвечать, и чинить человек пойдёт не то.
-                    let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
+                    let outcome = await withMCPDeadline(seconds: Self.groundingDeadline) {
                         do {
-                            let found = try await client.search(query)
+                            // `run`, а не `search`: второе отдаёт находки без
+                            // охвата, и человеку на звонке доезжало «вот что
+                            // есть в Plane» там, где прочитаны пятьсот строк
+                            // из полутора тысяч. То же и с ответом из памяти:
+                            // сервис попросил обращаться реже, ответу минута,
+                            // и об этом надо сказать.
+                            let found = try await client.run(query)
                             await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
                             return found
                         } catch {
@@ -593,11 +602,12 @@ extension MCPConnectionManager {
                             throw error
                         }
                     }
-                    guard let items, !items.isEmpty else { return (index, nil) }
-                    let text = items.prefix(10)
-                        .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
-                        .joined(separator: "\n")
-                        .prefix(maxCharsPerSource).description
+                    guard let outcome, !outcome.items.isEmpty else { return (index, nil) }
+                    let text = Self.withCoverage(
+                        outcome.items.prefix(10)
+                            .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }
+                            .joined(separator: "\n"),
+                        note: outcome.coverage.note(), limit: maxCharsPerSource)
                     return (index, GroundingSnippet(
                         serverName: service.title, toolName: "search",
                         text: text, sourceID: "western:\(service.rawValue)",
@@ -809,6 +819,22 @@ extension MCPConnectionManager {
     /// Цена та же, что у `ProviderKeyStore`: `Task.detached` task-local не
     /// наследует. Веер источников собран на `withTaskGroup`, а он наследует.
     @TaskLocal static var deadlineOverrideForTesting: TimeInterval?
+
+    /// Находки плюс охват — и обрезка ПОСЛЕ приписки, а не до неё.
+    ///
+    /// Порядок здесь и есть вся суть: приписать охват к уже обрезанному тексту
+    /// значило бы вернуть строку длиннее предела, а обрезать после — потерять
+    /// приписку ровно там, где находок много, то есть где она нужнее всего.
+    /// Поэтому под охват место резервируется, и режется список.
+    ///
+    /// Пустой охват не приписывается: у обычного поиска сказать нечего, и
+    /// приписка в каждой подсказке была бы шумом.
+    nonisolated static func withCoverage(_ body: String, note: String, limit: Int) -> String {
+        guard !note.isEmpty else { return String(body.prefix(limit)) }
+        let tail = "\n(\(note))"
+        let room = max(0, limit - tail.count)
+        return String(body.prefix(room)) + tail
+    }
 
     static var groundingDeadline: TimeInterval { deadlineOverrideForTesting ?? 8 }
 
