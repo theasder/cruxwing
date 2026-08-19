@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2924 and 663 | README, maintainer run |
+| App and core tests | 2932 and 663 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -2075,6 +2075,7 @@ Played as the attacker against the real code. What landed:
 | Drop the «there is more» field | The scan fell back to «short page means the end», so a full page read as `.wholeList` — part presented as whole, exactly what §7.2 forbids | A declared marker that is absent means unknown, so coverage stays `.latest` and the answer says «last N», never «all» |
 | Throttle instead of blocking (429) | «Трекер ответил ошибкой 429» — the word «ошибка» sends a person to reissue a token that is fine | Its own case, with `Retry-After` when the service sends it, and the text says the token is not the problem |
 | Accept a write and do nothing (empty body, no error flag) | The MCP path calls a tool, throws only when the server marks an error, and rendered the empty answer as «Задача создана.» — the most expensive false sentence in the product: a person leaves the call believing the commitment is recorded | No answer, no claim. The service's own words are shown when there are any; silence is reported as silence, with «Проверьте в трекере». The Russian-tracker twin never had this — `parseCreated` refuses a response with no key, so what reaches the screen is the key itself, and the key is the proof |
+| Name the address the person's browser will open | The export to Notion opened the URL the MCP server named, and the check on it looked like a check: the string starts with `https://` and **contains** «notion.so». So does `https://notion.so.chuzhoy.ru/login`, and so does `https://chuzhoy.ru/?next=notion.so`. The server chose where the browser went, at the one moment a person is least suspicious — they pressed «export» and are waiting for their own page to appear | The **owner** of the address is compared, not searched for: the domain itself or a subdomain of it, `https` only. A host that merely *ends* with the name (`podnotion.so`, a domain that costs a rouble and a minute) was not covered until a mutation removed the dot and the suite stayed green — that case is a test now |
 
 Writing has a failure the reading side does not: a server can accept the call
 and do nothing. Reading wrong is arguable — you can compare the quote with what

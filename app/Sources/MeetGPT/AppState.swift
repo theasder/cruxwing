@@ -7119,14 +7119,12 @@ final class AppState: ObservableObject {
     }
 
     /// Extract the first Notion page URL from an MCP tool's text result.
+    ///
+    /// The host is compared, not searched for: this URL is opened without a
+    /// further click, so whoever chooses it chooses where the person's browser
+    /// goes. See `VendorLink`.
     private static func firstNotionURL(in text: String) -> URL? {
-        for token in text.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\"" || $0 == "(" || $0 == ")" }) {
-            let s = String(token)
-            if s.hasPrefix("https://"), s.contains("notion.so") || s.contains("notion.site") {
-                return URL(string: s)
-            }
-        }
-        return nil
+        VendorLink.first(in: text, allowing: ["notion.so", "notion.site"])
     }
 
     /// First https URL in a tool's text result — trackers usually return the
