@@ -30,6 +30,7 @@ private struct TeamNoteRow: View {
     @State private var host = ""
     @State private var fields: [String: String] = [:]
     @State private var isConfigured = false
+    @State private var refusal: ConnectorHealth.Refusal?
 
     private var store: RussianTrackerStore { mcp.trackerStore }
 
@@ -53,6 +54,20 @@ private struct TeamNoteRow: View {
                 .accessibilityIdentifier("settings.notes.\(service.rawValue).connect")
             }
 
+
+            // Последний отказ источника — там, где человек и так решает, что
+            // делать с этим коннектором. Во время звонка отказ ничего не ломает
+            // и ничего не показывает: подсказка собирается по другим источникам,
+            // и правильно, что вопрос человека важнее полноты. Но узнать о нём
+            // было негде, и отозванный токен выглядел как продукт, который стал
+            // хуже отвечать.
+            if let refusal {
+                Text("Последний отказ: \(refusal.words)")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.notes.\(service.rawValue).refusal")
+            }
             if isExpanded {
                 Text(service.credentialHint)
                     .font(Typo.caption)
@@ -107,6 +122,7 @@ private struct TeamNoteRow: View {
             }
         }
         .onAppear(perform: load)
+        .task { await loadRefusal() }
     }
 
     /// Правило спрашивается у ядра: у Outline пустой адрес значит облако, у
@@ -116,6 +132,10 @@ private struct TeamNoteRow: View {
     private var canSave: Bool {
         TeamNotes(service: service, token: token, host: host, values: fields,
                   http: { _ in (Data(), HTTPURLResponse()) }).isConfigured
+    }
+
+    private func loadRefusal() async {
+        refusal = await ConnectorHealth.shared.refusal(for: service.rawValue)
     }
 
     private func load() {

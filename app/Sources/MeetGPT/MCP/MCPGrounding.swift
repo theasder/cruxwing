@@ -345,8 +345,23 @@ extension MCPConnectionManager {
                     // `timeoutInterval` у запроса этого не даёт — он сбрасывается
                     // на каждом принятом байте, и сервер, отдающий по байту,
                     // держит соединение сколько угодно.
+                    // Отказ записывается, а не растворяется.
+                    //
+                    // Ответ на звонке от этого не меняется: упавший источник
+                    // по-прежнему стоит одного источника, а не всего ответа.
+                    // Меняется другое — «сервис отказал» перестаёт выглядеть
+                    // так же, как «в вики про это ничего нет». Отозванный
+                    // токен иначе неотличим от продукта, который стал хуже
+                    // отвечать, и чинить человек пойдёт не то.
                     let hits = await withMCPDeadline(seconds: Self.groundingDeadline) {
-                        try await client.search(query)
+                        do {
+                            let found = try await client.search(query)
+                            await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
+                            return found
+                        } catch {
+                            await ConnectorHealth.shared.record(service: service.rawValue, error: error)
+                            throw error
+                        }
                     }
                     guard let hits, !hits.isEmpty else { return (index, nil) }
                     let text = hits.prefix(10)
@@ -378,8 +393,23 @@ extension MCPConnectionManager {
                     // `timeoutInterval` у запроса этого не даёт — он сбрасывается
                     // на каждом принятом байте, и сервер, отдающий по байту,
                     // держит соединение сколько угодно.
+                    // Отказ записывается, а не растворяется.
+                    //
+                    // Ответ на звонке от этого не меняется: упавший источник
+                    // по-прежнему стоит одного источника, а не всего ответа.
+                    // Меняется другое — «сервис отказал» перестаёт выглядеть
+                    // так же, как «в вики про это ничего нет». Отозванный
+                    // токен иначе неотличим от продукта, который стал хуже
+                    // отвечать, и чинить человек пойдёт не то.
                     let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
-                        try await client.search(query)
+                        do {
+                            let found = try await client.search(query)
+                            await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
+                            return found
+                        } catch {
+                            await ConnectorHealth.shared.record(service: service.rawValue, error: error)
+                            throw error
+                        }
                     }
                     guard let items, !items.isEmpty else { return (index, nil) }
                     // Состояние задачи в тексте: «уже закрыто» меняет смысл
@@ -414,8 +444,23 @@ extension MCPConnectionManager {
                     // `timeoutInterval` у запроса этого не даёт — он сбрасывается
                     // на каждом принятом байте, и сервер, отдающий по байту,
                     // держит соединение сколько угодно.
+                    // Отказ записывается, а не растворяется.
+                    //
+                    // Ответ на звонке от этого не меняется: упавший источник
+                    // по-прежнему стоит одного источника, а не всего ответа.
+                    // Меняется другое — «сервис отказал» перестаёт выглядеть
+                    // так же, как «в вики про это ничего нет». Отозванный
+                    // токен иначе неотличим от продукта, который стал хуже
+                    // отвечать, и чинить человек пойдёт не то.
                     let hits = await withMCPDeadline(seconds: Self.groundingDeadline) {
-                        try await client.search(query)
+                        do {
+                            let found = try await client.search(query)
+                            await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
+                            return found
+                        } catch {
+                            await ConnectorHealth.shared.record(service: service.rawValue, error: error)
+                            throw error
+                        }
                     }
                     guard let hits, !hits.isEmpty else { return (index, nil) }
                     // Автор попадает в текст: «это писала Полина» меняет вес
@@ -476,8 +521,23 @@ extension MCPConnectionManager {
                     // `timeoutInterval` у запроса этого не даёт — он сбрасывается
                     // на каждом принятом байте, и сервер, отдающий по байту,
                     // держит соединение сколько угодно.
+                    // Отказ записывается, а не растворяется.
+                    //
+                    // Ответ на звонке от этого не меняется: упавший источник
+                    // по-прежнему стоит одного источника, а не всего ответа.
+                    // Меняется другое — «сервис отказал» перестаёт выглядеть
+                    // так же, как «в вики про это ничего нет». Отозванный
+                    // токен иначе неотличим от продукта, который стал хуже
+                    // отвечать, и чинить человек пойдёт не то.
                     let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
-                        try await client.search(query)
+                        do {
+                            let found = try await client.search(query)
+                            await ConnectorHealth.shared.recordSuccess(service: "github")
+                            return found
+                        } catch {
+                            await ConnectorHealth.shared.record(service: "github", error: error)
+                            throw error
+                        }
                     }
                     guard let items, !items.isEmpty else { return (index, nil) }
                     // Состояние задачи попадает в текст: «уже закрыто» меняет
@@ -515,8 +575,23 @@ extension MCPConnectionManager {
                     guard let client = store.westernClient(for: service, http: http) else {
                         return (index, nil)
                     }
+                    // Отказ записывается, а не растворяется.
+                    //
+                    // Ответ на звонке от этого не меняется: упавший источник
+                    // по-прежнему стоит одного источника, а не всего ответа.
+                    // Меняется другое — «сервис отказал» перестаёт выглядеть
+                    // так же, как «в вики про это ничего нет». Отозванный
+                    // токен иначе неотличим от продукта, который стал хуже
+                    // отвечать, и чинить человек пойдёт не то.
                     let items = await withMCPDeadline(seconds: Self.groundingDeadline) {
-                        try await client.search(query)
+                        do {
+                            let found = try await client.search(query)
+                            await ConnectorHealth.shared.recordSuccess(service: service.rawValue)
+                            return found
+                        } catch {
+                            await ConnectorHealth.shared.record(service: service.rawValue, error: error)
+                            throw error
+                        }
                     }
                     guard let items, !items.isEmpty else { return (index, nil) }
                     let text = items.prefix(10)

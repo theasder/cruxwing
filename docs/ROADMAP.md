@@ -29,8 +29,8 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 284 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2833 and 600 | README, maintainer run |
+| Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
+| App and core tests | 2833 and 604 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -607,7 +607,7 @@ consent a condition of entry rather than a promise.
 
 ### 6.4 Russian strings to the end
 
-Measured 2026-08-18: of 446 string literals in `Views/` and `Onboarding/`, 23
+Measured 2026-08-18: of 447 string literals in `Views/` and `Onboarding/`, 23
 carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
 not a work list**: what is left is names (`GitHub`, `orakul`), bare
 interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
@@ -1301,6 +1301,31 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The chain was four links long and every link broke silently.** Following the
+same question one layer further — does this reach the person? — the answer was
+no, twice more. The engine distinguished a refusal; the family wrapper flattened
+it (fixed). The wrapper was fixed; the grounding path ran `try? await
+client.search(query)`, so a refusal and «your wiki has nothing about this» both
+became `nil` and vanished. There was nowhere to read it even if it had been
+kept.
+
+This is the competitor scenario in its most effective form. A service that
+withdraws access does not have to break anything: from inside orakul, a revoked
+token is indistinguishable from a product that has quietly got worse at
+answering, and the person has nobody to blame but us.
+
+Dropping the source **during the call** stays right — one failed source should
+cost one source, not the answer. What changed is that the refusal survives as a
+fact: `ConnectorHealth` keeps the service, the vendor's own words and the time,
+and the connector's own settings row shows «Последний отказ: …» where somebody
+is already deciding what to do with that connector. Success clears it, because a
+stale complaint sends a person to repair something that already works.
+
+The check covers the whole chain rather than the newest link: refusals must be
+recorded at every source, `record` and `recordSuccess` must appear the same
+number of times, and both settings sections must read the record and print the
+**service's words** rather than a paraphrase of them.
 
 **The same defect had three more instances, so it is now a class with a check.**
 Yesterday's finding — an engine error quietly becoming a different one inside a
