@@ -108,6 +108,7 @@ public struct TeamNotes {
         /// Ответ больше, чем бывает у поиска.
         case tooLarge(bytes: Int)
         case http(Int)
+        case forbidden
         case vendor(code: String, description: String)
         case webPage
         case unreadable
@@ -131,6 +132,8 @@ public struct TeamNotes {
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "База знаний ответила ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+            case .forbidden:
+                return "Токен настоящий, но права на поиск ему не выдали. Это чинится в самом сервисе — в правах токена или в доступе к пространству, — а не выпуском нового токена."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
                 return "Вики отказала: \(prefix)\(description)"
@@ -214,7 +217,10 @@ public struct TeamNotes {
             case .notConfigured: throw ConnectorError.notConfigured
             case .unauthorised:  throw ConnectorError.unauthorised
             // У этих сервисов 403 и 401 человек чинит одинаково — новым токеном.
-            case .forbidden:     throw ConnectorError.unauthorised
+            // 403 — не то же самое, что «токен не принят». Движок их разделяет
+            // намеренно, и свести обратно здесь значит посоветовать человеку
+            // заведомо бесполезное: выпустить новый токен вместо выдачи права.
+            case .forbidden:     throw ConnectorError.forbidden
             case .tooLarge(let bytes):
                 throw ConnectorError.tooLarge(bytes: bytes)
             case .rateLimited(let retryAfter):

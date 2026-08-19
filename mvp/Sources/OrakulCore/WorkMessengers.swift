@@ -159,6 +159,7 @@ public struct WorkMessengers {
         /// Пачка отличает неверный токен (401) от исправного токена без права
         /// поиска (403). Совет перевыпустить такой токен скрывает настоящую причину.
         case missingScope(String)
+        case forbidden
         /// Пара значений в одном поле, а вписано одно. Отдельно от
         /// `unauthorised`: сервер отвечает на это тем же 401, и общий текст
         /// советовал перевыпустить исправный токен.
@@ -188,6 +189,8 @@ public struct WorkMessengers {
                 return "Мессенджер не подключён. Откройте «Настройки → Подключённые приложения» и вставьте токен."
             case .unauthorised:
                 return "Мессенджер не принял токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+            case .forbidden:
+                return "Токен настоящий, но права на поиск сообщений ему не выдали. Право выдают в настройках приложения в самом мессенджере — новый токен не поможет."
             case .missingScope(let scope):
                 return "Токен принят, но у него нет права \(scope). Добавьте это право в настройках токена."
             case .incompleteToken(let expected):
@@ -302,7 +305,11 @@ public struct WorkMessengers {
                 // Право `search:messages` выдают отдельно от токена, и человеку
                 // надо идти в настройки приложения, а не выпускать новый токен.
                 if service == .pachca { throw ConnectorError.missingScope("search:messages") }
-                throw ConnectorError.unauthorised
+                // У остальных мессенджеров право называется по-своему, поэтому
+                // назвать его мы не можем — но и сводить 403 к «токен не принят»
+                // нельзя: совет «перевыпустите токен» на нехватку права заведомо
+                // не сработает, а человек послушается и потратит вечер.
+                throw ConnectorError.forbidden
             case .tooLarge(let bytes):
                 throw ConnectorError.tooLarge(bytes: bytes)
             case .rateLimited(let retryAfter):

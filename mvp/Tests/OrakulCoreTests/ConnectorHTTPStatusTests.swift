@@ -70,11 +70,17 @@ struct ConnectorHTTPStatusTests {
     func authorisationStillReadsAsAToken() async {
         // Граница: если свалить всё в один случай, пропадёт единственное
         // сообщение, по которому человек понимает, что дело в токене.
-        for status in [401, 403] {
+        // 403 отделён от 401 (2026-08-19). Прежде здесь стояло ожидание
+        // одного и того же ответа на оба кода, и оно закрепляло дефект:
+        // движок их различает намеренно, а обёртка сводила обратно.
+        // «Токен не принят» отправляет выпускать новый, «нет права» —
+        // выдавать право; совет не тот, и человек потратит вечер.
+        for (status, expected) in [(401, SelfHostedTrackers.ConnectorError.unauthorised),
+                                   (403, SelfHostedTrackers.ConnectorError.forbidden)] {
             let client = SelfHostedTrackers(service: .redmine, token: "tok",
                                             host: "http://redmine.internal",
                                             http: responding(status))
-            await #expect(throws: SelfHostedTrackers.ConnectorError.unauthorised) {
+            await #expect(throws: expected) {
                 _ = try await client.search("лимиты")
             }
         }

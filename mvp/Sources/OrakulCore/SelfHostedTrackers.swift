@@ -119,6 +119,7 @@ public struct SelfHostedTrackers {
         /// Ответ больше, чем бывает у поиска.
         case tooLarge(bytes: Int)
         case http(Int)
+        case forbidden
         case vendor(code: String, description: String)
         case webPage
         case unreadable
@@ -144,6 +145,8 @@ public struct SelfHostedTrackers {
                 return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
             case .http(let status):
                 return "Трекер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+            case .forbidden:
+                return "Токен настоящий, но права на поиск ему не выдали. Проверьте область токена (у GitLab это read_api, у Gitea — права на задачи) и доступ к проекту. Новый токен с теми же правами не поможет."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
                 return "Трекер отказал: \(prefix)\(description)"
@@ -230,7 +233,10 @@ public struct SelfHostedTrackers {
             case .notConfigured: throw ConnectorError.notConfigured
             case .unauthorised:  throw ConnectorError.unauthorised
             // У этих сервисов 403 и 401 человек чинит одинаково — новым токеном.
-            case .forbidden:     throw ConnectorError.unauthorised
+            // 403 — не то же самое, что «токен не принят». Движок их разделяет
+            // намеренно, и свести обратно здесь значит посоветовать человеку
+            // заведомо бесполезное: выпустить новый токен вместо выдачи права.
+            case .forbidden:     throw ConnectorError.forbidden
             case .tooLarge(let bytes):
                 throw ConnectorError.tooLarge(bytes: bytes)
             case .rateLimited(let retryAfter):

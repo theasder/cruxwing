@@ -154,6 +154,7 @@ public struct RussianTrackers {
     public enum TrackerError: Error, Equatable, LocalizedError {
         case notConfigured(Service)
         case unauthorised(Service)
+        case forbidden(Service)
         /// Сервис просит обращаться реже: 429. Чинить нечего, надо переждать.
         case rateLimited(Service, retryAfter: Int?)
         /// Ответ больше, чем бывает у поиска.
@@ -192,6 +193,8 @@ public struct RussianTrackers {
                 return "\(service.title) отказал: \(detail). Если это Битрикс24 — проверьте, что вебхук не удалён и у него есть право «Задачи»."
             case .http(let service, let status):
                 return "\(service.title) ответил ошибкой \(status). Если это 404 — проверьте очередь или доску в настройках."
+            case .forbidden(let service):
+                return "\(service.title): токен настоящий, но права на поиск ему не выдали. Право выдают в настройках приложения или вебхука в самом сервисе — новый токен не поможет."
             case .webPage(let service):
                 return "\(service.title) прислал веб-страницу вместо данных — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable(let service):
@@ -288,7 +291,10 @@ public struct RussianTrackers {
         } catch let error as ManifestConnector.ConnectorError {
             switch error {
             case .notConfigured:  throw TrackerError.notConfigured(service)
-            case .unauthorised, .forbidden: throw TrackerError.unauthorised(service)
+            case .unauthorised: throw TrackerError.unauthorised(service)
+            // 403 отделён от 401: первое чинится новым токеном, второе — выдачей
+            // права. Совет «перевыпустите токен» на 403 бесполезен.
+            case .forbidden: throw TrackerError.forbidden(service)
             case .tooLarge(let bytes):
                 throw TrackerError.tooLarge(service, bytes: bytes)
             case .rateLimited(let retryAfter):

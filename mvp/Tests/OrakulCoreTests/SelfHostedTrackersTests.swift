@@ -145,9 +145,15 @@ struct SelfHostedTrackersTests {
 
     @Test("401 и 403 читаются как неподходящий токен")
     func unauthorisedIsRecognised() async {
-        for status in [401, 403] {
+        // 403 отделён от 401 (2026-08-19). Прежде здесь стояло ожидание
+        // одного и того же ответа на оба кода, и оно закрепляло дефект:
+        // движок их различает намеренно, а обёртка сводила обратно.
+        // «Токен не принят» отправляет выпускать новый, «нет права» —
+        // выдавать право; совет не тот, и человек потратит вечер.
+        for (status, expected) in [(401, SelfHostedTrackers.ConnectorError.unauthorised),
+                                   (403, SelfHostedTrackers.ConnectorError.forbidden)] {
             let (http, _) = stub(status: status, json: "[]")
-            await #expect(throws: SelfHostedTrackers.ConnectorError.unauthorised) {
+            await #expect(throws: expected) {
                 try await SelfHostedTrackers(service: .gitlab, token: "t",
                                              host: "gitlab.company.ru",
                                              http: http).search("q")

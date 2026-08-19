@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 281 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 284 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2833 and 600 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1301,6 +1301,34 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The same defect had three more instances, so it is now a class with a check.**
+Yesterday's finding — an engine error quietly becoming a different one inside a
+family wrapper — was not one bug. Asking the question of every wrapper found
+`.forbidden` collapsing into `.unauthorised` in **four** of the five families.
+
+The engine separates 403 from 401 on purpose and says why: «токен не принят»
+sends a person to issue a new token, «нет права» sends them to grant a
+permission. A 403 from GitLab means the token is missing `read_api`; reissuing
+it produces an identical token and another wasted evening. Four wrappers gave
+exactly that advice.
+
+`test/perevod-oshibok.test.mjs` now fails when two distinct engine errors reach
+the same family case. Merging is not forbidden — it must be **named**: the
+marker «СЛИЯНИЕ НАМЕРЕННОЕ» beside the branch lifts the refusal and leaves a
+trace, because there are legitimate merges and a rule with no exit turns into a
+rule people delete.
+
+Its first run reported three collapses and two were nonsense — the scan had
+picked up `.slack` and `.plane`, which are **service** names, not errors. A
+check that is wrong two times out of three stops being read, so the error names
+are now taken from `ManifestConnector.ConnectorError` itself rather than from a
+list written here.
+
+**Three existing tests had to change, and that is the point.** They asserted
+that 401 and 403 produce the same answer — they pinned the defect rather than the
+behaviour, which is why every suite stayed green through all four instances. A
+test that encodes a bug protects it.
 
 **A live Wiki.js disproved a comment, and the defect was one layer below every
 test.** Wiki.js 2 was stood up in a container with Postgres, seeded through its
