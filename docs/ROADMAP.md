@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 288 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2839 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -54,14 +54,21 @@ the next step is capturing which neighbour wrote what, not another guess.
 | Layer | Connected | Where in code |
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
-| Work messengers | Пачка, Mattermost, Rocket.Chat, Zulip, Matrix | `WorkMessengers.swift` |
-| Own servers: code and tasks | GitLab, Gitea and Forgejo, Redmine | `SelfHostedTrackers.swift` |
-| Notes | Outline | `TeamNotes.swift` |
+| Work messengers | Пачка, Mattermost, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
+| Own servers: code and tasks | GitLab, **Gitea / Forgejo**, **Redmine**, Plane, GitFlic | `SelfHostedTrackers.swift` |
+| Notes and wikis | Outline, BookStack, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
+| Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
 | Code in the cloud | GitHub, personal token, `GET /search/issues` | `GitHubConnector.swift` |
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
 | Western services via MCP | Notion, Fireflies, Linear, Atlassian (Jira and Confluence), Intercom, Sentry, Zapier, Attio, PostHog, Amplitude, Mixpanel | `MCPCatalog.builtIn` |
 
 Total: 25 own connectors, 11 western via MCP.
+
+**Bold means checked against the service running, not against its
+documentation** — Gitea, Redmine, Wiki.js and Nextcloud, each started in a
+container by `scripts/zhivaya-proba.sh`, filled with three records, searched and
+removed. Everything else is built from vendor documentation, which is a weaker
+claim and is written as one.
 
 ### 2.3 What reaches the downloader is not the same thing
 
@@ -1274,7 +1281,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **18 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **19 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -1301,6 +1308,24 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The census in §2.2 had lost six connectors, and the guard was watching one
+family out of five.** Slack, Plane, GitFlic, BookStack, Wiki.js and Nextcloud
+were all shipping and all missing from the table. What made it invisible is that
+the **total** beside the table was right: 25 is 25, counted from code by a check
+that has been there all along. A correct number next to a stale list reads as a
+maintained list.
+
+The check compared §2.2 only against `RussianTrackers.swift`. Russian trackers
+therefore never drifted, and the four families nobody looked at drifted the
+whole time — the same shape as the copy guard that scanned one directory out of
+six. It now walks all five families, which is 22 services, and fails naming the
+service and the file it came from.
+
+The table also says which connectors were checked against **the service running**
+rather than its documentation: Gitea, Redmine, Wiki.js, Nextcloud. That claim is
+not held by the bold type — it is held by the manifests, whose notes record the
+live run, and a check that refuses a bold name without one.
 
 **Yesterday's fix handed a hostile service a lever, so it is bounded now.** The
 connector asks a second spelling of a Russian word when it has learned that a

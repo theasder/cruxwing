@@ -80,20 +80,60 @@ describe('ROADMAP', () => {
     assert.deepEqual(outOfOrder, [], outOfOrder.join('; '));
   });
 
-  test('каждый российский трекер из кода назван подключённым', () => {
+  test('каждый подключённый сервис из кода назван в перечне', () => {
     // Перепись в плане уже сверяется с кодом. Роадмап повторяет её своими
     // словами в §2.2 — значит, повторяет и способ устареть: сервис появился
     // или выпал, а строка «подключено» осталась прежней.
-    const src = read('mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift');
-    const block = src.slice(src.indexOf('public var title: String'));
-    const shipped = [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
-      .map(([, title]) => title);
-    assert.ok(shipped.length >= 4, `нашлось ${shipped.length} названий — проверка была бы пустой`);
+    //
+    // Проверка смотрела в ОДНУ семью из пяти — российские трекеры. Ровно
+    // поэтому из таблицы тихо выпали Slack, Plane, GitFlic, BookStack, Wiki.js
+    // и Nextcloud: их семьи не смотрел никто, а общее число рядом оставалось
+    // верным и создавало впечатление, что перечень живой.
+    const families = ['RussianTrackers.swift', 'WorkMessengers.swift',
+                      'SelfHostedTrackers.swift', 'TeamNotes.swift',
+                      'WesternTrackers.swift'];
+    const inventory = section('2.2');
+    let counted = 0;
+
+    for (const file of families) {
+      const src = read('mvp', 'Sources', 'OrakulCore', file);
+      const block = src.slice(src.indexOf('public var title: String'));
+      const shipped = [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
+        .map(([, title]) => title);
+      assert.ok(shipped.length >= 2,
+        `${file}: нашлось ${shipped.length} названий — проверка была бы пустой`);
+      counted += shipped.length;
+
+      for (const name of shipped) {
+        assert.ok(inventory.includes(name),
+          `${name} (${file}) есть в коде и пропал из перечня подключённого`);
+      }
+    }
+    assert.ok(counted >= 20, `по всем семьям нашлось ${counted} названий — разбор сломан`);
+  });
+
+  test('живая проверка в перечне названа по манифестам, а не на память', () => {
+    // Жирным в §2.2 отмечено «проверено на работающем сервисе». Утверждение
+    // сильное, и держится оно не словом: манифест такого коннектора несёт
+    // отметку о живом прогоне.
+    const live = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                                     'Resources', 'connectors'))
+      .filter((f) => f.endsWith('.json'))
+      .filter((f) => JSON.parse(read('mvp', 'Sources', 'OrakulCore', 'Resources',
+                                     'connectors', f)).note.includes('живом'));
+    assert.ok(live.length >= 4, `манифестов с живой проверкой ${live.length} — ждали хотя бы четыре`);
 
     const inventory = section('2.2');
-    for (const name of shipped) {
-      assert.ok(inventory.includes(name),
-        `${name} есть в коде и пропал из перечня подключённого`);
+    const bold = [...inventory.matchAll(/\*\*([^*]+)\*\*/g)].map(([, name]) => name);
+    assert.ok(bold.length >= 4, 'в перечне не отмечено ни одной живой проверки');
+
+    const titles = { gitea: 'Gitea / Forgejo', redmine: 'Redmine',
+                     wikijs: 'Wiki.js', nextcloud: 'Nextcloud' };
+    for (const id of live) {
+      const title = titles[id.replace('.json', '')];
+      if (!title) continue;
+      assert.ok(bold.includes(title),
+        `${title} проверен на живом сервисе, а в §2.2 это не отмечено`);
     }
   });
 
