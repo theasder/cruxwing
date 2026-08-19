@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 297 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2848 and 618 | README, maintainer run |
+| App and core tests | 2849 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1358,6 +1358,33 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The injection warning has never once been shown.** Following the competitor
+question to its most literal place — orakul consumes **Fireflies**, whose owner
+sells the competing product, and merges their transcript into the user's own —
+found the signal computed at write-staging and then dropped:
+`PendingAnswerAction` takes `injectionSignal`, the parameter has a default of
+`nil`, and the call site never passed it. The compiler had nothing to say.
+
+The suite around it is careful and still missed it. Its structural check asks
+whether `prepareAnswerAction` **calls** the guard — it did — while every
+behavioural test built the pending action itself and passed the signal in by
+hand. Calling a guard and using its answer are two facts, and only the first was
+being checked. That is the third variant of «a guard that cannot fire» in this
+file, and the quietest: this one is called.
+
+The second half is what Fireflies gets to do. Their transcript arrives as a
+context file, and `promptContext` puts every context file into the model request
+verbatim — so an instruction addressed to the model can sit there and leave no
+trace in the answer. Attached files are now scanned alongside the answer and the
+connector context.
+
+Two of my own checks were wrong on the way and both were caught by mutation: the
+first asserted that `contextFiles` is *mentioned*, which stayed true when the
+scan itself was deleted; and the older one sliced 1200 characters after the
+function name instead of reading to its end, so adding lines made it report a
+loss that had not happened — the window mistake `swift-source.mjs` was written
+about.
 
 **The warning before audio leaves named another product, in English.** Asking
 the outbound question of the largest path — the recording itself — found the

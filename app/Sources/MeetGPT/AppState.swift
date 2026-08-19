@@ -7801,15 +7801,28 @@ final class AppState: ObservableObject {
         // и то и другое пишет кто угодно. Смотрим на текст, который лёг в
         // основу предложения: если там обращались к модели, тот, кто
         // подтверждает запись, должен это знать.
+        // Приложенные файлы смотрим наравне с остальным.
+        //
+        // Через них приезжает расшифровка Fireflies — сервиса, который продаёт
+        // конкурирующий продукт, — и туда же попадает всё, что человек
+        // приложил сам. `promptContext` кладёт это в запрос к модели целиком,
+        // поэтому обращение к модели может лежать именно здесь.
+        let attached = contextFiles.map { "\($0.name)\n\($0.text)" }.joined(separator: "\n")
         let signal = PromptInjectionGuard.signal(in: aiResponse)
             ?? PromptInjectionGuard.signal(in: lastConnectorContext)
+            ?? PromptInjectionGuard.signal(in: attached)
         pendingAnswerAction = PendingAnswerAction(
             id: action.id,
             action: action,
             fields: fields,
             fieldOrder: fields.keys.sorted(),
             items: items,
-            connectionScope: mcp.groundingCacheScope)
+            connectionScope: mcp.groundingCacheScope,
+            // Признак ВЫЧИСЛЯЛСЯ И ВЫБРАСЫВАЛСЯ: у параметра есть значение по
+            // умолчанию, поэтому компилятор молчал, а предупреждение не
+            // показывалось никогда. Сторож был написан, позван — и всё равно
+            // не мог сработать, потому что его ответ никуда не доезжал.
+            injectionSignal: signal)
     }
 
     func cancelAnswerAction() {
