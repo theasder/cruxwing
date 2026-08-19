@@ -267,21 +267,10 @@ final class AutoOrchestrator: LLMGateway {
                 "\($0.provider.label) (\($0.category.rawValue))"
             }.joined(separator: ", ")
             if outputStarted {
-                return "Ответ модели оборвался уже после начала, поэтому повторно он не запрашивался. Дайтеrs attempted: \(summary)."
+                return "Ответ модели оборвался уже после начала, поэтому повторно он не запрашивался. Пробовали: \(summary)."
             }
             return "Настроенные провайдеры не смогли выполнить запрос. Пробовали: \(summary)."
         }
-    }
-
-    /// True for errors that mean a direct provider's key is wrong/absent.
-    /// Backend and orchestration-service 401s are deliberately excluded.
-    static func isProviderAuthFailure(_ error: Error) -> Bool {
-        if case LLMError.missingKey(let source) = error {
-            return !isBackendSource(source)
-        }
-        if case LLMError.http(let provider, let code, _) = error,
-           !isBackendSource(provider), code == 401 { return true }
-        return false
     }
 
     /// A closed classification used both for retry policy and privacy-safe

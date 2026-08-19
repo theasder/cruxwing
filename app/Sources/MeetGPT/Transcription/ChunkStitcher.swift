@@ -158,15 +158,6 @@ enum ChunkStitcher {
         return Double(row[b.count]) / Double(max(a.count, b.count))
     }
 
-    /// Whether `next` says nothing `previous` did not already say. A window
-    /// that lands entirely inside the overlap decodes to a pure repeat, and
-    /// emitting it would duplicate a line rather than extend one.
-    static func isPureRepeat(previous: String, next: String) -> Bool {
-        let trimmed = stitch(previous: previous, next: next)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty
-    }
-
     // MARK: - Internals
 
     /// Clause separators that belong to the words removed at the seam, never

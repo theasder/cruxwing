@@ -8,18 +8,17 @@ import Testing
 struct AuthFallbackTests {
     @Test("classifies provider auth failures, not backend/session or other errors")
     func classification() {
-        #expect(AutoOrchestrator.isProviderAuthFailure(
-            LLMError.http("Anthropic", 401, "invalid x-api-key")))
-        #expect(AutoOrchestrator.isProviderAuthFailure(
-            LLMError.missingKey("Anthropic")))
+        // Спрашиваем `failoverCategory` — разбор, по которому идёт работа.
+        let category = { (error: Error) in
+            AutoOrchestrator.failoverCategory(for: error, provider: .anthropic)
+        }
+        #expect(category(LLMError.http("Anthropic", 401, "invalid x-api-key")) == .authentication)
+        #expect(category(LLMError.missingKey("Anthropic")) == .configuration)
         // Backend 401 = expired session — a different model can't fix it.
-        #expect(!AutoOrchestrator.isProviderAuthFailure(
-            LLMError.http("Backend", 401, "unauthorized")))
-        // Non-auth provider errors pass through untouched.
-        #expect(!AutoOrchestrator.isProviderAuthFailure(
-            LLMError.http("Anthropic", 429, "rate limited")))
-        #expect(!AutoOrchestrator.isProviderAuthFailure(
-            LLMError.badResponse("Gemini")))
+        #expect(category(LLMError.http("Backend", 401, "unauthorized")) == nil)
+        // Non-auth provider errors get their own category, not authentication.
+        #expect(category(LLMError.http("Anthropic", 429, "rate limited")) == .rateLimited)
+        #expect(category(LLMError.badResponse("Gemini")) == nil)
     }
 
     @Test("fallback model comes from a different provider, allowed for the tier")

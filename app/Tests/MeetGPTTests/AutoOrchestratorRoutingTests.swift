@@ -158,10 +158,16 @@ struct AutoOrchestratorRoutingTests {
 
     // MARK: - Layer 3: recovering when a provider rejects the call
 
+    // Проверки ниже смотрят на `failoverCategory` — путь, по которому идёт
+    // работа. Раньше они спрашивали `isProviderAuthFailure`: тот же разбор,
+    // написанный раньше и с тех пор никем не вызываемый. Различия, которые они
+    // закрепляют, настоящие; спрашивали их у кода, который не исполняется.
     @Test("a missing key or a provider 401 is an auth failure worth retrying elsewhere")
     func recognisesAuthFailures() {
-        #expect(AutoOrchestrator.isProviderAuthFailure(LLMError.missingKey("OpenAI")))
-        #expect(AutoOrchestrator.isProviderAuthFailure(LLMError.http("OpenAI", 401, "bad key")))
+        #expect(AutoOrchestrator.failoverCategory(
+            for: LLMError.missingKey("OpenAI"), provider: .openAI) == .configuration)
+        #expect(AutoOrchestrator.failoverCategory(
+            for: LLMError.http("OpenAI", 401, "bad key"), provider: .openAI) == .authentication)
     }
 
     @Test("our own backend's 401 is not a provider auth failure")
@@ -169,17 +175,21 @@ struct AutoOrchestratorRoutingTests {
         // A 401 from Backend means the USER is signed out. Retrying it on
         // another provider cannot help and would hide the real cause — which is
         // exactly the "credits unavailable" confusion in a different disguise.
-        #expect(!AutoOrchestrator.isProviderAuthFailure(LLMError.http("Backend", 401, "sign in")))
+        #expect(AutoOrchestrator.failoverCategory(
+            for: LLMError.http("Backend", 401, "sign in"), provider: .openAI) == nil)
     }
 
     @Test("outages, rate limits and transport errors are not auth failures")
     func otherErrorsAreNotAuthFailures() {
         for code in [429, 500, 502, 503] {
-            #expect(!AutoOrchestrator.isProviderAuthFailure(LLMError.http("OpenAI", code, "")),
+            #expect(AutoOrchestrator.failoverCategory(
+                for: LLMError.http("OpenAI", code, ""), provider: .openAI) != .authentication,
                     "\(code) treated as an auth failure")
         }
-        #expect(!AutoOrchestrator.isProviderAuthFailure(LLMError.badResponse("OpenAI")))
-        #expect(!AutoOrchestrator.isProviderAuthFailure(URLError(.timedOut)))
+        #expect(AutoOrchestrator.failoverCategory(
+            for: LLMError.badResponse("OpenAI"), provider: .openAI) != .authentication)
+        #expect(AutoOrchestrator.failoverCategory(
+            for: URLError(.timedOut), provider: .openAI) != .authentication)
     }
 
     @Test("the auth fallback never returns the provider that just failed")

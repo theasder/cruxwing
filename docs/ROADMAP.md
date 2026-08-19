@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 330 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 333 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2914 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -2172,6 +2172,19 @@ four kinds, and the kinds matter more than the list:
 resolves to a section that exists; every footnote is defined, used, and carries
 an address and a read date; README points here.
 
+**A translation that matched a truncated prefix left «Дайтеrs attempted» in the
+code for a day.** Replacing `"…it was not retried again. Provide"` inside
+`"…Providers attempted: \(summary)."` fused the Russian to the English tail. This
+had already happened three times — «чтобы подfirm its destination», «Остановите и
+нtart recording» — and each of those was caught by a test pinning that exact
+string. This one had no such test and shipped into the working tree.
+
+No language check could see it: the line contains Cyrillic, so it reads as
+Russian. `test/srashcheniya.test.mjs` looks for the actual shape — a Cyrillic
+letter directly against a Latin one inside a literal — while allowing the two
+places where the alphabets legitimately touch: a character class in a pattern
+(`[A-Za-zА-Яа-я]`) and a vowel inventory with no spaces (`aeiouyаеёиоуыэюя`).
+
 **Counts measured, not remembered** — own connectors, page-and-doc tests, the
 ceiling on English strings in the interface, the numbers §5.2 quotes about
 `build.sh`, the page limit §7.2 names, the manifest count §6.2 names, and the
@@ -2197,7 +2210,35 @@ reverse; a manifest is unreachable exactly when this file says it is; the scan
 bound here equals the engine's; §8's package promises hold against the packaging
 scripts; a queue row shows what it depends on.
 
-**Guards that cannot fire.** Three of them turned up in one week — a build halt
+**Guards that cannot fire — and the rule is not only a type.** The check asked
+which *types* named `Guard`/`Sanitizer`/`Policy`/`Validator`/`Checker` nobody
+calls. Three times in one week the same defect arrived in a different shape: a
+pure **function** — `looksLikeAQuote`, `AudioChunkBuffer.trouble`,
+`unsupportedEntries` — written, explained, covered by a suite, and **not called**.
+Each time the mutation that deleted the call site passed. Rule functions are now
+checked the same way, by the shape of the name (`looksLike…`, `is…`, `trouble`,
+`unsupported…`).
+
+Its first version asked for `name(` and declared three live rules unreachable:
+`.filter(isFillable)` passes a function without calling it. A reference is a use.
+
+Two real ones came out of it. `isPureRepeat` was a wrapper over `stitch` that
+only the suite called — the property it asserted now goes through `stitch`
+itself, and the wrapper is gone. **`isProviderAuthFailure` was a superseded
+classifier**: the live path decides the same thing through `failoverCategory`,
+and two suites — including one whose whole stated subject is auth fallback — were
+asserting against code that no longer runs. Their distinctions are real («our own
+backend's 401 means the user is signed out, not a provider problem»), so they were
+moved onto the live classifier rather than deleted. A test that describes a
+superseded mechanism is worse than no test: it reads as coverage, and a change to
+the mechanism that *does* run leaves it green.
+
+`authFallbackModel` is in the same state and is **not** fixed here: it is
+uncalled, and the property its test asserts — a fallback from a different provider
+allowed for the tier — needs checking against wherever the live fallback list is
+built before anything is removed. Named rather than half-done.
+
+**Three of them turned up in one week — a build halt
 reading a variable it had blanked itself, an entitlement check asserting
 whichever branch the machine happened to be in, and `PromptInjectionGuard`, with
 no caller anywhere in the app. None would ever have been found by running the

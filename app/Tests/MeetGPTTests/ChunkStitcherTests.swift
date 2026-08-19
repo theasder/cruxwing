@@ -61,13 +61,17 @@ struct ChunkStitcherTests {
                 == "the Kubernetes rollout waits.")
     }
 
-    @Test("a window entirely inside the overlap is a pure repeat")
+    @Test("a window entirely inside the overlap adds nothing")
     func detectsPureRepeat() {
+        // Проверяется `stitch` — то, что работа и зовёт. Рядом стояла обёртка
+        // `isPureRepeat`, спрашивавшая ровно это; её не звал никто, кроме
+        // набора, и правило про недостижимые сторожа её нашло. Свойство
+        // осталось, обёртка ушла.
         let previous = "before we migrate the Postgres cluster"
-        #expect(ChunkStitcher.isPureRepeat(previous: previous,
-                                           next: "the Postgres cluster") == true)
-        #expect(ChunkStitcher.isPureRepeat(previous: previous,
-                                           next: "and run the backfill") == false)
+        #expect(ChunkStitcher.stitch(previous: previous, next: "the Postgres cluster")
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        #expect(!ChunkStitcher.stitch(previous: previous, next: "and run the backfill")
+                .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
     @Test("empty input on either side is returned unchanged")
