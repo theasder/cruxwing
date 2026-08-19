@@ -224,13 +224,31 @@ describe('ROADMAP', () => {
     const described = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                                           'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
-    const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24' };
+    const claimedAsCode = { 'Яндекс Трекер': 'yandexTracker', 'Битрикс24': 'bitrix24',
+                            'Rocket.Chat': 'rocketChat', 'YouGile': 'yougile' };
     const stillCode = section('6.2').slice(section('6.2').indexOf('Still code'));
     for (const [name, id] of Object.entries(claimedAsCode)) {
       assert.ok(stillCode.includes(name), `§6.2 больше не называет ${name} среди остающихся кодом`);
       assert.ok(!described.includes(id.toLowerCase()),
         `§6.2 зовёт ${name} кодом, а манифест для него уже написан`);
     }
+
+    // И обратная сторона — та, которой не было и которая и подвела.
+    //
+    // Проверка выше следит, чтобы НАЗВАННЫЙ кодом не обзавёлся манифестом
+    // втихую. Но список читается как полный, а был неполным: из пяти сервисов
+    // без манифеста в нём стояло два. Rocket.Chat, Kaiten и YouGile оставались
+    // кодом вообще без объяснения. Теперь молчание ловится по имени.
+    const enums = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                                       'RussianTrackers.swift'), 'utf8')
+      + readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                             'WorkMessengers.swift'), 'utf8');
+    const inCode = [...enums.matchAll(/public enum Service: String[^{]*\{\s*\n\s*case ([^\n]+)/g)]
+      .flatMap((m) => m[1].split(',').map((n) => n.trim()));
+    const silent = inCode.filter((id) => !described.includes(id.toLowerCase()))
+      .filter((id) => !Object.values(claimedAsCode).includes(id));
+    assert.deepEqual(silent, [],
+      `сервисы без манифеста и без причины в §6.2: ${silent.join(', ')}`);
 
     const manifests = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                                           'Resources', 'connectors'))

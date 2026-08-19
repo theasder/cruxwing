@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 644 | README, maintainer run |
+| App and core tests | 2886 and 646 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -478,7 +478,7 @@ and that person is exactly who can show the real server answer.
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
 `mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
-**Today there are 17**, and the number is counted from that directory rather
+**Today there are 18**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
 The engine carries the rules the five hand-written connectors established
@@ -632,7 +632,48 @@ code just as much as «fourteen manifests» is. `test/roadmap.test.mjs` now hold
 the list against the manifest directory: a service named here as code must not
 have a manifest file. Write one and the plan is required to catch up.
 
+**The «still code» list named two services out of five — 2026-08-21.** The check
+added yesterday runs one way: a service the plan calls code must not have a
+manifest. The other direction was open, and it was the one that mattered. Five
+services had no manifest and the list named two: **Rocket.Chat, Kaiten and
+YouGile were staying code with no stated reason at all**, which reads exactly
+like a complete list. The check now runs both ways, and a service without a
+manifest that nobody has explained fails it by name.
+
+Reading the three, two had no obstacle whatever. **Kaiten is the tenth described
+as data** — a plain `GET /cards` with the term in `query` and a Bearer token; it
+was simply undone.
+
+Adding it broke one check, and the check deserved it. «Different response shapes
+parse the same» fed **three vendors' shapes** to Kaiten and required each to be
+read. That tested a fiction: Kaiten returns an array and only an array. The
+tolerance belongs to the *shared* hand-written parser, which serves five services
+with different envelopes — so it is tested through `legacySearch` now, where it
+lives, and Kaiten's manifest is asserted to **refuse** a foreign shape. A
+description of a service that reads «anything vaguely similar» is a guess with a
+schema.
+
+**YouGile is next, and its divergences are already named** rather than left as a
+surprise: putting it on a manifest changes four behaviours, and each is the
+engine being stricter than the shared parser — 403 separated from 401 (the
+Пачка lesson, above), a login page recognised as a page, a foreign envelope
+refused instead of guessed, and the term's own spelling asked before the stem.
+Four test expectations pin the older, looser behaviour and must move with it.
+That is a piece of work, not a JSON file, and pretending otherwise is how a
+migration lands half-done.
+
 **Still code, and now for reasons that were re-checked rather than remembered:**
+
+* **YouGile** — not blocked, but not free either. A manifest for it changes four
+  behaviours at once, each of them the engine being stricter than the shared
+  parser, and four test expectations pin the looser ones. Named above in full;
+  it stays code until that work is done rather than half-done.
+* **Rocket.Chat** splits one credential into two headers — `X-Auth-Token` and
+  `X-User-Id` come from a single colon-joined string a person pastes. The format
+  can put a whole credential into a header, and base64 it for Basic; it cannot
+  cut one in half. It also needs a room id, because its search runs inside one
+  room by the vendor's own rule.
+
 
 * **Яндекс Трекер.** The old wording — «searches by POST with a body and a second
   credential» — describes two things the format now does: bodies are templates,

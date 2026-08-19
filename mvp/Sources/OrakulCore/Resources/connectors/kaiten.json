@@ -1,0 +1,24 @@
+{
+  "id": "kaiten",
+  "title": "Kaiten",
+  "docs": "https://developers.kaiten.ru/#tag/cards/operation/getCards",
+  "verifiedOn": "2026-08-21",
+  "note": "Российский трекер, домен у каждой команды свой — адрес спрашивается отдельным полем и приводится к https://<домен>/api/latest. Карточки ищутся параметром query; ответ — массив верхнего уровня, заголовок в title, номер в id. Ссылку на карточку собирает вызывающий код: путь /ticket/<id> живёт на домене команды, а не на адресе API.",
+  "request": {
+    "method": "GET",
+    "path": "/cards",
+    "query": [
+      { "name": "query", "value": "{query}" },
+      { "name": "limit", "value": "{limit}" }
+    ],
+    "headers": [
+      { "name": "Authorization", "value": "Bearer {token}" }
+    ]
+  },
+  "response": {
+    "list": [],
+    "title": ["title"],
+    "key": ["id"],
+    "state": []
+  }
+}

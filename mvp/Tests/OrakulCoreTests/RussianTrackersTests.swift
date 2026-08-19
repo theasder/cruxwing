@@ -241,9 +241,17 @@ struct RussianTrackersTests {
         }
     }
 
-    @Test("разные формы ответа разбираются одинаково")
-    func parsesEachShape() async throws {
-        // Голый массив (Kaiten, Яндекс) и обёртка content (YouGile).
+    @Test("рукописный разбор терпит формы всех пяти сервисов")
+    func legacyParsesEachShape() async throws {
+        // Один разбор на пять сервисов, поэтому он и терпит: голый массив
+        // (Kaiten, Яндекс), обёртка content (YouGile), data и result.tasks
+        // (Битрикс). Терпимость нужна ровно тем, кто остаётся кодом.
+        //
+        // Раньше все три формы скармливались Kaiten и от него требовалось
+        // разобрать каждую. Это проверяло выдумку: Kaiten отдаёт массив и
+        // только массив, а «разберёт и чужую форму» — не свойство сервиса, а
+        // свойство общего разбора. Теперь общий разбор и проверяется — через
+        // `legacySearch`, то есть через ту самую реализацию.
         let shapes = [
             #"[{"id": 42, "title": "Поднять лимиты"}]"#,
             #"{"content": [{"id": 42, "title": "Поднять лимиты"}]}"#,
@@ -251,10 +259,40 @@ struct RussianTrackersTests {
         ]
         for json in shapes {
             let (http, _) = stub(json: json)
-            let issues = try await client(.kaiten, http: http).search("лимиты")
+            let issues = try await client(.kaiten, http: http).legacySearch("лимиты")
             #expect(issues.count == 1, "форма не разобрана: \(json.prefix(20))")
             #expect(issues.first?.key == "42")
             #expect(issues.first?.title == "Поднять лимиты")
+        }
+    }
+
+    @Test("слово человека уезжает в том параметре, который назвал вендор")
+    func kaitenSendsTheTermInTheDocumentedParameter() async throws {
+        // Ровно та дыра, которую этот файл уже ловил на Gitea: путь, заголовок
+        // и конверт закреплены, а ИМЯ параметра поиска — нет. Сервис, которому
+        // пришёл запрос без параметра поиска, возвращает всю ленту задач или
+        // ничего, и то и другое выглядит как работающий поиск.
+        //
+        // Найдено мутацией: query → q, и весь набор проходил.
+        let (http, recorder) = stub(json: #"[{"id": 42, "title": "Поднять лимиты"}]"#)
+        _ = try await client(.kaiten, http: http).search("лимиты")
+        let first = try #require(recorder.first?.url)
+        let items = try #require(URLComponents(url: first, resolvingAgainstBaseURL: false)?.queryItems)
+        #expect(items.contains { $0.name == "query" && $0.value == "лимиты" },
+                "слово уехало не в том параметре: \(items.map(\.name))")
+    }
+
+    @Test("манифест Kaiten описывает Kaiten, а не «что-нибудь похожее»")
+    func kaitenManifestRefusesForeignShapes() async throws {
+        // Описание сервиса на то и описание: чужая форма — это смена формата,
+        // а не пустая выдача. Пустой список сказал бы человеку «в трекере
+        // ничего нет», хотя правда в том, что ответ не поняли.
+        let (array, _) = stub(json: #"[{"id": 42, "title": "Поднять лимиты"}]"#)
+        #expect(try await client(.kaiten, http: array).search("лимиты").count == 1)
+
+        let (foreign, _) = stub(json: #"{"content": [{"id": 42, "title": "Поднять лимиты"}]}"#)
+        await #expect(throws: (any Error).self) {
+            _ = try await client(.kaiten, http: foreign).search("лимиты")
         }
     }
 
