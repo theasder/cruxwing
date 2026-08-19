@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 304 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2861 and 621 | README, maintainer run |
+| App and core tests | 2865 and 621 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1372,6 +1372,28 @@ Guard, Sanitizer, Policy, Validator or Checker, and fails on one that nothing
 invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
+
+**The tokens were already staying on the machine, and nothing said so.** The
+Keychain holds keys to work trackers, wikis and messengers — and to Fireflies,
+whose owner sells the competing product. Whether those keys leave the Mac is
+decided by one attribute: `…ThisDeviceOnly` never synchronises, while
+`kSecAttrAccessibleAfterFirstUnlock` without that tail copies every one of them
+to iCloud and onto every device of the account.
+
+The code is right and was right before this tick. Nothing held it that way: a
+one-word edit, invisible unless somebody is looking for it, would move work
+credentials off the machine while contradicting the product's central claim.
+
+It is pinned now, in three directions rather than one. Removing `ThisDeviceOnly`
+fails. Setting `kSecAttrSynchronizable` fails — because the accessibility
+attribute alone would no longer be the whole answer. And tightening to
+`WhenUnlockedThisDeviceOnly` fails too, which is the opposite mistake and the
+easy one to make in the name of security: transcription runs in the background,
+and a source that goes silent behind a locked screen looks like a broken
+connector, not like protection.
+
+Nothing about the search for this was clever — the question was «which of our
+promises has no check», and the Keychain answered it.
 
 **Third finding of the same kind, so it stopped being a finding and became a
 rule.** The audio itself goes to disk: `ExternalTranscriber` writes the call as

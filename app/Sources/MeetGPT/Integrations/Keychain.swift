@@ -147,7 +147,10 @@ struct SystemKeychain: KeychainStore {
         ])
     }
 
-    private func insertAttributes(data: Data, account storedAccount: String) -> [String: Any] {
+    /// Внутренний, а не приватный: набор обязан видеть, с какими правами
+    /// доступа кладётся токен. Одно слово в этой строке решает, останется ли
+    /// ключ от рабочего трекера на этом компьютере.
+    func insertAttributes(data: Data, account storedAccount: String) -> [String: Any] {
         query(account: storedAccount, adding: [
             kSecValueData as String: data,
             // Data-protection items key off the app identity without the classic
