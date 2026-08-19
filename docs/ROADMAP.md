@@ -1110,7 +1110,7 @@ setting.
 | **Yonote**, knowledge base | Checked 2026-08-18 and **still blocked**. The vendor's own developer pages return navigation without method reference (`/developers`, `/developers?v=2`, `docs.yonote.ru`). Third-party MCP clients agree on base `app.yonote.ru/api` and token auth[^yonote] | Whether a **search** method exists. One community client exposes only `documents_list` / `documents_info` — listing, which §7.2 does not accept as search. Unblocked by public method documentation, or by an account where the call can be made and its answer seen. Until then this is not «nearly written»: that phrasing was an assumption, and checking removed it |
 | **GitVerse**, code | **Closed 2026-08-18, see §7.5** — the list method exists and returns the wrong things |
 | **GitFlic**, code | **Connected 2026-08-18** under §7.2 — see there for the whole shape[^gitflic] | Nothing blocking. Open: the maximum `size` is undocumented, so 50 is a guess a live install would confirm or correct |
-| **Compass**, messenger with an on-premise install | A bot API exists | Whether message search exists and whether the bot sees other people's conversation. The Telegram path ended exactly here (plan §8.1) — question first, code after |
+| **Compass**, messenger with an on-premise install | **Closed 2026-08-20, see §7.5.** The bot API is real and documented, and it neither searches nor sees[^compass] |
 | **Аспро.Cloud** | No method reference found from outside (plan §2.0.3) | Task list method, search parameter, response shape. Unblocked by somebody's account — issue [#2](https://github.com/theasder/orakul/issues/2) |
 | **Битрикс24** | Connected **from the docs**, not against a live portal (plan §2.0.1) | Whether `TITLE` pattern search works. One command, a portal needed — issue [#1](https://github.com/theasder/orakul/issues/1) |
 
@@ -1808,6 +1808,26 @@ about tasks, so «ничего не нашлось» would be wrong on a reposit
 task open in front of you. A connector whose emptiness cannot be trusted is
 worse than none: this product's whole claim is that an answer is either quoted
 or refused.
+
+**Compass — closed 2026-08-20, and the question answered itself.** The row above
+asked two things: whether message search exists, and whether the bot sees other
+people's conversation. The vendor's own bot documentation answers both, and both
+answers are no. The method list is twelve calls — sending to a user, a group or
+a thread, reactions, the member list, the group list, commands, webhook version,
+a file upload URL — and not one of them reads history or searches it. The
+webhook is narrower still: the service is only sent messages whose text begins
+with a slash, so a bot standing in a room does not hear the room.
+
+That is the Telegram ending word for word (plan §8.1), and it arrives from the
+same cause rather than by coincidence: a messenger that treats a bot as a
+participant, not as an observer, cannot answer «что решили по срокам» however
+the connector is written. Scanning is not a fallback here — §7.2 accepts a
+listing only with a bound and a selection, and there is nothing to list.
+
+Reopening needs one new fact: a documented method that reads messages the bot
+was not addressed in. Everything else is ready — the on-premise base is
+`https://<host>/userbot/api/v3/`, the cloud one is
+`https://userbot.getcompass.com/api/v3/`, requests are POST with JSON.
 
 Reopening needs one new fact — that endpoint listing issues. Everything else is
 ready: `page`/`per_page` (max 100), `Authorization: Bearer` or `token`, and the
@@ -3476,3 +3496,4 @@ honest about itself.
 
 [^jiradc]: Jira Data Center, `GET /rest/api/2/search`: parameters `jql`, `startAt`, `maxResults` (default 50, ceiling set by the `jira.search.views.default.max` property), `validateQuery` (default true), `fields`, `expand`; response example `{"expand":"names,schema","startAt":0,"maxResults":50,"total":1,"issues":[{"id":"10001","self":…,"key":"HSP-1"}]}`. Taken from the vendor's own WADL (`jira-rest-plugin.wadl`), not from a retelling, read 2026-08-19: https://docs.atlassian.com/software/jira/docs/api/REST/9.12.0/ — personal tokens go in `Authorization: Bearer <token>` and exist from Jira Core 8.14 / Confluence 7.9: https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html — reserved characters in text search (`+ - & | ! ( ) { } [ ] ^ ~ * ? \ :`) are not stored in the index, and a double quote inside a JQL string is escaped as `\"`: https://confluence.atlassian.com/jirasoftwareserver/search-syntax-for-text-fields-939938747.html
 [^confdc]: Confluence Data Center, `GET /rest/api/search`: parameters `cql`, `cqlcontext`, `excerpt` (default `highlight`), `expand`, `start`, `limit` (default 25), `includeArchivedSpaces` (default false); 400 «if the query cannot be parsed». The declared 200 schema is «Search Page Response of Search Result», an **array** of `{title, excerpt, url, resultGlobalContainer, iconCssClass, lastModified, friendlyLastModified}` — with no `results` envelope. read 2026-08-19: https://docs.atlassian.com/ConfluenceServer/rest/8.9.0/
+[^compass]: Compass, userbot API (the vendor's own documentation repository, `getCompass/userbot`, read 2026-08-20): base `https://userbot.getcompass.com/api/v3/` for the cloud and `https://<host>/userbot/api/v3/` on-premise, POST with `application/json`. The complete method list is `user/send`, `group/send`, `thread/send`, `message/addReaction`, `message/removeReaction`, `user/getList`, `group/getList`, `command/update`, `command/getList`, `webhook/setVersion`, `webhook/getVersion`, `file/getUrl` — no search, no history. The webhook receives only messages whose text starts with a slash. https://github.com/getCompass/userbot/blob/master/README_ru.md
