@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 335 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2932 and 663 | README, maintainer run |
+| App and core tests | 2939 and 663 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1143,6 +1143,15 @@ The wait now covers the rendered view rather than the state behind it. Two
 instances of one class are still not a diagnosis of all six sightings, and the
 remaining four have not been explained.
 
+
+**The flake did not reproduce in ten consecutive full runs (2026-08-20).** That
+is not a fix and is written down as what it is: ten clean runs cannot
+distinguish «gone» from «one in twenty», which is the same limit the eight runs
+before it had. Two of the twelve runs in that batch did fail, and both failures
+were this session's own unfinished edit being picked up mid-flight, not the
+flake — worth recording because a batch that reports failures is easy to read as
+a reproduction when it is nothing of the kind.
+
 **Fourth sighting of the flake, and it is always the same neighbourhood.** This
 time `BlindSpotSchedulerRaceTests` again, a different check
 («a non-cooperative stale provider»), failing on a wait that never completed and
@@ -2105,6 +2114,7 @@ Played as the attacker against the real code. What landed:
 | Throttle instead of blocking (429) | «Трекер ответил ошибкой 429» — the word «ошибка» sends a person to reissue a token that is fine | Its own case, with `Retry-After` when the service sends it, and the text says the token is not the problem |
 | Accept a write and do nothing (empty body, no error flag) | The MCP path calls a tool, throws only when the server marks an error, and rendered the empty answer as «Задача создана.» — the most expensive false sentence in the product: a person leaves the call believing the commitment is recorded | No answer, no claim. The service's own words are shown when there are any; silence is reported as silence, with «Проверьте в трекере». The Russian-tracker twin never had this — `parseCreated` refuses a response with no key, so what reaches the screen is the key itself, and the key is the proof |
 | Name the address the person's browser will open | The export to Notion opened the URL the MCP server named, and the check on it looked like a check: the string starts with `https://` and **contains** «notion.so». So does `https://notion.so.chuzhoy.ru/login`, and so does `https://chuzhoy.ru/?next=notion.so`. The server chose where the browser went, at the one moment a person is least suspicious — they pressed «export» and are waiting for their own page to appear | The **owner** of the address is compared, not searched for: the domain itself or a subdomain of it, `https` only. A host that merely *ends* with the name (`podnotion.so`, a domain that costs a rouble and a minute) was not covered until a mutation removed the dot and the suite stayed green — that case is a test now |
+| Read the meeting without recording it | The background scan runs on its own cadence while the person is speaking, and its query was built as «goal — now: <the last ~60 characters of speech, verbatim>». That query goes to **every** connected source, a competitor's service included, and nobody asked for it. The sibling path already refused exactly this shape: a query the model assembles is dropped when it carries six consecutive words of the meeting. One rule, two paths, and the forbidden form was built by the path nobody watches | The tail now travels as **words**, not as a sentence — short connectives dropped, anything with a digit kept, so «CRX-42», «Q3» and «тарифы» still reach the search. Then the same `looksLikeAQuote` runs on the assembled query: if it still reads as a quote, the tail does not go at all. A less precise query is cheaper than the meeting's content leaving quietly |
 
 Writing has a failure the reading side does not: a server can accept the call
 and do nothing. Reading wrong is arguable — you can compare the quote with what

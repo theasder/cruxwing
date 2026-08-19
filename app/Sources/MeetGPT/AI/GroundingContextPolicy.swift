@@ -116,14 +116,63 @@ enum GroundingContextPolicy {
         let goalPart = clippedAtBoundary(cleanGoal, cap: goalCap)
         let tailCap = max(0, maxChars - goalPart.count - separator.count)
         guard tailCap > 0 else { return clippedAtBoundary(goalPart, cap: maxChars) }
-        var tailPart = String(cleanTail.suffix(tailCap))
-        // suffix() can begin halfway through a word. Drop that fragment while
-        // keeping the most recent entity/identifier at the end of the query.
-        if cleanTail.count > tailCap,
-           let firstSpace = tailPart.firstIndex(where: \.isWhitespace) {
-            tailPart = String(tailPart[tailPart.index(after: firstSpace)...])
+        // Хвост речи уходит СЛОВАМИ, а не фразой.
+        //
+        // Здесь стоял дословный кусок расшифровки — последние примерно
+        // шестьдесят знаков сказанного. Запрос из них уезжает в КАЖДЫЙ
+        // подключённый источник, в том числе к сервису конкурента, и делает
+        // это фоновая проверка: сама, по своему расписанию, пока человек
+        // говорит и ничего не спрашивал.
+        //
+        // Соседний путь этого же не разрешал: запрос, собранный моделью,
+        // проверяется `looksLikeAQuote` и отбрасывается, если несёт шесть слов
+        // подряд из встречи. Два пути расходились в одном и том же вопросе —
+        // и запрещённую форму строил тот, за которым человек не следит.
+        //
+        // Нужны здесь имена и номера — «CRX-42», «Falcon», «тарифы», — а не
+        // предложение. Служебные слова живой речи короткие, содержательные
+        // длинные: этого достаточно, чтобы разобрать фразу на слова и
+        // сохранить ровно то, ради чего хвост брали.
+        let tailPart = recentTerms(in: cleanTail, cap: tailCap)
+        guard !tailPart.isEmpty else { return clippedAtBoundary(goalPart, cap: maxChars) }
+        let query = goalPart + separator + tailPart
+        // И последняя проверка — тем же правилом, что и у соседа. Если
+        // собранное всё-таки читается как цитата, хвост не уходит вовсе:
+        // менее точный запрос дешевле молча вынесенного содержания встречи.
+        guard !PromptWorkflows.looksLikeAQuote(query, of: recentTranscript) else {
+            return clippedAtBoundary(goalPart, cap: maxChars)
         }
-        return goalPart + separator + tailPart
+        return query
+    }
+
+    /// Значимые слова из хвоста речи, в исходном порядке и написании.
+    ///
+    /// Отбор по длине, а не по словарю: словарь служебных слов пришлось бы
+    /// вести и он молча устаревал бы, а «мы», «и», «на», «для», «уже», «был»
+    /// коротки в любом его издании. Слово с цифрой берётся всегда — это номер
+    /// задачи, версия или дата, то самое, ради чего хвост и брали.
+    static func recentTerms(in tail: String, cap: Int) -> String {
+        guard cap > 0 else { return "" }
+        let carries = { (word: Substring) in
+            word.contains(where: \.isNumber) || word.count > 4
+        }
+        var kept: [Substring] = []
+        var seen: Set<String> = []
+        var length = 0
+        for word in tail.split(separator: " ").reversed() where carries(word) {
+            // Повтор не добавляет ничего к поиску и добавляет много к длине
+            // совпадения: у речи есть слова-подпорки, и десять «собственно»
+            // подряд — это десять слов подряд, общих с расшифровкой. Проверка
+            // на цитату честно считала бы их цитатой и выбрасывала бы вместе
+            // с ними номер задачи, ради которого хвост и берут. Найдено
+            // прогоном: на повторяющемся тексте запрос терял «CRX-42».
+            guard seen.insert(word.lowercased()).inserted else { continue }
+            let added = length == 0 ? word.count : word.count + 1
+            guard length + added <= cap else { break }
+            kept.append(word)
+            length += added
+        }
+        return kept.reversed().joined(separator: " ")
     }
 
     /// Rank before any network task is created. Theme-strength dominates, then
