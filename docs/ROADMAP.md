@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2866 and 621 | README, maintainer run |
+| App and core tests | 2866 and 626 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -839,12 +839,51 @@ setting.
 | Service | Known | To decide or learn |
 |---|---|---|
 | **Slack** | **Connected 2026-08-18 — see the decision below**[^slack] | Open: the method is marked legacy and the vendor points at `assistant.search.context`. Moving there waits until it is clear what scopes it demands |
-| **Plane**, open, self-hosted | **Connected 2026-08-18** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `state.name`[^plane] | Nothing blocking. Open: whether a live workspace confirms the cursor format `perPage:page:is_prev` — the connector is built from the docs, not from a live install |
+| **Plane**, open, self-hosted | **Connected 2026-08-18, verified against a live install 2026-08-19** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `description_html`[^plane] | Nothing blocking. The cursor `perPage:page:is_prev` is confirmed — the live service answered `100:1:0` to a request for `100:0:0`. Two other fields were not what the docs promised: see below |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
 | **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**Plane was verified against a live install on 2026-08-19, and the connector
+built from the docs was searching a field that does not exist.** The service is
+open, so «a live workspace would confirm it» could stop being a plan and become
+a measurement: Postgres, a cache and the API container, with the workspace, the
+project, the work items and the API key created straight in the database —
+Plane makes both of the last two through the web, and there is nobody here to
+click.
+
+The cursor was the thing this row was waiting on, and it was right: the service
+answered `next_cursor: "100:1:0"` to a request for `100:0:0`, so
+`perPage:page:is_prev` numbered from zero is confirmed, as are `total_count` and
+`next_page_results`.
+
+Two other fields were not:
+
+* the docs promise a work item carries `description` — the service sends
+  `description_html` and no `description` at all. Our selection matched on
+  `name` and `description`, so **the description arm never fired once**: a task
+  whose only mention of the word is in its description was invisible, and the
+  answer looked complete because the other tasks did come back;
+* `state` arrives as an identifier string, not an object with a `name`. Reading
+  `state.name` therefore yielded nothing, silently — and the alternative,
+  showing a person `505c4110-46ec-…`, is worse than showing nothing, so the
+  field is now empty deliberately and the connector does not pretend to know
+  the state.
+
+One more thing the live service taught, which no reading of the docs would
+have: Plane's editor puts emphasis **inside** a word, so a description arrives
+as `тари<strong>фы</strong>`. Comparing against raw markup misses it, and
+comparing against raw markup also means a query like `p` or `href` matches every
+row. Tags are now stripped **before** the comparison, not only on the way to the
+person.
+
+The fixture in `PlaneConnectorTests` is a capture of that live answer rather
+than a hand-written sample, and the suite says so: it may be edited only
+together with a new snapshot. All four claims are pinned by mutation — remove
+the description arm, restore `state`, stop stripping tags, or scramble the
+cursor, and a test fails.
 
 **Two western trackers connected directly, 2026-08-18: Linear and Trello.**
 Both also answer during a call, not only from the command line — the fan-out in

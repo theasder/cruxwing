@@ -2,36 +2,73 @@
   "id": "plane",
   "title": "Plane",
   "docs": "https://developers.plane.so/api-reference/issue/list-issues",
-  "verifiedOn": "2026-08-18",
-  "note": "Поиска по слову у Plane нет — проверено в справочнике 2026-08-18: параметры только cursor, per_page, expand, fields, order_by, external_id, external_source. Поэтому перечисление с границей (§7.2 дорожной карты): пять страниц по сто, отбор по названию и описанию у нас, охват уезжает человеку. Курсор строкой «размер:страница:назад», нумерация с нуля; per_page больше 100 сервис не принимает. Шестьдесят запросов в минуту на клиента — ещё причина держать границу низкой.",
+  "verifiedOn": "2026-08-19",
+  "note": "Поиска по слову у Plane нет — проверено в справочнике 2026-08-18: параметры только cursor, per_page, expand, fields, order_by, external_id, external_source. Поэтому перечисление с границей (§7.2 дорожной карты): пять страниц по сто, отбор по названию и описанию у нас, охват уезжает человеку. Курсор строкой «размер:страница:назад», нумерация с нуля; per_page больше 100 сервис не принимает. Шестьдесят запросов в минуту на клиента — ещё причина держать границу низкой. Проверено на поднятом у себя Plane 2026-08-19: курсор и признаки страниц совпали со справочником, а вот полей `description` и `state.name` в ответе НЕТ — описание приезжает в `description_html`, состояние строкой-идентификатором. Отбор по описанию поэтому молча не срабатывал, а состояние всегда было пустым.",
   "parameters": [
-    { "name": "workspace", "title": "Пространство", "example": "moya-komanda" },
-    { "name": "project", "title": "Проект", "example": "550e8400-e29b-41d4-a716-446655440000" }
+    {
+      "name": "workspace",
+      "title": "Пространство",
+      "example": "moya-komanda"
+    },
+    {
+      "name": "project",
+      "title": "Проект",
+      "example": "550e8400-e29b-41d4-a716-446655440000"
+    }
   ],
   "request": {
     "method": "GET",
     "path": "/api/v1/workspaces/{workspace}/projects/{project}/work-items/",
     "query": [],
     "headers": [
-      { "name": "X-API-Key", "value": "{token}" }
+      {
+        "name": "X-API-Key",
+        "value": "{token}"
+      }
     ]
   },
   "scan": {
     "pages": 5,
     "perPage": 100,
     "page": [
-      { "name": "cursor", "value": "{perPage}:{page}:0" },
-      { "name": "per_page", "value": "{perPage}" }
+      {
+        "name": "cursor",
+        "value": "{perPage}:{page}:0"
+      },
+      {
+        "name": "per_page",
+        "value": "{perPage}"
+      }
     ],
-    "match": [["name"], ["description"]],
-    "more": ["next_page_results"],
-    "total": ["total_count"]
+    "match": [
+      [
+        "name"
+      ],
+      [
+        "description_html"
+      ]
+    ],
+    "more": [
+      "next_page_results"
+    ],
+    "total": [
+      "total_count"
+    ]
   },
   "response": {
-    "list": ["results"],
-    "title": ["name"],
-    "context": ["description"],
-    "key": ["sequence_id"],
-    "state": ["state", "name"]
+    "list": [
+      "results"
+    ],
+    "title": [
+      "name"
+    ],
+    "context": [
+      "description_html"
+    ],
+    "key": [
+      "sequence_id"
+    ],
+    "state": [],
+    "stripTags": true
   }
 }

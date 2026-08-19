@@ -10,6 +10,7 @@
 #     bash scripts/zhivaya-proba.sh redmine
 #     bash scripts/zhivaya-proba.sh wikijs
 #     bash scripts/zhivaya-proba.sh nextcloud
+#     bash scripts/zhivaya-proba.sh plane
 #
 # Сервис поднимается, наполняется тремя задачами (две со словом «тарифы», одна
 # без), коннектор ищет это слово, контейнер удаляется. Токен создаётся здесь же
@@ -26,8 +27,8 @@ FIELDS=()
 TASKS=("Поднять тарифы с декабря" "Починить вход по SSO" "Тарифы: пересчитать лимиты")
 
 case "$SERVICE" in
-  gitea|redmine|wikijs|nextcloud) ;;
-  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud" >&2; exit 2 ;;
+  gitea|redmine|wikijs|nextcloud|plane) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
@@ -37,6 +38,8 @@ cleanup() {
   # У Wiki.js своя база и своя сеть: без них следующий запуск поднимется
   # поверх прошлых данных, и «нашлось» будет про них.
   docker rm -f "${NAME}-db" >/dev/null 2>&1 || true
+  # У Plane к базе добавляется ещё и кэш.
+  docker rm -f "${NAME}-redis" >/dev/null 2>&1 || true
   docker network rm "${NAME}-net" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
@@ -125,6 +128,54 @@ elif [ "$SERVICE" = nextcloud ]; then
   docker exec -u www-data "$NAME" php occ files:scan --all >/dev/null 2>&1 || true
   TOKEN="proba:$PASS"
   FIELDS=(ORAKUL_FIELD_provider=files)
+elif [ "$SERVICE" = plane ]; then
+  PORT=3995
+  docker network create "${NAME}-net" >/dev/null 2>&1 || true
+  docker run -d --name "${NAME}-db" --network "${NAME}-net" \
+    -e POSTGRES_USER=plane -e POSTGRES_PASSWORD=plane -e POSTGRES_DB=plane \
+    postgres:15-alpine >/dev/null
+  docker run -d --name "${NAME}-redis" --network "${NAME}-net" \
+    valkey/valkey:7.2.5-alpine >/dev/null
+  sleep 6
+  PLANE_ENV=(-e DATABASE_URL=postgresql://plane:plane@${NAME}-db/plane
+             -e REDIS_URL=redis://${NAME}-redis:6379/
+             -e SECRET_KEY=proba-orakul-secret)
+  docker run --rm --network "${NAME}-net" "${PLANE_ENV[@]}" \
+    makeplane/plane-backend:stable ./bin/docker-entrypoint-migrator.sh >/dev/null 2>&1
+  # Штатная точка входа поднимает ещё и хранилище объектов, которого здесь нет:
+  # запускаем сервер напрямую. Проверяется коннектор, а не установка Plane.
+  docker run -d --name "$NAME" --network "${NAME}-net" -p "$PORT:8000" \
+    "${PLANE_ENV[@]}" --entrypoint gunicorn makeplane/plane-backend:stable \
+    -w 1 -k uvicorn.workers.UvicornWorker plane.asgi:application --bind 0.0.0.0:8000 >/dev/null
+  wait_for "http://localhost:$PORT/api/instances/" 60
+
+  # Задачи и ключ заводятся напрямую в базе: у Plane и то и другое создаётся
+  # через веб, а не через API, и кликать здесь некому. Пятая задача — со словом
+  # ВНУТРИ подсветки: редактор Plane так и размечает, а сравнение с сырой
+  # разметкой её не находит. Четвёртая — со словом только в описании.
+  SETUP=$(docker exec -i "$NAME" python -c "
+import django, os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'plane.settings.production')
+django.setup()
+from plane.db.models import User, Workspace, WorkspaceMember, Project, ProjectMember, State, Issue, APIToken
+u, _ = User.objects.get_or_create(email='proba@example.com', defaults={'username': 'proba', 'display_name': 'Proba'})
+ws, _ = Workspace.objects.get_or_create(slug='moya-komanda', defaults={'name': 'Моя команда', 'owner': u})
+WorkspaceMember.objects.get_or_create(workspace=ws, member=u, defaults={'role': 20})
+pr, _ = Project.objects.get_or_create(workspace=ws, identifier='PRB', defaults={'name': 'Проба', 'created_by': u})
+ProjectMember.objects.get_or_create(project=pr, member=u, workspace=ws, defaults={'role': 20})
+st, _ = State.objects.get_or_create(project=pr, name='В работе', workspace=ws, defaults={'group': 'started', 'created_by': u})
+rows = [('${TASKS[0]}', '<p>Пересмотреть цены</p>'),
+        ('${TASKS[1]}', '<p>Не пускает через провайдера</p>'),
+        ('${TASKS[2]}', '<p>Лимиты в описании тоже про тарифы</p>'),
+        ('Починить экспорт', '<p>Экспорт цен и ${QUERY} за квартал</p>'),
+        ('Обновить прайс', '<p>Пересчитать <strong>тари</strong>фы за квартал</p>')]
+for i, (name, html) in enumerate(rows, start=1):
+    Issue.objects.get_or_create(project=pr, name=name, workspace=ws,
+        defaults={'description_html': html, 'state': st, 'created_by': u, 'sequence_id': i})
+t, _ = APIToken.objects.get_or_create(user=u, workspace=ws, label='proba')
+print('%s %s' % (pr.id, t.token))" | tail -1)
+  TOKEN="${SETUP##* }"
+  FIELDS=(ORAKUL_FIELD_workspace=moya-komanda "ORAKUL_FIELD_project=${SETUP%% *}")
 else
   PORT=3998
   docker run -d --name "$NAME" -p "$PORT:3000" redmine:5 >/dev/null

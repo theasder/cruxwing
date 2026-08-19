@@ -363,7 +363,15 @@ public struct ManifestConnector {
             }
             matched += rows.filter { row in
                 scan.match.contains { path in
-                    Self.string(at: path, in: row).lowercased().contains(needle)
+                    // Разметку снимаем ДО сравнения, а не только по дороге к
+                    // человеку. Иначе искать пришлось бы по тексту с тегами: у
+                    // Plane описание приезжает как `<p>…</p>`, и слово,
+                    // разорванное подсветкой (`тари<strong>фы</strong>`), не
+                    // нашлось бы, а запрос «p» или «href» нашёл бы всё подряд.
+                    let text = manifest.response.stripTags == true
+                        ? Self.withoutTags(Self.string(at: path, in: row))
+                        : Self.string(at: path, in: row)
+                    return text.lowercased().contains(needle)
                 }
             }.compactMap(item(from:))
 
