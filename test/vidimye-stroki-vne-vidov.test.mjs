@@ -1,0 +1,60 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { stripComments } from './swift-source.mjs';
+
+// Текст для человека пишут не только во «Views».
+//
+// Потолок английских строк (§6.4) считает Views и Onboarding — и честно об этом
+// говорит. Чего он сказать не мог: часть того, что человек читает, собирается в
+// AppState и оттуда подставляется в вид. Так «запись уйдёт в AssemblyAI with
+// your own key» прожила неизвестно сколько внутри русской фразы, а под кнопкой
+// показывалось «partial merge — transcript left unchanged».
+//
+// Здесь считается вторая совокупность: свойства, которые вид печатает как есть.
+// Список свойств — руками, потому что «строка в AppState» это ещё не текст для
+// человека: там же лежат ключи, идентификаторы и записи в журнал.
+
+const STATE = 'app/Sources/MeetGPT/AppState.swift';
+
+/// Свойства, чьё значение вид показывает человеку без изменений.
+const SHOWN = ['lastError', 'transcriptEnhanceNote', 'localDiarizationNote'];
+
+/// Названия сервисов — не английский текст, а имена. «Deepgram: …» это префикс
+/// сообщения самого сервиса, и переводить его значило бы выдумывать за него.
+const VENDOR_PREFIX = /^(Deepgram|AssemblyAI|OpenAI|Fireflies|Notion|Google|Whisper|MCP)\b/;
+
+const CYRILLIC = /[а-яА-ЯёЁ]/;
+
+function assignments(property) {
+  const code = stripComments(readFileSync(STATE, 'utf8'));
+  return [...code.matchAll(new RegExp(`${property}\\s*=\\s*"([^"]{6,})"`, 'g'))]
+    .map(([, text]) => text);
+}
+
+test('свойства, которые вид печатает, написаны по-русски', () => {
+  const english = [];
+  for (const property of SHOWN) {
+    for (const text of assignments(property)) {
+      if (CYRILLIC.test(text)) continue;
+      if (VENDOR_PREFIX.test(text)) continue;
+      english.push(`${property}: «${text}»`);
+    }
+  }
+  assert.deepEqual(english, [],
+    `человек прочтёт это по-английски: ${english.join('; ')}. ` +
+    'Счётчик §6.4 сюда не смотрит — он считает Views и Onboarding.');
+});
+
+test('совокупность не пустая — иначе проверка сторожит пустоту', () => {
+  const counted = SHOWN.flatMap(assignments).length;
+  assert.ok(counted >= 20,
+    `нашлось ${counted} присваиваний — разбор сломан или свойства переименовали`);
+});
+
+// Проверка обязана ловить ту строку, ради которой написана.
+test('подложенная английская строка находится', () => {
+  const planted = 'transcript left unchanged';
+  assert.ok(!CYRILLIC.test(planted), 'образец должен быть без кириллицы');
+  assert.ok(!VENDOR_PREFIX.test(planted), 'образец не должен считаться именем сервиса');
+});

@@ -9819,7 +9819,7 @@ final class AppState: ObservableObject {
             // transcript is left exactly as it was.
             if result.isPartial {
                 transcriptEnhanceNote =
-                    "\(result.summary) · partial merge — transcript left unchanged"
+                    "\(result.summary) · подмешано частично — расшифровка не менялась"
             } else {
                 transcript = result.entries
                 localDiarizationNote = nil
@@ -9838,7 +9838,7 @@ final class AppState: ObservableObject {
             // The model summarised what changed but its entry list was
             // unusable. That summary is still the useful half of the answer —
             // show it instead of an error full of broken JSON.
-            transcriptEnhanceNote = "\(summary) · transcript left unchanged"
+            transcriptEnhanceNote = "\(summary) · расшифровка не менялась"
             lastError = nil
             return true
         } catch {

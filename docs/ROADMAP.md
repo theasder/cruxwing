@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 294 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 297 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2848 and 618 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -643,6 +643,27 @@ Command to reproduce — useful at a terminal, and **not** what guards this:
 cd app/Sources/MeetGPT && grep -rhoE '(Text|Label|Button|Toggle|\.help|\.navigationTitle|Section)\(\s*"[^"]{4,}"' Views Onboarding \
   | grep -oE '"[^"]+"' | sort -u | grep -vc "[а-яА-ЯёЁ]"
 ```
+
+**A second population, counted since 2026-08-20.** The number above is honest
+about what it measures — `Views/` and `Onboarding/` — and that is exactly what it
+could not warn about: part of what a person reads is assembled in `AppState` and
+handed to a view. «Запись уйдёт в AssemblyAI with your own key» lived inside a
+Russian sentence, and «partial merge — transcript left unchanged» was printed
+under a button, both outside the counted directories.
+
+`test/vidimye-stroki-vne-vidov.test.mjs` counts the properties a view prints
+verbatim — `lastError`, `transcriptEnhanceNote`, `localDiarizationNote`: fifty-odd
+assignments, and each must carry Cyrillic. The list of properties is written by
+hand on purpose, because «a string in AppState» is not the same as «text for a
+person»: keys, identifiers and log lines live there too, and a scan that counted
+them would report a number nobody could act on.
+
+Vendor names are allowed through — «Deepgram: …» prefixes a message the service
+wrote, and translating that would be inventing words on its behalf.
+
+Two English notes were found by the first run and translated. The limit that
+remains is stated rather than closed: a fourth surface, printed from somewhere
+neither list watches, would be invisible to both.
 
 `grep` reads one line at a time, and a call split over two lines is invisible to
 it:
