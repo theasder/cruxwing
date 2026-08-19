@@ -872,6 +872,34 @@ setting.
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
 
+**Thirteen tests were reading the maintainer's keychain.** Every number this
+plan publishes rests on the suite meaning something, and a suite whose answer
+depends on the machine it runs on means less than it claims. `ProviderKeyStore.
+current` falls back to the **real** keychain when no override is set, and
+provider routing filters models by whether a key exists — so thirteen routing
+tests took whichever path the maintainer's own keys happened to produce. On this
+machine that pool is empty, which is why they look stable here; on a machine
+where somebody has pasted a key into the app, they are different tests.
+
+One of them already carried a note about it: «provider configuration is global
+state that other suites mutate in parallel… this `#require` failed roughly one
+run in twenty». The response at the time was to work around the symptom inside
+that one test. The cause is what moved now: key state is pinned explicitly, and
+the workaround is gone.
+
+**Pinning it wrong made things worse before it made them better.** Setting an
+empty store everywhere turned that same test into a permanently vacuous one: its
+`guard let … else { return }` found no second vendor, returned early, and passed
+— a check that cannot fail, which is worse than one that fails one run in
+twenty. The pool it needs is now seeded, and the silent skip is a `#require`:
+with keys seeded a second vendor must exist, and its absence is a failure rather
+than a reason to leave quietly.
+
+What is **not** established: that any of this is the cause of the rare full-run
+failures seen twice this week. Three consecutive full runs after the change were
+green, which proves nothing about a one-in-twenty event. The environment
+dependency was real and is removed; the flake is still open.
+
 **A competitor does not have to attack us — revoking access is quieter, and
 we were making it quieter still.** `ConnectorHealth` records the words a service
 refuses us with, and two settings sections displayed them: own servers and

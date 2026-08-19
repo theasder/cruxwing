@@ -84,30 +84,38 @@ struct RequestSelectionSnapshotTests {
 
     @Test("fast-audit snapshot cannot fall through to a live Auto selection")
     func fastAuditIsConcreteAcrossOrchestrator() async throws {
-        let gateway = RequestSelectionSpyGateway()
-        let audit = LLMCatalog.fastAudit(
-            for: capturedAnthropicAuto, managed: true)
-        let sut = orchestrator(gateway: gateway) {
-            "auto:\(LLMProvider.anthropic.rawValue)"
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = RequestSelectionSpyGateway()
+            let audit = LLMCatalog.fastAudit(
+                for: capturedAnthropicAuto, managed: true)
+            let sut = orchestrator(gateway: gateway) {
+                "auto:\(LLMProvider.anthropic.rawValue)"
+            }
+
+            #expect(audit.requestSelectionID == audit.id)
+            _ = try await sut.streamChat(
+                system: "audit",
+                user: "Check the draft mechanically.",
+                images: [],
+                model: audit,
+                maxOutputTokens: OutputTokenBudget.explicitUserFacing,
+                onDelta: { _ in })
+
+            let call = try #require(gateway.calls.first)
+            #expect(call.model.id == audit.id)
+            #expect(call.model.provider == audit.provider)
+            #expect(call.model.requestSelectionID == audit.id)
         }
-
-        #expect(audit.requestSelectionID == audit.id)
-        _ = try await sut.streamChat(
-            system: "audit",
-            user: "Check the draft mechanically.",
-            images: [],
-            model: audit,
-            maxOutputTokens: OutputTokenBudget.explicitUserFacing,
-            onDelta: { _ in })
-
-        let call = try #require(gateway.calls.first)
-        #expect(call.model.id == audit.id)
-        #expect(call.model.provider == audit.provider)
-        #expect(call.model.requestSelectionID == audit.id)
     }
 
     @Test("background work is self-pinned and cannot inherit provider Auto")
     func backgroundIsConcreteAcrossOrchestrator() async throws {
+        try await withoutProviderKeys {
         let gateway = RequestSelectionSpyGateway()
         let background = LLMCatalog.background(
             for: capturedAnthropicAuto, managed: true)
@@ -128,5 +136,6 @@ struct RequestSelectionSnapshotTests {
         #expect(call.model.provider == background.provider)
         #expect(call.model.requestSelectionID == background.id)
         #expect(call.maxOutputTokens == nil)
+        }
     }
 }

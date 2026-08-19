@@ -132,116 +132,148 @@ struct AutoOrchestratorFailoverTests {
 
     @Test("a selected provider's HTTP 402 falls back before output without duplicate deltas")
     func selectedProviderFundingFallback() async throws {
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("OpenAI", 402, #"{"error":"not enough funds"}"#))),
-            .init(deltas: ["funded ", "answer"], result: .success("funded answer")),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id)
-        var deltas: [String] = []
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 402, #"{"error":"not enough funds"}"#))),
+                .init(deltas: ["funded ", "answer"], result: .success("funded answer")),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id)
+            var deltas: [String] = []
 
-        let answer = try await sut.streamChat(
-            system: "s", user: "u", images: [], model: openAI,
-            maxOutputTokens: 321, onDelta: { deltas.append($0) })
+            let answer = try await sut.streamChat(
+                system: "s", user: "u", images: [], model: openAI,
+                maxOutputTokens: 321, onDelta: { deltas.append($0) })
 
-        #expect(answer == "funded answer")
-        #expect(deltas == ["funded ", "answer"])
-        #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
-        #expect(gateway.calledOutputBudgets == [321, 321])
+            #expect(answer == "funded answer")
+            #expect(deltas == ["funded ", "answer"])
+            #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
+            #expect(gateway.calledOutputBudgets == [321, 321])
+        }
     }
 
     @Test("Auto recovers from a funding 429 on a different configured vendor")
     func autoFundingFallback() async throws {
-        let routed = AutoOrchestrator.route(.light, tier: .premium, hasImages: false)
-        let routedCost = CreditCostEstimate.credits(
-            model: routed.id, inputTokens: 100)
-        // Drawn from the pool `route` ACTUALLY used — configured providers only.
-        // Reading LLMCatalog.available(for:) instead ignores configuration, and
-        // since provider configuration is global state that other suites mutate
-        // in parallel, the two disagreed intermittently and this #require failed
-        // roughly one run in twenty.
-        let configuredPool = LLMCatalog.available(for: .premium)
-            .filter { $0.provider.isConfigured }
-        guard let budgetSafeFallback = configuredPool.first(where: {
-            $0.provider != routed.provider
-                && CreditCostEstimate.credits(model: $0.id, inputTokens: 100) <= routedCost
-        }) else {
-            // Only one provider configured in this environment: there is no
-            // second vendor to fail over to, so there is nothing to assert.
-            return
+        // Здесь ключи ЗАСЕЯНЫ, а не пусты, и это не мелочь: проверке нужен
+        // непустой пул настроенных провайдеров, иначе `guard` ниже выходит из
+        // теста и он перестаёт что-либо утверждать. Первая моя правка закрепила
+        // тут пустое хранилище и превратила шаткую проверку в вечно пустую —
+        // сторож, который не может сработать, вместо срабатывающего раз в
+        // двадцать прогонов.
+        try await withSeededProviderKeys {
+            let routed = AutoOrchestrator.route(.light, tier: .premium, hasImages: false)
+            let routedCost = CreditCostEstimate.credits(
+                model: routed.id, inputTokens: 100)
+            // Пул тот же, которым пользуется `route`, — только настроенные
+            // провайдеры. Здесь стояла запись про «глобальное состояние, которое
+            // соседние наборы меняют параллельно, и раз в двадцать прогонов
+            // проверка падала». Состояние действительно было глобальным: без
+            // подмены `ProviderKeyStore.current` читает связку ключей машины.
+            // Теперь оно закреплено вызовом выше, и обход не нужен.
+            let configuredPool = LLMCatalog.available(for: .premium)
+                .filter { $0.provider.isConfigured }
+            // Раньше здесь стоял `guard ... else { return }` со словами «в этой
+            // среде настроен один провайдер — переключаться не на кого, и
+            // утверждать нечего». Такой выход неотличим от успеха: проверка
+            // молча ничего не проверяла. Ключи засеяны выше, значит второй
+            // вендор ОБЯЗАН найтись, и его отсутствие — поломка, а не повод
+            // выйти.
+            let budgetSafeFallback = try #require(configuredPool.first(where: {
+                $0.provider != routed.provider
+                    && CreditCostEstimate.credits(model: $0.id, inputTokens: 100) <= routedCost
+            }), "второй настроенный вендор не найден — проверять нечего, и это поломка")
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http(errorSource(for: routed.provider), 429,
+                                  #"{"code":"insufficient_quota"}"#))),
+                .init(deltas: ["ok"], result: .success("ok")),
+            ])
+            // The fallback is a real catalog model at or below the routed model's
+            // tariff; a stronger alternate would now be (correctly) refused.
+            let sut = orchestrator(gateway, selection: LLMCatalog.autoID,
+                                   fallbacks: [budgetSafeFallback])
+            var deltas: [String] = []
+
+            let answer = try await sut.streamChat(
+                system: "s", user: "short", images: [], model: LLMCatalog.auto,
+                onDelta: { deltas.append($0) })
+
+            #expect(answer == "ok")
+            #expect(deltas == ["ok"])
+            #expect(gateway.calledModels.count == 2)
+            #expect(gateway.calledModels[0].provider != gateway.calledModels[1].provider)
         }
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http(errorSource(for: routed.provider), 429,
-                              #"{"code":"insufficient_quota"}"#))),
-            .init(deltas: ["ok"], result: .success("ok")),
-        ])
-        // The fallback is a real catalog model at or below the routed model's
-        // tariff; a stronger alternate would now be (correctly) refused.
-        let sut = orchestrator(gateway, selection: LLMCatalog.autoID,
-                               fallbacks: [budgetSafeFallback])
-        var deltas: [String] = []
-
-        let answer = try await sut.streamChat(
-            system: "s", user: "short", images: [], model: LLMCatalog.auto,
-            onDelta: { deltas.append($0) })
-
-        #expect(answer == "ok")
-        #expect(deltas == ["ok"])
-        #expect(gateway.calledModels.count == 2)
-        #expect(gateway.calledModels[0].provider != gateway.calledModels[1].provider)
     }
 
     @Test("pre-output timeout and 5xx failures can use another vendor")
     func transientFallback() async throws {
-        func assertFallback(_ error: Error) async throws {
-            let gateway = FailoverScriptGateway([
-                .init(deltas: [], result: .failure(error)),
-                .init(deltas: ["recovered"], result: .success("recovered")),
-            ])
-            let sut = orchestrator(gateway, selection: openAI.id)
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            func assertFallback(_ error: Error) async throws {
+                let gateway = FailoverScriptGateway([
+                    .init(deltas: [], result: .failure(error)),
+                    .init(deltas: ["recovered"], result: .success("recovered")),
+                ])
+                let sut = orchestrator(gateway, selection: openAI.id)
 
-            let answer = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                let answer = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
 
-            #expect(answer == "recovered")
-            #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
+                #expect(answer == "recovered")
+                #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
+            }
+
+            try await assertFallback(LLMError.http("OpenAI", 503, "upstream unavailable"))
+            try await assertFallback(URLError(.timedOut))
         }
-
-        try await assertFallback(LLMError.http("OpenAI", 503, "upstream unavailable"))
-        try await assertFallback(URLError(.timedOut))
     }
 
     @Test("no vendor is retried after the first non-empty output delta")
-    func noFallbackAfterOutput() async {
-        let original = LLMError.http(
-            "OpenAI", 503, "stream broke account=customer-secret sk-proj-tail")
-        let gateway = FailoverScriptGateway([
-            .init(deltas: ["partial"], result: .failure(original)),
-            .init(deltas: ["duplicate"], result: .success("duplicate")),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id)
-        var deltas: [String] = []
+    func noFallbackAfterOutput() async throws {
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let original = LLMError.http(
+                "OpenAI", 503, "stream broke account=customer-secret sk-proj-tail")
+            let gateway = FailoverScriptGateway([
+                .init(deltas: ["partial"], result: .failure(original)),
+                .init(deltas: ["duplicate"], result: .success("duplicate")),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id)
+            var deltas: [String] = []
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI,
-                onDelta: { deltas.append($0) })
-            Issue.record("expected the interrupted provider error")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            guard error.outputStarted,
-                  error.attempts == [.init(provider: .openAI, category: .unavailable)] else {
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI,
+                    onDelta: { deltas.append($0) })
+                Issue.record("expected the interrupted provider error")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                guard error.outputStarted,
+                      error.attempts == [.init(provider: .openAI, category: .unavailable)] else {
+                    Issue.record("unexpected error: \(type(of: error))")
+                    return
+                }
+                #expect(!error.localizedDescription.contains("customer-secret"))
+                #expect(!error.localizedDescription.contains("sk-proj-tail"))
+            } catch {
                 Issue.record("unexpected error: \(type(of: error))")
-                return
             }
-            #expect(!error.localizedDescription.contains("customer-secret"))
-            #expect(!error.localizedDescription.contains("sk-proj-tail"))
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
-        }
 
-        #expect(deltas == ["partial"])
-        #expect(gateway.calledModels.map(\.provider) == [.openAI])
+            #expect(deltas == ["partial"])
+            #expect(gateway.calledModels.map(\.provider) == [.openAI])
+        }
     }
 
     @Test("the output-started retry barrier is safe across concurrent callbacks")
@@ -271,191 +303,237 @@ struct AutoOrchestratorFailoverTests {
     }
 
     @Test("one configured provider never exposes a raw funding body")
-    func safeSingleProviderFailure() async {
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("OpenAI", 402,
-                              "billing account customer-secret sk-proj-tail"))),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id, fallbacks: [])
+    func safeSingleProviderFailure() async throws {
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 402,
+                                  "billing account customer-secret sk-proj-tail"))),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id, fallbacks: [])
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
-            Issue.record("expected bounded provider failure")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            #expect(!error.outputStarted)
-            #expect(error.attempts == [.init(provider: .openAI, category: .funding)])
-            #expect(!error.localizedDescription.contains("customer-secret"))
-            #expect(!error.localizedDescription.contains("sk-proj-tail"))
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                Issue.record("expected bounded provider failure")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(!error.outputStarted)
+                #expect(error.attempts == [.init(provider: .openAI, category: .funding)])
+                #expect(!error.localizedDescription.contains("customer-secret"))
+                #expect(!error.localizedDescription.contains("sk-proj-tail"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("non-retryable direct-provider rejections are sanitized without fallback")
-    func safeRequestRejection() async {
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("OpenAI", 400, "private request echo customer-secret"))),
-            .init(deltas: ["must not run"], result: .success("must not run")),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id)
+    func safeRequestRejection() async throws {
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 400, "private request echo customer-secret"))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id)
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
-            Issue.record("expected bounded rejection")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            #expect(!error.outputStarted)
-            #expect(error.attempts == [.init(provider: .openAI, category: .rejected)])
-            #expect(!error.localizedDescription.contains("customer-secret"))
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                Issue.record("expected bounded rejection")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(!error.outputStarted)
+                #expect(error.attempts == [.init(provider: .openAI, category: .rejected)])
+                #expect(!error.localizedDescription.contains("customer-secret"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("direct fallback never silently upgrades beyond the selected model's tariff")
     func fallbackRespectsSelectedCostCeiling() async throws {
-        let cheap = try #require(LLMCatalog.model(id: "deepseek-v4-pro"))
-        let expensive = try #require(LLMCatalog.model(id: "gpt-5.5"))
-        #expect(CreditCostEstimate.credits(model: cheap.id, inputTokens: 100) == 1)
-        #expect(CreditCostEstimate.credits(model: expensive.id, inputTokens: 100) == 7)
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("DeepSeek", 402, "insufficient funds private-body"))),
-            .init(deltas: ["must not run"], result: .success("must not run")),
-        ])
-        let sut = orchestrator(gateway, selection: cheap.id, fallbacks: [expensive])
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let cheap = try #require(LLMCatalog.model(id: "deepseek-v4-pro"))
+            let expensive = try #require(LLMCatalog.model(id: "gpt-5.5"))
+            #expect(CreditCostEstimate.credits(model: cheap.id, inputTokens: 100) == 1)
+            #expect(CreditCostEstimate.credits(model: expensive.id, inputTokens: 100) == 7)
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("DeepSeek", 402, "insufficient funds private-body"))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
+            ])
+            let sut = orchestrator(gateway, selection: cheap.id, fallbacks: [expensive])
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: cheap, onDelta: { _ in })
-            Issue.record("expected bounded provider failure")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            #expect(error.attempts == [.init(provider: .deepSeek, category: .funding)])
-            #expect(!error.localizedDescription.contains("private-body"))
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: cheap, onDelta: { _ in })
+                Issue.record("expected bounded provider failure")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(error.attempts == [.init(provider: .deepSeek, category: .funding)])
+                #expect(!error.localizedDescription.contains("private-body"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("8k output surcharge participates in fallback tariff eligibility")
     func fallbackRespectsOutputBudgetCost() async throws {
-        let primary = try #require(LLMCatalog.model(id: "gpt-5.4-mini"))
-        let expensiveAtEightK = try #require(LLMCatalog.model(id: "gemini-3.5-flash"))
-        #expect(CreditCostEstimate.credits(
-            model: primary.id, inputTokens: 100,
-            maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 2)
-        #expect(CreditCostEstimate.credits(
-            model: expensiveAtEightK.id, inputTokens: 100,
-            maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 3)
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("OpenAI", 402, "insufficient funds"))),
-            .init(deltas: ["must not run"], result: .success("must not run")),
-        ])
-        let sut = orchestrator(
-            gateway, selection: primary.id, fallbacks: [expensiveAtEightK])
-
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: primary,
-                maxOutputTokens: OutputTokenBudget.explicitUserFacing) { _ in }
-            Issue.record("expected the over-tariff fallback to be refused")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            #expect(error.attempts == [
-                .init(provider: .openAI, category: .funding),
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let primary = try #require(LLMCatalog.model(id: "gpt-5.4-mini"))
+            let expensiveAtEightK = try #require(LLMCatalog.model(id: "gemini-3.5-flash"))
+            #expect(CreditCostEstimate.credits(
+                model: primary.id, inputTokens: 100,
+                maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 2)
+            #expect(CreditCostEstimate.credits(
+                model: expensiveAtEightK.id, inputTokens: 100,
+                maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 3)
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 402, "insufficient funds"))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
             ])
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
+            let sut = orchestrator(
+                gateway, selection: primary.id, fallbacks: [expensiveAtEightK])
+
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: primary,
+                    maxOutputTokens: OutputTokenBudget.explicitUserFacing) { _ in }
+                Issue.record("expected the over-tariff fallback to be refused")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(error.attempts == [
+                    .init(provider: .openAI, category: .funding),
+                ])
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("aggregate failure is bounded and never exposes upstream bodies")
-    func safeAggregateFailure() async {
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(
-                LLMError.http("OpenAI", 402, "secret-account-id primary-body"))),
-            .init(deltas: [], result: .failure(
-                LLMError.http("Gemini", 503, "private-google-body"))),
-            .init(deltas: [], result: .failure(
-                LLMError.http("Anthropic", 401, "sk-ant-secret"))),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id)
+    func safeAggregateFailure() async throws {
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 402, "secret-account-id primary-body"))),
+                .init(deltas: [], result: .failure(
+                    LLMError.http("Gemini", 503, "private-google-body"))),
+                .init(deltas: [], result: .failure(
+                    LLMError.http("Anthropic", 401, "sk-ant-secret"))),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id)
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
-            Issue.record("expected aggregate failure")
-        } catch let error as AutoOrchestrator.ProviderFailoverError {
-            let message = error.localizedDescription
-            #expect(error.attempts.count == 3)
-            #expect(!error.outputStarted)
-            #expect(message.contains("OpenAI (funding)"))
-            #expect(message.contains("Google (unavailable)"))
-            #expect(message.contains("Anthropic (authentication)"))
-            #expect(!message.contains("secret-account-id"))
-            #expect(!message.contains("private-google-body"))
-            #expect(!message.contains("sk-ant-secret"))
-        } catch {
-            Issue.record("unexpected error: \(type(of: error))")
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                Issue.record("expected aggregate failure")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                let message = error.localizedDescription
+                #expect(error.attempts.count == 3)
+                #expect(!error.outputStarted)
+                #expect(message.contains("OpenAI (funding)"))
+                #expect(message.contains("Google (unavailable)"))
+                #expect(message.contains("Anthropic (authentication)"))
+                #expect(!message.contains("secret-account-id"))
+                #expect(!message.contains("private-google-body"))
+                #expect(!message.contains("sk-ant-secret"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
         }
     }
 
     @Test("Backend session 401 and Cruxwing credit-cap 429 are preserved",
           arguments: [401, 429])
     func backendErrorsDoNotFailOver(status: Int) async {
-        let body = status == 429
-            ? "You need 2 compute credits, but only 0 remain this period."
-            : "session expired"
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(LLMError.http("Backend", status, body))),
-            .init(deltas: ["must not run"], result: .success("must not run")),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id)
+        // Ключи закреплены — см. соседние проверки: без подмены отбор
+        // провайдеров зависит от связки ключей самой машины.
+        await withoutProviderKeys {
+            let body = status == 429
+                ? "You need 2 compute credits, but only 0 remain this period."
+                : "session expired"
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(LLMError.http("Backend", status, body))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id)
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
-            Issue.record("expected backend error")
-        } catch {
-            guard case LLMError.http("Backend", let actualStatus, let actualBody) = error else {
-                Issue.record("backend error was replaced")
-                return
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                Issue.record("expected backend error")
+            } catch {
+                guard case LLMError.http("Backend", let actualStatus, let actualBody) = error else {
+                    Issue.record("backend error was replaced")
+                    return
+                }
+                #expect(actualStatus == status)
+                #expect(actualBody == body)
+                if status == 429 {
+                    #expect(CreditExhaustion.quotaMessage(from: error) == body)
+                }
             }
-            #expect(actualStatus == status)
-            #expect(actualBody == body)
-            if status == 429 {
-                #expect(CreditExhaustion.quotaMessage(from: error) == body)
-            }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("managed mode never converts a provider-shaped failure into client failover")
-    func managedModeDoesNotFailOver() async {
-        let gateway = FailoverScriptGateway([
-            .init(deltas: [], result: .failure(LLMError.http("OpenAI", 402, "funds"))),
-            .init(deltas: ["must not run"], result: .success("must not run")),
-        ])
-        let sut = orchestrator(gateway, selection: openAI.id, direct: false)
+    func managedModeDoesNotFailOver() async throws {
+        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
+        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
+        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
+        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
+        // а не унаследовано от машины.
+        try await withoutProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(LLMError.http("OpenAI", 402, "funds"))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
+            ])
+            let sut = orchestrator(gateway, selection: openAI.id, direct: false)
 
-        do {
-            _ = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
-            Issue.record("expected original error")
-        } catch {
-            guard case LLMError.http("OpenAI", 402, _) = error else {
-                Issue.record("original error was replaced")
-                return
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                Issue.record("expected original error")
+            } catch {
+                guard case LLMError.http("OpenAI", 402, _) = error else {
+                    Issue.record("original error was replaced")
+                    return
+                }
             }
+            #expect(gateway.calledModels.count == 1)
         }
-        #expect(gateway.calledModels.count == 1)
     }
 
     @Test("classification distinguishes provider funds from Cruxwing credits")

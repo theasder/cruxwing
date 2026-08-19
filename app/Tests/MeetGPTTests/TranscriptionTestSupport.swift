@@ -178,3 +178,13 @@ func withSeededProviderKeys<T>(_ body: () async throws -> T) async rethrows -> T
     for provider in LLMProvider.allCases { store.setKey("sk-test", for: provider) }
     return try await ProviderKeyStore.$overrideForTesting.withValue(store) { try await body() }
 }
+
+/// Машина БЕЗ ключей провайдеров — то, чем является чистая сборочная машина.
+///
+/// Нужна, чтобы проверять маршрутизацию в обе стороны: с ключами и без. Тест,
+/// который не закрепляет ни то, ни другое, читает связку ключей САМОЙ МАШИНЫ и
+/// оказывается верным ровно там, где его писали.
+func withoutProviderKeys<T>(_ body: () async throws -> T) async rethrows -> T {
+    let store = ProviderKeyStore(store: InMemoryKeychain())
+    return try await ProviderKeyStore.$overrideForTesting.withValue(store) { try await body() }
+}
