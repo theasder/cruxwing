@@ -78,6 +78,14 @@ struct RealCallTranscriptionHarness {
         ProcessInfo.processInfo.environment["CRUXWING_REAL_CALL_ONLY"] ?? ""
     }
 
+    /// Есть ли запись, на которой вообще есть что мерить.
+    ///
+    /// Трейт `.enabled(if:)` вместо выхода по guard: без записи проверка должна
+    /// ЧИСЛИТЬСЯ пропущенной. С выходом она отчитывалась как пройденная —
+    /// шестнадцать «зелёных» измерений там, где ни одного измерения не было, а
+    /// план (§6.3) в это же время говорит, что корпуса ещё нет.
+    static var hasFixture: Bool { fixtureRoot != nil }
+
     private static var fixtureRoot: URL? {
         guard let path = ProcessInfo.processInfo.environment["CRUXWING_REAL_CALL_FIXTURE"],
               !path.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
@@ -231,7 +239,7 @@ struct RealCallTranscriptionHarness {
 
     // MARK: - Tests
 
-    @Test("transcribes a real call within the accuracy ceiling")
+    @Test("transcribes a real call within the accuracy ceiling", .enabled(if: Self.hasFixture))
     func realCallAccuracy() async throws {
         guard let (reference, _, score) = try await measured() else { return skipNotice() }
 
@@ -265,7 +273,7 @@ struct RealCallTranscriptionHarness {
         #expect(score.wer < 0.60, "transcription is far worse than the recorded baseline")
     }
 
-    @Test("does not lose most of the speech")
+    @Test("does not lose most of the speech", .enabled(if: Self.hasFixture))
     func doesNotDropSpeech() async throws {
         guard let (_, _, score) = try await measured() else { return skipNotice() }
 
@@ -277,7 +285,7 @@ struct RealCallTranscriptionHarness {
                 "output is far shorter than the speech: \(score.summary)")
     }
 
-    @Test("does not hallucinate more than it hears")
+    @Test("does not hallucinate more than it hears", .enabled(if: Self.hasFixture))
     func doesNotHallucinate() async throws {
         guard let (_, _, score) = try await measured() else { return skipNotice() }
 
@@ -288,7 +296,7 @@ struct RealCallTranscriptionHarness {
                 "output looks padded with invented speech: \(score.summary)")
     }
 
-    @Test("keeps the words the meeting is actually about")
+    @Test("keeps the words the meeting is actually about", .enabled(if: Self.hasFixture))
     func keepsMeaningfulTerms() async throws {
         guard let (reference, hypothesis, _) = try await measured() else { return skipNotice() }
 
@@ -305,7 +313,7 @@ struct RealCallTranscriptionHarness {
         #expect(rate > 0.5, "over half the meeting's distinctive words were lost")
     }
 
-    @Test("seam trimming does not leave repeated or dangling lines")
+    @Test("seam trimming does not leave repeated or dangling lines", .enabled(if: Self.hasFixture))
     func lineHygiene() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -335,7 +343,7 @@ struct RealCallTranscriptionHarness {
         #expect(worstConjunction < 0.45, "cuts are landing before conjunctions")
     }
 
-    @Test("the same audio scores the same twice")
+    @Test("the same audio scores the same twice", .enabled(if: Self.hasFixture))
     func isDeterministic() async throws {
         guard let fixture = try Self.loadFixture() else { return skipNotice() }
 
@@ -629,7 +637,7 @@ struct RealCallTranscriptionHarness {
         #expect(Bool(true))
     }
 
-    @Test("one whole-file pass, the way a post-call re-transcription would run")
+    @Test("one whole-file pass, the way a post-call re-transcription would run", .enabled(if: Self.hasFixture))
     func wholeFileSinglePass() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -702,7 +710,7 @@ struct RealCallTranscriptionHarness {
     ///
     /// Measured rather than assumed, because the last "obvious" lever here cost
     /// 14 points of recall.
-    @Test("temperature fallback sweep, whole-file pass", .timeLimit(.minutes(60)))
+    @Test("temperature fallback sweep, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
     func temperatureFallbackSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -771,7 +779,7 @@ struct RealCallTranscriptionHarness {
     ///
     /// Runs on top of whichever fallback count won the sweep above, passed in
     /// via CRUXWING_WHISPER_FALLBACK, so the two levers are not confounded.
-    @Test("VAD chunking vs fixed windows, whole-file pass", .timeLimit(.minutes(60)))
+    @Test("VAD chunking vs fixed windows, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
     func chunkingStrategySweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -832,7 +840,7 @@ struct RealCallTranscriptionHarness {
     /// the transcription is right. Accented speech scores lower while still
     /// being correct, so a precision bar written for live captions deletes it.
     /// This measures what raising that bar costs and what it recovers.
-    @Test("confidence floor sweep, whole-file pass", .timeLimit(.minutes(60)))
+    @Test("confidence floor sweep, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
     func confidenceFloorSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -888,7 +896,7 @@ struct RealCallTranscriptionHarness {
     /// separates the two possibilities that the WER number cannot: a segment the
     /// filter DELETED, versus one the decoder never produced. They have
     /// completely different fixes.
-    @Test("segment accounting on an accented fixture", .timeLimit(.minutes(20)))
+    @Test("segment accounting on an accented fixture", .timeLimit(.minutes(20)), .enabled(if: Self.hasFixture))
     func segmentAccounting() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -964,7 +972,7 @@ struct RealCallTranscriptionHarness {
     /// `medium` is in the sweep although the app does not offer it: if it sits
     /// near large-v3 at a fraction of the weight, the three-option ladder is
     /// wrong, and that is worth knowing before writing more captions.
-    @Test("model sweep, whole-file pass", .timeLimit(.minutes(120)))
+    @Test("model sweep, whole-file pass", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
     func modelSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -1034,7 +1042,7 @@ struct RealCallTranscriptionHarness {
     /// and would look exactly like the deletions that dominate this corpus: a
     /// window detected as Hindi or Chinese emits little or nothing useful for an
     /// English reference to match.
-    @Test("auto-detect vs forced English", .timeLimit(.minutes(90)))
+    @Test("auto-detect vs forced English", .timeLimit(.minutes(90)), .enabled(if: Self.hasFixture))
     func languageModeSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -1088,7 +1096,7 @@ struct RealCallTranscriptionHarness {
     /// says what the choice actually costs, so the trade can be made on numbers:
     /// a longer window gives the decoder more context either side of a word, at
     /// the price of a caption arriving later.
-    @Test("live chunk length sweep", .timeLimit(.minutes(120)))
+    @Test("live chunk length sweep", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
     func liveChunkLengthSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -1147,7 +1155,7 @@ struct RealCallTranscriptionHarness {
     /// - `overlap` decides how much audio two windows share. More overlap gives
     ///   the stitcher more to match on, at the cost of decoding the same audio
     ///   twice.
-    @Test("seam levers at fixed window", .timeLimit(.minutes(120)))
+    @Test("seam levers at fixed window", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
     func seamLeverSweep() async throws {
         let fixtures = try Self.loadFixtures()
         guard !fixtures.isEmpty else { return skipNotice() }
@@ -1213,7 +1221,7 @@ struct RealCallTranscriptionHarness {
     ///          two-pass shape the post-call re-transcription could ship
     ///   key    `expectedTerms` verbatim — the answer key: the CEILING of what
     ///          any glossary source could deliver, not a shippable mode
-    @Test("glossary mode sweep, whole-file pass", .timeLimit(.minutes(120)))
+    @Test("glossary mode sweep, whole-file pass", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
     func glossaryModeSweep() async throws {
         let fixtures = try Self.loadFixtures().filter {
             $0.reference.topic?.isEmpty == false || $0.reference.expectedTerms?.isEmpty == false

@@ -17,10 +17,17 @@ import Testing
 @Suite("Glossary restore on real speech")
 struct GlossaryRestoreRealTextTests {
 
-    @Test("restore: every change to a real transcript, listed for judgement")
+    /// Есть ли настоящая расшифровка, на которой есть что мерить.
+    static var hasRealTranscript: Bool {
+        ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"] != nil
+    }
+
+    // Трейт вместо выхода по guard: без настоящей расшифровки эта проверка
+    // ничего не измеряет и должна ЧИСЛИТЬСЯ пропущенной, а не пройденной.
+    @Test("restore: every change to a real transcript, listed for judgement", .enabled(if: Self.hasRealTranscript))
     func restoreOnRealSpeech() throws {
-        guard let path = ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"],
-              let text = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+        let path = try #require(ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"])
+        let text = try String(contentsOfFile: path, encoding: .utf8)
 
         let terms = DomainLexicon.casingOnlyTerms(for: text)
         let restored = GlossaryRestore.restore(transcript: text, glossary: [],

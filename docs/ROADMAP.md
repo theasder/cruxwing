@@ -2223,8 +2223,19 @@ One of the eleven carries twenty assertions.
 
 They are `.enabled(if:)` now, which is what Swift Testing provides for exactly
 this and what `LiveConnectorProbe` already used: a skipped test is **reported as
-skipped**. The count went from 10 skipped to 21, and the eleven stopped counting
-themselves as coverage. `test/proverki-ne-molchat.test.mjs` keeps the shape out.
+skipped**. `test/proverki-ne-molchat.test.mjs` keeps the shape out.
+
+**Widening the same question from build state to the environment found sixteen
+more, and they were the ones that mattered.** `RealCallTranscriptionHarness`
+measures transcription against a real recording; without the recording each of
+its checks returned a printed notice — and reported as **passed**. There is no
+recording, and there will not be one until §6.3 has a corpus, so the suite has
+been showing sixteen green *measurements* of a thing never measured, in the same
+week this file says the corpus is what everything waits on. Two more of the same
+shape sat in the real-text harnesses.
+
+Counted honestly across the whole change: **10 skipped before, 39 after**. Every
+one of those 29 was previously reporting itself as a passing test.
 
 Nothing was deleted: these checks are real in the other configuration. What
 changed is that the suite no longer claims to have run them.

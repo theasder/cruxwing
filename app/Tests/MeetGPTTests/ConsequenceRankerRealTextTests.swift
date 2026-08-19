@@ -26,10 +26,17 @@ import Testing
 @Suite("Consequence ranker on real speech")
 struct ConsequenceRankerRealTextTests {
 
-    @Test("ranker: score distribution over real sentences")
+    /// Есть ли настоящая расшифровка, на которой есть что мерить.
+    static var hasRealTranscript: Bool {
+        ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"] != nil
+    }
+
+    // Трейт вместо выхода по guard: без настоящей расшифровки эта проверка
+    // ничего не измеряет и должна ЧИСЛИТЬСЯ пропущенной, а не пройденной.
+    @Test("ranker: score distribution over real sentences", .enabled(if: Self.hasRealTranscript))
     func rankerOnRealSpeech() throws {
-        guard let path = ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"],
-              let text = try? String(contentsOfFile: path, encoding: .utf8) else { return }
+        let path = try #require(ProcessInfo.processInfo.environment["CRUXWING_REAL_TRANSCRIPT"])
+        let text = try String(contentsOfFile: path, encoding: .utf8)
 
         // Sentence-ish units of a length a minutes line would actually have.
         let sentences = text
