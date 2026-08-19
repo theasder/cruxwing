@@ -3,6 +3,7 @@
   "title": "Nextcloud",
   "docs": "https://docs.nextcloud.com/server/stable/developer_manual/digging_deeper/search.html",
   "verifiedOn": "2026-08-19",
+  "liveCheckedOn": "2026-08-19",
   "note": "Единый поиск OCS: GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…, заголовки «OCS-APIRequest: true» и «Accept: application/json». Проверено 2026-08-18 по руководству разработчика и по описанию ответов в исходниках (core/ResponseDefinitions.php): ocs.data.entries[] с title, subline и resourceUrl. Кого спрашивать, выбирает человек: провайдер стоит в адресе, «files» ищет по именам файлов, «talk-message» — по тексту сообщений в Talk. Авторизация только Basic: имя и пароль приложения одной строкой через двоеточие, в base64 их переводит движок ({basic}). Bearer сервер принимает лишь с OIDC, чего у обычной установки нет. Проверено на живом Nextcloud 29.0.16 (контейнер, scripts/zhivaya-proba.sh) 2026-08-19: поставщики поиска у чистой установки — files, systemtags, circles, comments, settings_apps, settings; поиск идёт по ИМЕНАМ файлов и совпадение ищется подстрокой, поэтому «тарифы» не находит файл «пересчёт тарифов». subline у файлов приходит пустым, и контекст в подсказке пустой — это данные сервиса, а не потеря. И то же, что у Redmine: у установки по умолчанию база SQLite, её LIKE приводит к одному регистру только ASCII, поэтому «Тарифы» находит, а «тарифы» нет. На MySQL и PostgreSQL с обычным сравнением такого нет.",
   "parameters": [
     {

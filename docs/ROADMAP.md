@@ -55,8 +55,8 @@ the next step is capturing which neighbour wrote what, not another guess.
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
 | Work messengers | Пачка, Mattermost, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
-| Own servers: code and tasks | GitLab, **Gitea / Forgejo**, **Redmine**, Plane, GitFlic | `SelfHostedTrackers.swift` |
-| Notes and wikis | Outline, BookStack, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
+| Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic | `SelfHostedTrackers.swift` |
+| Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
 | Code in the cloud | GitHub, personal token, `GET /search/issues` | `GitHubConnector.swift` |
 | Team chats | Telegram supergroups, new messages only | `TelegramSupergroups.swift` |
@@ -680,6 +680,25 @@ YouGile's header. The key was there, the prefix was not, and the plan already
 records what that costs — Linear takes the key with **no** prefix, and confusing
 the two returns a 401 indistinguishable from an expired key. The prefix is now
 asserted per service, including Битрикс24 having no header at all.
+
+**«Checked against a running service» rested on a word in prose — 2026-08-21.**
+§2.2 marks such connectors in bold, and the check behind that mark read the
+manifest's **note** looking for the word «живом». GitLab's note says «на
+поднятом у себя», so the check skipped it silently: the strongest claim in the
+inventory depended on which synonym somebody typed. Two live-verified services,
+GitLab and Plane, went unmarked for two days, and §11's risk row still said
+«four» when the answer was six.
+
+The mark is a field now — `liveCheckedOn` — so the claim is data rather than
+phrasing, and the inventory is derived from it. Two more holes closed in the same
+check: it mapped manifest ids to display names through a hand list and
+`continue`d past anything missing, which is exactly how GitLab and Plane stayed
+invisible even once found; an unknown id now fails and asks to be named. And the
+whole thing was only discovered because a mutation of the bold marks **passed** —
+the check had never been able to fail for those two services.
+
+BookStack's manifest carries the mark as well: it was verified live on the 19th
+and its note recorded the finding, but nothing in the data said so.
 
 **One bad manifest no longer removes all of them — 2026-08-21.** Yesterday's
 note said the guard held and the failure pointed elsewhere. That is true and it
@@ -1965,7 +1984,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Gitea, Redmine, Wiki.js and Nextcloud were checked that way 2026-08-19 |
+| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Six services have been checked that way: Gitea, Redmine, Wiki.js, Nextcloud, Plane, GitLab — plus BookStack by hand. The row said «four» for two days after the number was six, which is why §2.2's bold marks are now derived from the manifests rather than remembered |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |

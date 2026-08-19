@@ -116,22 +116,38 @@ describe('ROADMAP', () => {
     // Жирным в §2.2 отмечено «проверено на работающем сервисе». Утверждение
     // сильное, и держится оно не словом: манифест такого коннектора несёт
     // отметку о живом прогоне.
+    // Отметка — ПОЛЕ манифеста, а не слово в примечании.
+    //
+    // Здесь искалось слово «живом», а у GitLab в примечании стояло «на
+    // поднятом у себя»: проверка молча пропускала сервис, и жирная отметка в
+    // §2.2 держалась на выборе слова в прозе. Утверждение «проверено на
+    // работающем сервисе» слишком сильное, чтобы зависеть от синонима.
     const live = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                                      'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json'))
       .filter((f) => JSON.parse(read('mvp', 'Sources', 'OrakulCore', 'Resources',
-                                     'connectors', f)).note.includes('живом'));
+                                     'connectors', f)).liveCheckedOn);
     assert.ok(live.length >= 4, `манифестов с живой проверкой ${live.length} — ждали хотя бы четыре`);
 
     const inventory = section('2.2');
     const bold = [...inventory.matchAll(/\*\*([^*]+)\*\*/g)].map(([, name]) => name);
     assert.ok(bold.length >= 4, 'в перечне не отмечено ни одной живой проверки');
 
+    // Список названий — ручной, потому что в перечне сервис зовётся так, как
+    // его зовут люди («Gitea / Forgejo»), а в манифесте — идентификатором.
+    // Но пропускать НЕИЗВЕСТНОЕ имя молча нельзя: именно так GitLab и Plane
+    // прошли живую проверку и остались неотмеченными — `continue` тихо
+    // выбрасывал всё, чего нет в списке, и проверка сторожила ровно четыре
+    // сервиса из шести. Та же ошибка, что с ручным списком свойств в §6.4.
     const titles = { gitea: 'Gitea / Forgejo', redmine: 'Redmine',
-                     wikijs: 'Wiki.js', nextcloud: 'Nextcloud' };
+                     wikijs: 'Wiki.js', nextcloud: 'Nextcloud',
+                     gitlab: 'GitLab', plane: 'Plane', bookstack: 'BookStack' };
     for (const id of live) {
-      const title = titles[id.replace('.json', '')];
-      if (!title) continue;
+      const key = id.replace('.json', '');
+      const title = titles[key];
+      assert.ok(title,
+        `манифест ${key} отмечен живой проверкой, а имени для перечня нет — ` +
+        'добавьте его, иначе проверка молча пропустит сервис');
       assert.ok(bold.includes(title),
         `${title} проверен на живом сервисе, а в §2.2 это не отмечено`);
     }

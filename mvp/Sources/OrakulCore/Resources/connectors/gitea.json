@@ -3,6 +3,7 @@
   "title": "Gitea / Forgejo",
   "docs": "https://docs.gitea.com/api/1.20/#tag/issue/operation/issueSearchIssues",
   "verifiedOn": "2026-08-19",
+  "liveCheckedOn": "2026-08-19",
   "note": "Заголовок именно «token», а не «Bearer»: так в их swagger.v1.json. С «Bearer» сервис отвечает 401, неотличимо от плохого токена. Forgejo — форк с тем же API, отдельной записи не нужно. Без type=issues в выдачу попадают пулл-реквесты и отвечают не о том. Проверено на живом Gitea 1.22.6 (контейнер, scripts/zhivaya-proba.sh) 2026-08-19: поиск нашёл обе задачи со словом «тарифы» и не показал третью, регистр значения не имеет. Токен брался только на чтение (read:issue, read:repository, read:user) — прав хватило.",
   "request": {
     "method": "GET",
