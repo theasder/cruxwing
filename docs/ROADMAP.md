@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 315 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2866 and 626 | README, maintainer run |
+| App and core tests | 2866 and 633 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -841,10 +841,58 @@ setting.
 | **Slack** | **Connected 2026-08-18 — see the decision below**[^slack] | Open: the method is marked legacy and the vendor points at `assistant.search.context`. Moving there waits until it is clear what scopes it demands |
 | **Plane**, open, self-hosted | **Connected 2026-08-18, verified against a live install 2026-08-19** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `description_html`[^plane] | Nothing blocking. The cursor `perPage:page:is_prev` is confirmed — the live service answered `100:1:0` to a request for `100:0:0`. Two other fields were not what the docs promised: see below |
 | **Jira and Confluence on an own server** | Cloud Atlassian connects via MCP; Data Center takes another path | Whether a portable search method with a personal token exists. The same case as GitLab and Redmine, which already work: ask for the server address |
-| **BookStack** | **Connected 2026-08-18.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. It searches for itself, so no §7.2 bound is involved |
+| **BookStack** | **Connected 2026-08-18, verified against a live install 2026-08-19.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. The live answer matched the manifest field for field — reading the vendor's source, not only its docs, is why. What it did reveal is about Russian, not about BookStack: see «the word as spoken is not the word in the base» below |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
 | **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+
+**The word as it was spoken is not the word that lies in someone else's
+base.** A person asks «тарифы», the page says «тарифами», and no third-party
+service declines Russian nouns. This is not one service's quirk: none of them
+stem Russian, so the loss is the same everywhere and it is silent — the answer
+comes back non-empty and looks whole.
+
+Measured on a BookStack raised here on 2026-08-19, with two pages, each holding
+one form of the word:
+
+| Asked | Found |
+|---|---|
+| `тарифы` | 1 of 2 |
+| `тарифами` | 1 of 2 — the other one |
+| `тариф` (the stem) | **2 of 2** |
+| `тариф*` | **0** |
+
+The wildcard is worth its own line: it is what one would write without
+measuring, and it returns nothing at all.
+
+So a third question now goes out with the stem, computed by the same parser
+that searches our own transcripts — two morphologies for one language would
+drift apart. Through the connector, live, the answer went from one page to two.
+
+The cost is bounded on purpose, because these are someone else's servers and
+Plane allows sixty requests a minute for everyone at once:
+
+* only where the **service** searches — with listing, the selection is ours and
+  a second pass over the same pages finds nothing new;
+* only as the **third** question, and only when the second brought nothing new —
+  if the other spelling found something, the answer has already gone back;
+* only when the answer has **room**: ten rows asked for and ten returned means
+  the eleventh will not be seen.
+
+**A guard I wrote and then removed the same hour.** The first version refused to
+ask with a stem shorter than four letters — «дом» from «дома» would find half a
+base. Mutation showed the guard could not fire: the ending-stripper already
+refuses to go below four, so the threshold was protecting against something
+impossible. Worse, it was not idle — the second path to a stem is the lexicon,
+which returns a dictionary form rather than a fragment, and the threshold was
+cutting **332 real words**: «баги» → «баг», «кешам» → «кеш», «sqlу» → «sql».
+The guard is gone and both paths are pinned by tests.
+
+Three neighbouring suites had to be rewritten, and they say something about how
+counts age: they asserted «one search costs one request», which was true when
+written and is now a statement about a different thing. The cache tests now
+measure the **delta** — a repeated question adds nothing — which is what they
+were always about.
 
 **Plane was verified against a live install on 2026-08-19, and the connector
 built from the docs was searching a field that does not exist.** The service is

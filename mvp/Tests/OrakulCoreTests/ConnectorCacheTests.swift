@@ -76,9 +76,15 @@ import FoundationNetworking
         let cache = ConnectorCache()
         let connector = try Self.connector(cache, await Self.taughtMemory(), counter.http())
         _ = try await connector.run("лимиты")
+        // Считаем ПРИБАВКУ, а не общее число: один поиск стоит больше одного
+        // обращения — к слову человека добавляется вопрос основой. Раньше здесь
+        // стояло «== 1», и это утверждение было про число вопросов на поиск, а
+        // не про память, ради которой набор написан.
+        let afterFirst = counter.calls
         _ = try await connector.run("лимиты")
         _ = try await connector.run("ЛИМИТЫ")   // регистр — тот же вопрос
-        #expect(counter.calls == 1, "сервис спрошен \(counter.calls) раза вместо одного")
+        #expect(counter.calls == afterFirst,
+                "повтор стоил ещё \(counter.calls - afterFirst) обращений")
     }
 
     @Test("другой вопрос спрашивается заново")
@@ -87,8 +93,9 @@ import FoundationNetworking
         let connector = try Self.connector(ConnectorCache(), await Self.taughtMemory(),
                                            counter.http())
         _ = try await connector.run("лимиты")
+        let afterFirst = counter.calls
         _ = try await connector.run("тарифы")
-        #expect(counter.calls == 2)
+        #expect(counter.calls > afterFirst, "другой вопрос ушёл из памяти, а не к сервису")
     }
 
     @Test("устаревший ответ не считается свежим")
@@ -100,9 +107,10 @@ import FoundationNetworking
         let counter = Counter(answer: Self.answer)
         let connector = try Self.connector(cache, await Self.taughtMemory(), counter.http())
         _ = try await connector.run("лимиты")
+        let afterFirst = counter.calls
         clock.advance(ConnectorCache.freshFor + 1)
         _ = try await connector.run("лимиты")
-        #expect(counter.calls == 2, "ответ старше полутора минут выдан как свежий")
+        #expect(counter.calls > afterFirst, "ответ старше полутора минут выдан как свежий")
     }
 
     @Test("сервис просит подождать — отвечаем из памяти и говорим, сколько ему секунд")
