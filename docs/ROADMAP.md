@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 327 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 330 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2908 and 655 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -976,6 +976,35 @@ service. Since 2026-08-18 the third question takes a second answer: **«none, an
 here is the list method instead»**, admitted under the bounded terms in §7.2. No
 service below is scheduled: each carries what exactly is unknown and what
 unblocks it.
+
+**A link to the vendor's documentation is the evidence, and one of them had
+died — 2026-08-21.** §7.1 admits a connector only when the method, host, search
+parameter and response shape were **found in vendor documentation**, and the link
+in each manifest is that evidence: it is how the next person checks that the
+connector describes a service rather than a guess.
+
+Gitea's link answered **404**. The vendor removed the pages for version 1.20
+without saying so, which is the ordinary way this rots — the connector kept
+working, and the claim behind it quietly became unverifiable. It now points at a
+specific version (`1.24`) rather than `next`, because `next` moves underfoot.
+
+Liveness is checked by `scripts/proverka-ssylok.py`, run by hand, **not** in CI:
+other people's sites move and fall over, and a suite that goes red on somebody
+else's outage teaches people to distrust the suite. All twenty links answer today.
+
+What does not depend on anyone's network is checked in the suite: every manifest
+has a documentation link, and the link names a **method** rather than a home page.
+That second rule took two attempts — the first demanded a path, and called
+Kaiten and Mattermost broken because their entire reference is one page where the
+anchor (`#tag/cards/operation/getCards`) identifies the method more precisely than
+any path could. The rule was about the shape of a URL instead of about what §7.1
+actually asks for.
+
+**Yonote re-checked and still blocked.** §7.3 recorded it as waiting for public
+method documentation on 2026-08-18; the developer pages are navigation and
+footer to this day, with no method reference. A block is a claim that can expire
+like any other, so it was re-measured rather than assumed — and this time it
+held.
 
 ### 7.2 Listing is not search — decided 2026-08-18
 
