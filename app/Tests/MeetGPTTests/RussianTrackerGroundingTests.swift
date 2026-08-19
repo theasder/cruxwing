@@ -52,6 +52,10 @@ struct RussianTrackerGroundingTests {
 
     @Test("WEEEK участвует в подсказке как обычный трекер")
     func weeekGrounds() async {
+        // Память про регистр общая на процесс, поэтому набор начинает с чистой:
+        // иначе соседняя проверка, уже спросившая этот сервис, меняет здесь
+        // число обращений, и падение зависит от порядка запуска.
+        await ConnectorCaseMemory.shared.forget()
         let answer = #"{"success":true,"tasks":[{"id":19,"title":"Лимиты WEEEK"}],"hasMore":false}"#
         let (manager, calls) = self.manager(seeding: [.weeek], answer: answer)
         let snippets = await manager.groundingSnippets(goal: "лимиты")
@@ -59,7 +63,11 @@ struct RussianTrackerGroundingTests {
         let tracker = snippets.first { $0.sourceID == "tracker:weeek" }
         #expect(tracker?.serverName == "WEEEK")
         #expect(tracker?.text.contains("Лимиты WEEEK") == true)
-        #expect(calls() == 1)
+        // Два обращения, а не одно: WEEEK описан манифестом, и первый
+        // кириллический вопрос к незнакомому сервису задаётся вторым
+        // написанием — так узнаётся, сравнивает ли он байты. Kaiten выше
+        // отвечает одним, потому что манифеста у него нет.
+        #expect(calls() == 2)
     }
 
     @Test("ненастроенный трекер не занимает место среди источников")

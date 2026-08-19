@@ -39,7 +39,9 @@ struct TeamNotesTests {
         let hits = try await TeamNotes(service: .outline, token: "tok-synthetic",
                                        host: "wiki.company.ru", http: http).search("тарифы")
 
-        let request = try #require(recorder.last)
+        // Первый запрос: к незнакомому сервису первый кириллический вопрос задаётся
+        // дважды, чтобы узнать, сравнивает ли он байты. Слово человека уносит первый.
+        let request = try #require(recorder.first)
         #expect(request.httpMethod == "POST")
         #expect(request.url?.absoluteString == "https://wiki.company.ru/api/documents.search")
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer tok-synthetic")

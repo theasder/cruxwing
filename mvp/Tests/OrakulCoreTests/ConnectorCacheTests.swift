@@ -39,10 +39,33 @@ import FoundationNetworking
         try #require(try ConnectorManifest.bundled().first { $0.id == "gitea" })
     }
 
+    /// Про регистр сервису здесь уже всё известно, и это не подгонка под
+    /// счётчик.
+    ///
+    /// Первый кириллический вопрос к незнакомому сервису задаётся дважды —
+    /// так узнаётся, сравнивает ли он байты. Этот набор про КЭШ: он считает
+    /// обращения и должен считать только те, что относятся к кэшу. Иначе
+    /// каждая проверка кэша заодно молча проверяла бы обучение регистру, и
+    /// сломались бы обе, когда сломается одно.
     static func connector(_ cache: ConnectorCache, _ http: @escaping ManifestConnector.HTTP)
         throws -> ManifestConnector {
+        let memory = ConnectorCaseMemory()
+        return ManifestConnector(manifest: try manifest(), token: "т",
+                                 host: "https://git.example.com",
+                                 cache: cache, caseMemory: memory, http: http)
+    }
+
+    /// То же, но с уже известным поведением сервиса.
+    static func connector(_ cache: ConnectorCache, _ memory: ConnectorCaseMemory,
+                          _ http: @escaping ManifestConnector.HTTP) throws -> ManifestConnector {
         ManifestConnector(manifest: try manifest(), token: "т", host: "https://git.example.com",
-                          cache: cache, http: http)
+                          cache: cache, caseMemory: memory, http: http)
+    }
+
+    static func taughtMemory() async -> ConnectorCaseMemory {
+        let memory = ConnectorCaseMemory()
+        await memory.learn(.foldsCase, service: "gitea", host: "https://git.example.com")
+        return memory
     }
 
     @Test("тот же вопрос за полторы минуты не бьёт по сервису второй раз")
@@ -51,7 +74,7 @@ import FoundationNetworking
         // один вопрос задают трижды.
         let counter = Counter(answer: Self.answer)
         let cache = ConnectorCache()
-        let connector = try Self.connector(cache, counter.http())
+        let connector = try Self.connector(cache, await Self.taughtMemory(), counter.http())
         _ = try await connector.run("лимиты")
         _ = try await connector.run("лимиты")
         _ = try await connector.run("ЛИМИТЫ")   // регистр — тот же вопрос
@@ -61,7 +84,8 @@ import FoundationNetworking
     @Test("другой вопрос спрашивается заново")
     func differentQuestionGoesOut() async throws {
         let counter = Counter(answer: Self.answer)
-        let connector = try Self.connector(ConnectorCache(), counter.http())
+        let connector = try Self.connector(ConnectorCache(), await Self.taughtMemory(),
+                                           counter.http())
         _ = try await connector.run("лимиты")
         _ = try await connector.run("тарифы")
         #expect(counter.calls == 2)
@@ -74,7 +98,7 @@ import FoundationNetworking
         let clock = Clock(start: Date(timeIntervalSince1970: 1_000_000))
         let cache = ConnectorCache(now: { clock.now })
         let counter = Counter(answer: Self.answer)
-        let connector = try Self.connector(cache, counter.http())
+        let connector = try Self.connector(cache, await Self.taughtMemory(), counter.http())
         _ = try await connector.run("лимиты")
         clock.advance(ConnectorCache.freshFor + 1)
         _ = try await connector.run("лимиты")

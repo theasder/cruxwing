@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 287 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2839 and 610 | README, maintainer run |
+| App and core tests | 2839 and 615 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1324,11 +1324,34 @@ nothing and double a bound that §7.2 exists to keep. That last limit was not
 foresight — the test «страниц читается не больше объявленного» failed and was
 right.
 
-**Stated limit:** partial results suppress the retry. Redmine returns one of two
-matching tasks for «тарифы» and the second stays unseen, because from here one
-result is indistinguishable from all of them. Fixing that means learning that a
-given host compares bytes and then always asking twice — worth doing, not done
-here.
+**That limit is closed — 2026-08-19.** Partial results used to suppress the
+retry: Redmine returned one of two matching tasks for «тарифы» and the second
+stayed invisible, because from here one result is indistinguishable from all of
+them. Waiting for an empty answer was never going to work — such a service may
+never give one.
+
+So the question is asked twice **once per service**, and the answer is
+remembered. Same results both ways: the database folds case itself, and the
+second spelling is never asked again. Different results: it compares bytes, and
+from then on both spellings go every time and are merged. The price of knowing
+is one extra request per service per session; the price of not knowing was half
+the answers. Live proof: Redmine now returns both tasks where it returned one.
+
+Three things this cost, all of which the suites caught rather than me:
+
+* **the extra question could destroy the first answer.** A service that replied
+  to the first request and throttled the second (429) left the person with
+  nothing — an answer they already had. The second question is a refinement;
+  its failure now means «did not learn», never «did not find»;
+* the merge deduplicates by key, and by title where a service has no key — a
+  wiki page has no number, and without the second mark one page appeared twice;
+* eight tests read the **last** recorded request or counted calls. They now read
+  the first, or say two and why. Neither is a weakening: the question they
+  answer is where the person's word goes.
+
+The memory can be cleared, and one app test does clear it, because a
+process-wide store makes neighbouring tests depend on the order they run in —
+this repository has already been bitten by exactly that with the shared cache.
 
 Three existing tests read the last recorded request; the retry made that the
 second one. They now read the first, which is what they always meant: the

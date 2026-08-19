@@ -24,6 +24,10 @@ import FoundationNetworking
         private var requests: [URLRequest] = []
         func add(_ request: URLRequest) { requests.append(request) }
         var last: URLRequest? { requests.last }
+        /// Первый — тот, что унёс слово человека: к незнакомому сервису
+        /// первый кириллический вопрос задаётся дважды, чтобы узнать,
+        /// сравнивает ли он байты.
+        var first: URLRequest? { requests.first }
     }
 
     // MARK: - Linear
@@ -50,7 +54,7 @@ import FoundationNetworking
         let tracker = WesternTrackers(service: .linear, token: "lin_api_ключ",
                                       http: Self.stub(Self.linearAnswer, seen: { seen.add($0) }))
         _ = try await tracker.search("лимиты")
-        let request = try #require(seen.last)
+        let request = try #require(seen.first)
         #expect(request.value(forHTTPHeaderField: "Authorization") == "lin_api_ключ")
         #expect(request.url?.absoluteString == "https://api.linear.app/graphql")
         #expect(request.httpMethod == "POST")

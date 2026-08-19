@@ -213,11 +213,16 @@ public struct RussianTrackers {
     /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
     /// это приложение (см. ConnectorCache).
     let cache: ConnectorCache
+    /// Знание про регистр идёт рядом с кэшем и по той же причине: оно про
+    /// сеанс. Общий по умолчанию сюда не ставится намеренно — общий кэш
+    /// однажды уже переносил ответы между наборами, идущими рядом.
+    let caseMemory: ConnectorCaseMemory
     let http: HTTP
 
     public init(service: Service, token: String, secondary: String? = nil,
                 destination: String? = nil,
                 cache: ConnectorCache = ConnectorCache(),
+                caseMemory: ConnectorCaseMemory = ConnectorCaseMemory(),
                 http: @escaping HTTP) {
         self.service = service
         // Битрикс показывает вебхук одной строкой целиком. Человек копирует её
@@ -229,6 +234,7 @@ public struct RussianTrackers {
         self.secondary = parsed.host ?? secondary
         self.destination = destination
         self.cache = cache
+        self.caseMemory = caseMemory
         self.http = http
     }
 

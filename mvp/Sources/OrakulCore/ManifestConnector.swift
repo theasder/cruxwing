@@ -134,17 +134,24 @@ public struct ManifestConnector {
     /// одиночный вопрос кэшировать не от чего.
     let cache: ConnectorCache
 
+    /// Знание про регистр живёт столько же, сколько кэш: сеанс. Общее по
+    /// умолчанию, потому что один лишний запрос на сервис имеет смысл задать
+    /// один раз, а не каждым коннектором заново. Набор передаёт своё.
+    let caseMemory: ConnectorCaseMemory
+
     public init(manifest: ConnectorManifest,
                 token: String,
                 host: String,
                 values: [String: String] = [:],
                 cache: ConnectorCache = ConnectorCache(),
+                caseMemory: ConnectorCaseMemory = ConnectorCaseMemory(),
                 http: @escaping HTTP) {
         self.manifest = manifest
         self.token = token
         self.host = host
         self.values = values
         self.cache = cache
+        self.caseMemory = caseMemory
         self.http = http
     }
 
@@ -254,13 +261,35 @@ public struct ManifestConnector {
             // Второй проход по десяти страницам чужого сервера не дал бы ни
             // одной новой находки и удвоил бы объявленную границу — это поймал
             // набор «страниц читается не больше объявленного», и поймал верно.
-            if manifest.scan == nil, outcome.items.isEmpty,
-               let variant = Self.caseVariant(of: trimmed) {
-                let second = Outcome(items: try parse(try await fetch(query: variant, limit: limit)),
-                                     coverage: .searched)
-                if !second.items.isEmpty {
-                    await cache.store(second, service: manifest.id, host: host, query: trimmed)
-                    return second
+            if manifest.scan == nil, let variant = Self.caseVariant(of: trimmed) {
+                let known = await caseMemory.behaviour(service: manifest.id, host: host)
+                // Спрашиваем вторым написанием, когда про сервис ещё ничего не
+                // знаем (узнаём) или знаем, что он сравнивает байты (иначе
+                // потеряем половину). Сервису, приводящему регистр самому,
+                // второй запрос не задаётся больше никогда.
+                if known != .foldsCase {
+                    // Ошибка второго вопроса не должна стоить первого ответа.
+                    //
+                    // Поймано набором: сервис ответил на первый запрос и
+                    // придушил второй (429), и человек терял выдачу, которая
+                    // у него уже была. Второй вопрос — это уточнение; провал
+                    // уточнения означает «не узнали», а не «не нашли».
+                    let second = (try? await parse(try await fetch(query: variant, limit: limit))) ?? []
+                    let merged = Self.merge(outcome.items, second, limit: limit)
+
+                    if known == .unknown, !second.isEmpty || !outcome.items.isEmpty {
+                        // Из двух пустых не следует ничего — так и оставляем
+                        // «неизвестно», чтобы спросить в следующий раз.
+                        await caseMemory.learn(merged.count > outcome.items.count
+                                               ? .comparesBytes : .foldsCase,
+                                               service: manifest.id, host: host)
+                    }
+
+                    if merged.count > outcome.items.count {
+                        let both = Outcome(items: merged, coverage: outcome.coverage)
+                        await cache.store(both, service: manifest.id, host: host, query: trimmed)
+                        return both
+                    }
                 }
             }
 
@@ -534,6 +563,22 @@ public struct ManifestConnector {
         if let text = node as? String { return text }
         if let number = node as? Int { return String(number) }
         return ""
+    }
+
+    /// Две выдачи в одну, без повторов и в пределах limit.
+    ///
+    /// Один и тот же ответ приезжает в обоих написаниях, когда сервис регистр
+    /// всё-таки приводит. Сличаем по ключу, а где его нет — по заголовку: у
+    /// вики номера страницы нет вовсе, и без второго признака одна страница
+    /// показалась бы человеку дважды.
+    static func merge(_ first: [Item], _ second: [Item], limit: Int) -> [Item] {
+        var seen = Set(first.map { $0.key.isEmpty ? $0.title : $0.key })
+        var merged = first
+        for item in second {
+            let mark = item.key.isEmpty ? item.title : item.key
+            if seen.insert(mark).inserted { merged.append(item) }
+        }
+        return Array(merged.prefix(limit))
     }
 
     /// То же слово с другим регистром первой буквы, или nil.

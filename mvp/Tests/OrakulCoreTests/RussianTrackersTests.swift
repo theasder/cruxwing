@@ -120,7 +120,9 @@ struct RussianTrackersTests {
         let (http, recorder) = stub(json: json)
         let issues = try await client(.weeek, http: http).search("лимиты", limit: 7)
 
-        let request = try #require(recorder.last)
+        // Первый запрос: к незнакомому сервису первый кириллический вопрос задаётся
+        // дважды, чтобы узнать, сравнивает ли он байты. Слово человека уносит первый.
+        let request = try #require(recorder.first)
         let url = try #require(request.url)
         let components = try #require(URLComponents(
             url: url, resolvingAgainstBaseURL: false))

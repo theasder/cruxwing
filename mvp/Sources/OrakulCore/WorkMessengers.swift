@@ -230,17 +230,23 @@ public struct WorkMessengers {
     /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
     /// это приложение (см. ConnectorCache).
     let cache: ConnectorCache
+    /// Знание про регистр идёт рядом с кэшем и по той же причине: оно про
+    /// сеанс. Общий по умолчанию сюда не ставится намеренно — общий кэш
+    /// однажды уже переносил ответы между наборами, идущими рядом.
+    let caseMemory: ConnectorCaseMemory
     let http: HTTP
 
     public init(service: Service, token: String, secondary: String? = nil,
                 scope: String? = nil,
                 cache: ConnectorCache = ConnectorCache(),
+                caseMemory: ConnectorCaseMemory = ConnectorCaseMemory(),
                 http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.secondary = secondary
         self.scope = scope
         self.cache = cache
+        self.caseMemory = caseMemory
         self.http = http
     }
 
@@ -292,7 +298,7 @@ public struct WorkMessengers {
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 
-        let connector = ManifestConnector(manifest: manifest, token: token, host: host, cache: cache, http: http)
+        let connector = ManifestConnector(manifest: manifest, token: token, host: host, cache: cache, caseMemory: caseMemory, http: http)
         do {
             return try await connector.search(query).map {
                 Hit(author: $0.author.isEmpty ? nil : $0.author, text: $0.title, service: service)

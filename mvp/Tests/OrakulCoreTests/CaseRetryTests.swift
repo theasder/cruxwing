@@ -31,6 +31,39 @@ struct CaseRetryTests {
         }
     }
 
+    /// Сервис, у которого разные написания дают РАЗНЫЕ записи.
+    static func caseSensitiveTwo(lower: String, upper: String,
+                                 seen: SeenQueries) -> ManifestConnector.HTTP {
+        { request in
+            let asked = URLComponents(string: request.url!.absoluteString)?.queryItems?
+                .first { $0.name == "query" || $0.name == "q" || $0.name == "search" }?.value ?? ""
+            await seen.add(asked)
+            let capital = asked.first?.isUppercase == true
+            let title = capital ? upper : lower
+            let hit = title.contains(asked) && !asked.isEmpty
+            let json = hit
+                ? #"{"data":[{"id":\#(capital ? 2 : 1),"name":"\#(title)","preview_html":{"name":"\#(title)","content":"..."}}],"total":1}"#
+                : #"{"data":[],"total":0}"#
+            return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                                     httpVersion: nil, headerFields: [:])!)
+        }
+    }
+
+    /// Сервис, приводящий регистр сам: оба написания дают одно и то же.
+    static func foldsCase(_ title: String, seen: SeenQueries) -> ManifestConnector.HTTP {
+        { request in
+            let asked = URLComponents(string: request.url!.absoluteString)?.queryItems?
+                .first { $0.name == "query" || $0.name == "q" || $0.name == "search" }?.value ?? ""
+            await seen.add(asked)
+            let hit = title.lowercased().contains(asked.lowercased()) && !asked.isEmpty
+            let json = hit
+                ? #"{"data":[{"id":1,"name":"\#(title)","preview_html":{"name":"\#(title)","content":"..."}}],"total":1}"#
+                : #"{"data":[],"total":0}"#
+            return (Data(json.utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
+                                                     httpVersion: nil, headerFields: [:])!)
+        }
+    }
+
     actor SeenQueries {
         private(set) var all: [String] = []
         func add(_ q: String) { all.append(q) }
@@ -52,13 +85,25 @@ struct CaseRetryTests {
         #expect(asked == ["тарифы", "Тарифы"], "второй запрос ушёл не тем словом: \(asked)")
     }
 
-    @Test("на обычном пути второго запроса нет")
-    func noSecondRequestWhenFound() async throws {
+    // Смысл проверки изменился вместе с решением, и это записано, а не
+    // подогнано: раньше второй запрос уходил только на пустой выдаче, теперь
+    // первый кириллический вопрос к незнакомому сервису задаётся дважды —
+    // так и узнаётся, сравнивает ли он байты. Дальше лишних запросов нет, и
+    // это проверяют два теста ниже.
+    @Test("вопрос на обучение задаётся один раз, а не при каждом поиске")
+    func learningQuestionIsAskedOnce() async throws {
         let seen = SeenQueries()
-        let connector = try Self.connector(Self.caseSensitive("тарифы и лимиты", seen: seen))
-        _ = try await connector.run("тарифы")
+        let memory = ConnectorCaseMemory()
+        let http = Self.foldsCase("тарифы и лимиты", seen: seen)
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "bookstack" })
+        for _ in 0..<3 {
+            _ = try await ManifestConnector(manifest: manifest, token: "id:секрет",
+                                            host: "https://wiki.company.ru",
+                                            caseMemory: memory, http: http).run("тарифы")
+        }
         let asked = await seen.all
-        #expect(asked.count == 1, "лишнее обращение к чужому серверу там, где ответ уже найден")
+        #expect(asked == ["тарифы", "Тарифы", "тарифы", "тарифы"],
+                "плата за знание берётся не один раз: \(asked)")
     }
 
     @Test("латиница второго запроса не заслуживает")
@@ -75,6 +120,72 @@ struct CaseRetryTests {
     func stillEmptyStaysEmpty() async throws {
         let connector = try Self.connector(Self.caseSensitive("совсем другое", seen: SeenQueries()))
         #expect(try await connector.run("тарифы").items.isEmpty)
+    }
+
+    // Частичная выдача — тот случай, ради которого появилась память: сервис
+    // отдаёт одну запись из двух, и «нашлось» ничем не отличается от «нашлось
+    // всё». Ждать пустоты бесполезно, у такого сервиса её может не быть.
+    @Test("частичная выдача дополняется вторым написанием")
+    func partialResultIsCompleted() async throws {
+        let seen = SeenQueries()
+        let connector = try Self.connector(
+            Self.caseSensitiveTwo(lower: "поднять тарифы", upper: "Тарифы и лимиты", seen: seen))
+        let outcome = try await connector.run("тарифы")
+        let titles = outcome.items.map(\.title).sorted()
+        #expect(titles == ["Тарифы и лимиты", "поднять тарифы"],
+                "вторая половина ответа осталась невидимой: \(titles)")
+    }
+
+    @Test("сервис, приводящий регистр сам, спрашивается дважды ровно один раз")
+    func foldingServiceIsAskedTwiceOnlyOnce() async throws {
+        let seen = SeenQueries()
+        let memory = ConnectorCaseMemory()
+        let http = Self.foldsCase("Тарифы и лимиты", seen: seen)
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "bookstack" })
+        let make = { ManifestConnector(manifest: manifest, token: "id:секрет",
+                                       host: "https://wiki.company.ru",
+                                       caseMemory: memory, http: http) }
+        _ = try await make().run("тарифы")
+        _ = try await make().run("сроки")
+        let asked = await seen.all
+        #expect(asked == ["тарифы", "Тарифы", "сроки"],
+                "лишний запрос к сервису, который регистр и так приводит: \(asked)")
+    }
+
+    @Test("сервис, сравнивающий байты, дальше спрашивается обоими написаниями")
+    func byteComparingServiceKeepsBeingAskedTwice() async throws {
+        let seen = SeenQueries()
+        let memory = ConnectorCaseMemory()
+        let http = Self.caseSensitiveTwo(lower: "поднять тарифы", upper: "Тарифы и лимиты", seen: seen)
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "bookstack" })
+        let make = { ManifestConnector(manifest: manifest, token: "id:секрет",
+                                       host: "https://wiki.company.ru",
+                                       caseMemory: memory, http: http) }
+        _ = try await make().run("тарифы")
+        #expect(await memory.behaviour(service: "bookstack", host: "https://wiki.company.ru")
+                == .comparesBytes)
+        _ = try await make().run("сроки")
+        let asked = await seen.all
+        #expect(asked == ["тарифы", "Тарифы", "сроки", "Сроки"],
+                "у сервиса, сравнивающего байты, второе написание перестали спрашивать: \(asked)")
+    }
+
+    @Test("две пустые выдачи ничему не учат")
+    func twoEmptiesTeachNothing() async throws {
+        let memory = ConnectorCaseMemory()
+        let manifest = try #require(try ConnectorManifest.bundled().first { $0.id == "bookstack" })
+        let connector = ManifestConnector(manifest: manifest, token: "id:секрет",
+                                          host: "https://wiki.company.ru", caseMemory: memory,
+                                          http: Self.caseSensitive("совсем другое", seen: SeenQueries()))
+        _ = try await connector.run("тарифы")
+        #expect(await memory.behaviour(service: "bookstack", host: "https://wiki.company.ru")
+                == .unknown, "из двух пустых сделан вывод, которого в них нет")
+    }
+
+    @Test("один и тот же ответ в обоих написаниях не показывается дважды")
+    func sameAnswerIsNotShownTwice() async throws {
+        let connector = try Self.connector(Self.foldsCase("Тарифы и лимиты", seen: SeenQueries()))
+        #expect(try await connector.run("тарифы").items.count == 1)
     }
 
     @Test("вариант слова строится по первой букве", arguments: [

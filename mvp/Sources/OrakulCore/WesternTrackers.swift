@@ -117,17 +117,23 @@ public struct WesternTrackers: Sendable {
     /// Кэш ответов. Свой по умолчанию: общий принадлежит сеансу, а сеанс —
     /// это приложение (см. ConnectorCache).
     let cache: ConnectorCache
+    /// Знание про регистр идёт рядом с кэшем и по той же причине: оно про
+    /// сеанс. Общий по умолчанию сюда не ставится намеренно — общий кэш
+    /// однажды уже переносил ответы между наборами, идущими рядом.
+    let caseMemory: ConnectorCaseMemory
     let http: HTTP
 
     public init(service: Service,
                 token: String,
                 values: [String: String] = [:],
                 cache: ConnectorCache = ConnectorCache(),
+                caseMemory: ConnectorCaseMemory = ConnectorCaseMemory(),
                 http: @escaping HTTP) {
         self.service = service
         self.token = token
         self.values = values
         self.cache = cache
+        self.caseMemory = caseMemory
         self.http = http
     }
 
@@ -156,7 +162,7 @@ public struct WesternTrackers: Sendable {
         }
 
         let connector = ManifestConnector(manifest: manifest, token: token,
-                                          host: service.host, values: values, cache: cache, http: http)
+                                          host: service.host, values: values, cache: cache, caseMemory: caseMemory, http: http)
         do {
             let outcome = try await connector.run(trimmed, limit: limit)
             return (outcome.items.map {
