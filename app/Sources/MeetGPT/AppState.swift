@@ -2620,8 +2620,13 @@ final class AppState: ObservableObject {
     /// It exercises production parsing and review state without a connector or
     /// provider request and without consuming tariff balances.
     @discardableResult
+    /// Грузится ли образец. Чистая, чтобы проверить обе ветки: набор идёт в
+    /// dev-сборке, и утверждение «загрузилось == isDevBuild» молчит ровно про
+    /// ту сборку, которая уезжает людям.
+    nonisolated static func loadsGlossaryFixture(isDevBuild: Bool) -> Bool { isDevBuild }
+
     func debugLoadConnectedGlossaryFixture() async -> Bool {
-        guard Config.isDevBuild else { return false }
+        guard Self.loadsGlossaryFixture(isDevBuild: Config.isDevBuild) else { return false }
         let snippets = [
             GroundingSnippet(
                 serverName: "Synthetic Notion", toolName: "fixture",

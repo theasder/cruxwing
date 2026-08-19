@@ -1386,12 +1386,38 @@ invokes. It also checks itself against a planted lonely guard, because
 «the list is empty» otherwise means both «all good» and «the selection is
 broken».
 
+**Hunting the same shape found three more, and two of them were fine.** The
+mechanical question — «which assertions compare against something that depends on
+the build?» — gave exactly three hits out of a hundred that merely compare
+against a named constant, which is healthy.
+
+Two of the three were `KeychainScopeTests`, and my first attempt made them
+**weaker**: I replaced «each path equals the rule» with «the paths equal each
+other». That catches divergence and nothing else — a mutation in the shared query
+builder changes both paths identically, and they agree while being wrong. The
+mutation harness said so immediately, and the original assertion went back.
+
+The third was real: a debug fixture loader asserted «loaded == isDevBuild»,
+which says nothing about the build that ships. It is a pure function now, and
+the shipped branch is asserted explicitly — a synthetic glossary landing in a
+distribution build is exactly the «confident sentence about something that never
+happened» class.
+
+One more correction, of the mutation rather than the code: spoiling a value with
+**the same answer the rule already gives** proves nothing. `devMode = "0"` in this
+tree means the rule returns `true`, so substituting `true` changed nothing and
+read as «guard is blind». Not caught is a statement about the mutation until the
+mutation is shown to differ.
+
 **A check I wrote three days ago asserted nothing at all.** «Tokens stay on this
 Mac» pinned four properties, and the fifth — that credentials go into the modern
 data-protection keychain — compared the value in the attributes dictionary
 against the very expression that had put it there. True under any behaviour.
-Worse, the suite runs in a dev build, where that expression is `false`, so the
-one assertion about the shipped build was `false == false`.
+The reason given here yesterday was itself wrong and is corrected: I wrote that
+the suite runs in a dev build. It does not — the generated `Secrets.swift` in
+this tree carries `devMode = "0"`, so the runs happen with `isDevBuild == false`.
+The assertion was a tautology either way, but the number it compared was the
+opposite of what I claimed.
 
 This is the defect §2.3 already describes — «the old test asked whether
 credentials happened to be present in whatever build ran it and asserted the

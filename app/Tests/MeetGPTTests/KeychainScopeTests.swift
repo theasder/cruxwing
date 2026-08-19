@@ -20,10 +20,29 @@ struct KeychainScopeTests {
         query[kSecUseDataProtectionKeychain as String] as? Bool
     }
 
+    // Два разных утверждения, и путать их дорого.
+    //
+    // Здесь проверяется, что КАЖДЫЙ путь берёт значение у правила: жёстко
+    // вписанный `true` (та самая прошлая ошибка) от правила отличается, и это
+    // ловится. Что само правило верно для сборки, которая уезжает людям,
+    // проверяется отдельно и на обеих ветках — TokensStayOnThisMacTests.
+    //
+    // Сверять пути только друг с другом мало: правка в общем сборщике запроса
+    // меняет их одинаково, и согласие сохраняется при неверном значении.
+    // Проверено мутацией — так эта проверка и была однажды ослаблена.
+    //
+    // И про саму мутацию: портить надо значением, ОТЛИЧНЫМ от правила. В
+    // текущем Secrets.swift devMode = "0", то есть в прогоне правило даёт true,
+    // и подстановка `true` ничего не меняет. «Не поймано» тогда говорит о
+    // мутации, а не о проверке.
     @Test("every query names the keychain the build actually writes to")
     func queriesShareOneKeychain() {
         let plain = store.query(account: "wheespr.session")
-        #expect(scope(of: plain) == SystemKeychain.usesDataProtectionKeychain)
+        let insert = store.insertAttributes(data: Data("т".utf8), account: "wheespr.session")
+        let rule = SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild)
+        #expect(scope(of: plain) == rule)
+        #expect(scope(of: insert) == rule,
+                "запись и чтение идут в разные связки — токен «пропадёт» при первом же чтении")
     }
 
     @Test("extras cannot silently redirect a query to the other keychain")
@@ -34,7 +53,8 @@ struct KeychainScopeTests {
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ])
-        #expect(scope(of: read) == SystemKeychain.usesDataProtectionKeychain)
+        #expect(scope(of: read) == SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild),
+                "дополнения увели запрос в другую связку")
         #expect(read[kSecReturnData as String] as? Bool == true)
     }
 

@@ -370,7 +370,12 @@ struct ConnectedGlossarySuggestionTests {
                 llm: gateway,
                 connectedGlossaryGroundedCycleConsumer: { _ in cycles += 1; return true })
             let loaded = await state.debugLoadConnectedGlossaryFixture()
-            #expect(loaded == Config.isDevBuild)
+            #expect(loaded == AppState.loadsGlossaryFixture(isDevBuild: Config.isDevBuild))
+            // И про ту сборку, которая уезжает людям: образец там не грузится
+            // никогда. Без этой строки проверка говорила только про ветку, в
+            // которой сама и запущена.
+            #expect(!AppState.loadsGlossaryFixture(isDevBuild: false),
+                    "подставной словарь попадёт в собранное приложение")
             if loaded {
                 #expect(state.connectedGlossarySuggestionMetrics?.ranking == .localOnly)
                 #expect(state.connectedGlossarySuggestionMetrics?.transcriptCharsSent == 0)
