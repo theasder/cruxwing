@@ -92,7 +92,7 @@ public struct SelfHostedTrackers {
         /// списком здесь значило бы описывать сервис в двух местах: манифест
         /// уже знает и имена, и примеры.
         public var fields: [ConnectorManifest.Field] {
-            (try? ConnectorManifest.bundled().first { $0.id == rawValue })?.parameters ?? []
+            ConnectorManifest.usable().first { $0.id == rawValue }?.parameters ?? []
         }
 
         func host(_ raw: String?) -> String? {
@@ -221,7 +221,7 @@ public struct SelfHostedTrackers {
     /// причина, по которой такое переключение вообще можно делать сразу.
     private func manifestSearch(_ query: String, host: String) async throws
         -> (items: [Item], note: String)? {
-        guard let manifest = try? ConnectorManifest.bundled()
+        guard let manifest = ConnectorManifest.usable()
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 

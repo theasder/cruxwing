@@ -88,7 +88,7 @@ public struct TeamNotes {
 
         /// Поля, которые человек заполняет сам, — из манифеста, а не из кода.
         public var fields: [ConnectorManifest.Field] {
-            (try? ConnectorManifest.bundled().first { $0.id == rawValue })?.parameters ?? []
+            ConnectorManifest.usable().first { $0.id == rawValue }?.parameters ?? []
         }
 
         func host(_ raw: String?) -> String? {
@@ -207,7 +207,7 @@ public struct TeamNotes {
     /// Написанный руками путь ниже остаётся запасным: коннектор не должен
     /// отказывать человеку из-за пропавшего файла ресурсов.
     private func manifestSearch(_ query: String, host: String) async throws -> [Hit]? {
-        guard let manifest = try? ConnectorManifest.bundled()
+        guard let manifest = ConnectorManifest.usable()
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 

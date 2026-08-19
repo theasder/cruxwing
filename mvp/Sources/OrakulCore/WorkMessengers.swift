@@ -294,7 +294,7 @@ public struct WorkMessengers {
     /// — двух заголовков сразу. Каждый из них — отдельное свойство формата, а
     /// описание обязано покрывать частый случай, не каждый (роадмап, §6.2).
     private func manifestSearch(_ query: String, host: String) async throws -> [Hit]? {
-        guard let manifest = try? ConnectorManifest.bundled()
+        guard let manifest = ConnectorManifest.usable()
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 

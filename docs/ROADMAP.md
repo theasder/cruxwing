@@ -29,8 +29,8 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 320 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2886 and 648 | README, maintainer run |
+| Page and doc checks | 322 tests, all green | `npm test`, run 2026-08-18 |
+| App and core tests | 2886 and 652 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -680,6 +680,37 @@ YouGile's header. The key was there, the prefix was not, and the plan already
 records what that costs — Linear takes the key with **no** prefix, and confusing
 the two returns a 401 indistinguishable from an expired key. The prefix is now
 asserted per service, including Битрикс24 having no header at all.
+
+**One bad manifest no longer removes all of them — 2026-08-21.** Yesterday's
+note said the guard held and the failure pointed elsewhere. That is true and it
+is not enough: the failure mode itself was wrong. `bundled()` throws on the first
+bad file, and every runtime caller read it through `try?`, so a single unreadable
+manifest silently returned **every** service to its hand-written path — losing
+403 separated from 401, login pages recognised as pages, foreign envelopes
+refused. The strictest defences vanished the most quietly.
+
+Reading is now two functions rather than one policy. `load(from:)` returns what
+parsed **and** what did not; `usable()` gives the working ones to the running
+app; `bundled()` still throws, and `bundledManifestsPass` still refuses to ship a
+broken file. The strictness became testable in the process: a mutation removing
+the `throw` passed the suite, because with every bundled manifest valid the two
+readings agree. It is asserted against a planted broken manifest now, not against
+a lucky day.
+
+**And the broken manifest I planted for that test turned out to be valid**, which
+is how the sharper defect surfaced. Its placeholder was `{nikto-ne-zapolnit}`,
+and the validator read names as letters, digits and underscore — **a hyphen ended
+the name**, so `{team-id}` was not a placeholder at all. Nothing had to be
+declared, nothing was checked, and the braces travelled into the address
+literally. The service answers 404 to a plausible-looking request and the person
+reads «nothing found». Hyphenated names are the common ones: `team-id`, `org-id`,
+`project-key`. The validator sees them now.
+
+The runtime half cannot be proven by behaviour — the two readings differ only in
+a build with a broken manifest, which the build guard forbids — so
+`test/manifest-chtenie.test.mjs` pins the shape instead: no runtime code reads
+manifests strictly, and something reads them softly, because «nothing reads them
+at all» would satisfy the first rule.
 
 **Rocket.Chat is the twelfth, and it cost the format its last small property —
 2026-08-21.** Its blocker was real: one credential goes into **two** headers,

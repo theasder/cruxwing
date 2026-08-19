@@ -54,7 +54,7 @@ public struct WesternTrackers: Sendable {
 
         /// Поля, которые человек заполняет сам, — из манифеста, а не из кода.
         public var fields: [ConnectorManifest.Field] {
-            (try? ConnectorManifest.bundled().first { $0.id == rawValue })?.parameters ?? []
+            ConnectorManifest.usable().first { $0.id == rawValue }?.parameters ?? []
         }
     }
 
@@ -156,7 +156,7 @@ public struct WesternTrackers: Sendable {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return ([], .searched) }
 
-        guard let manifest = try? ConnectorManifest.bundled()
+        guard let manifest = ConnectorManifest.usable()
             .first(where: { $0.id == service.rawValue }) else {
             throw ConnectorError.manifestMissing
         }

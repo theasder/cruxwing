@@ -283,7 +283,7 @@ public struct RussianTrackers {
     /// ключ внутри пути у Битрикса, второе поле у Kaiten, — и они остаются
     /// кодом, пока описание данными их не покрывает.
     private func manifestSearch(_ query: String, limit: Int) async throws -> [Issue]? {
-        guard let manifest = try? ConnectorManifest.bundled()
+        guard let manifest = ConnectorManifest.usable()
             .first(where: { $0.id == service.rawValue })
         else { return nil }
 

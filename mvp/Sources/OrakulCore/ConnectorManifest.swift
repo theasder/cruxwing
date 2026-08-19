@@ -316,8 +316,15 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
             while index < characters.count {
                 guard characters[index] == "{" else { index += 1; continue }
                 var end = index + 1
+                // Дефис — тоже имя. Без него `{team-id}` подстановкой не
+                // считался: проверка его не видела, объявлять было нечего, и
+                // фигурные скобки уезжали в адрес БУКВАЛЬНО — то есть ровно то,
+                // ради чего эта проверка и написана. Сервис отвечает 404 на
+                // правдоподобный с виду запрос, а человек читает «ничего не
+                // нашлось». Имена с дефисом обычны: team-id, org-id, project-key.
                 while end < characters.count,
-                      characters[end].isLetter || characters[end].isNumber || characters[end] == "_" {
+                      characters[end].isLetter || characters[end].isNumber
+                        || characters[end] == "_" || characters[end] == "-" {
                     end += 1
                 }
                 if end < characters.count, characters[end] == "}", end > index + 1 {
@@ -349,21 +356,70 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         // Три разницы в одной функции — и все три видно исключительно сборкой,
         // а не чтением кода.
         guard let root = bundle.resourceURL?.appendingPathComponent("connectors") else { return [] }
+        return try strict(load(from: root))
+    }
+
+    /// Строгость отдельной функцией — чтобы её можно было проверить.
+    ///
+    /// Пока все встроенные манифесты исправны, строгое и мягкое чтение дают
+    /// одно и то же, и утверждение «строгое по-прежнему бросает» держалось на
+    /// чтении кода: мутация, снявшая `throw`, набор проходила. Здесь она
+    /// проверяется на подставленном разборе, а не на счастливом стечении.
+    static func strict(_ loaded: Loaded) throws -> [ConnectorManifest] {
+        if let failure = loaded.broken.first { throw failure.error }
+        return loaded.manifests
+    }
+
+    /// Что удалось прочитать — и что не удалось, по отдельности.
+    public struct Loaded: Sendable {
+        public let manifests: [ConnectorManifest]
+        public let broken: [(name: String, error: any Error)]
+    }
+
+    /// Чтение, которое НЕ роняет исправные описания вместе с одним негодным.
+    ///
+    /// `bundled()` бросает на первом же плохом файле, а все, кто зовёт его в
+    /// работе, читают через `try?` — то есть один негодный манифест молча
+    /// убирал ВСЕ. Каждый сервис, описанный данными, тихо возвращался на
+    /// рукописный путь: без отделения 403 от 401, без узнавания страницы входа
+    /// вместо данных, с угадыванием чужого конверта. Ровно те защиты, ради
+    /// которых манифесты и появились, исчезали тише всего.
+    ///
+    /// Случилось это при добавлении Rocket.Chat: новая подстановка не была
+    /// объявлена, проверка файл отвергла, а видимым симптомом стала потеря
+    /// снятия разметки у Zulip — поломка за два сервиса от причины.
+    ///
+    /// Строгость никуда не делась: `bundled()` по-прежнему бросает, и набор
+    /// держит на нём обещание «все встроенные манифесты исправны». Разница в
+    /// том, что в работе исправные девятнадцать продолжают работать.
+    public static func load(from directory: URL) -> Loaded {
         let urls = ((try? FileManager.default.contentsOfDirectory(
-            at: root, includingPropertiesForKeys: nil)) ?? [])
+            at: directory, includingPropertiesForKeys: nil)) ?? [])
             .filter { $0.absoluteString.hasSuffix(".json") }
         let decoder = JSONDecoder()
         var manifests: [ConnectorManifest] = []
+        var broken: [(name: String, error: any Error)] = []
         for url in urls.sorted(by: { $0.absoluteString < $1.absoluteString }) {
-            let data = try Data(contentsOf: url)
-            guard let manifest = try? decoder.decode(ConnectorManifest.self, from: data) else {
-                let name = url.absoluteString.split(separator: "/").last.map(String.init)
-                    ?? url.absoluteString
-                throw ManifestError.unreadable(name)
+            let name = url.absoluteString.split(separator: "/").last.map(String.init)
+                ?? url.absoluteString
+            do {
+                let data = try Data(contentsOf: url)
+                guard let manifest = try? decoder.decode(ConnectorManifest.self, from: data) else {
+                    throw ManifestError.unreadable(name)
+                }
+                try manifest.validate()
+                manifests.append(manifest)
+            } catch {
+                broken.append((name: name, error: error))
             }
-            try manifest.validate()
-            manifests.append(manifest)
         }
-        return manifests
+        return Loaded(manifests: manifests, broken: broken)
+    }
+
+    /// То же чтение для работы: исправные описания без падения на негодном.
+    public static func usable(in bundle: Bundle? = nil) -> [ConnectorManifest] {
+        let bundle = bundle ?? .module
+        guard let root = bundle.resourceURL?.appendingPathComponent("connectors") else { return [] }
+        return load(from: root).manifests
     }
 }
