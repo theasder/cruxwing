@@ -345,6 +345,25 @@ describe('ROADMAP', () => {
     }
   });
 
+  // Формат манифеста описан для того, кто придёт снаружи, и устаревает он
+  // тише всего: движок учит новую подстановку, а CONTRIBUTING продолжает
+  // рассказывать про старую. Стоит это дорого — человек по инструкции напишет
+  // {query} там, где нужен {queryWords}, и привезёт ту самую дыру, которую
+  // §7.4 закрывал: чужой сервис прочтёт вопрос как указание.
+  test('CONTRIBUTING называет все подстановки, которые умеет движок', () => {
+    const engine = read('mvp', 'Sources', 'OrakulCore', 'ConnectorManifest.swift');
+    const line = /let builtin: Set<String> = \[([^\]]+)\]/.exec(engine);
+    assert.ok(line, 'в движке не нашёлся список подстановок — разбор сломан');
+    const placeholders = [...line[1].matchAll(/"([a-zA-Z]+)"/g)].map((m) => m[1]);
+    assert.ok(placeholders.length >= 5,
+      `подстановок нашлось ${placeholders.length} — разбор сломан`);
+
+    const doc = read('CONTRIBUTING.md');
+    const missing = placeholders.filter((name) => !doc.includes(`{${name}}`));
+    assert.deepEqual(missing, [],
+      `движок умеет подстановки, о которых CONTRIBUTING молчит: ${missing.join(', ')}`);
+  });
+
   test('перечень языковых сервисов в §7.4 — тот же, что в манифестах', () => {
     const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                         'Resources', 'connectors');
