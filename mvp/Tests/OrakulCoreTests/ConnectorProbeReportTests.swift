@@ -154,6 +154,27 @@ struct ConnectorProbeReportTests {
         #expect(ConnectorProbeReport.shape(of: "#7 — 42").contains("без букв"))
     }
 
+    @Test("заголовок нигде не печатается напрямую")
+    func theTitleIsNeverPrintedDirectly() throws {
+        // Поведенческие проверки выше смотрят на один заголовок. Печать можно
+        // вернуть в другом месте — во второй строке, в отладочном выводе, — и
+        // они этого не увидят: они спрашивают про свой пример, а не про правило.
+        //
+        // CONTRIBUTING теперь обещает человеку, что его задача в отчёт не
+        // попадёт. Обещание в документе, которое держится на одном примере в
+        // тесте, — это обещание до первой правки.
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/OrakulCore/ConnectorProbeReport.swift"),
+                                encoding: .utf8)
+        let printsTitle = source.contains("\\(title)")
+            || source.contains("\\(outcome.firstTitle")
+        #expect(!printsTitle, "заголовок снова печатается в отчёт как есть")
+        #expect(source.contains("shape(of: title)"),
+                "доказательство прочитанного поля пропало")
+    }
+
     @Test("пустой выдачи это не касается")
     func anEmptyAnswerIsUnchanged() {
         // Ноль строк — тоже результат, и он отличается от «форму не узнали».

@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 345 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2959 and 700 | README, maintainer run |
+| App and core tests | 2959 and 701 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -2201,10 +2201,17 @@ scripts and refuses exactly this contradiction.
   `ConnectorProbeReport` renders exactly that, and CONTRIBUTING says how to
   attach it.
 
-  The property that matters is that the token does **not** appear in it — the
-  text goes into a public pull request, and a leak there would mean the checking
-  tool opened the very hole the «secrets only in the Keychain» rule exists to
-  close. It is scrubbed by header name, by value, by halves of a compound key
+  Two properties matter, and only one of them was guarded. The token does
+  **not** appear in it — the text goes into a public pull request, and a leak
+  there would mean the checking tool opened the very hole the «secrets only in
+  the Keychain» rule exists to close. The second is newer, 2026-08-20: **their
+  data does not appear in it either.** The report printed the first row's title
+  in full — a real task from the contributor's tracker — into that same public
+  thread. CONTRIBUTING had even warned people to re-read the report for exactly
+  this class of thing, while the code was emitting one instance of it by
+  default; a warning that asks a person to catch what we could simply not print
+  is the cheap half of the job. The title is now reported as its length and
+  alphabet, which is what proves the right field was read. It is scrubbed by header name, by value, by halves of a compound key
   (`почта:ключ`, `id/код`), and by percent-encoding, because a key inside a URL
   arrives encoded — unreadable to a human, decodable by anyone.
 
