@@ -34,8 +34,8 @@ TASKS=("Поднять тарифы с декабря" "Починить вхо�
        "Пересчитать смету вместе с тарифами")
 
 case "$SERVICE" in
-  gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost) ;;
-  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost" >&2; exit 2 ;;
+  gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
@@ -235,6 +235,49 @@ elif [ "$SERVICE" = mattermost ]; then
   # проба кладёт его в `scope`. Через ORAKUL_FIELD_* оно не доедет — ветка
   # мессенджеров в пробе полей манифеста не читает вовсе.
   SCOPE="$TEAM"
+# Имя сервиса пишется ровно так, как в манифесте, — `rocketChat`.
+# Проба ищет коннектор по этому имени, и «rocketchat» строчными она не
+# знает: сервис поднялся бы, наполнился и не нашёлся.
+elif [ "$SERVICE" = rocketChat ]; then
+  # Второй мессенджер. База своя, и не просто рядом: Rocket.Chat требует от
+  # MongoDB НАБОРА РЕПЛИК — он читает oplog, а одиночный сервер его не ведёт.
+  # Отсюда лишний шаг с rs.initiate, которого нет ни у кого выше.
+  PORT=3991
+  docker network create "${NAME}-net" >/dev/null
+  docker run -d --name "${NAME}-db" --network "${NAME}-net" \
+    mongo:8.0 --replSet rs0 --bind_ip_all >/dev/null
+  for _ in $(seq 1 30); do
+    docker exec "${NAME}-db" mongosh --quiet --eval \
+      'try { rs.status().ok } catch (e) { rs.initiate({_id:"rs0",members:[{_id:0,host:"'"${NAME}"'-db:27017"}]}).ok }' \
+      >/dev/null 2>&1 && break
+    sleep 2
+  done
+  docker run -d --name "$NAME" --network "${NAME}-net" -p "$PORT:3000" \
+    -e "MONGO_URL=mongodb://${NAME}-db:27017/rocketchat?replicaSet=rs0" \
+    -e "MONGO_OPLOG_URL=mongodb://${NAME}-db:27017/local?replicaSet=rs0" \
+    -e "ROOT_URL=http://localhost:$PORT" \
+    -e OVERWRITE_SETTING_Show_Setup_Wizard=completed \
+    -e ADMIN_USERNAME=proba -e ADMIN_PASS='ПробаProba123!' \
+    -e ADMIN_EMAIL=proba@example.com \
+    rocketchat/rocket.chat:8.5.3 >/dev/null
+  wait_for "http://localhost:$PORT/api/info" 90
+  LOGIN=$(curl -s -X POST -H 'Content-Type: application/json' \
+    -d "$(python3 -c "import json,sys;print(json.dumps(dict(user='proba', password=sys.argv[1])))" 'ПробаProba123!')" \
+    "http://localhost:$PORT/api/v1/login")
+  AUTH=$(printf '%s' "$LOGIN" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['data']['authToken'])")
+  UID_=$(printf '%s' "$LOGIN" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['data']['userId'])")
+  [ -n "$AUTH" ] || { echo "!! вход не дал токена" >&2; exit 1; }
+  rc() { curl -s -X POST -H "X-Auth-Token: $AUTH" -H "X-User-Id: $UID_" \
+    -H 'Content-Type: application/json' -d "$2" "http://localhost:$PORT$1"; }
+  ROOM=$(rc /api/v1/channels.create '{"name":"dogovory"}' \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['channel']['_id'])")
+  for t in "${TASKS[@]}"; do
+    rc /api/v1/chat.postMessage "$(python3 -c "import json,sys;print(json.dumps(dict(roomId=sys.argv[1], text=sys.argv[2])))" "$ROOM" "$t")" >/dev/null
+  done
+  # Два значения одной строкой через двоеточие — так же, как их вписывает
+  # человек: манифест делит её на {tokenHead} и {tokenTail}.
+  TOKEN="$AUTH:$UID_"
+  SCOPE="$ROOM"
 elif [ "$SERVICE" = gitlab ]; then
   PORT=3993
   # Двадцать минут на подъём — и это не преувеличение: официального образа под
@@ -328,7 +371,16 @@ fi
 # нельзя удовлетворить, отключают целиком — вместе с проверкой остальных.
 # -i обязателен: у Nextcloud имя файла начинается с прописной «Смета», и
 # строчный образец её не находил — сторож объявлял пропажу того, что доехало.
-if [ "$SERVICE" != gitea ] && ! grep -qi 'смет' "$OUT"; then
+# Rocket.Chat — второй такой, и это измерено прямо у сервиса 2026-08-20:
+# «тарифы» находит 2, «тарифами» 1, «тариф» — 0, и «тариф*» тоже 0. То есть
+# слова сравниваются целиком, а знак подстановки не работает вовсе — в отличие
+# от Mattermost, где он работает и потому объявлен в манифесте. Требовать здесь
+# косвенную форму значило бы требовать невозможного.
+#
+# Сам движок это уже умеет: `learnStemIsUseless` запоминает пустой ответ на
+# основу при непустом ответе на слово и больше основой этот сервис не
+# беспокоит. Освобождение здесь — про пробу, а не про продукт.
+if [ "$SERVICE" != gitea ] && [ "$SERVICE" != rocketChat ] && ! grep -qi 'смет' "$OUT"; then
   echo "!! запись со словом «тарифами» не доехала: вопрос основой не сработал" >&2
   rm -f "$OUT"
   exit 1

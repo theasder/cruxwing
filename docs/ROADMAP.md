@@ -54,7 +54,7 @@ the next step is capturing which neighbour wrote what, not another guess.
 | Layer | Connected | Where in code |
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
-| Work messengers | Пачка, **Mattermost**, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
+| Work messengers | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
 | Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Jira на своём сервере | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
@@ -1841,6 +1841,31 @@ kind of thing as how the search is narrowed, and mixing them in one string is
 what let a spoken colon change the question. It is worth writing down when the
 vendor's own next version agrees with a defence built against the vendor.
 
+**Rocket.Chat against a running server — 2026-08-20, and the answer was the
+opposite of Mattermost's.** Same probe, one service later: MongoDB with a
+replica set (Rocket.Chat reads the oplog, and a standalone server keeps none),
+then a channel, four seeded messages, and the connector's own question. It
+answers, and finds two of the four.
+
+Asked directly, the numbers say what could not be guessed: «тарифы» finds 2,
+«тарифами» 1, the stem «тариф» **0** — and «тариф*» **0 as well**. Whole words,
+and the wildcard does nothing. The repair that worked for Mattermost one hour
+earlier is useless here, which is exactly why it is declared per service in the
+manifest instead of being a rule in the engine: two messengers, the same
+symptom, opposite cures.
+
+The product already handles this without being told: the engine records that the
+stem question returned nothing while the word question returned something, and
+stops asking that service by the stem. What needed changing was the **probe**,
+which demanded the indirect form of every service and would have demanded the
+impossible. Exempted with the measurement written beside it, the way Gitea is.
+
+Two boot facts cost an hour and are worth the line: the published tags are
+version 8 and above, and Rocket.Chat 8 refuses to work on MongoDB 6 — it starts,
+prints the banner and serves nothing. And the service name in the probe is
+`rocketChat`, spelled as the manifest spells it; lowercase stood the server up,
+seeded it, and then failed to find any connector by that name.
+
 **Mattermost against a running server — 2026-08-20, and the queue named the day
 before is one shorter.** `scripts/zhivaya-proba.sh mattermost` stands the server
 up with its own Postgres, registers the first user (who becomes the
@@ -2347,7 +2372,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **eight** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Mattermost, Nextcloud, Plane, Redmine, Wiki.js) and **thirteen** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of them could be stood up that way; **Mattermost is done — 2026-08-20**, and four remain: **Rocket.Chat, Zulip, Matrix / Element, Outline**. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
+| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **nine** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Mattermost, Nextcloud, Plane, Redmine, Rocket.Chat, Wiki.js) and **twelve** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of them could be stood up that way; **Mattermost and Rocket.Chat are done — 2026-08-20**, and three remain: **Zulip, Matrix / Element, Outline**. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
