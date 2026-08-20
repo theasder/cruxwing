@@ -106,6 +106,39 @@ import Foundation
                 "движок не обнулил счёт после удачного вопроса основой")
     }
 
+    @Test("вывод «регистр приводит сам» тоже требует двух наблюдений")
+    func foldingConclusionNeedsTwo() async {
+        // Тот же рычаг, что и у основы, на соседнем вопросе: ответить один раз
+        // одинаково на два написания — и мы сами перестали бы спрашивать
+        // вторым. На Synapse это стоило бы половины находок.
+        let memory = ConnectorCaseMemory()
+        await memory.learn(.foldsCase, service: "s", host: "h")
+        #expect(await memory.behaviour(service: "s", host: "h") == .unknown,
+                "вывод сделан по одному наблюдению")
+        await memory.learn(.foldsCase, service: "s", host: "h")
+        #expect(await memory.behaviour(service: "s", host: "h") == .foldsCase)
+    }
+
+    @Test("обратный вывод делается сразу — он ничего не выключает")
+    func theOppositeConclusionIsImmediate() async {
+        // «Сравнивает байты» значит «спрашиваем дальше». Ошибка стоит одного
+        // лишнего запроса, поэтому доказывать её дважды незачем — пороги здесь
+        // несимметричны нарочно.
+        let memory = ConnectorCaseMemory()
+        await memory.learn(.comparesBytes, service: "s", host: "h")
+        #expect(await memory.behaviour(service: "s", host: "h") == .comparesBytes)
+    }
+
+    @Test("одно наблюдение обратного стирает накопленное")
+    func oneOppositeObservationResetsTheCount() async {
+        let memory = ConnectorCaseMemory()
+        await memory.learn(.foldsCase, service: "s", host: "h")
+        await memory.learn(.comparesBytes, service: "s", host: "h")
+        await memory.learn(.foldsCase, service: "s", host: "h")
+        #expect(await memory.behaviour(service: "s", host: "h") == .comparesBytes,
+                "накопленное не стёрлось: сервис выключил второй вопрос по старому счёту")
+    }
+
     private final class Counter: @unchecked Sendable {
         private let lock = NSLock()
         private var n = 0

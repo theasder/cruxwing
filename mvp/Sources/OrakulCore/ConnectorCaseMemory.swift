@@ -125,11 +125,38 @@ public actor ConnectorCaseMemory {
     /// переносил ответы между наборами, идущими рядом.
     public func forget() {
         known.removeAll(); askedToSlowDown.removeAll()
-        ignoresStems.removeAll(); stemMisses.removeAll()
+        ignoresStems.removeAll(); stemMisses.removeAll(); foldMisses.removeAll()
     }
 
+    /// Сколько раз подряд второе написание ничего не добавило.
+    private var foldMisses: [String: Int] = [:]
+
+    /// Два вывода — разной цены, и потому разной доказанности.
+    ///
+    /// `.comparesBytes` означает «продолжаем спрашивать вторым написанием».
+    /// Ошиблись — платим одним лишним запросом за звонок. Поэтому хватает
+    /// первого наблюдения.
+    ///
+    /// `.foldsCase` означает «больше не спрашиваем». Ошиблись — молча теряем
+    /// половину ответа, и это не оборот речи: на поднятом Synapse измерено
+    /// 2026-08-20, что «тарифы» находит одно сообщение, а «Тарифы» — ДРУГОЕ.
+    /// Сервис, приводящий регистр сам, от лишнего вопроса не пострадает;
+    /// человек, потерявший половину находок, не узнает об этом никогда.
+    ///
+    /// Отсюда несимметричный порог: выключать — по двум наблюдениям подряд,
+    /// включать обратно — по одному. Недружелюбному сервису это удваивает цену
+    /// самого дешёвого рычага: ответить один раз одинаково на два написания —
+    /// и мы сами перестали бы спрашивать.
     public func learn(_ behaviour: Behaviour, service: String, host: String?) {
         guard behaviour != .unknown else { return }
-        known[key(service, host)] = behaviour
+        let key = key(service, host)
+        guard behaviour == .foldsCase else {
+            foldMisses[key] = 0
+            known[key] = behaviour
+            return
+        }
+        let seen = (foldMisses[key] ?? 0) + 1
+        foldMisses[key] = seen
+        if seen >= 2 { known[key] = .foldsCase }
     }
 }
