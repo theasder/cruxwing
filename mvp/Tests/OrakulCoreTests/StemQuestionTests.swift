@@ -207,15 +207,27 @@ struct StemQuestionTests {
     func serviceThatIgnoresStemsIsAskedOnlyOnce() async throws {
         // Измерено на живой Gitea 2026-08-19: «тарифы» нашли две задачи,
         // «тариф» — ноль. Там вопрос основой — трата чужого сервера, и после
-        // первого такого ответа он не повторяется.
+        // ДВУХ таких ответов подряд он не повторяется.
+        //
+        // Раньше хватало одного, и этот тест закреплял именно то. Одна пустота
+        // измерением не является: индекс перестраивается, сервис отвечает
+        // пустотой на переключении — а цена поспешности несимметрична, потому
+        // что молча выключается поиск по русским склонениям. Двух наблюдений
+        // требует и соседняя память о регистре, по тому же доводу.
         let asked = Asked()
         let memory = ConnectorCaseMemory()
         let http: ManifestConnector.HTTP = { request in
             let query = URLComponents(string: request.url!.absoluteString)?.queryItems?
                 .first { $0.name == "query" }?.value ?? ""
             await asked.add(query)
-            // Слова целиком: находит только точную форму.
-            let hit = query.lowercased() == "тарифы"
+            // Слова целиком: находит точную форму любого из трёх вопросов и не
+            // находит ни одной основы.
+            //
+            // Три, а не один: вывод делается по двум наблюдениям, а наблюдением
+            // считается только пара «слово нашло, основа нет». Из двух пустых
+            // не следует ничего, поэтому вопрос, не нашедший даже словом, счёт
+            // не двигает — и первая правка этого теста об этом забыла.
+            let hit = ["тарифы", "лимиты", "сроки"].contains(query.lowercased())
             let json = hit
                 ? #"{"data":[{"id":1,"name":"Тарифы с декабря","preview_html":{"name":"Тарифы","content":"..."}}],"total":1}"#
                 : #"{"data":[],"total":0}"#
@@ -227,9 +239,13 @@ struct StemQuestionTests {
                                        host: "https://wiki.company.ru",
                                        cache: ConnectorCache(), caseMemory: memory, http: http) }
         _ = try await make().run("тарифы")
-        #expect(await memory.stemsAreUseless(service: "bookstack", host: "https://wiki.company.ru"))
+        #expect(await memory.stemsAreUseless(service: "bookstack", host: "https://wiki.company.ru") == false,
+                "вывод сделан по одному наблюдению")
         _ = try await make().run("лимиты")
+        #expect(await memory.stemsAreUseless(service: "bookstack", host: "https://wiki.company.ru"),
+                "два одинаковых ответа подряд ничего не решили")
+        _ = try await make().run("сроки")
         let all = await asked.all
-        #expect(!all.contains("лимит"), "спросили основой сервис, который её игнорирует: \(all)")
+        #expect(!all.contains("срок"), "спросили основой сервис, который её игнорирует: \(all)")
     }
 }

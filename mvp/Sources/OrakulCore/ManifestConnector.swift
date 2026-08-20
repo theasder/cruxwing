@@ -361,6 +361,10 @@ public struct ManifestConnector {
                     // основой этот сервис не беспокоим.
                     if third.isEmpty, !found.isEmpty {
                         await caseMemory.learnStemIsUseless(service: manifest.id, host: host)
+                    } else if !third.isEmpty {
+                        // Нашлось — значит прошлая пустота была случайностью, а
+                        // не свойством сервиса.
+                        await caseMemory.learnStemWorks(service: manifest.id, host: host)
                     }
                     found = Self.merge(found, third, limit: limit)
                 }
