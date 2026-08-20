@@ -375,8 +375,10 @@ public struct ManifestConnector {
             await cache.store(answer, service: manifest.id, host: host, query: trimmed)
             return answer
         } catch ConnectorError.rateLimited(let retryAfter) {
-            // Раз просят реже — перестаём спрашивать вторым написанием.
-            await caseMemory.slowDown(service: manifest.id, host: host)
+            // Раз просят реже — перестаём спрашивать вторым написанием, и ровно
+            // на тот срок, который назвал сам сервис.
+            await caseMemory.slowDown(service: manifest.id, host: host,
+                                      seconds: retryAfter.map(TimeInterval.init))
 
             // Сервис просит подождать. Выбор здесь не между свежим и старым, а
             // между старым и никаким: молчащий источник на звонке — это

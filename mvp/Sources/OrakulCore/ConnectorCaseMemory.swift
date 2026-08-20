@@ -32,7 +32,14 @@ public actor ConnectorCaseMemory {
 
     private var known: [String: Behaviour] = [:]
 
-    public init() {}
+    /// Часы отдельно от кода — как у кэша. Проверять срок настоящим временем
+    /// значит держать в наборе ожидание, а ожидание в наборе однажды уже
+    /// оказалось причиной мерцающих отказов.
+    private let now: @Sendable () -> Date
+
+    public init(now: @escaping @Sendable () -> Date = { Date() }) {
+        self.now = now
+    }
 
     private func key(_ service: String, _ host: String?) -> String {
         "\(service)|\(host ?? "")"
@@ -48,24 +55,49 @@ public actor ConnectorCaseMemory {
     /// написания по-разному — и мы сами удвоим ему нагрузку, после чего он
     /// придушит нас на законных основаниях. Различить это и SQLite нечем, а
     /// вот перестать давить, когда просят, можно.
-    private var askedToSlowDown: Set<String> = []
+    ///
+    /// Со СРОКОМ, а не навсегда. Просьба подождать — это просьба подождать, а
+    /// не заявление о природе сервиса: чужой сервер душит на минуту пиковой
+    /// нагрузки и дальше отвечает как обычно. Бессрочная запись превращала
+    /// один ответ 429 в постоянное отключение второго вопроса, а он у части
+    /// сервисов — половина ответа (измерено на живом Synapse 2026-08-20).
+    ///
+    /// Как рычаг это было дешевле всего остального: один-единственный 429 —
+    /// и русский поиск у этого сервиса наполовину выключен до конца работы
+    /// программы, без единого следа для человека.
+    ///
+    /// Срок берётся из слов сервиса (`Retry-After`), а когда он молчит —
+    /// пять минут. Ждать дольше, чем просили, тоже значит терять находки.
+    private var askedToSlowDown: [String: Date] = [:]
+
+    /// Сколько молчать, когда сервис не сказал сам.
+    public static let defaultSlowDown: TimeInterval = 300
 
     public func behaviour(service: String, host: String?) -> Behaviour {
         // Просьба подождать сильнее знания: пока сервис душит, второе написание
         // не спрашиваем, даже зная, что он сравнивает байты. Половина ответов
         // лучше, чем ответ «сервис просит обращаться реже».
-        if askedToSlowDown.contains(key(service, host)) { return .foldsCase }
+        if isSlowedDown(service: service, host: host) { return .foldsCase }
         return known[key(service, host)] ?? .unknown
     }
 
-    /// Сервис попросил обращаться реже — перестаём спрашивать вторым написанием.
-    public func slowDown(service: String, host: String?) {
-        askedToSlowDown.insert(key(service, host))
+    /// Сервис попросил обращаться реже — перестаём спрашивать вторым написанием
+    /// на срок, который он назвал сам.
+    public func slowDown(service: String, host: String?, seconds: TimeInterval? = nil) {
+        // Отрицательный и нулевой срок — не «навсегда» и не «нисколько»: такой
+        // заголовок присылает и сломанный посредник. Берём своё значение.
+        let wait = (seconds ?? 0) > 0 ? seconds! : Self.defaultSlowDown
+        askedToSlowDown[key(service, host)] = now().addingTimeInterval(wait)
     }
 
-    /// Знает ли память, что сервис просил подождать.
+    /// Знает ли память, что сервис просил подождать И срок ещё не вышел.
     public func isSlowedDown(service: String, host: String?) -> Bool {
-        askedToSlowDown.contains(key(service, host))
+        guard let until = askedToSlowDown[key(service, host)] else { return false }
+        guard now() < until else {
+            askedToSlowDown[key(service, host)] = nil
+            return false
+        }
+        return true
     }
 
     /// Ищет ли этот сервис по началу слова.
