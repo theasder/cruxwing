@@ -753,7 +753,17 @@ extension MCPConnectionManager {
                     let found = await withMCPDeadline(seconds: Self.groundingDeadline) {
                         LocalNotesFolder.live.search(query)
                     }
-                    guard let found = found ?? nil, !found.hits.isEmpty else { return (index, nil) }
+                    guard let found = found ?? nil else { return (index, nil) }
+                    // Пустая выдача хранилища — тот самый случай, про который
+                    // написано ниже: модель, не услышавшая ничего, отвечает «в
+                    // заметках этого нет», а мы смотрели последние две тысячи
+                    // файлов из восьми. Довод стоял рядом и применялся только
+                    // к непустой выдаче.
+                    guard !found.hits.isEmpty else {
+                        return (index, Self.boundedEmptySnippet(
+                            serverName: "Заметки", sourceID: "notes-local",
+                            note: found.coverage.note(.folder)))
+                    }
                     var text = found.hits.prefix(10)
                         .map { "[\($0.path)] \($0.context)" }
                         .joined(separator: "\n")

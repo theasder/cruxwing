@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 345 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2973 and 701 | README, maintainer run |
+| App and core tests | 2974 and 701 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1125,7 +1125,7 @@ setting.
 | **BookStack** | **Connected 2026-08-18, verified against a live install 2026-08-19.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. The live answer matched the manifest field for field — reading the vendor's source, not only its docs, is why. What it did reveal is about Russian, not about BookStack: see «the word as spoken is not the word in the base» below |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
 | **Nextcloud** | **Connected 2026-08-18.** `GET /ocs/v2.php/search/providers/{provider}/search?term=…&limit=…`, headers `OCS-APIRequest: true` and `Accept: application/json`, response `ocs.data.entries[]` with `title`, `subline`, `resourceUrl`[^nextcloud] | Nothing blocking. The person picks the provider: `talk-message` searches the text of Talk messages, `files` only file names |
-| **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one |
+| **Local notes: Obsidian and any `.md` directory** | **Connected 2026-08-18**, now in the app too: a folder is chosen in Settings and kept as a security-scoped bookmark, and the source joins the fan-out during a call. No API, no token, no host — files read from disk, and unplugging the network changes nothing | Nothing blocking. Large vaults answered by §7.2's bound: 2000 files per question, freshest first, and the coverage travels into the prompt so a partial read cannot be quoted as a whole one. That last clause was half true until 2026-08-20: the coverage travelled **with findings**, and an empty search returned nothing at all — the one case where a partial read is quoted as a whole one, because the model hears silence and answers «в заметках этого нет». The reasoning was written beside that very line and applied only to the non-empty branch |
 
 **Sixth sighting, and a second instance of the race I said had none.** A view
 test waited until the manager reported «connecting» and then inspected the

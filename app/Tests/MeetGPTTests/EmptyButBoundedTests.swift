@@ -43,8 +43,19 @@ import OrakulCore
                 .contains("300"))
     }
 
-    @Test("оба семейства трекеров зовут это правило")
-    func bothTrackerFamiliesUseIt() throws {
+    @Test("граница хранилища говорит про файлы, а не про сервис")
+    func theFolderSubjectSpeaksOfFiles() throws {
+        // Подлежащее у охвата своё: «просмотрены последние файлы 2000 из 8000»,
+        // а не «последние 2000». Для заметок на диске «сервис» — неправда, там
+        // нет никакого сервиса.
+        let text = try #require(MCPConnectionManager.emptyButBounded(
+            .latest(scanned: 2000, total: 8000), subject: .folder))
+        #expect(text.contains("файлы"))
+        #expect(text.contains("этом компьютере"))
+    }
+
+    @Test("все три источника с границей зовут это правило")
+    func everyBoundedSourceUsesIt() throws {
         let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -54,8 +65,17 @@ import OrakulCore
         // `return (index, nil)` перед ним, её прошла: код остался на месте и
         // стал недостижим.
         let calls = source.components(separatedBy: "Self.boundedEmptySnippet(").count - 1
-        #expect(calls == 2, "правило зовут \(calls) раз(а) из двух семейств трекеров")
+        #expect(calls == 3, "правило зовут \(calls) раз(а) из трёх источников с границей")
 #expect(source.contains(#"sourceID: "western:"#), "западные трекеры потеряли свой источник")
         #expect(source.contains(#"sourceID: "selfhosted:"#), "свои трекеры потеряли свой источник")
+        // Заметки на диске — третий источник с границей, и довод про них
+        // записан прямо в коде: «модель, получившая часть хранилища как целое,
+        // ответит „в заметках этого нет“».
+        #expect(source.contains(#"sourceID: "notes-local""#), "заметки потеряли свой источник")
+        // И с ТЕМ подлежащим: проверка выше зовёт правило напрямую и подмены
+        // `.folder` на «сервис» не увидит — это показала мутация. Для заметок
+        // на диске «сервис» неправда: никакого сервиса там нет.
+        #expect(source.contains("note: found.coverage.note(.folder)"),
+                "охват заметок называет их сервисом")
     }
 }
