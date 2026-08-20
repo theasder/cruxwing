@@ -9193,6 +9193,17 @@ final class AppState: ObservableObject {
     /// Sheets use Drive metadata search followed by their narrow content APIs.
     /// Each service returns its own snippet so the workflow ledger can show an
     /// honest per-app result.
+    /// Граница поиска по Google — та же для найденного и для ненайденного.
+    ///
+    /// Одна строка на оба случая нарочно: писать её только при пустой выдаче
+    /// значит оставить ответ, построенный на трёх документах, с видом ответа по
+    /// всему Диску.
+    nonisolated static func googleBound(read: Int) -> String {
+        "Охват Google: прочитано документов — \(read), больше трёх за вопрос "
+            + "не запрашивается, и текст каждого берётся началом. "
+            + "Отсутствие здесь не значит, что на Диске этого нет."
+    }
+
     private func googleGroundingSnippets(services: Set<GoogleService>,
                                          query: String,
                                          cap: Int) async -> [GroundingSnippet] {
@@ -9209,14 +9220,29 @@ final class AppState: ObservableObject {
         }
 
         for service in [GoogleService.docs, .sheets, .drive] where services.contains(service) {
-            guard let documents = try? await GoogleWorkspaceSearchService.search(
-                query: query, services: [service], accessToken: token),
-                  !documents.isEmpty else { continue }
+            let documents = (try? await GoogleWorkspaceSearchService.search(
+                query: query, services: [service], accessToken: token)) ?? []
+            // Диск отвечает СТРАНИЦЕЙ, и страница здесь крошечная: три
+            // документа, потолок пять. Тексты внутри тоже обрезаны.
+            //
+            // Значит пустая выдача — это «в трёх прочитанных документах нет», а
+            // не «в Диске нет». У человека там могут лежать четыреста
+            // подходящих; мы посмотрели три и молчали об этом в обе стороны:
+            // и когда нашли, и когда нет. Остальные источники давно называют
+            // свою границу — этот жил вне того веера и правила не получил.
+            let bound = Self.googleBound(read: documents.count)
+            guard !documents.isEmpty else {
+                snippets.append(GroundingSnippet(
+                    serverName: "Google \(service.label)", toolName: "files.list",
+                    text: bound, sourceID: "google:\(service.rawValue)"))
+                continue
+            }
             let text = documents.map { "## \($0.title)\n\($0.text)" }
                 .joined(separator: "\n\n")
             snippets.append(GroundingSnippet(
                 serverName: "Google \(service.label)", toolName: "files.list",
-                text: String(text.prefix(cap)), sourceID: "google:\(service.rawValue)"))
+                text: String(text.prefix(cap)) + "\n" + bound,
+                sourceID: "google:\(service.rawValue)"))
         }
         return snippets
     }
