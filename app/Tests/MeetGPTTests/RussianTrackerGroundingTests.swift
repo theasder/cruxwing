@@ -165,10 +165,17 @@ struct RussianTrackerGroundingTests {
         _ = await plain.groundingSnippets(goal: "лимиты")
         let withoutKnowledge = plainCalls()
 
+        // Учим ДВАЖДЫ на каждый ключ: вывод «сервис приводит регистр сам»
+        // выключает второй вопрос, а он у некоторых сервисов половина ответа
+        // (измерено на живом Synapse 2026-08-20), поэтому одного наблюдения
+        // для него мало. Здесь нужна память, которая уже знает, — значит её
+        // надо научить по-настоящему, а не поставить флаг.
         let taught = ConnectorCaseMemory()
-        await taught.learn(.foldsCase, service: "weeek", host: nil)
-        for host in ["https://api.weeek.net/public/v1", "api.weeek.net"] {
-            await taught.learn(.foldsCase, service: "weeek", host: host)
+        for _ in 0..<2 {
+            await taught.learn(.foldsCase, service: "weeek", host: nil)
+            for host in ["https://api.weeek.net/public/v1", "api.weeek.net"] {
+                await taught.learn(.foldsCase, service: "weeek", host: host)
+            }
         }
         let (second, secondCalls) = self.manager(seeding: [.weeek], answer: answer, memory: taught)
         _ = await second.groundingSnippets(goal: "лимиты")

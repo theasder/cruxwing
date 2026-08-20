@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 342 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2947 and 684 | README, maintainer run |
+| App and core tests | 2947 and 686 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -1903,9 +1903,22 @@ Two shapes had to change for it, and both are worth naming. There is no arm64
 image — not for `mattermost-preview`, not for `team-edition` — so the single
 self-contained box gave way to a server plus its own database, which is the
 Wiki.js and Plane shape the script already cleans up after. And the team id
-travels as the probe's `scope`, not as a manifest field: the messenger branch of
-the probe does not read manifest fields at all, which is a real limit of that
-harness rather than a detail of Mattermost.
+travelled as the probe's `scope` rather than as a manifest field, because the
+messenger branch of the probe did not read manifest fields at all — a real limit
+of that harness rather than a detail of Mattermost. **Closed 2026-08-20:** the
+probe takes the field's name from the manifest, so `ORAKUL_FIELD_<name>` — the
+spelling anyone arriving from the trackers will try first — now works, and the
+Mattermost run was repeated to prove it.
+
+Underneath that trap sits a real limit, and it is now stated rather than
+implied: a messenger carries **one** field. The person fills in one line — a
+team for Mattermost, a room for Rocket.Chat — and `WorkMessengers` puts it into
+the manifest's first parameter. A manifest declaring two would describe a
+service that cannot be configured: the second substitution stays unresolved and
+the search answers «не настроено» at a service that is configured, which is the
+exact failure recorded beside that code from when the field was missing
+entirely. A test now fails on such a manifest and says why, instead of leaving
+the author to debug the words «not configured».
 
 **What the live server said is the part that could not be read from
 documentation.** Asked directly: «тарифы» finds 2, «тарифами» finds 1, and the

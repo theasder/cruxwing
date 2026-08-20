@@ -58,8 +58,20 @@ struct LiveConnectorProbeTests {
         // Печатается ЧТО нашлось, а не токен: вывод теста легко попадает в
         // issue, и секрету там не место.
         if let messenger = WorkMessengers.Service(rawValue: service) {
+            // Поле мессенджера едет ОБЛАСТЬЮ, и это ловушка для того, кто
+            // пришёл сюда от трекеров: там поля задаются через
+            // `ORAKUL_FIELD_<имя>`, а здесь такая переменная молча ничего не
+            // делала — сервис поднимался, наполнялся и отвечал «не настроено».
+            // Наступил на это 2026-08-20 при первой пробе Mattermost.
+            //
+            // Теперь имя поля берётся из манифеста, и обе записи работают.
+            let declared = ConnectorManifest.usable()
+                .first { $0.id == service }?.parameters?.first?.name
+            let fromField = declared.flatMap {
+                Self.environment["ORAKUL_FIELD_\($0)"]
+            }
             let hits = try await WorkMessengers(service: messenger, token: token,
-                                                secondary: host, scope: scope,
+                                                secondary: host, scope: fromField ?? scope,
                                                 http: WorkMessengers.live).search(query)
             print("[\(messenger.title)] найдено сообщений: \(hits.count)")
             for hit in hits.prefix(3) { print("  — \(hit.text.prefix(120))") }
