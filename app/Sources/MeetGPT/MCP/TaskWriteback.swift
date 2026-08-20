@@ -120,9 +120,35 @@ enum TaskWriteback {
 
 extension Tool {
     /// Whether this looks like a tracker "create issue/task" tool.
+    /// Слова, после которых «создать задачу» перестаёт быть созданием задачи.
+    ///
+    /// Всё это — создание чего-то ПРИ задаче, а не задачи: комментария, связи,
+    /// вложения, записи о работе. Имена настоящие, такие инструменты есть у
+    /// трекеров рядом с нужным.
+    static let attachedToSomethingElse = [
+        "comment", "link", "worklog", "attachment", "relation",
+        "watcher", "subscriber", "label", "transition", "reminder",
+    ]
+
+    /// Запасное узнавание по имени — и его цена.
+    ///
+    /// Сначала берутся имена, записанные для этого сервиса. Сюда доходит
+    /// только тот случай, когда вендор ПЕРЕИМЕНОВАЛ инструмент, и дальше мы
+    /// угадываем — на пути ЗАПИСИ в чужой трекер.
+    ///
+    /// Условие «есть create и есть issue или task» выполняет и
+    /// `create_issue_comment`. Тогда обязательство со звонка ушло бы
+    /// комментарием к какой-то задаче: человек подтвердил «создать в Jira»,
+    /// сервер ответил успехом, задачи нет. Порядок инструментов задаёт сам
+    /// сервер, то есть выбор между ними — тоже его.
+    ///
+    /// Полностью отказаться от угадывания нельзя: переименование у вендора
+    /// сломало бы запись целиком. Но угадывать СОЗДАНИЕ ЗАДАЧИ, а не создание
+    /// чего угодно при ней, — можно.
     var isCreateTool: Bool {
         let n = name.lowercased()
-        return n.contains("create") && (n.contains("issue") || n.contains("task"))
+        guard n.contains("create"), n.contains("issue") || n.contains("task") else { return false }
+        return !Self.attachedToSomethingElse.contains { n.contains($0) }
     }
 
     /// Properties of an object stored as the items of an array argument.
