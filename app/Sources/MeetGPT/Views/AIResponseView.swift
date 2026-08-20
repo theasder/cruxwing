@@ -565,7 +565,10 @@ private struct FormattedResponse: View {
                 markdown: s,
                 options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
             ) {
-                return attr
+                // Разметка ответа умеет `[слова](адрес)`, и адрес при этом не
+                // виден. См. AnswerMarkdown: слова остаются, переход снимается,
+                // адрес показывается.
+                return AnswerMarkdown.withoutHiddenLinks(attr)
             }
             return AttributedString(s)
         }
