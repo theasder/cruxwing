@@ -42,6 +42,28 @@ struct GroundingSnippet: Identifiable, Sendable {
 /// (Notion search, Fireflies keyword search, Linear/Jira issue search, …),
 /// in parallel; per-server failures are skipped, never fatal.
 extension MCPConnectionManager {
+    /// Кто из источников не ответил за этот заход — словами, для запроса.
+    ///
+    /// Берутся отказы, записанные ПОСЛЕ начала веера: `ConnectorHealth` живёт
+    /// весь сеанс, и без отсечки по времени в ответ уехал бы вчерашний отказ
+    /// сервиса, который сегодня работает.
+    /// Память об отказах передаётся, а не берётся глобальная: она общая на
+    /// процесс, и проверка, читающая её у соседей, зависит от порядка запуска —
+    /// этот капкан репозиторий уже разбирал на общем кэше.
+    static func silentSourcesSnippet(since: Date,
+                                     health: ConnectorHealth = .shared) async -> GroundingSnippet? {
+        let fresh = await health.all().filter { $0.at >= since }
+        guard !fresh.isEmpty else { return nil }
+        let list = fresh.map { "\($0.service) — \(VendorText.forPerson($0.words))" }
+            .joined(separator: "; ")
+        return GroundingSnippet(
+            serverName: "Источники", toolName: "health",
+            text: "Не ответили на этот вопрос: \(list). "
+                + "Их молчание не значит, что там ничего нет.",
+            sourceID: "health:silent",
+            readFor: ConnectorProbeStrategy.trackerProbe.readFor)
+    }
+
     /// Что сказать, когда источник не нашёл ничего, но видел лишь часть.
     ///
     /// `.searched` — сервис искал сам, по всему, что у него есть; его пустая
@@ -342,6 +364,10 @@ extension MCPConnectionManager {
         // выводит его из семи веток `group.addTask` разом и перестаёт
         // укладываться в отведённое время — сборка падает не ошибкой в
         // коде, а «unable to type-check in reasonable time».
+        // Отсечка по времени для отказов: ConnectorHealth живёт весь сеанс,
+        // и без неё в ответ уехал бы вчерашний отказ сервиса, который
+        // сегодня работает.
+        let startedAt = Date()
         return await withTaskGroup(of: (Int, GroundingSnippet?).self) { group -> [GroundingSnippet] in
             for (index, server) in targets.enumerated() {
                 group.addTask { @MainActor in
@@ -786,7 +812,24 @@ extension MCPConnectionManager {
             for await (index, snippet) in group {
                 if let snippet { snippets.append((index, snippet)) }
             }
-            return snippets.sorted { $0.0 < $1.0 }.map(\.1)
+            var ordered = snippets.sorted { $0.0 < $1.0 }.map(\.1)
+            // Источник, который НЕ ОТВЕТИЛ, — не то же самое, что источник,
+            // который ответил пусто.
+            //
+            // Отказы записываются (`ConnectorHealth`) и показываются человеку —
+            // в настройках, на строке сервиса. До запроса они не доезжали
+            // никогда. Значит звонок, на котором трекер тянул, вики отказала, а
+            // мессенджер придушили, давал ответ, построенный на одной
+            // расшифровке, и выглядел он в точности как проверенный по
+            // источникам. Это тот же «уверенное утверждение о непроверенном»,
+            // только собранное из молчания трёх сервисов сразу.
+            //
+            // Недружелюбному сервису этого достаточно: не отвечать. Ни отказа,
+            // ни ошибки — просто тишина, которую мы выдавали за отсутствие.
+            if let silence = await Self.silentSourcesSnippet(since: startedAt) {
+                ordered.append(silence)
+            }
+            return ordered
         }
     }
 
