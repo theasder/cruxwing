@@ -34,8 +34,8 @@ TASKS=("Поднять тарифы с декабря" "Починить вхо�
        "Пересчитать смету вместе с тарифами")
 
 case "$SERVICE" in
-  gitea|redmine|wikijs|nextcloud|plane|gitlab) ;;
-  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab" >&2; exit 2 ;;
+  gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
@@ -186,6 +186,55 @@ t, _ = APIToken.objects.get_or_create(user=u, workspace=ws, label='proba')
 print('%s %s' % (pr.id, t.token))" | tail -1)
   TOKEN="${SETUP##* }"
   FIELDS=(ORAKUL_FIELD_workspace=moya-komanda "ORAKUL_FIELD_project=${SETUP%% *}")
+elif [ "$SERVICE" = mattermost ]; then
+  # Первый мессенджер в этой пробе, и семья другая: у трекеров заводят задачи,
+  # здесь пишут сообщения в канал.
+  #
+  # Образ mattermost-preview несёт базу внутри и был бы проще — но под arm64 его
+  # нет вовсе («no matching manifest for linux/arm64/v8»), а гонять сервер под
+  # эмуляцией ради удобства скрипта значит мерить не то. Берём обычную сборку и
+  # свою Postgres рядом: две коробки и своя сеть — та же схема, что у Wiki.js и
+  # Plane, и уборка для неё в этом скрипте уже написана.
+  PORT=3992
+  docker network create "${NAME}-net" >/dev/null
+  docker run -d --name "${NAME}-db" --network "${NAME}-net" \
+    -e POSTGRES_USER=mmuser -e POSTGRES_PASSWORD=mmuser -e POSTGRES_DB=mattermost \
+    postgres:15-alpine >/dev/null
+  docker run -d --name "$NAME" --network "${NAME}-net" -p "$PORT:8065" \
+    -e MM_SQLSETTINGS_DRIVERNAME=postgres \
+    -e "MM_SQLSETTINGS_DATASOURCE=postgres://mmuser:mmuser@${NAME}-db:5432/mattermost?sslmode=disable&connect_timeout=10" \
+    -e "MM_SERVICESETTINGS_SITEURL=http://localhost:$PORT" \
+    mattermost/mattermost-team-edition:9.11 >/dev/null
+  wait_for "http://localhost:$PORT/api/v4/system/ping" 80
+  PASS='ПробаProba123!'
+  # Первый заведённый пользователь становится администратором — установка ещё
+  # пустая, поэтому регистрация открыта и токен для неё не нужен.
+  curl -s -X POST -H 'Content-Type: application/json' \
+    -d "{\"email\":\"proba@example.com\",\"username\":\"proba\",\"password\":\"$PASS\"}" \
+    "http://localhost:$PORT/api/v4/users" >/dev/null
+  # Токен приходит ЗАГОЛОВКОМ, а не в теле: тело — это профиль.
+  TOKEN=$(curl -s -i -X POST -H 'Content-Type: application/json' \
+    -d "{\"login_id\":\"proba@example.com\",\"password\":\"$PASS\"}" \
+    "http://localhost:$PORT/api/v4/users/login" \
+    | grep -i '^token:' | cut -d' ' -f2 | tr -d '\r')
+  [ -n "$TOKEN" ] || { echo "!! вход не дал токена" >&2; exit 1; }
+  api() { curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "$2" "http://localhost:$PORT$1"; }
+  TEAM=$(api /api/v4/teams '{"name":"proba","display_name":"Проба","type":"O"}' \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+  CHAN=$(api /api/v4/channels "{\"team_id\":\"$TEAM\",\"name\":\"dogovory\",\"display_name\":\"Договоры\",\"type\":\"O\"}" \
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+  for t in "${TASKS[@]}"; do
+    # dict(...) вместо фигурных скобок: оболочка раскрывает их прямо внутри
+    # двойных кавычек и рвёт строку питона пополам.
+    api /api/v4/posts "$(python3 -c "import json,sys; print(json.dumps(dict(channel_id=sys.argv[1], message=sys.argv[2])))" "$CHAN" "$t")" >/dev/null
+  done
+  # Команда в адресе — идентификатор, а не имя: так записано в манифесте
+  # примером, и живая установка тому единственный судья.
+  #
+  # Передаётся она ОБЛАСТЬЮ, а не полем: у мессенджеров поле ровно одно, и
+  # проба кладёт его в `scope`. Через ORAKUL_FIELD_* оно не доедет — ветка
+  # мессенджеров в пробе полей манифеста не читает вовсе.
+  SCOPE="$TEAM"
 elif [ "$SERVICE" = gitlab ]; then
   PORT=3993
   # Двадцать минут на подъём — и это не преувеличение: официального образа под
@@ -251,6 +300,7 @@ env ${FIELDS[@]+"${FIELDS[@]}"} \
   ORAKUL_PROBE_TOKEN="$TOKEN" \
   ORAKUL_PROBE_HOST="http://localhost:$PORT" \
   ORAKUL_PROBE_QUERY="$QUERY" \
+  ORAKUL_PROBE_SCOPE="${SCOPE:-}" \
   swift test --package-path app --filter LiveConnectorProbe 2>&1 \
   | grep -E '^  — |✔ Test "коннектор|✘' > "$OUT" || true
 cat "$OUT"

@@ -30,7 +30,7 @@ State: v1, 2026-08-17.
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
 | Page and doc checks | 342 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2947 and 667 | README, maintainer run |
+| App and core tests | 2947 and 670 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
@@ -54,7 +54,7 @@ the next step is capturing which neighbour wrote what, not another guess.
 | Layer | Connected | Where in code |
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
-| Work messengers | Пачка, Mattermost, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
+| Work messengers | Пачка, **Mattermost**, Rocket.Chat, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
 | Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Jira на своём сервере | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
@@ -1841,6 +1841,45 @@ kind of thing as how the search is narrowed, and mixing them in one string is
 what let a spoken colon change the question. It is worth writing down when the
 vendor's own next version agrees with a defence built against the vendor.
 
+**Mattermost against a running server — 2026-08-20, and the queue named the day
+before is one shorter.** `scripts/zhivaya-proba.sh mattermost` stands the server
+up with its own Postgres, registers the first user (who becomes the
+administrator on an empty install), makes a team and a channel, posts the four
+seeded lines and asks the connector. The first messenger in the probe, and the
+family is different: the trackers get issues filed, here messages are written.
+
+Two shapes had to change for it, and both are worth naming. There is no arm64
+image — not for `mattermost-preview`, not for `team-edition` — so the single
+self-contained box gave way to a server plus its own database, which is the
+Wiki.js and Plane shape the script already cleans up after. And the team id
+travels as the probe's `scope`, not as a manifest field: the messenger branch of
+the probe does not read manifest fields at all, which is a real limit of that
+harness rather than a detail of Mattermost.
+
+**What the live server said is the part that could not be read from
+documentation.** Asked directly: «тарифы» finds 2, «тарифами» finds 1, and the
+stem «тариф» finds **nothing**. PostgreSQL full-text search compares whole words
+and does not decline Russian, so the third question — the one that exists
+precisely for «человек сказал одно, в базе лежит другое» — was returning empty
+against this service and the line with the indirect form never reached the
+person.
+
+The vendor documents the repair: an asterisk at the **end** of a word searches
+by its beginning (not at the start, not in the middle). «тариф*» finds 3 of 4.
+So the manifest declares `stemSuffix`, and the engine appends it to the stem
+question only — never to the words the person actually said.
+
+Declared per service rather than assumed for all, because the opposite was
+already measured: BookStack returns **zero** for «тариф*» while the bare stem
+finds both pages. One guess applied everywhere would have repaired one service
+and broken another.
+
+The order inside the engine is load-bearing and reads like a detail:
+`{queryWords}` strips `*` along with every other operator character, because out
+of live speech it arrives as noise. Appended before the cleaning, the wildcard
+would be eaten — and the symptom would have looked exactly like «this service
+cannot do it». A mutation swapping those two lines is what holds it.
+
 ### 7.5 Closed with cause — do not reopen
 
 Pyrus (no text search), Мегаплан (no long-lived key), Яндекс Вики and Teamly (no
@@ -2307,7 +2346,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **seven** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Nextcloud, Plane, Redmine, Wiki.js) and **fourteen** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of the fourteen can be stood up that way and have not been — **Mattermost, Rocket.Chat, Zulip, Matrix / Element, Outline** — and that is the queue, not a wish. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
+| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **eight** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Mattermost, Nextcloud, Plane, Redmine, Wiki.js) and **thirteen** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of them could be stood up that way; **Mattermost is done — 2026-08-20**, and four remain: **Rocket.Chat, Zulip, Matrix / Element, Outline**. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |

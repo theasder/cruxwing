@@ -141,7 +141,8 @@ describe('ROADMAP', () => {
     // сервиса из шести. Та же ошибка, что с ручным списком свойств в §6.4.
     const titles = { gitea: 'Gitea / Forgejo', redmine: 'Redmine',
                      wikijs: 'Wiki.js', nextcloud: 'Nextcloud',
-                     gitlab: 'GitLab', plane: 'Plane', bookstack: 'BookStack' };
+                     gitlab: 'GitLab', plane: 'Plane', bookstack: 'BookStack',
+                     mattermost: 'Mattermost' };
     for (const id of live) {
       const key = id.replace('.json', '');
       const title = titles[key];

@@ -173,19 +173,21 @@ public struct ManifestConnector {
 
     /// Готовый запрос — отдельно от отправки, чтобы его можно было сверить в
     /// тесте, не поднимая сети.
-    public func makeRequest(query: String, limit: Int, page: Int = 0) throws -> URLRequest {
+    public func makeRequest(query: String, limit: Int, page: Int = 0,
+                            suffix: String = "") throws -> URLRequest {
         guard isConfigured else { throw ConnectorError.notConfigured }
         let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
             .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         // Путь тоже с подстановками: у Plane номер проекта стоит внутри адреса,
         // а не в параметрах.
         var components = URLComponents(
-            string: trimmedHost + fill(manifest.request.path, query: query, limit: limit, page: page))
+            string: trimmedHost + fill(manifest.request.path, query: query, limit: limit, page: page, suffix: suffix))
         // Пустой список — это `nil`, а не `[]`: с пустым массивом URLComponents
         // дописывает голый «?» в конец адреса. У сервисов вроде Outline
         // параметров нет вовсе, и такой хвост уходил бы в каждый запрос.
         let items = (manifest.request.query + (manifest.scan?.page ?? [])).map {
-            URLQueryItem(name: $0.name, value: fill($0.value, query: query, limit: limit, page: page))
+            URLQueryItem(name: $0.name,
+                         value: fill($0.value, query: query, limit: limit, page: page, suffix: suffix))
         }
         components?.queryItems = items.isEmpty ? nil : items
         guard let url = components?.url else { throw ConnectorError.notConfigured }
@@ -193,11 +195,11 @@ public struct ManifestConnector {
         var request = URLRequest(url: url)
         request.httpMethod = manifest.request.method
         for header in manifest.request.headers {
-            request.setValue(fill(header.value, query: query, limit: limit, page: page),
+            request.setValue(fill(header.value, query: query, limit: limit, page: page, suffix: suffix),
                              forHTTPHeaderField: header.name)
         }
         if let template = manifest.request.body {
-            let filled = fill(template, query: escapedForJSON(query), limit: limit)
+            let filled = fill(template, query: escapedForJSON(query), limit: limit, suffix: suffix)
             request.httpBody = Data(filled.utf8)
             if request.value(forHTTPHeaderField: "Content-Type") == nil {
                 request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -351,7 +353,8 @@ public struct ManifestConnector {
                 if stem != trimmed {
                     // Как и с регистром: провал уточнения не должен стоить
                     // ответа, который у человека уже есть.
-                    let third = (try? parse(try await fetch(query: stem, limit: limit))) ?? []
+                    let third = (try? parse(try await fetch(query: stem, limit: limit,
+                                                            suffix: manifest.stemSuffix ?? ""))) ?? []
                     // Основа короче слова: сервис, ищущий по вхождению, нашёл
                     // бы по ней не меньше. Пустота там, где слово целиком
                     // что-то нашло, означает поиск словами целиком — и больше
@@ -387,8 +390,10 @@ public struct ManifestConnector {
     }
 
     /// Один запрос: отправить, разобрать коды, отдать байты.
-    private func fetch(query: String, limit: Int, page: Int = 0) async throws -> Data {
-        let (data, response) = try await http(makeRequest(query: query, limit: limit, page: page))
+    private func fetch(query: String, limit: Int, page: Int = 0,
+                       suffix: String = "") async throws -> Data {
+        let (data, response) = try await http(
+            makeRequest(query: query, limit: limit, page: page, suffix: suffix))
         if response.statusCode == 401 { throw ConnectorError.unauthorised }
         if response.statusCode == 403 { throw ConnectorError.forbidden }
         if response.statusCode == 429 {
@@ -794,10 +799,16 @@ public struct ManifestConnector {
             .joined(separator: " ")
     }
 
-    private func fill(_ template: String, query: String, limit: Int, page: Int = 0) -> String {
+    private func fill(_ template: String, query: String, limit: Int, page: Int = 0,
+                      suffix: String = "") -> String {
+        // Знак подстановки приписывается ПОСЛЕ очистки, и порядок тут не
+        // вкусовщина: `words(of:)` убирает `*` наравне с прочими служебными
+        // знаками, потому что из речи он приходит мусором. Приписанный
+        // раньше, он был бы съеден — и вопрос основой снова не нашёл бы
+        // ничего, а причина выглядела бы как «сервис не умеет».
         var filled = template
-            .replacingOccurrences(of: "{query}", with: query)
-            .replacingOccurrences(of: "{queryWords}", with: Self.words(of: query))
+            .replacingOccurrences(of: "{query}", with: query + suffix)
+            .replacingOccurrences(of: "{queryWords}", with: Self.words(of: query) + suffix)
             .replacingOccurrences(of: "{limit}", with: String(limit))
             .replacingOccurrences(of: "{token}", with: token)
             // `{basic}` — тот же токен, но в base64, для заголовка
