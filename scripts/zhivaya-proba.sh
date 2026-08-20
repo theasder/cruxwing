@@ -41,16 +41,22 @@ esac
 NAME="orakul-proba-$SERVICE"
 cleanup() {
   if [ "$KEEP" = "1" ]; then echo ">> контейнер ${NAME} оставлен (ORAKUL_PROBE_KEEP=1)"; return; fi
-  docker rm -f "$NAME" >/dev/null 2>&1 || true
-  # У Wiki.js своя база и своя сеть: без них следующий запуск поднимется
-  # поверх прошлых данных, и «нашлось» будет про них.
-  docker rm -f "${NAME}-db" >/dev/null 2>&1 || true
-  # У Plane к базе добавляется ещё и кэш.
-  docker rm -f "${NAME}-redis" >/dev/null 2>&1 || true
-  docker network rm "${NAME}-net" >/dev/null 2>&1 || true
-  # У Synapse настройки живут томом: без уборки следующий запуск
-  # поднимется на прошлом ключе и прошлых сообщениях.
-  docker volume rm "${NAME}-data" >/dev/null 2>&1 || true
+  # Убираем ВСЁ, что названо этим префиксом, а не перечисленное поимённо.
+  #
+  # Список рос вместе с сервисами — база у Wiki.js, кэш у Plane, том у Synapse —
+  # и каждый новый сервис требовал не забыть про свою коробку. Дважды за день
+  # проба падала на «network already exists»: следующий запуск поднимался поверх
+  # остатков предыдущего, а это худший вид мусора — не ошибка, а ЧУЖИЕ ДАННЫЕ в
+  # ответе на вопрос.
+  docker ps -aq --filter "name=^${NAME}" | while read -r box; do
+    [ -n "$box" ] && docker rm -f "$box" >/dev/null 2>&1
+  done
+  docker volume ls -q --filter "name=^${NAME}" | while read -r vol; do
+    [ -n "$vol" ] && docker volume rm "$vol" >/dev/null 2>&1
+  done
+  docker network ls -q --filter "name=^${NAME}" | while read -r net; do
+    [ -n "$net" ] && docker network rm "$net" >/dev/null 2>&1
+  done
 }
 trap cleanup EXIT
 
@@ -199,7 +205,7 @@ elif [ "$SERVICE" = mattermost ]; then
   # свою Postgres рядом: две коробки и своя сеть — та же схема, что у Wiki.js и
   # Plane, и уборка для неё в этом скрипте уже написана.
   PORT=3992
-  docker network create "${NAME}-net" >/dev/null
+  docker network create "${NAME}-net" >/dev/null 2>&1 || true
   docker run -d --name "${NAME}-db" --network "${NAME}-net" \
     -e POSTGRES_USER=mmuser -e POSTGRES_PASSWORD=mmuser -e POSTGRES_DB=mattermost \
     postgres:15-alpine >/dev/null
@@ -247,7 +253,7 @@ elif [ "$SERVICE" = rocketChat ]; then
   # MongoDB НАБОРА РЕПЛИК — он читает oplog, а одиночный сервер его не ведёт.
   # Отсюда лишний шаг с rs.initiate, которого нет ни у кого выше.
   PORT=3991
-  docker network create "${NAME}-net" >/dev/null
+  docker network create "${NAME}-net" >/dev/null 2>&1 || true
   docker run -d --name "${NAME}-db" --network "${NAME}-net" \
     mongo:8.0 --replSet rs0 --bind_ip_all >/dev/null
   for _ in $(seq 1 30); do
@@ -287,7 +293,7 @@ elif [ "$SERVICE" = matrix ]; then
   # Synapse генерирует ключи и файл настроек отдельным запуском, и только потом
   # умеет стартовать. Отсюда том — общий для обоих запусков.
   PORT=3990
-  docker volume create "${NAME}-data" >/dev/null
+  docker volume create "${NAME}-data" >/dev/null 2>&1 || true
   docker run --rm -v "${NAME}-data:/data" \
     -e SYNAPSE_SERVER_NAME=proba.local -e SYNAPSE_REPORT_STATS=no \
     matrixdotorg/synapse:latest generate >/dev/null 2>&1
