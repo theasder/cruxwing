@@ -77,7 +77,7 @@ public enum ConnectorProbeReport {
             // только знакомой формы».
             lines.append("Форма узнана, строк: \(rows)")
             if let title = outcome.firstTitle, !title.isEmpty {
-                lines.append("Первая строка: \(title)")
+                lines.append("Заголовок первой строки прочитан: \(shape(of: title))")
             }
         }
         if let failure = outcome.failure {
@@ -88,6 +88,36 @@ public enum ConnectorProbeReport {
         lines.append("Токен в этот вывод не попадает — можно прикладывать к пулл-реквесту.")
 
         return scrub(lines.joined(separator: "\n"), token: token)
+    }
+
+    /// Каким был заголовок — НЕ показывая, каким он был.
+    ///
+    /// Отчёт кладут в открытый пулл-реквест, и внизу его прямо написано, что
+    /// это можно. Значит всё, что здесь напечатано, читает кто угодно, включая
+    /// тех, кто продаёт конкурирующий продукт.
+    ///
+    /// Печаталась первая строка выдачи целиком — то есть настоящий заголовок
+    /// задачи из трекера того, кто прислал отчёт: «Пересмотр тарифов для
+    /// такого-то с декабря». Токен из отчёта вычищался тщательно, четырьмя
+    /// способами, а рядом уезжало содержимое чужой компании, и никто его
+    /// секретом не считал.
+    ///
+    /// Мейнтейнеру нужен не текст, а доказательство, что поле прочитано ТО:
+    /// строка непустая, такой-то длины, такой-то азбукой. Кириллица тут и есть
+    /// самое полезное — она отличает прочитанный заголовок от подставленного
+    /// служебного слова.
+    static func shape(of title: String) -> String {
+        let letters = title.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        let cyrillic = letters.contains { ($0.value >= 0x0400 && $0.value <= 0x04FF) }
+        let latin = letters.contains { ($0.value >= 0x41 && $0.value <= 0x7A) }
+        let alphabet: String
+        switch (cyrillic, latin) {
+        case (true, true):  alphabet = "кириллица и латиница"
+        case (true, false): alphabet = "кириллица"
+        case (false, true): alphabet = "латиница"
+        default:            alphabet = "без букв"
+        }
+        return "\(title.count) знаков, \(alphabet)"
     }
 
     /// Последняя защита: замена по самому значению токена.

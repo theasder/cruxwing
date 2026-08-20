@@ -111,3 +111,54 @@ struct ConnectorProbeReportTests {
         #expect(text.contains("нет прав"))
     }
 }
+
+/// Отчёт кладут в ОТКРЫТЫЙ пулл-реквест, и внизу его прямо написано, что это
+/// можно. Значит всё напечатанное читает кто угодно — включая тех, кто продаёт
+/// конкурирующий продукт.
+///
+/// Токен вычищался четырьмя способами: по имени заголовка, по значению, по
+/// половинам составного ключа, по процентному кодированию. А рядом печаталась
+/// первая строка выдачи целиком — настоящий заголовок задачи из трекера того,
+/// кто прислал отчёт. Секретом его никто не считал.
+@Suite struct ProbeReportKeepsTheirDataTests {
+
+    private func report(firstTitle: String?) -> String {
+        ConnectorProbeReport.render(
+            ConnectorProbeReport.Outcome(
+                service: "redmine", request: nil, status: 200,
+                rows: 3, firstTitle: firstTitle, failure: nil),
+            token: "kluch")
+    }
+
+    @Test("заголовок чужой задачи в отчёт не попадает")
+    func theTitleItselfIsNotPrinted() {
+        let text = report(firstTitle: "Пересмотр тарифов для клиента с декабря")
+        #expect(!text.contains("Пересмотр"))
+        #expect(!text.contains("клиента"))
+    }
+
+    @Test("но доказательство, что поле прочитано, остаётся")
+    func theProofRemains() {
+        // Мейнтейнеру нужен не текст, а то, что прочитано ТО поле: строка
+        // непустая, такой-то длины и такой-то азбукой.
+        let text = report(firstTitle: "Пересмотр тарифов")
+        #expect(text.contains("Заголовок первой строки прочитан"))
+        #expect(text.contains("17 знаков"))
+        #expect(text.contains("кириллица"))
+    }
+
+    @Test("азбука различается — она и отличает прочитанное от подставленного")
+    func theAlphabetIsTold() {
+        #expect(ConnectorProbeReport.shape(of: "Fix export").contains("латиница"))
+        #expect(ConnectorProbeReport.shape(of: "Починить export").contains("кириллица и латиница"))
+        #expect(ConnectorProbeReport.shape(of: "#7 — 42").contains("без букв"))
+    }
+
+    @Test("пустой выдачи это не касается")
+    func anEmptyAnswerIsUnchanged() {
+        // Ноль строк — тоже результат, и он отличается от «форму не узнали».
+        let text = report(firstTitle: nil)
+        #expect(text.contains("Форма узнана, строк: 3"))
+        #expect(!text.contains("Заголовок первой строки"))
+    }
+}
