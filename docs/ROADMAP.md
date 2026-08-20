@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 345 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 346 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2979 and 701 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -2493,6 +2493,24 @@ Russian. `test/srashcheniya.test.mjs` looks for the actual shape — a Cyrillic
 letter directly against a Latin one inside a literal — while allowing the two
 places where the alphabets legitimately touch: a character class in a pattern
 (`[A-Za-zА-Яа-я]`) and a vowel inventory with no spaces (`aeiouyаеёиоуыэюя`).
+
+**Every source in the fan-out is classified — 2026-08-20.** The «empty result
+says nothing about its bound» defect was repaired three times, one source at a
+time: the Telegram archive, both tracker families, the notes on disk. Three
+repairs of one shape mean the fourth source will be added the same silent way
+and nobody will notice. So each branch of the fan-out must now either state its
+bound inside the empty branch, or be named in a list of «this service searches
+by itself» with the reason — and that list is checked both ways, so a name for a
+branch that no longer exists fails too.
+
+The check took four attempts, and each failure was the guard rather than the
+code. It skipped a branch whose source id it could not parse — a guard able not
+to notice is a guard that will not fire. It excused Telegram by the `messenger:`
+prefix, though a local archive starting on the day of connection is the opposite
+of «searches by itself». Then it read a window of lines around the branch and
+accepted a bound that had been *computed* nearby while the branch itself no
+longer used it — nearness is not use, the same mistake as code that stays in the
+file and becomes unreachable. It reads the branch body now.
 
 **Counts measured, not remembered** — own connectors, the services whose search parameter is a language (both the names in §7.4 and how many there are), how many connectors were checked against a running service and which ones (§11), the substitutions the engine understands against the ones CONTRIBUTING explains, page-and-doc tests, the
 ceiling on English strings in the interface, the numbers §5.2 quotes about
