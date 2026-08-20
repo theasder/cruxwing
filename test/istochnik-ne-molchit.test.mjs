@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 
 // Источник, видевший часть, обязан сказать это и когда ничего не нашёл.
 //
@@ -17,6 +18,14 @@ import { readFileSync } from 'node:fs';
 // названа как «ищет сам». Второе — решение, а не пропуск, и его надо записать.
 
 const FILE = 'app/Sources/MeetGPT/MCP/MCPGrounding.swift';
+
+function swiftFiles(dir) {
+  return readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) return swiftFiles(path);
+    return entry.endsWith('.swift') ? [path] : [];
+  });
+}
 const code = readFileSync(FILE, 'utf8');
 const lines = code.split('\n');
 
@@ -122,4 +131,65 @@ test('каждая ветка веера либо называет границ�
   assert.ok(seen.has('bounded'), 'ни одна ветка не объявила границу — разбор сломан');
   const stale = [...SEARCHES_ITSELF.keys()].filter((prefix) => !seen.has(prefix));
   assert.deepEqual(stale, [], `в списке «ищет сам» числятся отсутствующие ветки: ${stale}`);
+});
+
+// Второй заход: не по ветке, а по ВСЕМ источникам приложения.
+//
+// Проверка выше читает только веер в MCPGrounding — и ровно поэтому пропустила
+// поиск по Google: он живёт в AppState. Границу свою он не называл ни при
+// находках, ни при пустой выдаче, и нашёлся руками, а не проверкой.
+//
+// Значит правило шире: КАЖДЫЙ источник, доезжающий до запроса, обязан быть
+// отнесён к одному из двух родов. Список — здесь, и он сверяется в обе стороны.
+const EVERY_SOURCE = new Map([
+  ['github', 'ищет сам — поиск на стороне GitHub'],
+  ['google:calendar', 'текущая встреча, а не выдача поиска: границы нет'],
+  ['google:', 'граница названа (googleBound): три документа за вопрос, тексты обрезаны'],
+  ['health:silent', 'сам докладчик о молчании источников'],
+  ['messenger:telegram', 'граница названа (telegramBound): архив с дня подключения'],
+  ['messenger:', 'ищут сами — рабочие мессенджеры'],
+  ['notes-local', 'граница названа: последние файлы из хранилища'],
+  ['notes:', 'ищут сами — вики'],
+  ['selfhosted:', 'граница названа: охват выдачи'],
+  ['team:', 'ищут сами — Slack и Confluence'],
+  ['tracker:', 'ищут сами — российские трекеры'],
+  ['western:', 'граница названа: охват выдачи'],
+]);
+
+test('каждый источник, доезжающий до запроса, отнесён к роду', () => {
+  const sources = new Set();
+  for (const file of swiftFiles('app/Sources')) {
+    const text = readFileSync(file, 'utf8');
+    for (const m of text.matchAll(/sourceID: "([^"]*)/g)) sources.add(m[1]);
+  }
+  assert.ok(sources.size >= 8, `источников нашлось ${sources.size} — обход сломан`);
+
+  const unknown = [];
+  const used = new Set();
+  for (const source of sources) {
+    // Самое длинное совпадение: `messenger:telegram` не должен извиняться
+    // приставкой `messenger:`, у него свой род.
+    const key = [...EVERY_SOURCE.keys()]
+      .filter((k) => source.startsWith(k))
+      .sort((a, b) => b.length - a.length)[0];
+    if (key) { used.add(key); continue; }
+    unknown.push(source);
+  }
+  assert.deepEqual(unknown, [], `источники без рода: ${unknown.join(', ')}`);
+
+  // Два списка в одном файле — уже два места, и расходятся они молча.
+  //
+  // Источник, обязанный называть границу, должен стоять в этом перечне ОТДЕЛЬНОЙ
+  // строкой. Иначе его извинит приставка соседей: убери `messenger:telegram` — и
+  // локальный архив, начинающийся в день подключения, будет числиться «ищет
+  // сам». Проверка веера его границу всё равно потребует, а вот причина рядом с
+  // ним станет неправдой — и читать её будут как правду.
+  for (const bounded of MUST_DECLARE_ITS_BOUND) {
+    assert.ok(EVERY_SOURCE.has(bounded),
+      `«${bounded}» обязан называть границу, но своей строки в перечне не имеет — ` +
+      'его извинит приставка соседей');
+  }
+
+  const stale = [...EVERY_SOURCE.keys()].filter((k) => !used.has(k));
+  assert.deepEqual(stale, [], `в списке числятся исчезнувшие источники: ${stale.join(', ')}`);
 });
