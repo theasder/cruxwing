@@ -156,7 +156,7 @@ public struct SelfHostedTrackers {
                 return "Токен настоящий, но права на поиск ему не выдали. Проверьте область токена (у GitLab это read_api, у Gitea — права на задачи) и доступ к проекту. Новый токен с теми же правами не поможет."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Трекер отказал: \(prefix)\(description)"
+                return "Трекер отказал: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа: сессия за единым входом истекла или адрес ведёт на сам сервер, а не на его API."
             case .unreadable:

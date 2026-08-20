@@ -1,4 +1,5 @@
 import Foundation
+import OrakulCore
 
 /// Flags instruction-shaped text inside content the app did not author.
 ///

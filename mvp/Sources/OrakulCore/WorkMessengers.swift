@@ -204,7 +204,7 @@ public struct WorkMessengers {
                 return "Мессенджер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Мессенджер отказал: \(prefix)\(description)"
+                return "Мессенджер отказал: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable:

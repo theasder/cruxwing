@@ -189,7 +189,7 @@ public struct RussianTrackers {
             case .unauthorised(let service):
                 return "\(service.title) не принял токен: истёк или не хватает прав. Создайте новый в самом сервисе."
             case .vendor(let service, let code, let description):
-                let detail = description.isEmpty ? code : description
+                let detail = VendorText.forPerson(description.isEmpty ? code : description)
                 return "\(service.title) отказал: \(detail). Если это Битрикс24 — проверьте, что вебхук не удалён и у него есть право «Задачи»."
             case .http(let service, let status):
                 return "\(service.title) ответил ошибкой \(status). Если это 404 — проверьте очередь или доску в настройках."

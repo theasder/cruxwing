@@ -1,4 +1,5 @@
 import Foundation
+import OrakulCore
 
 /// Hardens third-party `SKILL.md` bodies before they are layered into the
 /// system prompt. Vendored skills are useful methodology, but they are

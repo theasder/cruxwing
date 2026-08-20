@@ -136,7 +136,7 @@ public struct TeamNotes {
                 return "Токен настоящий, но права на поиск ему не выдали. Это чинится в самом сервисе — в правах токена или в доступе к пространству, — а не выпуском нового токена."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Вики отказала: \(prefix)\(description)"
+                return "Вики отказала: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable:

@@ -1,4 +1,5 @@
 import Foundation
+import OrakulCore
 
 struct ImportedContextFile: Identifiable, Equatable, Codable {
     let id: UUID

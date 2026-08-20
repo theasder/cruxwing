@@ -91,7 +91,7 @@ public struct WesternTrackers: Sendable {
                 return "Трекер ответил ошибкой \(status). Сервис на месте — если это 5xx, подождите и повторите."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Трекер отказал: \(prefix)\(description)"
+                return "Трекер отказал: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
                 return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
             case .unreadable:
