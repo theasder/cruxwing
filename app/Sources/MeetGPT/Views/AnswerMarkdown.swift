@@ -19,6 +19,37 @@ import Foundation
 /// цитату с источником; спрятанный источник — противоположность этого обещания.
 enum AnswerMarkdown {
 
+    /// То же правило для РАЗМЕТКИ, а не для разобранного текста.
+    ///
+    /// На экран ответ попадает разобранным, и там ссылку снимает
+    /// `withoutHiddenLinks`. В выгрузку он уезжает КАК ЕСТЬ — строкой markdown,
+    /// — и `[слова](адрес)` снова становится ссылкой уже на стороне Notion.
+    /// Дверь другая, а хуже она тем, что страницу открывают коллеги: людей
+    /// больше, доверия больше, а написано на ней «orakul».
+    ///
+    /// Правило то же: слова оставляем, адрес показываем. Адрес, совпадающий с
+    /// подписью, не повторяем — иначе выгрузка обрастает «https://… (https://…)».
+    static func withVisibleAddresses(_ markdown: String) -> String {
+        var out = ""
+        var rest = Substring(markdown)
+        while let open = rest.firstIndex(of: "[") {
+            guard let close = rest[open...].firstIndex(of: "]"),
+                  rest.index(after: close) < rest.endIndex,
+                  rest[rest.index(after: close)] == "(",
+                  let end = rest[close...].firstIndex(of: ")") else {
+                out += rest[..<rest.index(after: open)]
+                rest = rest[rest.index(after: open)...]
+                continue
+            }
+            let label = String(rest[rest.index(after: open)..<close])
+            let address = String(rest[rest.index(close, offsetBy: 2)..<end])
+            out += rest[..<open]
+            out += label == address || label.isEmpty ? address : "\(label) (\(address))"
+            rest = rest[rest.index(after: end)...]
+        }
+        return out + rest
+    }
+
     /// Тот же текст без скрытых переходов.
     static func withoutHiddenLinks(_ parsed: AttributedString) -> AttributedString {
         var out = parsed

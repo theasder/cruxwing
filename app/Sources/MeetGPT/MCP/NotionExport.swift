@@ -41,16 +41,16 @@ enum NotionExport {
             if !earlierPrompt.isEmpty {
                 md += "## Prompt\n\n\(earlierPrompt)\n\n"
             }
-            md += "## Answer\n\n\(exchange.answer.trimmingCharacters(in: .whitespacesAndNewlines))\n\n"
+            md += "## Answer\n\n\(AnswerMarkdown.withVisibleAddresses(exchange.answer.trimmingCharacters(in: .whitespacesAndNewlines)))\n\n"
         }
         let cleanPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         if !cleanPrompt.isEmpty, cleanPrompt != "Prompt unavailable for this older saved answer." {
             md += "## Prompt\n\n\(cleanPrompt)\n\n"
         }
-        md += "## Assistant answer\n\n\(answer.trimmingCharacters(in: .whitespacesAndNewlines))\n\n"
+        md += "## Assistant answer\n\n\(AnswerMarkdown.withVisibleAddresses(answer.trimmingCharacters(in: .whitespacesAndNewlines)))\n\n"
         if !blindSpots.isEmpty {
             md += "## Blind spots\n\n"
-                + blindSpots.map { "- \($0)" }.joined(separator: "\n") + "\n"
+                + blindSpots.map { "- \(AnswerMarkdown.withVisibleAddresses($0))" }.joined(separator: "\n") + "\n"
         }
         return md
     }

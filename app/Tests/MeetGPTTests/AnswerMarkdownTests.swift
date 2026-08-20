@@ -78,3 +78,57 @@ import Foundation
                 "разбор снова отдаёт разметку как есть")
     }
 }
+
+/// Тот же адрес, но в выгрузке.
+///
+/// На экран ответ попадает разобранным, и там ссылку снимает
+/// `withoutHiddenLinks`. В Notion он уезжает КАК ЕСТЬ — строкой markdown, —
+/// и `[слова](адрес)` снова становится ссылкой уже на той стороне.
+///
+/// Дверь другая, и хуже она тем, что страницу открывают коллеги: людей больше,
+/// доверия больше, а написано на странице «orakul».
+@Suite struct ExportedMarkdownAddressTests {
+
+    @Test("адрес в выгрузке виден, а не спрятан за словами")
+    func theAddressIsVisibleInTheExport() {
+        let md = AnswerMarkdown.withVisibleAddresses(
+            "Подробности: [Открыть задачу](https://chuzhoy.example/login)")
+        #expect(!md.contains("](" ), "разметка ссылки уцелела — Notion сделает из неё ссылку")
+        #expect(md.contains("Открыть задачу"))
+        #expect(md.contains("https://chuzhoy.example/login"))
+    }
+
+    @Test("адрес, совпадающий с подписью, не удваивается")
+    func aVisibleAddressIsNotRepeated() {
+        let md = AnswerMarkdown.withVisibleAddresses(
+            "[https://tracker.example/CRX-42](https://tracker.example/CRX-42)")
+        #expect(md == "https://tracker.example/CRX-42")
+    }
+
+    @Test("несколько ссылок обрабатываются все")
+    func everyLinkIsHandled() {
+        let md = AnswerMarkdown.withVisibleAddresses(
+            "[раз](https://a.example/1) и [два](https://b.example/2)")
+        #expect(md == "раз (https://a.example/1) и два (https://b.example/2)")
+    }
+
+    @Test("обычный текст и одинокие скобки не портятся")
+    func plainTextSurvives() {
+        #expect(AnswerMarkdown.withVisibleAddresses("список [1] и [2]") == "список [1] и [2]")
+        #expect(AnswerMarkdown.withVisibleAddresses("решили поднять тарифы")
+                == "решили поднять тарифы")
+        #expect(AnswerMarkdown.withVisibleAddresses("незакрытая [скобка")
+                == "незакрытая [скобка")
+    }
+
+    @Test("выгрузка в Notion зовёт это правило")
+    func theNotionExportUsesIt() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/MeetGPT/MCP/NotionExport.swift"), encoding: .utf8)
+        let calls = source.components(separatedBy: "AnswerMarkdown.withVisibleAddresses").count - 1
+        #expect(calls >= 3,
+                "ответ, прошлые ответы или слепые зоны уезжают в выгрузку с сырой разметкой")
+    }
+}
