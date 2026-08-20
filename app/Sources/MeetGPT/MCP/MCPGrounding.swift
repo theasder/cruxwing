@@ -42,6 +42,47 @@ struct GroundingSnippet: Identifiable, Sendable {
 /// (Notion search, Fireflies keyword search, Linear/Jira issue search, …),
 /// in parallel; per-server failures are skipped, never fatal.
 extension MCPConnectionManager {
+    /// Что сказать, когда источник не нашёл ничего, но видел лишь часть.
+    ///
+    /// `.searched` — сервис искал сам, по всему, что у него есть; его пустая
+    /// выдача честна, и молчание тут уместно. Всё остальное — перечисление с
+    /// границей, ответ из памяти, «просмотрены последние N из 40 000» — значит,
+    /// что мы видели ЧАСТЬ. Пустая выдача такого источника не «нет такого», а
+    /// «в просмотренной части нет», и это разные утверждения.
+    ///
+    /// Ровно ради этой разницы и заведён `SearchCoverage` (§7.2). Он ехал
+    /// вместе с находками — и пропадал, когда находок не было, то есть в
+    /// единственном случае, когда «часть» и «всё» звучат одинаково.
+    ///
+    /// Проверять нечего изобретать: у `.searched` примечание пустое, у
+    /// остальных — нет. Правило и есть это различие.
+    nonisolated static func emptyButBounded(_ coverage: SearchCoverage,
+                                            subject: SearchCoverage.Subject = .service) -> String? {
+        emptyButBounded(note: coverage.note(subject))
+    }
+
+    /// То же самое, когда охват приезжает уже строкой: семья своих трекеров
+    /// отдаёт `note`, а не сам `SearchCoverage`.
+    nonisolated static func emptyButBounded(note: String) -> String? {
+        guard !note.isEmpty else { return nil }
+        return "Ничего не нашлось, но искали не везде — \(note)."
+    }
+
+    /// Готовый кусок для пустой, но ограниченной выдачи — или ничего.
+    ///
+    /// Отдельной функцией, а не двумя одинаковыми `guard` на местах: проверка
+    /// «оба семейства зовут правило» умеет спросить про ВЫЗОВ и не умеет про
+    /// достижимость строки. Мутация, дописавшая `return (index, nil)` перед
+    /// прежним кодом, набор проходила — код остался в файле и стал недостижим.
+    nonisolated static func boundedEmptySnippet(serverName: String, sourceID: String,
+                                                note: String) -> GroundingSnippet? {
+        guard let text = emptyButBounded(note: note) else { return nil }
+        return GroundingSnippet(serverName: serverName, toolName: "search",
+                                text: text, sourceID: sourceID,
+                                readFor: ConnectorProbeStrategy.trackerProbe.readFor)
+    }
+
+
     /// Граница архива словами — та же для найденного и для ненайденного.
     ///
     /// Одна строка на оба случая нарочно: если писать её только при пустой
@@ -447,7 +488,12 @@ extension MCPConnectionManager {
                             service: service.rawValue, seconds: Self.groundingDeadline)
                         return (index, nil)
                     }
-                    guard !outcome.items.isEmpty else { return (index, nil) }
+                    guard !outcome.items.isEmpty else {
+                        return (index, Self.boundedEmptySnippet(
+                            serverName: service.title,
+                            sourceID: "selfhosted:\(service.rawValue)",
+                            note: outcome.note))
+                    }
                     // Состояние задачи в тексте: «уже закрыто» меняет смысл
                     // находки на противоположный. Охват — по той же причине:
                     // часть списка, выданная за весь, меняет смысл ответа так
@@ -677,7 +723,12 @@ extension MCPConnectionManager {
                             service: service.rawValue, seconds: Self.groundingDeadline)
                         return (index, nil)
                     }
-                    guard !outcome.items.isEmpty else { return (index, nil) }
+                    guard !outcome.items.isEmpty else {
+                        return (index, Self.boundedEmptySnippet(
+                            serverName: service.title,
+                            sourceID: "western:\(service.rawValue)",
+                            note: outcome.coverage.note()))
+                    }
                     let text = Self.withCoverage(
                         outcome.items.prefix(10)
                             .map { "\(IssueLabel.render(key: $0.key, state: $0.state)) \($0.title)" }

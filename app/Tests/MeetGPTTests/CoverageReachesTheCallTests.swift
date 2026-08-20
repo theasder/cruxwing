@@ -76,7 +76,12 @@ import OrakulCore
         // мутацией — первая редакция этой проверки его пропускала.
         for (branch, source_) in [("sourceID: \"western:", "outcome.coverage.note()"),
                                   ("sourceID: \"selfhosted:", "outcome.note")] {
-            let head = try #require(code.range(of: branch))
+            // ПОСЛЕДНЕЕ вхождение, а не первое: с 2026-08-20 в каждой ветке
+            // их два. Первое — кусок для пустой, но ограниченной выдачи
+            // («ничего не нашлось, но искали не везде»), второе — находки.
+            // Проверка про находки, и якорь на первом вхождении срезал ветку
+            // до `withCoverage` и объявлял пропажу того, что лежит на месте.
+            let head = try #require(code.range(of: branch, options: .backwards))
             // Ветка целиком — от её объявления вверх до предыдущего `group.addTask`.
             let before = String(code[..<head.lowerBound])
             let start = try #require(before.range(of: "group.addTask", options: .backwards))
