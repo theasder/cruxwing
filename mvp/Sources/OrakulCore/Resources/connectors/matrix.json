@@ -3,22 +3,40 @@
   "title": "Matrix / Element",
   "docs": "https://spec.matrix.org/v1.11/client-server-api/#post_matrixclientv3search",
   "verifiedOn": "2026-08-21",
-  "note": "Свой сервер (Synapse и совместимые). Полнотекстовый поиск по событиям комнат: POST /_matrix/client/v3/search, тело вложенное — сервер умеет искать в нескольких «категориях» сразу, нам нужна одна, room_events. order_by: recent — по свежести, а не по релевантности: на звонке важнее «когда решили», чем «где слово встретилось чаще». Ответ вложен так же глубоко: строка лежит в result.content.body, автор — в result.sender. Вложенность родная для сервиса, а не наша.",
+  "note": "Свой сервер (Synapse и совместимые). Полнотекстовый поиск по событиям комнат: POST /_matrix/client/v3/search, тело вложенное — сервер умеет искать в нескольких «категориях» сразу, нам нужна одна, room_events. order_by: recent — по свежести, а не по релевантности: на звонке важнее «когда решили», чем «где слово встретилось чаще». Ответ вложен так же глубоко: строка лежит в result.content.body, автор — в result.sender. Вложенность родная для сервиса, а не наша. Проверено на поднятом у себя Synapse (контейнер, scripts/zhivaya-proba.sh) 2026-08-20. Измерено прямо у сервера: «тариф» — 0, «тариф*» — 0, то есть слова сравниваются целиком и знака подстановки нет, stemSuffix здесь не нужен. Главное же другое: поиск РАЗЛИЧАЕТ РЕГИСТР на кириллице. «тарифы» находит одно сообщение, «Тарифы» — другое, «ТАРИФЫ» — ни одного; «лимиты» находит, «Лимиты» нет. Это тот же корень, что у Redmine на SQLite: приведение к одному регистру там сделано только для ASCII. Поэтому второй вопрос — вторым написанием — здесь не про запас: коннектор находит два сообщения там, где любое одиночное написание находит одно.",
   "request": {
     "method": "POST",
     "path": "/_matrix/client/v3/search",
     "query": [],
     "body": "{\"search_categories\": {\"room_events\": {\"search_term\": \"{query}\", \"order_by\": \"recent\"}}}",
     "headers": [
-      { "name": "Authorization", "value": "Bearer {token}" },
-      { "name": "Content-Type", "value": "application/json" }
+      {
+        "name": "Authorization",
+        "value": "Bearer {token}"
+      },
+      {
+        "name": "Content-Type",
+        "value": "application/json"
+      }
     ]
   },
   "response": {
-    "list": ["search_categories", "room_events", "results"],
-    "title": ["result", "content", "body"],
-    "author": ["result", "sender"],
+    "list": [
+      "search_categories",
+      "room_events",
+      "results"
+    ],
+    "title": [
+      "result",
+      "content",
+      "body"
+    ],
+    "author": [
+      "result",
+      "sender"
+    ],
     "key": [],
     "state": []
-  }
+  },
+  "liveCheckedOn": "2026-08-20"
 }

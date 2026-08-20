@@ -54,7 +54,7 @@ the next step is capturing which neighbour wrote what, not another guess.
 | Layer | Connected | Where in code |
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
-| Work messengers | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, Matrix / Element | `WorkMessengers.swift` |
+| Work messengers | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, **Matrix / Element** | `WorkMessengers.swift` |
 | Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Jira на своём сервере | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
@@ -1841,6 +1841,32 @@ kind of thing as how the search is narrowed, and mixing them in one string is
 what let a spoken colon change the question. It is worth writing down when the
 vendor's own next version agrees with a defence built against the vendor.
 
+**Matrix / Element against a running server — 2026-08-20, and the second
+question earned its keep.** Synapse configures itself before it will start, so
+the probe generates keys and settings in one run and starts the server in
+another, sharing a volume; registration goes through the shared secret rather
+than by opening the server up, because what is being tested is the connector,
+not the server's hospitality.
+
+The connector finds two of the four seeded messages. Asking Synapse directly
+finds **one** — and that gap is the whole result. «тарифы» returns one message,
+«Тарифы» returns a *different* one, «ТАРИФЫ» returns nothing; «лимиты» finds,
+«Лимиты» does not. Search on this server distinguishes case on Cyrillic, which
+is the same root as Redmine on SQLite: folding to one case is done for ASCII
+only. The second question — the same word in the other case — is not a
+precaution here, it is half the answer.
+
+The stem question is useless on this server, and measured to be: «тариф» returns
+nothing and «тариф*» returns nothing either. Third service in a row where the
+wildcard does not exist, against Mattermost where it does — the argument for
+`stemSuffix` being a field rather than a rule keeps getting stronger.
+
+The list of services exempted from the probe's stem assertion is now a **named
+list with a measurement beside each**, not a chain of comparisons: gitea,
+rocketChat, matrix, each with its numbers and its date. Both older probes were
+re-run afterwards, because rewriting the condition that guards three services is
+exactly where one of them quietly stops being guarded.
+
 **Rocket.Chat against a running server — 2026-08-20, and the answer was the
 opposite of Mattermost's.** Same probe, one service later: MongoDB with a
 replica set (Rocket.Chat reads the oplog, and a standalone server keeps none),
@@ -2373,7 +2399,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **nine** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Mattermost, Nextcloud, Plane, Redmine, Rocket.Chat, Wiki.js) and **twelve** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of them could be stood up that way; **Mattermost and Rocket.Chat are done — 2026-08-20**, and three remain: **Zulip, Matrix / Element, Outline**. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
+| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **ten** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Matrix / Element, Mattermost, Nextcloud, Plane, Redmine, Rocket.Chat, Wiki.js) and **eleven** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of them could be stood up that way; **Mattermost, Rocket.Chat and Matrix / Element are done — 2026-08-20**, and two remain: **Zulip, Outline**. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |

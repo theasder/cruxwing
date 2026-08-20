@@ -142,7 +142,8 @@ describe('ROADMAP', () => {
     const titles = { gitea: 'Gitea / Forgejo', redmine: 'Redmine',
                      wikijs: 'Wiki.js', nextcloud: 'Nextcloud',
                      gitlab: 'GitLab', plane: 'Plane', bookstack: 'BookStack',
-                     mattermost: 'Mattermost', rocketChat: 'Rocket.Chat' };
+                     mattermost: 'Mattermost', rocketChat: 'Rocket.Chat',
+                     matrix: 'Matrix / Element' };
     for (const id of live) {
       const key = id.replace('.json', '');
       const title = titles[key];

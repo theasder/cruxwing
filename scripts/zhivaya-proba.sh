@@ -34,8 +34,8 @@ TASKS=("Поднять тарифы с декабря" "Починить вхо�
        "Пересчитать смету вместе с тарифами")
 
 case "$SERVICE" in
-  gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat) ;;
-  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat" >&2; exit 2 ;;
+  gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat|matrix) ;;
+  *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat|matrix" >&2; exit 2 ;;
 esac
 
 NAME="orakul-proba-$SERVICE"
@@ -48,6 +48,9 @@ cleanup() {
   # У Plane к базе добавляется ещё и кэш.
   docker rm -f "${NAME}-redis" >/dev/null 2>&1 || true
   docker network rm "${NAME}-net" >/dev/null 2>&1 || true
+  # У Synapse настройки живут томом: без уборки следующий запуск
+  # поднимется на прошлом ключе и прошлых сообщениях.
+  docker volume rm "${NAME}-data" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -278,6 +281,39 @@ elif [ "$SERVICE" = rocketChat ]; then
   # человек: манифест делит её на {tokenHead} и {tokenTail}.
   TOKEN="$AUTH:$UID_"
   SCOPE="$ROOM"
+elif [ "$SERVICE" = matrix ]; then
+  # Третий мессенджер, и единственный, где сервер сначала СЕБЯ настраивает:
+  # Synapse генерирует ключи и файл настроек отдельным запуском, и только потом
+  # умеет стартовать. Отсюда том — общий для обоих запусков.
+  PORT=3990
+  docker volume create "${NAME}-data" >/dev/null
+  docker run --rm -v "${NAME}-data:/data" \
+    -e SYNAPSE_SERVER_NAME=proba.local -e SYNAPSE_REPORT_STATS=no \
+    matrixdotorg/synapse:latest generate >/dev/null 2>&1
+  docker run -d --name "$NAME" -v "${NAME}-data:/data" -p "$PORT:8008" \
+    matrixdotorg/synapse:latest >/dev/null
+  wait_for "http://localhost:$PORT/_matrix/client/versions" 60
+  PASS='ПробаProba123!'
+  # Регистрация общим секретом, а не открытая: сервер остаётся закрытым, как у
+  # людей, и проверяем мы коннектор, а не гостеприимство сервера.
+  docker exec "$NAME" register_new_matrix_user -u proba -p "$PASS" -a \
+    -c /data/homeserver.yaml "http://localhost:8008" >/dev/null 2>&1
+  TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+    -d "$(python3 -c "import json,sys;print(json.dumps(dict(type='m.login.password', user='proba', password=sys.argv[1])))" "$PASS")" \
+    "http://localhost:$PORT/_matrix/client/v3/login" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['access_token'])")
+  [ -n "$TOKEN" ] || { echo "!! вход не дал токена" >&2; exit 1; }
+  ROOM=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    -d '{"name":"Договоры","preset":"private_chat"}' \
+    "http://localhost:$PORT/_matrix/client/v3/createRoom" \
+    | python3 -c "import sys,json;print(json.load(sys.stdin)['room_id'])")
+  n=0
+  for t in "${TASKS[@]}"; do
+    n=$((n+1))
+    curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+      -d "$(python3 -c "import json,sys;print(json.dumps(dict(msgtype='m.text', body=sys.argv[1])))" "$t")" \
+      "http://localhost:$PORT/_matrix/client/v3/rooms/$ROOM/send/m.room.message/proba$n" >/dev/null
+  done
 elif [ "$SERVICE" = gitlab ]; then
   PORT=3993
   # Двадцать минут на подъём — и это не преувеличение: официального образа под
@@ -371,16 +407,29 @@ fi
 # нельзя удовлетворить, отключают целиком — вместе с проверкой остальных.
 # -i обязателен: у Nextcloud имя файла начинается с прописной «Смета», и
 # строчный образец её не находил — сторож объявлял пропажу того, что доехало.
-# Rocket.Chat — второй такой, и это измерено прямо у сервиса 2026-08-20:
-# «тарифы» находит 2, «тарифами» 1, «тариф» — 0, и «тариф*» тоже 0. То есть
-# слова сравниваются целиком, а знак подстановки не работает вовсе — в отличие
-# от Mattermost, где он работает и потому объявлен в манифесте. Требовать здесь
-# косвенную форму значило бы требовать невозможного.
+# Освобождённые — списком с измерением у каждого, а не цепочкой сравнений.
 #
-# Сам движок это уже умеет: `learnStemIsUseless` запоминает пустой ответ на
-# основу при непустом ответе на слово и больше основой этот сервис не
-# беспокоит. Освобождение здесь — про пробу, а не про продукт.
-if [ "$SERVICE" != gitea ] && [ "$SERVICE" != rocketChat ] && ! grep -qi 'смет' "$OUT"; then
+# Общее у всех троих одно: слова сравниваются ЦЕЛИКОМ, и знака подстановки нет.
+# Требовать от них косвенную форму значит требовать невозможного, а сторож,
+# который нельзя удовлетворить, отключают целиком — вместе с проверкой
+# остальных.
+#
+#   gitea      — измерено 2026-08-19: «тарифы» нашли две задачи, «тариф» ноль.
+#   rocketChat — измерено 2026-08-20: «тарифы» 2, «тарифами» 1, «тариф» 0,
+#                «тариф*» тоже 0.
+#   matrix     — измерено 2026-08-20: «тариф» 0 и «тариф*» 0. Там же выяснилось
+#                другое: поиск РАЗЛИЧАЕТ РЕГИСТР на кириллице — «тарифы» находит
+#                одно сообщение, «Тарифы» другое, «ТАРИФЫ» ни одного. Ровно то,
+#                ради чего задаётся второй вопрос: коннектор находит два, а любое
+#                одиночное написание — одно.
+#
+# У Mattermost знак подстановки работает, поэтому он не здесь: там основа
+# объявлена в манифесте (stemSuffix) и косвенная форма доезжает.
+case "$SERVICE" in
+  gitea|rocketChat|matrix) STEM_EXPECTED=0 ;;
+  *) STEM_EXPECTED=1 ;;
+esac
+if [ "$STEM_EXPECTED" = 1 ] && ! grep -qi 'смет' "$OUT"; then
   echo "!! запись со словом «тарифами» не доехала: вопрос основой не сработал" >&2
   rm -f "$OUT"
   exit 1
