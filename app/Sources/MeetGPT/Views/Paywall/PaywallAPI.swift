@@ -111,7 +111,7 @@ enum PaywallAPI {
         Log.network.info(
             "event=promo_redeem_start request_id=\(requestID, privacy: .public) method=POST path=\(path, privacy: .public) body_bytes=\(request.httpBody?.count ?? 0, privacy: .public)")
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await BackendPinning.shared.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             Log.network.info(
                 "event=promo_redeem_response request_id=\(requestID, privacy: .public) status=\(status, privacy: .public)")
@@ -131,7 +131,7 @@ enum PaywallAPI {
         guard let url = URL(string: "\(root)/api/billing/plans?region=\(region)") else {
             return PaywallCatalog(plans: [], addOns: [])
         }
-        let (data, _) = try await URLSession.shared.data(from: url)
+        let (data, _) = try await BackendPinning.shared.data(from: url)
         struct Response: Decodable {
             let plans: [PaywallPlan]
             let addOns: [PaywallAddOn]?
@@ -175,7 +175,7 @@ enum PaywallAPI {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: ["planId": planID, "region": region])
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await BackendPinning.shared.data(for: request)
         let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw LLMError.http("Billing", http.statusCode, (object?["error"] as? String) ?? "")
@@ -306,7 +306,7 @@ enum PaywallAPI {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONSerialization.data(withJSONObject: ["deviceId": Config.deviceId])
 
-        guard let (data, resp) = try? await URLSession.shared.data(for: request),
+        guard let (data, resp) = try? await BackendPinning.shared.data(for: request),
               let http = resp as? HTTPURLResponse, (200...299).contains(http.statusCode),
               let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         else { return false }
@@ -342,7 +342,7 @@ enum PaywallAPI {
               let url = URL(string: "\(root)/auth/profile") else { return nil }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await BackendPinning.shared.data(for: request)
         let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
         guard let user = object?["user"] as? [String: Any],
               let plan = user["plan"] as? [String: Any],

@@ -24,7 +24,11 @@ enum FeedbackUploader {
     /// Returns true only when the server accepted it. Safe to call on every
     /// launch: with nothing queued it makes no request at all.
     @discardableResult
-    static func flush(session: URLSession = .shared,
+    // Сессия с проверкой сертификата, а не общая: отзыв уходит на наш же
+    // сервер и несёт то, что человек написал руками. Делегат привязан к
+    // хосту и для чужих адресов молча отдаёт обычную проверку, поэтому
+    // ставить сюда общую сессию не было причины — только привычка.
+    static func flush(session: URLSession = BackendPinning.shared,
                       baseURL: String = Config.backendBaseURL) async -> Bool {
         guard let pending = FirstMeetingPrompt.unsent else { return false }
         // Нет адреса — некуда слать, и это рабочее состояние orakul, а не сбой:
