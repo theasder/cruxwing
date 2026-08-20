@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 341 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 342 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2941 and 667 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -2306,7 +2306,7 @@ first rule rather than a feature.
 |---|---|---|
 | Russian technical speech recognised worse than needed | Measurement on an own corpus (§6.3); until then we hold other people's numbers on other people's speech | The glossary already repairs the transcript afterwards: engine agreement 71% → 89%. Then model choice by an own measurement |
 | macOS-only cuts off most of the audience | Demand in issues and «no Windows» refusals | §6.1, then §8 |
-| A connector built from docs, never against a live service | Битрикс24 sits in that state already, and it is stated plainly | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Six services have been checked that way: Gitea, Redmine, Wiki.js, Nextcloud, Plane, GitLab — plus BookStack by hand. The row said «four» for two days after the number was six, which is why §2.2's bold marks are now derived from the manifests rather than remembered |
+| A connector built from docs, never against a live service | Counted from the manifests rather than remembered: **seven** carry `liveCheckedOn` (BookStack, Gitea / Forgejo, GitLab, Nextcloud, Plane, Redmine, Wiki.js) and **fourteen** do not, plus the two still written by hand — Яндекс Трекер and Битрикс24. The row used to name Битрикс24 alone, which read as if it were the exception when it is the majority | For a hosted service, a live check by other hands (issue #1). For a **self-hosted** one no account is needed, only a container: `scripts/zhivaya-proba.sh` stands the service up, seeds it, searches, and removes it. Five of the fourteen can be stood up that way and have not been — **Mattermost, Rocket.Chat, Zulip, Matrix / Element, Outline** — and that is the queue, not a wish. The rest are hosted-only (Slack, Linear, Trello, Kaiten, WEEEK, YouGile, Пачка, GitFlic) or licence-gated (Jira Data Center). The row said «four» for two days after the number was six, which is why §2.2's bold marks are derived from the manifests rather than remembered — and why these numbers are checked too |
 | A confident sentence about something that never happened | Eight cases in one night (plan §4): the class is not closed, it repeats on new paths | Rule: for every sentence claiming an outcome, find the case where there was no outcome. Recheck whenever a new path reaches that sentence |
 | One maintainer | The issue queue grows, answers slower than a day | Say it out loud in README; data-described connectors (§6.2) cut the share of tasks needing the maintainer |
 | A secret ships in a public build | §5.2; it shipped once already | Closed 2026-08-18 by inversion: a dist build emits only explicitly named settings and blanks everything else, so a credential with an unrecognisable name no longer depends on a hand list. Proved by running `sw` itself against a planted `.env`. The path gap that remained is closed too, 2026-08-18: `app/assert-no-env-values.sh` reads the **built file** and looks for the literal values from `.env`, so a value baked by any future route — a new source file, a resource, a plist — is caught by ground truth rather than by naming. Printing a value is refused: the report names variables only |
@@ -2333,7 +2333,7 @@ contradiction we hold against others.
 
 ## 13. How this file avoids going stale
 
-`test/roadmap.test.mjs` holds **25 checks** against this file. They fall into
+`test/roadmap.test.mjs` holds **26 checks** against this file. They fall into
 four kinds, and the kinds matter more than the list:
 
 **Structure** — sections numbered and in order; every `plan §N` reference
@@ -2353,7 +2353,7 @@ letter directly against a Latin one inside a literal — while allowing the two
 places where the alphabets legitimately touch: a character class in a pattern
 (`[A-Za-zА-Яа-я]`) and a vowel inventory with no spaces (`aeiouyаеёиоуыэюя`).
 
-**Counts measured, not remembered** — own connectors, the services whose search parameter is a language (both the names in §7.4 and how many there are), page-and-doc tests, the
+**Counts measured, not remembered** — own connectors, the services whose search parameter is a language (both the names in §7.4 and how many there are), how many connectors were checked against a running service and which ones (§11), page-and-doc tests, the
 ceiling on English strings in the interface, the numbers §5.2 quotes about
 `build.sh`, the page limit §7.2 names, the manifest count §6.2 names, and the
 timeouts §10.1 names. Each is recomputed from code on every run, so «measured on

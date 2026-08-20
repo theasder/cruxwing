@@ -310,6 +310,39 @@ describe('ROADMAP', () => {
   // обезоруженным, и по нему сверяются, когда добавляют шестого. Манифест
   // переводят на {queryWords} одной строкой, а абзац остаётся прежним — и
   // читается как действующий перечень, которым он больше не является.
+  // §11 говорит, сколько коннекторов проверено на живом сервисе, а сколько
+  // написано только по документации. Ровно это число уже один раз отстало —
+  // строка держала «четыре», когда их было шесть, — и заметили это не при
+  // чтении, а когда мутация пометок в §2.2 прошла зелёной.
+  test('§11 знает, сколько коннекторов проверено живьём, а сколько нет', () => {
+    const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+                        'Resources', 'connectors');
+    const manifests = readdirSync(dir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => JSON.parse(readFileSync(resolve(dir, f), 'utf8')));
+    const live = manifests.filter((m) => m.liveCheckedOn);
+    const onlyDocs = manifests.filter((m) => !m.liveCheckedOn);
+
+    assert.ok(live.length >= 2 && onlyDocs.length >= 2,
+      `живых ${live.length}, бумажных ${onlyDocs.length} — разбор сломан`);
+
+    const words = ['ноль', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
+                   'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
+                   'fifteen', 'sixteen'];
+    const risks = section('11');
+    assert.ok(risks.includes(`**${words[live.length]}** carry \`liveCheckedOn\``),
+      `§11 называет другое число проверенных живьём, а их ${live.length}`);
+    assert.ok(risks.includes(`**${words[onlyDocs.length]}** do not`),
+      `§11 называет другое число бумажных, а их ${onlyDocs.length}`);
+
+    // И поимённо — иначе «семь» останется верным, когда живьём проверят
+    // другую семёрку.
+    for (const manifest of live) {
+      assert.ok(risks.includes(manifest.title),
+        `${manifest.title} проверен живьём, а §11 его не называет`);
+    }
+  });
+
   test('перечень языковых сервисов в §7.4 — тот же, что в манифестах', () => {
     const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
                         'Resources', 'connectors');
