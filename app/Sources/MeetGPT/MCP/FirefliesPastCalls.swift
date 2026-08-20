@@ -1,4 +1,5 @@
 import Foundation
+import OrakulCore
 
 /// Past Fireflies meetings, imported as ordinary saved sessions.
 ///
@@ -241,8 +242,18 @@ enum FirefliesPastCalls {
             ?? (row["speaker"] as? String)
             ?? (row["speaker_id"] as? String)
             ?? (row["speaker_id"] as? Int).map { "Speaker \($0)" }
-        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return (trimmed?.isEmpty == false) ? trimmed : nil
+        // Через ту же дверь, что и прочие слова сервиса.
+        //
+        // Соседний путь — разбор расшифровки строками — имя проверяет
+        // (`looksLikeSpeakerName`), и правильно делает. А этот, ОСНОВНОЙ,
+        // брал поле как есть: любой длины, с переносами, с невидимыми знаками.
+        // Сторож был написан и стоял у второй двери из двух.
+        //
+        // Проверка здесь мягче соседней намеренно: там имя надо отличить от
+        // предложения с двоеточием, поэтому требуется заглавная буква. Здесь
+        // поле названо прямо, различать нечего, и требовать заглавную значило
+        // бы терять настоящие имена, записанные строчными.
+        return raw.flatMap { VendorText.speakerName($0) }
     }
 
     /// Fireflies reports offsets in seconds, but has also been seen sending
