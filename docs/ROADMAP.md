@@ -29,7 +29,7 @@ State: v1, 2026-08-17.
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 343 tests, all green | `npm test`, run 2026-08-18 |
+| Page and doc checks | 345 tests, all green | `npm test`, run 2026-08-18 |
 | App and core tests | 2959 and 696 | README, maintainer run |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
@@ -1840,6 +1840,24 @@ sweep above had to impose from outside: what the person said is not the same
 kind of thing as how the search is narrowed, and mixing them in one string is
 what let a spoken colon change the question. It is worth writing down when the
 vendor's own next version agrees with a defence built against the vendor.
+
+**The probe knew its own services in three places, and one of them was
+unnamed — 2026-08-20.** The script accepts a list, announces a list, and
+implements a branch per service. Writing a check that the three agree turned up
+a latent defect rather than a formatting nit: the **last branch was a bare
+`else`**, which happened to be Redmine. A service added to the accepted list
+without its own branch would silently receive *Redmine's* setup — a Ruby seeding
+script run against somebody else's server. The refusal would arrive later and be
+about something else entirely, and the person would go looking in their
+connector.
+
+The last branch is named now and the `else` refuses out loud. The exemption list
+for the stem assertion is checked the same way: a typo there is invisible by
+construction — a service simply stops being exempt, or never becomes it.
+
+The mistake this guards has already happened once here: the branch was written
+`rocketchat` while the service is `rocketChat`. The server came up, was seeded,
+and no connector was found by that name.
 
 **Matrix / Element against a running server — 2026-08-20, and the second
 question earned its keep.** Synapse configures itself before it will start, so

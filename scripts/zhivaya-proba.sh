@@ -357,7 +357,7 @@ elif [ "$SERVICE" = gitlab ]; then
         params: {title: title, description: 'обсудили на звонке'}, perform_spam_check: false).execute
     end
   " >/dev/null 2>&1
-else
+elif [ "$SERVICE" = redmine ]; then
   PORT=3998
   docker run -d --name "$NAME" -p "$PORT:3000" redmine:5 >/dev/null
   wait_for "http://localhost:$PORT/" 60
@@ -377,6 +377,16 @@ else
     end
     puts u.api_key
   \"" | tail -1)
+else
+  # Сюда попасть нельзя, и именно поэтому здесь отказ, а не молчание.
+  #
+  # Ветка Redmine стояла последней и была БЕЗЫМЯННОЙ — обычным `else`. Значит
+  # сервис, внесённый в список принимаемых без своей ветки, молча получал
+  # НАПОЛНЕНИЕ REDMINE: рубиновый скрипт против чужого сервера. Отказ пришёл бы
+  # позже и не про то, а искать причину человек стал бы в своём коннекторе.
+  echo "!! у сервиса ${SERVICE} нет ветки в этом скрипте" >&2
+  exit 2
+
 fi
 
 echo ">> ${SERVICE} поднят на localhost:$PORT, спрашиваем «${QUERY}»"
