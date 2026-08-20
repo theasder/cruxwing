@@ -69,6 +69,12 @@ actor TelegramSupergroupSource {
         return await archive.search(query, allowedChatIDs: allowedChatIDs, limit: limit)
     }
 
+    /// С какого дня архив что-то знает. nil — не знает ничего.
+    func archiveStart() async -> Date? {
+        guard !allowedChatIDs.isEmpty else { return nil }
+        return await archive.earliestMessageDate(allowedChatIDs: allowedChatIDs)
+    }
+
     func archivedCount() async -> Int {
         await archive.count(allowedChatIDs: allowedChatIDs)
     }

@@ -133,6 +133,19 @@ actor TelegramMessageArchive {
         }
     }
 
+    /// С какого дня в архиве вообще что-то есть.
+    ///
+    /// Bot API старую переписку не отдаёт: архив начинается в тот момент, когда
+    /// бота подключили. Значит пустая выдача этого источника не значит «не
+    /// обсуждали» — она значит «до такого-то числа мы не видели ничего», и это
+    /// разные утверждения. Без этой даты сказать второе нечем.
+    func earliestMessageDate(allowedChatIDs: Set<Int64>) -> Date? {
+        snapshot.messages
+            .filter { allowedChatIDs.contains($0.chatID) }
+            .map(\.timestamp)
+            .min()
+    }
+
     func search(_ query: String, allowedChatIDs: Set<Int64>, limit: Int = 10) -> [Hit] {
         let allowed = snapshot.messages.filter { allowedChatIDs.contains($0.chatID) }
         let sessions = allowed.map { message -> RecallIndex.Session in

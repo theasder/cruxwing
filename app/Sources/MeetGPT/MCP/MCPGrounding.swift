@@ -42,6 +42,24 @@ struct GroundingSnippet: Identifiable, Sendable {
 /// (Notion search, Fireflies keyword search, Linear/Jira issue search, …),
 /// in parallel; per-server failures are skipped, never fatal.
 extension MCPConnectionManager {
+    /// Граница архива словами — та же для найденного и для ненайденного.
+    ///
+    /// Одна строка на оба случая нарочно: если писать её только при пустой
+    /// выдаче, то ответ, построенный на паре сообщений, всё равно умалчивает,
+    /// что до этой даты источник слеп.
+    nonisolated static func telegramBound(from floor: Date?) -> String {
+        guard let floor else {
+            return "Охват Telegram: архив пуст — бот подключён, но сообщений с тех пор не приходило. "
+                + "Более ранняя переписка Bot API недоступна."
+        }
+        let formatter = DateFormatter()
+        formatter.locale = DisplayFormatting.locale
+        formatter.dateFormat = "d MMMM yyyy"
+        return "Охват Telegram: архив с \(formatter.string(from: floor)). "
+            + "Более ранняя переписка Bot API недоступна, поэтому её отсутствие здесь ничего не значит."
+    }
+
+
     /// Servers worth querying: live session or silently reconnectable, MINUS the
     /// ones the user has muted.
     ///
@@ -523,7 +541,23 @@ extension MCPConnectionManager {
                     let query = ConnectorProbeStrategy.query(goal: goal, serverID: "telegram",
                                                                  destination: .literalSearch)
                     let hits = await source.search(query, limit: 10)
-                    guard !hits.isEmpty else { return (index, nil) }
+                    // Пустая выдача этого источника — не «не обсуждали».
+                    //
+                    // Bot API старую переписку не отдаёт: архив начинается в тот
+                    // момент, когда подключили бота. Молчание источника читалось
+                    // как «в переписке ничего нет», хотя честное утверждение —
+                    // «до такого-то числа мы не видели ничего». Это разные вещи,
+                    // и вторая иногда и есть ответ: обсуждали раньше.
+                    //
+                    // Поэтому источник отвечает всегда, а не только когда нашёл.
+                    let floor = await source.archiveStart()
+                    let bound = Self.telegramBound(from: floor)
+                    guard !hits.isEmpty else {
+                        return (index, GroundingSnippet(
+                            serverName: "Telegram", toolName: "local_archive_search",
+                            text: bound, sourceID: "messenger:telegram",
+                            readFor: ConnectorProbeStrategy.trackerProbe.readFor))
+                    }
                     let text = hits.map { hit in
                         let topic = hit.message.topicID.map { " · тема \($0)" } ?? ""
                         let author = hit.message.author.map { "[\($0)] " } ?? ""
@@ -533,7 +567,7 @@ extension MCPConnectionManager {
                     .prefix(maxCharsPerSource).description
                     return (index, GroundingSnippet(
                         serverName: "Telegram", toolName: "local_archive_search",
-                        text: text, sourceID: "messenger:telegram",
+                        text: text + "\n" + bound, sourceID: "messenger:telegram",
                         readFor: ConnectorProbeStrategy.trackerProbe.readFor))
                 }
             }
