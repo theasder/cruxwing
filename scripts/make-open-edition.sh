@@ -78,19 +78,153 @@ cat > "$OUT/Sources/OrakulCore/Resources/prompts.json" <<'JSON'
 }
 JSON
 
-for f in LICENSE CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md; do
+for f in LICENSE SECURITY.md CODE_OF_CONDUCT.md; do
   [ -f "$ROOT/$f" ] && cp "$ROOT/$f" "$OUT/$f"
 done
-[ -f "$ROOT/README.public.md" ] && cp "$ROOT/README.public.md" "$OUT/README.md"
+[ -f "$ROOT/README.public.md" ] || { echo "missing README.public.md at repo root" >&2; exit 1; }
+cp "$ROOT/README.public.md" "$OUT/README.md"
+
+# CONTRIBUTING is written fresh rather than copied. The full one is 500 lines
+# about connectors, trackers and messengers — none of which exist here, and a
+# contributor sent to a file that does not ship stops trusting the rest.
+cat > "$OUT/CONTRIBUTING.md" <<'CONTRIB'
+# Contributing
+
+Thanks for looking. This is a small project on purpose: capture, transcribe on
+device, store, search. If a change makes it bigger, say why in the pull request.
+
+## Build and test
+
+```bash
+swift build
+swift test
+```
+
+Swift 6.0+ (Xcode 16+). No external dependencies — that is deliberate, and a pull
+request adding one needs to argue for it.
+
+Some tests skip unless real recordings or a quiet machine are present. The reason
+is printed. A skip is never counted as a pass, and please do not make it one.
+
+## What we look for
+
+- **Tests that pin behaviour, not implementation.** If the test has to change
+  whenever the code is refactored, it is testing the wrong thing.
+- **Comments that say why.** What the code does is visible in the code.
+- **No network in tests.** HTTP is passed in from outside so it can be faked.
+- **No telemetry, ever.** This build makes no request to anything but loopback,
+  and that is the product. A pull request that adds an analytics call, a crash
+  reporter or a version check will be closed, however well meant.
+
+## Reporting a security issue
+
+Not in a public issue — see [SECURITY.md](SECURITY.md). For a program that
+listens to meetings that is the first question anyone should ask, and it deserves
+a written answer.
+
+## Licence
+
+By contributing you agree your work ships under the
+[Mozilla Public License 2.0](LICENSE), like the rest of this repository.
+CONTRIB
+cp -R "$ROOT/mvp/Sources/OrakulCore/Resources/lexicon" "$OUT/Sources/OrakulCore/Resources/lexicon"
 cp "$ROOT/mvp/Package.swift" "$OUT/Package.swift"
 [ -d "$ROOT/mvp/Support" ] && cp -R "$ROOT/mvp/Support" "$OUT/Support"
+
+# ---- patches: the four places the commercial tree couples to connectors ----
+#
+# Applied to the OUTPUT, never to mvp/: the full product needs those code paths.
+# Every patch is anchored on exact text and aborts if the anchor moved, so a
+# refactor upstream stops the generator instead of quietly shipping a hole.
+# (python3 ships with the Xcode command line tools, which you need for swift anyway.)
+python3 - "$OUT" <<'PATCH'
+import sys, io, re, os
+out = sys.argv[1]
+
+def edit(rel, fn):
+    p = os.path.join(out, rel)
+    src = io.open(p, encoding='utf-8').read()
+    new = fn(src)
+    if new is None:
+        sys.exit("patch anchor not found in %s — look at it by hand" % rel)
+    io.open(p, 'w', encoding='utf-8').write(new)
+
+# 1. CLI: drop the whole `спросить`/`ask` command. It exists to query connectors.
+def drop_ask_case(s):
+    start = s.find('case "спросить", "ask":')
+    if start == -1: return None
+    end = s.find('\ndefault:', start)
+    if end == -1: return None
+    return s[:start] + s[end + 1:]
+edit('Sources/orakul/main.swift', drop_ask_case)
+
+# 2. Help text: the command line, the service list, and the three connector
+#    environment variables. ORAKUL_ENGINE stays — that is transcription.
+def trim_help(s):
+    line = '      orakul спросить <сервис> <вопрос>   спросить подключённый сервис\n'
+    if line not in s: return None
+    s = s.replace(line, '', 1)
+    block_start = s.find('    Сервисы: \\(ConnectorQuery.services')
+    block_end = s.find('    Расшифровка идёт вашим движком')
+    if block_start == -1 or block_end == -1 or block_end < block_start: return None
+    return s[:block_start] + s[block_end:]
+edit('Sources/OrakulCore/CommandLineApp.swift', trim_help)
+
+# 3-4. Two comments that name a type the open edition does not ship. Comments,
+#      not code — but a reader who greps for the name and finds nothing is owed
+#      a sentence that still makes sense on its own.
+def fix_invisible(s):
+    old = 'чужого сервиса при отказе показываются человеку (`VendorText`). Ради'
+    if old not in s: return None
+    return s.replace(old, 'чужого сервиса при отказе показываются человеку. Ради', 1)
+edit('Sources/OrakulCore/InvisibleText.swift', fix_invisible)
+
+def fix_lexicon(s):
+    old = ('/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся\n'
+           '/// ManifestConnector, когда решает, повторять ли поиск с другой буквы. Второе')
+    if old not in s: return None
+    new = ('/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся\n'
+           '/// поиск, когда решает, повторять ли запрос с другой буквы. Второе')
+    return s.replace(old, new, 1)
+edit('Sources/OrakulCore/LexiconPack.swift', fix_lexicon)
+PATCH
+
+# ---- Package.swift: point it at what the open tree actually contains ----
+python3 - "$OUT" <<'PKG'
+import sys, io, os, re
+out = sys.argv[1]
+p = os.path.join(out, 'Package.swift')
+s = io.open(p, encoding='utf-8').read()
+
+# The full catalogue is the asset; the generated minimal one takes its place.
+if '.copy("Resources/prompts.ru.json")' not in s:
+    sys.exit('Package.swift: prompts resource anchor moved — look at it by hand')
+s = s.replace('.copy("Resources/prompts.ru.json")', '.copy("Resources/prompts.json")', 1)
+
+# Connector descriptions are data for a feature the open edition does not have.
+# Left in place they break the build on a missing resource, which is a confusing
+# way to find out we forgot to cut something.
+m = re.search(r'\n[^\n]*\.copy\("Resources/connectors"\),?', s)
+if not m:
+    sys.exit('Package.swift: connectors resource anchor moved — look at it by hand')
+s = s[:m.start()] + s[m.end():]
+s = re.sub(r'\n(\s*//[^\n]*\n)*\s*// Коннекторы, описанные данными[^\n]*\n(\s*//[^\n]*\n)*', '\n', s)
+io.open(p, 'w', encoding='utf-8').write(s)
+
+# Every resource the manifest promises has to exist, or swift build fails late
+# and far from the cause.
+missing = [r for r in re.findall(r'\.copy\("([^"]+)"\)', s)
+           if not os.path.exists(os.path.join(out, 'Sources/OrakulCore', r))]
+if missing:
+    sys.exit('Package.swift promises resources that are not in the tree: ' + ', '.join(missing))
+PKG
 
 # ---- guards: fail loudly rather than publish something we meant to keep ----
 fail=0
 for d in "${DENY_CORE[@]}"; do
-  if grep -rlw "$d" "$OUT/Sources" "$OUT/Tests" 2>/dev/null | grep -q .; then
+  if grep -rlw "$d" "$OUT" 2>/dev/null | grep -q .; then
     echo "STILL REFERENCED: $d" >&2
-    grep -rlw "$d" "$OUT/Sources" "$OUT/Tests" 2>/dev/null | sed "s|$OUT/|    |" >&2
+    grep -rlw "$d" "$OUT" 2>/dev/null | sed "s|$OUT/|    |" >&2
     fail=1
   fi
 done
