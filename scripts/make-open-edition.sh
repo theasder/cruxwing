@@ -58,22 +58,43 @@ for t in "$ROOT/mvp/Tests/OrakulCoreTests/"*.swift; do
   for d in "${DENY_CORE[@]}"; do
     grep -qw "$d" "$t" && { skip=1; break; }
   done
+  # ReadmeQuickstartTests reads the repository README and checks the CLI keeps
+  # every promise printed there. That contract belongs to the Russian README of
+  # the full product; the open edition ships a different document.
+  case "$name" in ReadmeQuickstartTests.swift) skip=1 ;; esac
   [ "$skip" = 1 ] || cp "$t" "$OUT/Tests/OrakulCoreTests/$name"
 done
 
 # The prompt CATALOGUE is the asset; the parser is not. Ship the parser with a
 # minimal catalogue so the button surface still works and nothing is copied.
-cat > "$OUT/Sources/OrakulCore/Resources/prompts.json" <<'JSON'
+# The parser looks for "prompts.ru" by name and the tests require at least six
+# offline buttons including "what-decided", so the file keeps its name and the
+# shape stays real — only the texts are ours to give away, and these are the
+# plainest six that still make the surface work.
+cat > "$OUT/Sources/OrakulCore/Resources/prompts.ru.json" <<'JSON'
 {
   "version": 1,
+  "locale": "en-US",
   "buttons": [
-    {
-      "id": "recall",
-      "label": "What did we decide?",
+    { "id": "what-decided", "label": "What did we decide?",
       "prompt": "Answer from the transcript below and cite the timestamps.",
       "offline": true,
-      "why": "Deliberately plain. The open edition ships no prompt library."
-    }
+      "adapted": "Deliberately plain. The open edition ships no prompt library." },
+    { "id": "open-questions", "label": "Open questions",
+      "prompt": "List the questions raised in the transcript below that were not answered. Cite the timestamps.",
+      "offline": true, "adapted": "A list, not an interpretation." },
+    { "id": "action-items", "label": "Who agreed to what",
+      "prompt": "List the commitments in the transcript below, with who made each one. Cite the timestamps.",
+      "offline": true, "adapted": "Names and timestamps, no inference about intent." },
+    { "id": "who-said", "label": "Who said this",
+      "prompt": "Find where the following was said in the transcript below and quote it with the timestamp.",
+      "offline": true, "adapted": "Search, phrased as a question." },
+    { "id": "timeline", "label": "Order of events",
+      "prompt": "List what was discussed in the transcript below in order, with timestamps.",
+      "offline": true, "adapted": "Ordering only — no summarising." },
+    { "id": "unclear-terms", "label": "Terms to check",
+      "prompt": "List words in the transcript below that look like transcription errors or unfamiliar terms, with timestamps.",
+      "offline": true, "adapted": "Feeds the term dictionary; catches ASR damage." }
   ]
 }
 JSON
@@ -170,6 +191,13 @@ def trim_help(s):
     return s[:block_start] + s[block_end:]
 edit('Sources/OrakulCore/CommandLineApp.swift', trim_help)
 
+# 2b. The command NAME list, not just the help text. A test pins that the two
+#     agree, and it is right to: a command the help does not mention is a trap.
+def drop_ask_command(s):
+    if '"спросить", "корпус",' not in s: return None
+    return s.replace('"спросить", "корпус",', '"корпус",', 1)
+edit('Sources/OrakulCore/CommandLineApp.swift', drop_ask_command)
+
 # 3-4. Two comments that name a type the open edition does not ship. Comments,
 #      not code — but a reader who greps for the name and finds nothing is owed
 #      a sentence that still makes sense on its own.
@@ -178,6 +206,28 @@ def fix_invisible(s):
     if old not in s: return None
     return s.replace(old, 'чужого сервиса при отказе показываются человеку. Ради', 1)
 edit('Sources/OrakulCore/InvisibleText.swift', fix_invisible)
+
+# 5. One assertion pins the bundled catalogue as the Russian one. That is a fact
+#    about the full product, not an invariant, and the open edition ships English.
+def fix_locale_expectation(s):
+    if '#expect(catalog.locale == "ru-RU")' not in s: return None
+    return s.replace('#expect(catalog.locale == "ru-RU")',
+                     '#expect(catalog.locale == "en-US")', 1)
+edit('Tests/OrakulCoreTests/PromptCatalogTests.swift', fix_locale_expectation)
+
+# 6. One row of a parameterised test asks that a typo suggest a command the open
+#    edition does not have. Drop the row, not the test: the other row still pins
+#    that suggestions cover commands executed outside `run`, which is the point
+#    of that test and stays true.
+def drop_ask_suggestion(s):
+    row = '        ("сросить", "спросить"),\n'
+    if row not in s: return None
+    s = s.replace(row, '', 1)
+    old_doc = '    /// Команды `записать` и `спросить` выполняются в main.swift и до `run`'
+    if old_doc in s:
+        s = s.replace(old_doc, '    /// Команда `записать` выполняется в main.swift и до `run`', 1)
+    return s
+edit('Tests/OrakulCoreTests/CommandLineAppTests.swift', drop_ask_suggestion)
 
 def fix_lexicon(s):
     old = ('/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся\n'
@@ -195,11 +245,6 @@ import sys, io, os, re
 out = sys.argv[1]
 p = os.path.join(out, 'Package.swift')
 s = io.open(p, encoding='utf-8').read()
-
-# The full catalogue is the asset; the generated minimal one takes its place.
-if '.copy("Resources/prompts.ru.json")' not in s:
-    sys.exit('Package.swift: prompts resource anchor moved — look at it by hand')
-s = s.replace('.copy("Resources/prompts.ru.json")', '.copy("Resources/prompts.json")', 1)
 
 # Connector descriptions are data for a feature the open edition does not have.
 # Left in place they break the build on a missing resource, which is a confusing
