@@ -264,6 +264,50 @@ if missing:
     sys.exit('Package.swift promises resources that are not in the tree: ' + ', '.join(missing))
 PKG
 
+# ---- rename: the open edition ships as Cruxwing, one brand (BD-032) ----
+#
+# Done on the OUTPUT, like the patches: mvp/ keeps its own identity until the
+# source tree is renamed on purpose. Order matters — longest first, or
+# "OrakulCore" becomes "CruxwingCore" via two passes and stops matching.
+python3 - "$OUT" <<'RENAME'
+import sys, os, io, re
+out = sys.argv[1]
+
+PAIRS = [
+    ("OrakulCoreTests", "CruxwingCoreTests"),
+    ("OrakulCore",      "CruxwingCore"),
+    ("OrakulApp",       "CruxwingApp"),
+    ("ORAKUL_",         "CRUXWING_"),
+    ("Orakul",          "Cruxwing"),
+    ("orakul",          "cruxwing"),
+    ("Оракул",          "Cruxwing"),
+    ("оракул",          "cruxwing"),
+]
+
+TEXT = {".swift", ".json", ".md", ".plist", ".txt", ".yml", ".yaml"}
+
+for root, dirs, files in os.walk(out):
+    for f in files:
+        if os.path.splitext(f)[1].lower() not in TEXT: continue
+        p = os.path.join(root, f)
+        s = io.open(p, encoding="utf-8", errors="strict").read()
+        o = s
+        for a, b in PAIRS: s = s.replace(a, b)
+        if s != o: io.open(p, "w", encoding="utf-8").write(s)
+
+# Directories and filenames carry the name too, and SwiftPM resolves targets by
+# directory, so a renamed target with an unrenamed directory does not build.
+for root, dirs, files in os.walk(out, topdown=False):
+    for name in files + dirs:
+        new = name
+        for a, b in PAIRS: new = new.replace(a, b)
+        if new != name:
+            os.rename(os.path.join(root, name), os.path.join(root, new))
+
+# The licence is a verbatim legal text: never rewritten.
+RENAME
+git_dummy=""
+
 # ---- guards: fail loudly rather than publish something we meant to keep ----
 fail=0
 for d in "${DENY_CORE[@]}"; do
