@@ -37,7 +37,7 @@ Repo is four days old. Everything below about growth starts from that, not from
 an assumption the audience already exists.
 
 **Current publication blocker (checked 2026-08-25).** The repository URL
-`github.com/theasder/orakul` now redirects to `theasder/cruxwing`, and the Page
+`github.com/theasder/cruxwing` now redirects to `theasder/cruxwing`, and the Page
 above returns 404. The historical table is not a claim that either address
 works today. The owner must restore the canonical repository name before the
 Pages workflow is allowed to publish or a fresh release is advertised.
@@ -1128,8 +1128,8 @@ setting.
 | **GitVerse**, code | **Closed 2026-08-18, see §7.5** — the list method exists and returns the wrong things |
 | **GitFlic**, code | **Connected 2026-08-18** under §7.2 — see there for the whole shape[^gitflic] | Nothing blocking. Open: the maximum `size` is undocumented, so 50 is a guess a live install would confirm or correct |
 | **Compass**, messenger with an on-premise install | **Closed 2026-08-20, see §7.5.** The bot API is real and documented, and it neither searches nor sees[^compass] |
-| **Аспро.Cloud** | No method reference found from outside (plan §2.0.3) | Task list method, search parameter, response shape. Unblocked by somebody's account — issue [#2](https://github.com/theasder/orakul/issues/2) |
-| **Битрикс24** | Connected **from the docs**, not against a live portal (plan §2.0.1) | Whether `TITLE` pattern search works. One command, a portal needed — issue [#1](https://github.com/theasder/orakul/issues/1) |
+| **Аспро.Cloud** | No method reference found from outside (plan §2.0.3) | Task list method, search parameter, response shape. Unblocked by somebody's account — issue [#2](https://github.com/theasder/cruxwing/issues/2) |
+| **Битрикс24** | Connected **from the docs**, not against a live portal (plan §2.0.1) | Whether `TITLE` pattern search works. One command, a portal needed — issue [#1](https://github.com/theasder/cruxwing/issues/1) |
 
 ### 7.4 The West, and what teams run on their own servers
 

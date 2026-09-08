@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 120
     environment: release
     env:
-      EXPECTED_REPOSITORY: theasder/orakul
+      EXPECTED_REPOSITORY: theasder/cruxwing
       RELEASE_TAG: ${{ inputs.tag }}
       RELEASE_OUTPUT: ${{ runner.temp }}/orakul-release-candidate
       ORAKUL_CI_KEYCHAIN: ${{ runner.temp }}/orakul-signing.keychain-db

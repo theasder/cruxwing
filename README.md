@@ -1,12 +1,13 @@
-# orakul
+# Cruxwing
 
 A call assistant that answers "what did we decide?" with a quote from the call
-where it was said. In Russian, on your own computer, free.
+where it was said. On your own computer, free.
 
-**Status: a fork of Cruxwing with Russian speech processing.** The whole
-application — system audio capture with no bot, on-device transcription, search
-across your own calls. Its own identity (`ai.orakul.desktop`), Russian text for
-system prompts, its own lexicon. All three test suites run in CI.
+**This repository is the Russian-speech edition.** The whole application — system
+audio capture with no bot, on-device transcription, search across your own calls.
+The interface, the command line and the system prompts are in Russian, and the
+lexicon is built for Russian technical speech; the documentation is in English.
+Its own identity (`ai.orakul.desktop`). All three test suites run in CI.
 
 ```
 record a call   →   transcribe   →   fix the terms    →  to archive  →  search
@@ -28,22 +29,19 @@ integrity: it installs nothing, downloads nothing and asks for no keys. The root
 package has no dependencies, so `npm install` is not needed; `.nvmrc` pins the
 same Node 22 that CI uses (Node 20 is the minimum).
 
-**A public release is currently blocked by the repository's identity.** A check
-on 2026-08-25 showed that `github.com/theasder/orakul` redirects to
-`theasder/cruxwing`, and <https://theasder.github.io/orakul/> answers 404. The
-historical `v0.1.0` behind that redirect predates this branch and fails its
-artifact-provenance check. So there is no "download" link here, and the old
-release is not passed off as the current one.
+**Nothing here is downloadable yet, and the reason is provenance rather than
+naming.** Measured 2026-09-08: the repository is `github.com/theasder/cruxwing`,
+<https://cruxwing.ai> answers 200, and GitHub Pages answers 200 at
+<https://theasder.github.io/cruxwing/>. What has not been resolved is the
+historical `v0.1.0`: it predates this branch and fails its artifact-provenance
+check, so the old release is not passed off as the current one.
 
-To publish orakul, the owner has to rename the GitHub repository back to
-`theasder/orakul` themselves, then cut both new DMGs from a single commit and
-check them with `scripts/audit-dmg.sh`. This change deliberately does not rename
-the remote repository and does not publish a release. The orakul.ai domain is
-registered but still parked at the registrar — nothing of ours is there.
+To publish, cut both DMGs from a single commit and check them with
+`scripts/audit-dmg.sh`. This change deliberately does not publish a release.
 
 ```bash
-# From the root of a checkout you already have. Once the repository is renamed,
-# the first step becomes: git clone https://github.com/theasder/orakul.git orakul
+# From the root of a checkout you already have; to start from nothing:
+# git clone https://github.com/theasder/cruxwing.git cruxwing
 cd mvp && swift build -c release
 
 cat > расшифровка.txt <<'TXT'
@@ -157,13 +155,13 @@ brew install --cask theasder/orakul/orakul
 The tap (`theasder/homebrew-orakul`) **does not exist yet**. It also needs the
 correct public repository identity and a fresh release first: the cask template
 itself already builds from the repository, and `bash scripts/refresh-cask.sh`
-computes the sums over both images and prints the finished file. orakul is not
+computes the sums over both images and prints the finished file. Cruxwing is not
 submitted to the main `homebrew-cask`: they require the project to be well known,
 and with zero stars there is nothing to argue about.
 To check for yourself: `spctl -a -vv -t open --context context:primary-signature
 orakul-AppleSilicon.dmg` should answer `accepted, source=Notarized Developer ID`.
 
-If you already have whisper.cpp installed, transcription works too — orakul runs
+If you already have whisper.cpp installed, transcription works too — Cruxwing runs
 your own program, substituting the path for `{файл}`:
 
 ```bash
@@ -172,11 +170,11 @@ orakul расшифровать звонок.wav "Планёрка по тари
 orakul найти что решили по тарифам
 ```
 
-A 16 kHz WAV is required. If the rate differs, orakul will not resample it
+A 16 kHz WAV is required. If the rate differs, Cruxwing will not resample it
 silently; it says what the rate is and gives you an `ffmpeg` command: a bad
 resampler damages recognition more quietly than a refusal does.
 
-orakul does not ship a model of its own: gigabytes of weights at install time is
+Cruxwing does not ship a model of its own: gigabytes of weights at install time is
 no longer "running it in five minutes".
 
 ### Private speaker labels · Beta
@@ -281,7 +279,7 @@ in [`docs/ROADMAP.md`](docs/ROADMAP.md), §6.1.
 
 ## What is still missing
 
-- a recognition model of our own: orakul uses the one you already have
+- a recognition model of our own: Cruxwing uses the one you already have
   (`ExternalTranscriber`) and does not ship gigabytes of weights;
 - universal history import from call services. Audio from Telemost, VK Teams,
   SaluteJazz, TrueConf and Jitsi is taken by system capture — you can record
@@ -290,7 +288,7 @@ in [`docs/ROADMAP.md`](docs/ROADMAP.md), §6.1.
   Teams has no calls in its Bot API, TrueConf's exact methods depend on a
   particular server's API, Jitsi recording lives in the owner's Jibri/JaaS
   infrastructure, and SaluteJazz requires a backend to issue a token — which
-  orakul does not have by design. The analysis of each is in
+  Cruxwing does not have by design. The analysis of each is in
   `docs/RESEARCH-AND-PLAN.md`, §11;
 - a Pyrus connector: its API has no text search over tasks, only a registry of a
   particular form. This is not about timing — it is how the API is built;
@@ -307,7 +305,7 @@ exactly is unknown and what would unblock it.
 
 Connectors to Russian trackers — Yandex Tracker, Kaiten, YouGile and WEEEK — are
 already here: connect by token under "Настройки → Подключённые приложения", in the
-first block. They work in both directions: orakul queries them during a call when
+first block. They work in both directions: Cruxwing queries them during a call when
 it has been given a goal, and files tasks from the outcome — provided you say
 where to put them (a queue in Yandex, a board in Kaiten, a column in YouGile, a
 project in WEEEK).
@@ -318,10 +316,10 @@ verified against a live portal**, because we have no portal. Bitrix answers
 HTTP 200 and puts the error in the body, so a revoked webhook can look like
 "nothing found"; we do handle that branch, but on a fabricated response. The
 analysis is in `docs/RESEARCH-AND-PLAN.md`, §2.0.1; if you have a portal, help us
-check it: issue [#1](https://github.com/theasder/orakul/issues/1).
+check it: issue [#1](https://github.com/theasder/cruxwing/issues/1).
 
 Telegram supergroups connect through a separate bot. The Bot API does not hand
-over old history, so orakul receives and locally indexes only new messages from
+over old history, so Cruxwing receives and locally indexes only new messages from
 explicitly named supergroups after connecting. The token stays in the Keychain,
 the bot sends nothing, and on disconnection the accumulated archive is deleted.
 
@@ -342,7 +340,7 @@ about `app/`.
 Keys are deliberately not baked into the finished installers, so model answers run
 on your key: "Настройки → ИИ → Ключи провайдеров". The key lives in the Keychain
 and survives a restart; spending goes through your contract with the provider —
-orakul does not stand in that chain.
+Cruxwing does not stand in that chain.
 
 Automatic requests to the model are switched off on a new installation by one
 shared toggle. While it is off, recording does not by itself start goal and title
@@ -372,7 +370,7 @@ ruled out Pyrus.
 
 Nothing. There are no plans, no paid features, no account needed. Recording,
 transcription, archive and search work on your computer. Requests to the model go
-on your key and are paid under your contract with the provider; orakul takes no
+on your key and are paid under your contract with the provider; Cruxwing takes no
 money and is not an intermediary in that request.
 
 In the application this means: every model in the catalogue is open, not two out
@@ -390,9 +388,9 @@ shortest of those rules is: do not claim what does not exist.
 
 Once the repository's canonical name is restored, you will be able to start from a
 ready task — the label
-["первая правка"](https://github.com/theasder/orakul/labels/%D0%BF%D0%B5%D1%80%D0%B2%D0%B0%D1%8F%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B0):
+["первая правка"](https://github.com/theasder/cruxwing/labels/%D0%BF%D0%B5%D1%80%D0%B2%D0%B0%D1%8F%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B0):
 it holds work that can be done without understanding the whole project. The label
-["нужен доступ"](https://github.com/theasder/orakul/labels/%D0%BD%D1%83%D0%B6%D0%B5%D0%BD%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF)
+["нужен доступ"](https://github.com/theasder/cruxwing/labels/%D0%BD%D1%83%D0%B6%D0%B5%D0%BD%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF)
 is the opposite: the work is blocked not by code but by an account or a portal we
 do not have. If you have such access, that will be the most useful change of all.
 
@@ -429,7 +427,7 @@ written answer rather than a paragraph about how seriously we take it.
 Mozilla Public License 2.0 — see [LICENSE](LICENSE).
 
 File-level copyleft: changes to this project's files return to the commons, while
-your own code beside them may stay closed. That makes it possible to embed orakul
+your own code beside them may stay closed. That makes it possible to embed Cruxwing
 in closed products while preventing improvements to our part from being carried
 off into a closed fork.
 

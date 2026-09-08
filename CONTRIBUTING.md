@@ -7,14 +7,11 @@ English is accepted too — nobody will turn you away.
 
 ## Quick start
 
-While `github.com/theasder/orakul` redirects to another product's repository, use
-the checkout you already have. The `git clone` line below only becomes valid once
-the owner restores the name `theasder/orakul`; the current redirect must not be
-passed off to a contributor as orakul's sources.
+The repository is `github.com/theasder/cruxwing`. Clone it, or use the checkout
+you already have.
 
 ```bash
-# After the name is restored:
-# git clone https://github.com/theasder/orakul.git orakul && cd orakul
+# git clone https://github.com/theasder/cruxwing.git cruxwing && cd cruxwing
 npm run doctor                 # only checks the environment, installs nothing
 cd app && swift build          # Swift 6.0+ (Xcode 16+)
 swift test                     # application tests

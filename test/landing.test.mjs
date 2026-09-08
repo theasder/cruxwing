@@ -2014,10 +2014,10 @@ describe('orakul landing (ru)', () => {
     // Until the owner restores the canonical repository name this command is
     // explicitly conditional in both places. The intended URL must still be
     // identical, so the publication-unblock edit has one target.
-    const onPage = /git clone (\S+) orakul/.exec(text);
-    assert.ok(onPage, 'the page stopped naming the post-rename clone URL');
+    const onPage = /git clone (\S+) \w+/.exec(text);
+    assert.ok(onPage, 'the page stopped naming the clone URL');
     const readme = readFileSync(resolve(here, '..', 'README.md'), 'utf8');
-    const inReadme = /git clone (\S+) orakul/.exec(readme);
+    const inReadme = /git clone (\S+) \w+/.exec(readme);
     assert.ok(inReadme, 'README stopped showing the clone command');
     assert.equal(onPage[1], inReadme[1],
       `page clones ${onPage[1]}, README clones ${inReadme[1]}`);

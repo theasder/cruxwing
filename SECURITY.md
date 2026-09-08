@@ -161,7 +161,7 @@ be determined reliably.
 ## How to report a vulnerability
 
 **There is currently no working confidential channel.**
-`github.com/theasder/orakul` redirects to `theasder/cruxwing`, so do not send a
+`github.com/theasder/cruxwing` redirects to `theasder/cruxwing`, so do not send a
 report through Security at the destination address: that is a different product. A
 public release of orakul before that address is fixed is forbidden.
 

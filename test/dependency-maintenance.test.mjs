@@ -47,7 +47,7 @@ test('dependency review is read-only, public-only and commit-pinned', () => {
   assert.match(review, /actions\/checkout@[0-9a-f]{40}\s+# v4/);
   assert.match(review, /comment-summary-in-pr:\s*never/);
   assert.match(releaseDocs,
-    /после перевода репозитория в public[\s\S]{0,180}автоматически перестаёт быть пропущенным/,
+    /after making the repository public[\s\S]{0,200}stops being skipped automatically/,
     'owner docs do not explain when the public-only check activates');
 });
 

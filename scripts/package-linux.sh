@@ -128,8 +128,8 @@ Section: utils
 Priority: optional
 Architecture: ${ARCH}
 Installed-Size: ${SIZE_KB}
-Maintainer: orakul <https://github.com/theasder/orakul>
-Homepage: https://github.com/theasder/orakul
+Maintainer: orakul <https://github.com/theasder/cruxwing>
+Homepage: https://github.com/theasder/cruxwing
 Description: Поиск по своим рабочим звонкам, на своём компьютере
  Отвечает на вопрос «что мы решили?» строкой из той расшифровки, где это
  прозвучало, и отказывается отвечать, если такого разговора не было.

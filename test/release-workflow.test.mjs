@@ -418,13 +418,13 @@ test('release manifest rejects a mismatched sidecar before creating output', () 
 test('release documentation states every external owner action and verification limit', () => {
   const docs = readFileSync(resolve(repo, 'docs', 'RELEASING.md'), 'utf8');
   for (const phrase of [
-    'не создаёт GitHub Release',
-    'Environment `release`',
-    'обязательного reviewer',
+    'does not create a GitHub Release',
+    '`release` Environment',
+    'a mandatory reviewer',
     'Private Vulnerability Reporting',
-    'Пользователь сам вводит свой ключ',
-    'приватным и internal — только на Enterprise Cloud',
-    'не доказывает',
+    'enters their own key in **Settings \u2192 AI \u2192 Provider keys**',
+    'private and internal ones only on Enterprise Cloud',
+    'does not prove',
     'shasum -a 256 -c SHA256SUMS',
     'gh attestation verify',
     '--source-ref refs/tags/v0.2.0',

@@ -1,119 +1,117 @@
-# Выпуск Orakul
+# Releasing Cruxwing
 
-Этот документ описывает новый выпуск исходников из `main` и двух macOS DMG.
-Он не объявляет текущий выпуск готовым. На 25 августа 2026 года
-`github.com/theasder/orakul` перенаправляет в другой репозиторий, публичная
-страница отвечает 404, а исторический `v0.1.0` не проходит проверки этой ветки.
-Пока владелец не восстановит идентичность репозитория, workflow выпуска
-намеренно откажется работать.
+This document describes cutting a new release of the sources from `main` plus two
+macOS DMGs. It does not declare the current release ready. Measured 2026-09-08:
+the repository is `github.com/theasder/cruxwing` and GitHub Pages answers 200, so
+the identity blocker recorded here earlier is gone; what remains is the historical
+`v0.1.0`, which does not pass this branch's checks.
 
-## Что автоматизировано — и что нет
+## What is automated — and what is not
 
-`.github/workflows/release-candidate.yml` запускается вручную для уже
-существующего аннотированного тега `vX.Y.Z`. Он:
+`.github/workflows/release-candidate.yml` is run manually against an existing
+annotated tag `vX.Y.Z`. It:
 
-1. проверяет, что выполняется именно в `theasder/orakul`;
-2. сверяет тег с `CFBundleShortVersionString`, требует чистый checkout и
-   принадлежность коммита истории `origin/main`, затем запускает
-   `node scripts/scan-history-secrets.mjs` по всем достижимым Git-объектам и
-   текущим входам;
-3. заново запускает три обычных набора тестов на точном коммите тега;
-4. из выданных владельцем Apple credentials собирает, подписывает и
-   нотаризует arm64 и x86_64;
-5. проверяет оба DMG через `scripts/audit-dmg.sh`;
-6. считает `SHA256SUMS`, создаёт `provenance.json` и Homebrew cask из реальных
-   байтов;
-7. подписывает рассчитанные хеши GitHub/Sigstore attestation, связанным с
-   конкретным workflow run;
-8. сохраняет результат как закрытый Actions artifact на 14 дней.
+1. checks that it is running in `theasder/cruxwing`;
+2. compares the tag against `CFBundleShortVersionString`, requires a clean
+   checkout and that the commit belongs to `origin/main`'s history, then runs
+   `node scripts/scan-history-secrets.mjs` over every reachable Git object and the
+   current inputs;
+3. re-runs the three ordinary test suites at the tag's exact commit;
+4. builds, signs and notarizes arm64 and x86_64 from the Apple credentials the
+   owner supplied;
+5. checks both DMGs with `scripts/audit-dmg.sh`;
+6. computes `SHA256SUMS` and creates `provenance.json` and the Homebrew cask from
+   the real bytes;
+7. signs the computed hashes with a GitHub/Sigstore attestation bound to that
+   specific workflow run;
+8. keeps the result as a private Actions artifact for 14 days.
 
-Workflow **не создаёт GitHub Release, не двигает тег, не пишет в другой
-репозиторий и ничего не публикует**. Публикация остаётся отдельным действием
-владельца после скачивания и повторной проверки кандидата.
+The workflow **does not create a GitHub Release, does not move the tag, does not
+write to another repository and publishes nothing**. Publication stays a separate
+action by the owner, after downloading and re-checking the candidate.
 
-Attestation доказывает, какой GitHub workflow получил конкретные хеши. Она не доказывает,
-что программа безопасна, что review был качественным или что сборка
-воспроизводима байт-в-байт. Встроенные в приложение `OrakulCommit` и
-`OrakulSourceHash` — ещё уже: это самоотчёт артефакта. Поэтому нужны обе
-проверки, но ни одну нельзя называть аудитом безопасности или reproducible
-build.
+An attestation proves which GitHub workflow produced those particular hashes. It
+does not prove the program is safe, that the review was any good, or that the build
+is byte-for-byte reproducible. The `OrakulCommit` and `OrakulSourceHash` values
+embedded in the application are narrower still: they are the artifact's own
+self-report. So both checks are needed, and neither may be called a security audit
+or a reproducible build.
 
-## Однократная настройка владельцем
+## One-time setup by the owner
 
-До первого запуска владелец должен сделать сам:
+Before the first run the owner has to do these themselves:
 
-- вернуть репозиторию каноническое имя `theasder/orakul`;
-- защитить `main`: pull request, обязательный CI и запрет force-push;
-- защитить шаблон тегов `v*` от удаления и перезаписи;
-- создать GitHub Environment `release`, разрешить в нём только теги `v*` и
-  назначить обязательного reviewer;
-- включить обязательный Code Owner review: `.github/CODEOWNERS` назначает
-  единственного сопровождающего владельцем всего дерева, потому что любой
-  исходник, тест или скрипт может попасть в подписанный выпуск;
-- после перевода репозитория в public добавить read-only check `Dependency
-  review` в обязательные: публичный GitHub включает dependency graph сам, и
-  commit-pinned workflow автоматически перестаёт быть пропущенным;
-- добавить в Environment `release` пять secrets:
+- protect `main`: pull request, mandatory CI and no force-push;
+- protect the `v*` tag pattern against deletion and overwriting;
+- create the `release` GitHub Environment, permit only `v*` tags in it and assign
+  a mandatory reviewer;
+- enable mandatory Code Owner review: `.github/CODEOWNERS` makes the single
+  maintainer the owner of the whole tree, because any source file, test or script
+  can end up in a signed release;
+- after making the repository public, add the read-only `Dependency review` check
+  to the required set: public GitHub enables the dependency graph itself, and a
+  commit-pinned workflow then stops being skipped automatically;
+- add five secrets to the `release` Environment:
   `APPLE_DEVELOPER_ID_P12_BASE64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`,
-  `APPLE_NOTARY_KEY_P8_BASE64`, `APPLE_NOTARY_KEY_ID` и
+  `APPLE_NOTARY_KEY_P8_BASE64`, `APPLE_NOTARY_KEY_ID` and
   `APPLE_NOTARY_ISSUER_ID`;
-- включить GitHub Private Vulnerability Reporting, как требует
-  [`SECURITY.md`](../SECURITY.md).
+- enable GitHub Private Vulnerability Reporting, as [`SECURITY.md`](../SECURITY.md)
+  requires.
 
-Два base64-значения — содержимое экспортированного сертификата Developer ID
-Application (`.p12`) и ключа App Store Connect (`.p8`), а не пути
-к файлам на ноутбуке. Пароль относится к `.p12`. Workflow создаёт отдельную
-временную Связку ключей, удаляет её после нотарификации и не печатает значения.
+The two base64 values are the contents of the exported Developer ID Application
+certificate (`.p12`) and the App Store Connect key (`.p8`), not paths to files on a
+laptop. The password belongs to the `.p12`. The workflow creates a separate
+temporary Keychain, deletes it after notarization, and prints no values.
 
-Ключи AI-провайдеров здесь не нужны и в GitHub Secrets не кладутся.
-Пользователь сам вводит свой ключ в **Settings → AI → Provider keys** после
-установки; Orakul хранит его в своей записи macOS Keychain.
+AI provider keys are not needed here and are not put into GitHub Secrets. Each user
+enters their own key in **Settings → AI → Provider keys** after installing;
+Cruxwing keeps it in its own macOS Keychain entry.
 
-Файлы правил и secrets сами по себе не включают защиту. Пока владелец не
-настроил ruleset, environment reviewer и secrets в интерфейсе GitHub, наличие
-workflow в репозитории не следует выдавать за защищённый процесс выпуска.
+Rule files and secrets do not by themselves switch protection on. Until the owner
+has configured the ruleset, the environment reviewer and the secrets in GitHub's
+interface, the presence of a workflow in the repository must not be passed off as a
+protected release process.
 
-GitHub даёт artifact attestations публичным репозиториям на всех текущих
-планах, но приватным и internal — только на Enterprise Cloud. Поэтому в
-приватном личном репозитории этот workflow обязан остановиться на attestation:
-не удаляйте шаг ради зелёной галочки, а запускайте выпуск после контролируемого
-перевода проверенного репозитория в public либо на Enterprise Cloud. Это
-ограничение зафиксировано в
-[`actions/attest`](https://github.com/actions/attest#readme).
+GitHub gives artifact attestations to public repositories on every current plan,
+but to private and internal ones only on Enterprise Cloud. So in a private personal
+repository this workflow is obliged to stop at the attestation: do not remove the
+step for the sake of a green tick — run the release after a controlled move of the
+verified repository to public, or on Enterprise Cloud. That limitation is recorded
+in [`actions/attest`](https://github.com/actions/attest#readme).
 
-## Подготовить тег
+## Preparing the tag
 
-1. В PR обновить `CFBundleShortVersionString` в `app/Support/Info.plist` и
-   пользовательские release notes. Не править номер после тега.
-2. Дождаться обязательных review и CI, затем слить PR в `main`.
-3. Из нового чистого checkout проверить будущий тег локально. До создания тега
-   полезны `npm run doctor` и все три набора тестов.
-4. Создать **аннотированный** тег и отправить только его:
+1. In a PR, update `CFBundleShortVersionString` in `app/Support/Info.plist` and the
+   user-facing release notes. Do not edit the number after tagging.
+2. Wait for the mandatory reviews and CI, then merge the PR into `main`.
+3. From a fresh clean checkout, verify the future tag locally. Before creating the
+   tag, `npm run doctor` and all three test suites are worth running.
+4. Create an **annotated** tag and push only that:
 
    ```bash
    git switch main
    git pull --ff-only
-   git status --short                 # вывод обязан быть пустым
-   git tag -a v0.2.0 -m "orakul v0.2.0"
+   git status --short                 # the output must be empty
+   git tag -a v0.2.0 -m "Cruxwing v0.2.0"
    git push origin v0.2.0
    ```
 
-Lightweight tag (`git tag v0.2.0`) release gate отвергнет. Workflow не создаёт
-и не исправляет тег за владельца.
+The release gate rejects a lightweight tag (`git tag v0.2.0`). The workflow neither
+creates nor repairs a tag on the owner's behalf.
 
-## Собрать кандидата
+## Building a candidate
 
-Запустить workflow **с самого тега**, передав тот же тег как input, затем
-одобрить deployment в Environment `release`:
+Run the workflow **from the tag itself**, passing the same tag as an input, then
+approve the deployment in the `release` Environment:
 
 ```bash
 gh workflow run release-candidate.yml --ref v0.2.0 -f tag=v0.2.0
 ```
 
-Два значения намеренно дублируются: workflow откажется работать, если его
-определение взято не из `refs/tags/v0.2.0`. Обычный запуск из `main` с тегом
-только в поле input не является выпуском. Успешный run оставит artifact
-`orakul-vX.Y.Z-release-candidate` со следующим составом:
+The two values are duplicated deliberately: the workflow refuses to run if its own
+definition did not come from `refs/tags/v0.2.0`. An ordinary run from `main` with
+the tag only in the input field is not a release. A successful run leaves an
+artifact `orakul-vX.Y.Z-release-candidate` containing:
 
 ```text
 orakul-AppleSilicon.dmg
@@ -124,88 +122,89 @@ SHA256SUMS
 orakul-attestation.sigstore.json
 ```
 
-Для локальной диагностики уже собранных и нотарифицированных образов доступна
-та же граница без GitHub:
+For local diagnostics of images that are already built and notarized, the same
+boundary is available without GitHub:
 
 ```bash
 npm run release:check -- v0.2.0
-# release:check уже включает полный scripts/scan-history-secrets.mjs
+# release:check already includes the full scripts/scan-history-secrets.mjs
 bash scripts/audit-dmg.sh \
   app/dist/orakul-AppleSilicon.dmg \
   app/dist/orakul-Intel.dmg
 bash scripts/release-manifest.sh v0.2.0
 ```
 
-Локальный `provenance.json` не имеет подписи GitHub: это читаемый манифест, а
-не attestation. Подписанный Sigstore bundle появляется только в workflow.
+A local `provenance.json` carries no GitHub signature: it is a readable manifest,
+not an attestation. The signed Sigstore bundle appears only in the workflow.
 
-## Проверить скачанное и только потом публиковать
+## Verify the download, and only then publish
 
-Artifact Actions — zip-контейнер. После скачивания распаковать его в отдельный
-каталог и выполнить:
+An Actions artifact is a zip container. After downloading, unpack it into a
+separate directory and run:
 
 ```bash
-cd /путь/к/orakul-v0.2.0-release-candidate
+cd /path/to/orakul-v0.2.0-release-candidate
 shasum -a 256 -c SHA256SUMS
 
 gh attestation verify orakul-AppleSilicon.dmg \
-  --repo theasder/orakul \
-  --signer-workflow theasder/orakul/.github/workflows/release-candidate.yml \
+  --repo theasder/cruxwing \
+  --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners
 gh attestation verify orakul-Intel.dmg \
-  --repo theasder/orakul \
-  --signer-workflow theasder/orakul/.github/workflows/release-candidate.yml \
+  --repo theasder/cruxwing \
+  --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners
 ```
 
-Для офлайн-проверки сначала на доверенной машине получить актуальный корень,
-а затем перенести его вместе с кандидатом. Сохранённый workflow bundle
-подписан и потому не входит в собственный `SHA256SUMS`:
+For an offline check, first obtain the current root on a trusted machine and then
+carry it across together with the candidate. The saved workflow bundle is signed
+and therefore not part of its own `SHA256SUMS`:
 
 ```bash
 gh attestation trusted-root > trusted_root.jsonl
 gh attestation verify orakul-AppleSilicon.dmg \
-  --repo theasder/orakul \
-  --signer-workflow theasder/orakul/.github/workflows/release-candidate.yml \
+  --repo theasder/cruxwing \
+  --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners \
   --bundle orakul-attestation.sigstore.json \
   --custom-trusted-root trusted_root.jsonl
 ```
 
-На macOS из checkout того же тега повторить содержательную проверку обоих
-образов:
+On macOS, from a checkout of the same tag, repeat the substantive check of both
+images:
 
 ```bash
 git checkout v0.2.0
 bash scripts/audit-dmg.sh \
-  /путь/к/orakul-AppleSilicon.dmg \
-  /путь/к/orakul-Intel.dmg
+  /path/to/orakul-AppleSilicon.dmg \
+  /path/to/orakul-Intel.dmg
 ```
 
-Только после этого владелец может создать **draft**, прочитать release notes,
-проверить имена и скачать draft ещё раз перед публикацией. Например:
+Only after that may the owner create a **draft**, read the release notes, check the
+names and download the draft once more before publishing. For example:
 
 ```bash
 gh release create v0.2.0 \
   orakul-AppleSilicon.dmg \
   orakul-Intel.dmg \
   SHA256SUMS provenance.json orakul-attestation.sigstore.json \
-  --verify-tag --draft --generate-notes --title "orakul v0.2.0"
+  --verify-tag --draft --generate-notes --title "Cruxwing v0.2.0"
 ```
 
-Команда приведена как ручной шаг владельца; workflow её не вызывает. После
-публикации следует скачать DMG уже с публичного URL, снова сверить SHA-256,
-attestation, Gatekeeper и оба архитектурных имени. Homebrew cask переносится в
-отдельный `theasder/homebrew-orakul` только после создания этого tap владельцем.
+The command is given as a manual step by the owner; the workflow does not invoke
+it. After publishing, download the DMG from the public URL again and re-check the
+SHA-256, the attestation, Gatekeeper and both architecture names. The Homebrew cask
+moves into a separate `theasder/homebrew-orakul` only after the owner creates that
+tap.
 
-## Отказ — это результат
+## A refusal is a result
 
-Выпуск должен остановиться, если тег лёгкий, версия расходится, checkout
-грязный, тег не в истории `main`, одного DMG нет, sidecar не совпадает, Apple
-не приняла подпись/нотарификацию, Gatekeeper отказал или attestation не
-создалась. Обходить эти отказы переменной окружения в release workflow нельзя.
-Исправление делается новым коммитом, новым review и новым тегом; опубликованный
-тег не переписывается.
+A release must stop if the tag is lightweight, the version disagrees, the checkout
+is dirty, the tag is not in `main`'s history, one of the DMGs is missing, a sidecar
+does not match, Apple did not accept the signature or notarization, Gatekeeper
+refused, or the attestation was not created. Those refusals must not be worked
+around with an environment variable in the release workflow. A fix is made by a new
+commit, a new review and a new tag; a published tag is not rewritten.

@@ -230,7 +230,7 @@ const bom = {
       name: 'orakul',
       version: appVersion,
       licenses: [{ license: { id: 'Apache-2.0' } }],
-      externalReferences: [{ type: 'vcs', url: 'https://github.com/theasder/orakul' }],
+      externalReferences: [{ type: 'vcs', url: 'https://github.com/theasder/cruxwing' }],
       properties: [
         property('orakul:bundle-id', plistValue('CFBundleIdentifier')),
         property('orakul:sbom-scope', 'shipped macOS application inputs'),

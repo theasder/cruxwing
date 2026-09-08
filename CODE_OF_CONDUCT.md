@@ -41,7 +41,7 @@ project that rule covers both the code and the conversation about it.
 
 ## If something went wrong
 
-Write to artem108980@gmail.com or open an issue. We answer within a week. What
+Write to artem@cruxwing.ai or open an issue. We answer within a week. What
 happened next we write up publicly where possible, anonymised: proceedings nobody
 hears about are indistinguishable from none at all.
 

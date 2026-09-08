@@ -55,10 +55,10 @@ test('публикация не держится на списке скрыты�
     'pages.yml скрывает часть public/ вместо удаления или исправления файлов');
 });
 
-test('Pages отказывается публиковать orakul из репозитория другого продукта', () => {
+test('Pages refuses to publish from another product\'s repository', () => {
   const flow = readFileSync(FLOW, 'utf8');
-  assert.match(flow, /EXPECTED_REPOSITORY:\s*theasder\/orakul/,
-    'pages.yml не фиксирует каноническое имя репозитория');
+  assert.match(flow, /EXPECTED_REPOSITORY:\s*theasder\/cruxwing/,
+    'pages.yml no longer pins the canonical repository name');
   assert.match(flow, /\$GITHUB_REPOSITORY[^\n]*\$EXPECTED_REPOSITORY/,
     'pages.yml не сравнивает фактический репозиторий с ожидаемым');
   const guard = flow.indexOf('EXPECTED_REPOSITORY:');

@@ -11,11 +11,11 @@ cask "orakul" do
   sha256 arm:   "{{SHA_ARM}}",
          intel: "{{SHA_INTEL}}"
 
-  url "https://github.com/theasder/orakul/releases/download/v#{version}/orakul-#{arch}.dmg",
-      verified: "github.com/theasder/orakul/"
+  url "https://github.com/theasder/cruxwing/releases/download/v#{version}/orakul-#{arch}.dmg",
+      verified: "github.com/theasder/cruxwing/"
   name "orakul"
   desc "Meeting assistant that answers with a quote from your own calls"
-  homepage "https://github.com/theasder/orakul"
+  homepage "https://github.com/theasder/cruxwing"
 
   depends_on macos: ">= :{{MACOS}}"
 

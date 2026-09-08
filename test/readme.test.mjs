@@ -23,11 +23,15 @@ describe('README', () => {
     const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
     assert.doesNotMatch(readme, /releases\/latest/,
       'README sends readers to a release that does not prove this branch');
-    assert.match(readme, /theasder\/orakul[^\n]*redirects[\s\S]{0,80}theasder\/cruxwing/,
-      'README hides the current repository-name redirect');
-    assert.match(readme, /owner has to rename the GitHub repository/,
-      'README does not name the human action that unblocks publication');
-    assert.match(readme, /both new DMGs/,
+    // The repository is now theasder/cruxwing and that is the product's name, so
+    // the old "rename it back" blocker is gone. What has NOT gone is the reason a
+    // download CTA would still be a false claim: the historical v0.1.0 does not
+    // match this tree.
+    assert.match(readme, /provenance rather than\s*\n?naming/,
+      'README no longer says why there is nothing to download');
+    assert.match(readme, /v0\.1\.0`?: it predates this branch/,
+      'README no longer names the stale release as the reason');
+    assert.match(readme, /both DMGs/,
       'README does not require a fresh two-architecture release');
   });
 
@@ -99,7 +103,10 @@ describe('README', () => {
     // Приложение теперь есть — форк Cruxwing, DMG собраны и нотаризованы.
     // Но «есть приложение» и «его можно скачать» — разные утверждения, и
     // страница обязана различать их.
-    assert.match(readme, /fork of Cruxwing/i);
+    // It no longer calls itself a fork: the product IS Cruxwing. What it must
+    // still say is which edition this repository is, so a visitor is not
+    // surprised by a Russian interface.
+    assert.match(readme, /Russian-speech edition/i);
     assert.match(readme, /What is still missing/i);
   });
 

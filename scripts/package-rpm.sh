@@ -120,7 +120,7 @@ Version:        ${VERSION}
 Release:        ${RELEASE}
 Summary:        Поиск по своим рабочим звонкам, на своём компьютере
 License:        Apache-2.0
-URL:            https://github.com/theasder/orakul
+URL:            https://github.com/theasder/cruxwing
 ${REQUIRES:+Requires:       ${REQUIRES}}
 # Двоичный файл уже собран и просто переупаковывается: rpmbuild здесь не
 # компилятор, а укладчик. Отладочный пакет из-за этого не нужен.

@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Проверить публичную идентичность репозитория
         env:
-          EXPECTED_REPOSITORY: theasder/orakul
+          EXPECTED_REPOSITORY: theasder/cruxwing
         run: |
           set -euo pipefail
           if [ "$GITHUB_REPOSITORY" != "$EXPECTED_REPOSITORY" ]; then
@@ -61,7 +61,7 @@ jobs:
 
       - name: Убедиться, что отдаётся тот же сайт
         env:
-          EXPECTED_PAGE_URL: https://theasder.github.io/orakul/
+          EXPECTED_PAGE_URL: https://theasder.github.io/cruxwing/
           DEPLOYED_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
