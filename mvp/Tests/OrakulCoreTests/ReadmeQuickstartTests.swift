@@ -80,14 +80,14 @@ struct ReadmeQuickstartTests {
                                       "в README пропал heredoc с расшифровкой")
         #expect(transcript.contains("Аня:"), "в примере расшифровки не осталось реплик")
 
-        let add = try #require(Self.arguments(from: readme, command: "добавить"),
+        let add = try #require(Self.arguments(from: readme, command: "add"),
                                "в README нет команды «добавить»")
-        #expect(add.first == "добавить")
+        #expect(add.first == "add")
         #expect(add.count >= 3, "команда «добавить» в README потеряла название звонка")
 
-        let find = try #require(Self.arguments(from: readme, command: "найти"),
+        let find = try #require(Self.arguments(from: readme, command: "search"),
                                 "в README нет команды «найти»")
-        #expect(find.first == "найти")
+        #expect(find.first == "search")
         #expect(find.count >= 2, "команде «найти» в README нечего искать")
     }
 
@@ -95,7 +95,7 @@ struct ReadmeQuickstartTests {
     func addPrintsWhatReadmePromises() throws {
         let readme = try Self.readme
         let transcript = try #require(Self.transcript(from: readme))
-        let arguments = try #require(Self.arguments(from: readme, command: "добавить"))
+        let arguments = try #require(Self.arguments(from: readme, command: "add"))
         let title = try #require(arguments.last, "в команде README нет названия")
 
         let output = makeApp(transcript: transcript).run(arguments).output
@@ -120,9 +120,9 @@ struct ReadmeQuickstartTests {
         let readme = try Self.readme
         let transcript = try #require(Self.transcript(from: readme))
         let app = makeApp(transcript: transcript)
-        _ = app.run(try #require(Self.arguments(from: readme, command: "добавить")))
+        _ = app.run(try #require(Self.arguments(from: readme, command: "add")))
 
-        let output = app.run(try #require(Self.arguments(from: readme, command: "найти"))).output
+        let output = app.run(try #require(Self.arguments(from: readme, command: "search"))).output
 
         // Строка выдачи — единственное в примере, что не зависит от дня запуска:
         // заголовок с датой меняется каждый день, цитата нет. Её и сверяем,
@@ -148,9 +148,9 @@ struct ReadmeQuickstartTests {
         let readme = try Self.readme
         let transcript = try #require(Self.transcript(from: readme))
         let app = makeApp(transcript: transcript)
-        _ = app.run(try #require(Self.arguments(from: readme, command: "добавить")))
+        _ = app.run(try #require(Self.arguments(from: readme, command: "add")))
 
-        let output = app.run(try #require(Self.arguments(from: readme, command: "найти"))).output
+        let output = app.run(try #require(Self.arguments(from: readme, command: "search"))).output
 
         // Цитаты в выдаче идут с отступом; заголовок с датой — без него, и
         // сверять его нельзя: он меняется каждый день.
@@ -175,14 +175,14 @@ struct ReadmeQuickstartTests {
         let readme = try Self.readme
         let transcript = try #require(Self.transcript(from: readme))
         let app = makeApp(transcript: transcript)
-        _ = app.run(try #require(Self.arguments(from: readme, command: "добавить")))
+        _ = app.run(try #require(Self.arguments(from: readme, command: "add")))
 
         // README показывает отказ отдельным примером: спросили то, чего в
         // звонках не было. Это главное обещание продукта — «ответ придумывать
         // не буду», — и расхождение здесь дороже любой другой строки.
         let lines = readme.split(separator: "\n", omittingEmptySubsequences: false)
         let promptIndex = try #require(
-            lines.firstIndex(where: { $0.hasPrefix("$ orakul найти") }),
+            lines.firstIndex(where: { $0.hasPrefix("$ orakul search") }),
             "README больше не показывает пример отказа")
         let promised = String(lines[promptIndex + 1])
         let question = String(lines[promptIndex].dropFirst("$ orakul ".count))
