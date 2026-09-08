@@ -1,49 +1,49 @@
 # orakul
 
-Помощник для звонков, который отвечает на вопрос «что мы решили?» цитатой из
-того звонка, где это прозвучало. По-русски, на вашем компьютере, бесплатно.
+A call assistant that answers "what did we decide?" with a quote from the call
+where it was said. In Russian, on your own computer, free.
 
-**Состояние: форк Cruxwing с русской обработкой речи.** Приложение целиком —
-захват системного звука без бота, расшифровка на устройстве, поиск по своим
-звонкам. Отдельная идентичность (`ai.orakul.desktop`), русские тексты
-системных запросов, свой словарь. Все три набора проверок запускаются в CI.
+**Status: a fork of Cruxwing with Russian speech processing.** The whole
+application — system audio capture with no bot, on-device transcription, search
+across your own calls. Its own identity (`ai.orakul.desktop`), Russian text for
+system prompts, its own lexicon. All three test suites run in CI.
 
 ```
-записать звонок  →  расшифровать  →  починить термины  →  в архив  →  искать
-   микрофон              на            кросс-алфавитный   работает   работает
-   и звук звонка      устройстве           словарь
+record a call   →   transcribe   →   fix the terms    →  to archive  →  search
+  microphone           on           cross-alphabet        works         works
+  and call audio     device            lexicon
 ```
 
-## Запустить за пять минут
+## Running it in five minutes
 
-Нужен Swift 6.0+ (Xcode 16+) и Node 20+. У `mvp/` — того, что ниже —
-внешних зависимостей нет ни одной. У приложения в `app/` их четыре:
-WhisperKit и FluidAudio для распознавания речи, MCP SDK для коннекторов,
-ViewInspector для тестов представлений. Они тянут за собой ещё двадцать три —
-всего 27 пакетов в `app/Package.resolved`, и столько же вы увидите строками
-`Fetching` при первой сборке. Пять минут — это про `mvp/`.
+You need Swift 6.0+ (Xcode 16+) and Node 20+. `mvp/` — the part shown below —
+has no external dependencies at all. The application in `app/` has four:
+WhisperKit and FluidAudio for speech recognition, the MCP SDK for connectors,
+ViewInspector for view tests. Those pull in twenty-three more — 27 packages in
+total in `app/Package.resolved`, and you will see that many `Fetching` lines on
+the first build. The five minutes are about `mvp/`.
 
-После клонирования `npm run doctor` только проверит версии инструментов и
-целостность checkout: он ничего не устанавливает, не скачивает и не просит
-ключи. Корневой пакет не имеет зависимостей, поэтому `npm install` не нужен;
-`.nvmrc` закрепляет ту же Node 22, которую использует CI (минимум — Node 20).
+After cloning, `npm run doctor` only checks tool versions and checkout
+integrity: it installs nothing, downloads nothing and asks for no keys. The root
+package has no dependencies, so `npm install` is not needed; `.nvmrc` pins the
+same Node 22 that CI uses (Node 20 is the minimum).
 
-**Публичный выпуск сейчас заблокирован идентичностью репозитория.** Проверка
-2026-08-25 показала: `github.com/theasder/orakul` перенаправляет в
-`theasder/cruxwing`, а <https://theasder.github.io/orakul/> отвечает 404.
-Исторический `v0.1.0` за этим перенаправлением старше этой ветки и не проходит
-её проверку происхождения артефактов. Поэтому здесь нет ссылки «скачать» и
-старый выпуск не выдаётся за текущий.
+**A public release is currently blocked by the repository's identity.** A check
+on 2026-08-25 showed that `github.com/theasder/orakul` redirects to
+`theasder/cruxwing`, and <https://theasder.github.io/orakul/> answers 404. The
+historical `v0.1.0` behind that redirect predates this branch and fails its
+artifact-provenance check. So there is no "download" link here, and the old
+release is not passed off as the current one.
 
-Чтобы публиковать orakul, владелец должен сам переименовать GitHub-репозиторий
-обратно в `theasder/orakul`, затем из одного коммита выпустить оба новых DMG и
-проверить их `scripts/audit-dmg.sh`. Эта правка намеренно не переименовывает
-удалённый репозиторий и не публикует релиз. Домен orakul.ai зарегистрирован, но
-пока припаркован у регистратора — там ничего нашего нет.
+To publish orakul, the owner has to rename the GitHub repository back to
+`theasder/orakul` themselves, then cut both new DMGs from a single commit and
+check them with `scripts/audit-dmg.sh`. This change deliberately does not rename
+the remote repository and does not publish a release. The orakul.ai domain is
+registered but still parked at the registrar — nothing of ours is there.
 
 ```bash
-# Из корня уже полученного checkout. После переименования репозитория первым
-# шагом снова станет: git clone https://github.com/theasder/orakul.git orakul
+# From the root of a checkout you already have. Once the repository is renamed,
+# the first step becomes: git clone https://github.com/theasder/orakul.git orakul
 cd mvp && swift build -c release
 
 cat > расшифровка.txt <<'TXT'
@@ -57,9 +57,9 @@ TXT
 .build/release/orakul найти что решили по тарифам
 ```
 
-Командная строка живёт в `mvp/`, приложение — в `app/`. Раньше здесь стояло
-`cd app`, и первая же команда обрывалась: в `app/` собирается `MeetGPT`, файла
-`.build/release/orakul` там нет.
+The command line lives in `mvp/`, the application in `app/`. This used to say
+`cd app`, and the very first command broke: `app/` builds `MeetGPT`, and there is
+no `.build/release/orakul` there.
 
 ```
 Добавлено: «Планёрка по тарифам» (27AE25B5-…)
@@ -68,20 +68,21 @@ TXT
     Борис: Годовой не трогаем до декабря, месячный поднимаем на пятнадцать процентов.
 ```
 
-Дата — день, когда звонок добавили. Поиск лексический: он возвращает строку, где
-слово встретилось, а не пересказывает её. Это и есть весь трюк — ответ всегда
-чужими словами из расшифровки, не своими.
+The date is the day the call was added. Search is lexical: it returns the line
+where the word occurred rather than paraphrasing it. That is the whole trick —
+the answer is always in the transcript's words, not its own.
 
-Спросите то, чего в звонках не было, — получите отказ, а не выдумку:
+Ask about something the calls never covered and you get a refusal, not an
+invention:
 
 ```
 $ orakul найти когда корпоратив
 В сохранённых звонках об этом не говорили. Ответ придумывать не буду.
 ```
 
-Опечатку он отличает от отсутствия разговора. Поиск словарный, и «тарифф» с
-лишней буквой не совпадает ни с чем — но сказать на это «не говорили» значит
-вынести приговор теме, которую обсуждали:
+It tells a typo apart from an absent conversation. Search is lexicon-based, and
+"тарифф" with an extra letter matches nothing — but answering "never discussed"
+to that would pass sentence on a topic that was in fact discussed:
 
 ```
 $ orakul найти тарифф
@@ -89,26 +90,27 @@ $ orakul найти тарифф
 Похоже на опечатку — в архиве есть «тарифам».
 ```
 
-Слово не подставляется молча: подменить вопрос значит ответить не на него.
-Промах в окончании подсказки не требует — «тарифя» находится и так, окончания
-поиск отбрасывает сам.
+The word is not substituted silently: replacing the question means answering a
+different one. A miss in the inflection needs no hint — "тарифя" is found as it
+is, because search strips endings on its own.
 
-Удалить звонок можно по началу идентификатора, как коммит в git:
-`orakul удалить 49290B26`. Начало короче четырёх знаков не принимается, а
-если под него подходит несколько звонков — не удаляется ничего, показывается
-список. Удаление не отменить, поэтому угадывать здесь нельзя.
+A call can be deleted by the start of its identifier, like a git commit:
+`orakul удалить 49290B26`. A prefix shorter than four characters is refused, and
+if several calls match it, nothing is deleted and the list is shown. Deletion
+cannot be undone, so guessing is not allowed here.
 
-Тесты запускаются тремя независимыми командами: `cd app && swift test`,
-`cd mvp && swift test` и `npm test` в корне. Последний набор проверяет страницу,
-документацию, безопасность сборки и идентичность приложения.
+Tests run as three independent commands: `cd app && swift test`,
+`cd mvp && swift test`, and `npm test` at the root. The last suite checks the
+page, the documentation, build security and the application's identity.
 
-Часть интеграционных и измерительных проверок обычный прогон **пропускает**:
-им нужны настоящие модели, записи, живой сервис или тихая машина. Причина видна
-в выводе; пропуск не выдаётся за доказательство. Бюджеты скорости — из их числа:
-`cd app && CRUXWING_PERF=1 swift test --filter Performance`. Замер 2026-08-13:
-поиск по 250 звонкам — 2,04 с, лучшее из трёх.
+An ordinary run **skips** some of the integration and measurement checks: they
+need real models, recordings, a live service or a quiet machine. The reason is
+visible in the output; a skip is not passed off as proof. Speed budgets are among
+them: `cd app && CRUXWING_PERF=1 swift test --filter Performance`. Measured
+2026-08-13: search across 250 calls — 2.04 s, best of three.
 
-Проверить коннектор на своём сервисе — тем же кодом, что и в приложении:
+Checking a connector against your own service, with the same code the
+application uses:
 
 ```bash
 ORAKUL_PROBE_SERVICE=mattermost ORAKUL_PROBE_TOKEN=… \
@@ -116,52 +118,53 @@ ORAKUL_PROBE_HOST=chat.company.ru ORAKUL_PROBE_SCOPE=team-id \
 bash scripts/test-filter.sh app LiveConnectorProbe
 ```
 
-Без переменных этот тест пропускается: обычный прогон в сеть не ходит. Токен
-берётся из окружения, никуда не пишется и в вывод не попадает. Сервисы:
-`pachca`, `mattermost`, `rocketChat`, `zulip`, `matrix`, `gitlab`, `gitea`,
-`redmine`, `outline`.
+Without those variables this test is skipped: an ordinary run does not touch the
+network. The token is read from the environment, written nowhere, and never
+reaches the output. Services: `pachca`, `mattermost`, `rocketChat`, `zulip`,
+`matrix`, `gitlab`, `gitea`, `redmine`, `outline`.
 
-Сборка установщика: `(cd app && bash dist-all.sh)` — обе архитектуры, arm64
-и x86_64. Быстрый вариант на одну,
-`(cd app && MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh)`, оставляет второй
-DMG вчерашним, и проверка ниже об этом скажет.
-Проверить оба собранных или скачанных DMG явно:
+Building the installer: `(cd app && bash dist-all.sh)` — both architectures,
+arm64 and x86_64. The fast single-architecture variant,
+`(cd app && MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh)`, leaves the second DMG
+at yesterday's build, and the check below will say so.
+To check both built or downloaded DMGs explicitly:
 `bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg app/dist/orakul-Intel.dmg`.
-Скрипт проверяет подпись и приложенный билет нотариального сервиса, читает из
-каждого файла полный commit и SHA-256 исходников, манифестов, lockfile и входов
-упаковки и сравнивает их с текущим
-деревом. Это диагностика свежести по самоотчёту артефакта, а не доказательство
-воспроизводимой сборки: штамп сообщает сам DMG.
-Новый публичный выпуск должен содержать оба файла —
-`orakul-AppleSilicon.dmg` и `orakul-Intel.dmg` — из одного коммита, с подписью
-Developer ID и нотариальным билетом Apple. Штамп внутри DMG показывает, к
-какому исходному состоянию относится конкретный файл; исторический `v0.1.0`
-этому дереву не соответствует и новой проверкой намеренно отвергается.
+The script verifies the signature and the attached notarization ticket, reads the
+full commit and the SHA-256 of sources, manifests, lockfile and packaging inputs
+out of each file, and compares them against the current tree. This is freshness
+diagnostics from the artifact's own self-report, not proof of a reproducible
+build: the stamp is reported by the DMG itself.
+A new public release must contain both files — `orakul-AppleSilicon.dmg` and
+`orakul-Intel.dmg` — from one commit, with a Developer ID signature and an Apple
+notarization ticket. The stamp inside a DMG shows which source state that
+particular file belongs to; the historical `v0.1.0` does not match this tree and
+is deliberately rejected by the new check.
 
-Полный путь сопровождающего — защищённый тег, ручной workflow без публикации,
-единый `SHA256SUMS`, GitHub/Sigstore attestation, проверка скачанного и только
-затем draft release — описан в [`docs/RELEASING.md`](docs/RELEASING.md).
-Workflow не создаёт релиз сам: Apple credentials и одобрение Environment
-`release` добавляет владелец, а ключи AI-провайдеров туда не нужны. Их каждый
-пользователь вводит сам в Settings → AI после установки.
+The maintainer's full path — protected tag, manual workflow with no publishing, a
+single `SHA256SUMS`, GitHub/Sigstore attestation, verification of the download and
+only then a draft release — is described in
+[`docs/RELEASING.md`](docs/RELEASING.md). The workflow does not create the release
+itself: Apple credentials and approval of the `release` Environment are added by
+the owner, and AI provider keys are not needed there. Each user enters those
+themselves in Settings → AI after installing.
 
-После создания отдельного крана установка сможет выглядеть одной командой:
+Once a dedicated tap exists, installation will be able to look like one command:
 
 ```bash
 brew install --cask theasder/orakul/orakul
 ```
 
-Кран (`theasder/homebrew-orakul`) **ещё не создан**. До него также нужны
-правильная публичная идентичность репозитория и свежий выпуск: сам шаблон каста
-уже собирается из репозитория, `bash scripts/refresh-cask.sh` считает суммы по
-двум образам и печатает готовый файл. В основной
-`homebrew-cask` orakul не подаётся: там требуют известности проекта, и с нулём
-звёзд спорить не с чем.
-Проверить у себя: `spctl -a -vv -t open --context context:primary-signature
-orakul-AppleSilicon.dmg` должен ответить `accepted, source=Notarized Developer ID`.
+The tap (`theasder/homebrew-orakul`) **does not exist yet**. It also needs the
+correct public repository identity and a fresh release first: the cask template
+itself already builds from the repository, and `bash scripts/refresh-cask.sh`
+computes the sums over both images and prints the finished file. orakul is not
+submitted to the main `homebrew-cask`: they require the project to be well known,
+and with zero stars there is nothing to argue about.
+To check for yourself: `spctl -a -vv -t open --context context:primary-signature
+orakul-AppleSilicon.dmg` should answer `accepted, source=Notarized Developer ID`.
 
-Если у вас уже стоит whisper.cpp, работает и расшифровка — orakul запускает
-вашу же программу, подставляя путь вместо `{файл}`:
+If you already have whisper.cpp installed, transcription works too — orakul runs
+your own program, substituting the path for `{файл}`:
 
 ```bash
 export ORAKUL_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {файл}"
@@ -169,28 +172,28 @@ orakul расшифровать звонок.wav "Планёрка по тари
 orakul найти что решили по тарифам
 ```
 
-Нужен WAV 16 кГц. Если частота другая, orakul не станет пересчитывать её молча,
-а скажет, какая она, и даст команду `ffmpeg`: плохой ресемплер портит
-распознавание тише, чем отказ.
+A 16 kHz WAV is required. If the rate differs, orakul will not resample it
+silently; it says what the rate is and gives you an `ffmpeg` command: a bad
+resampler damages recognition more quietly than a refusal does.
 
-Своей модели orakul не возит: гигабайты весов при установке — это уже не
-«запустить за пять минут».
+orakul does not ship a model of its own: gigabytes of weights at install time is
+no longer "running it in five minutes".
 
-### Приватные метки говорящих · Бета
+### Private speaker labels · Beta
 
-В приложении выберите локальный движок и до начала звонка включите
-«Определять говорящих на этом Mac». После остановки укажите от одного до
-четырёх голосов собеседников и нажмите «Подписать говорящих». Микрофон
-помечается как «Вы», остальные голоса — «Спикер 2», «Спикер 3» и дальше в
-порядке первого появления. Число можно исправить и запустить обработку снова.
+In the application, choose the local engine and turn on "Определять говорящих на
+этом Mac" before the call starts. After stopping, give the number of other
+voices, from one to four, and press "Подписать говорящих". The microphone is
+labelled "Вы", the remaining voices "Спикер 2", "Спикер 3" and onward in order of
+first appearance. The number can be corrected and processing run again.
 
-Первый запуск скачивает около 34 МБ моделей. Аудио и эмбеддинги остаются на
-Mac, голосовые отпечатки не сохраняются; метки записываются только в локальную
-историю этого звонка на этом Mac. У звонка дольше часа обрабатывается только
-полностью сохранённая часть. Это бета-функция: перед отправкой расшифровки
-проверьте метки.
+The first run downloads about 34 MB of models. Audio and embeddings stay on the
+Mac, voice prints are not saved; labels are written only to this call's local
+history on this Mac. For a call longer than an hour, only the fully saved part is
+processed. This is a beta feature: check the labels before sending a transcript
+out.
 
-### Посмотреть, как работает поиск
+### Seeing how search works
 
 ```swift
 import OrakulCore
@@ -207,220 +210,229 @@ if let hit = store.index().search("что решили по тарифам").fir
 }
 ```
 
-## Почему это устроено именно так
+## Why it is built this way
 
-**Поиск лексический, а не по смыслу.** В англоязычной версии поиск по
-эмбеддингам не находил звонок *по названию*: две формулировки из трёх
-возвращали пустоту, потому что косинус между предложениями награждает
-похожесть темы, а вопрос про название спрашивает про имя. Вдобавок системная
-модель предложений на macOS англоязычная и на русский текст отвечает
-бессмысленным вектором. Поэтому здесь честный лексический поиск с русской
-морфологией: падежи он понимает, синонимы — нет. Вопрос про «цены» не найдёт
-звонок, где говорили «тарифы», и на это есть отдельный тест.
+**Search is lexical, not semantic.** In the English-language version, embedding
+search failed to find a call *by its title*: two phrasings out of three came back
+empty, because cosine similarity between sentences rewards topical likeness while
+a question about a title asks about a name. On top of that, the system sentence
+model on macOS is English-language and answers Russian text with a meaningless
+vector. So what is here is honest lexical search with Russian morphology: it
+understands cases, it does not understand synonyms. A question about "цены" will
+not find a call where people said "тарифы", and there is a separate test for that.
 
-Морфология — не «падежи вообще», а список окончаний, и в нём была дыра. Разряд
-слов на «-ние» (обновление, подключение, решение, тестирование, согласование)
-не находился ни в одном падеже, кроме именительного: «развёртывание» обрезалось
-до «развёртыван», а «развёртыванием» — до «развёртывани». Две разные основы у
-одного слова, то есть честное «не говорили» о том, что говорили. Починено
-14 августа, разбор — в `docs/RESEARCH-AND-PLAN.md`, §6.7. Там же сказано, чего
-обрезка окончаний не умеет и не будет: глагол через вид не сводится,
-«выкатываем» не найдётся по «выкатить».
+Morphology is not "cases in general" but a list of endings, and it had a hole.
+The class of words ending in "-ние" (обновление, подключение, решение,
+тестирование, согласование) was findable in no case but the nominative:
+"развёртывание" was trimmed to "развёртыван" while "развёртыванием" became
+"развёртывани". Two different stems for one word — that is, an honest "never
+discussed" about something that was discussed. Fixed on 14 August; the analysis
+is in `docs/RESEARCH-AND-PLAN.md`, §6.7. The same section states what ending
+trimming cannot and will not do: verbs are not reduced across aspect,
+"выкатываем" will not be found by "выкатить".
 
-**Словарь чинит расшифровку после, а не подсказывает до.** Замерено на живой
-русской речи: три движка разошлись на 29% терминов, и все спорные оказались
-код-свитчингом — «прод», «промпт», «API», «джейлбрейк». Причём расходятся они
-не в слухе, а в алфавите: Whisper пишет `Prompt`, Parakeet — «Промпт».
-Кросс-алфавитный словарь поднял согласие с 71% до 89%. Подсказка в декодере эту
-задачу не решает и умеет удалять речь: на английском корпусе такой глоссарий
-довёл модель до WER 0.95 с 2757 пропусками.
+**The lexicon fixes the transcript afterwards rather than hinting beforehand.**
+Measured on live Russian speech: three engines disagreed on 29% of terms, and
+every disputed one turned out to be code-switching — "прод", "промпт", "API",
+"джейлбрейк". And they disagree not in hearing but in alphabet: Whisper writes
+`Prompt`, Parakeet writes "Промпт". A cross-alphabet lexicon raised agreement
+from 71% to 89%. A decoder hint does not solve this problem and is capable of
+deleting speech: on an English corpus such a glossary drove the model to WER 0.95
+with 2757 omissions.
 
-**Запись, расшифровка, архив и поиск считаются на устройстве.** Сеть появляется
-только из-за сделанного вами выбора: вопроса выбранному провайдеру, обращения к
-подключённому сервису или возобновления ранее включённого опроса коннектора при
-старте. Адрес и границы каждого такого запроса описаны в
-[SECURITY.md](SECURITY.md).
+**Recording, transcription, archive and search are computed on the device.** The
+network appears only because of a choice you made: a question to your chosen
+provider, a request to a connected service, or the resumption at startup of a
+connector poll you switched on earlier. The address and the bounds of every such
+request are described in [SECURITY.md](SECURITY.md).
 
-## Что внутри
+## What is inside
 
-| Модуль | Что делает |
+| Module | What it does |
 |---|---|
-| `RecallIndex` | Поиск по своим звонкам: русские основы, редкие слова весят больше, совпадение в названии — вдвое |
-| `RussianLexicon` | Канон написания терминов, включая кросс-алфавитный (`prod` → «прод», «апи» → `API`) |
-| `SessionStore` | Архив на диске: файл на звонок, атомарная запись, битый файл не роняет остальное |
-| `MeetingPipeline` | Сквозной путь от звука до архива; расшифровщик подключается снаружи |
-| `ExternalTranscriber` | Расшифровка чужим движком: WAV 16 кГц, подстановка `{файл}`, ошибки движка доходят целиком |
-| `SpeechEval` | Оценка распознавания: WER и расхождение движков без эталона |
-| `PromptCatalog` | Кнопки быстрых действий, тексты — в JSON |
+| `RecallIndex` | Search across your own calls: Russian stems, rare words weigh more, a match in the title counts double |
+| `RussianLexicon` | The canonical spelling of terms, including cross-alphabet (`prod` → "прод", "апи" → `API`) |
+| `SessionStore` | The on-disk archive: one file per call, atomic writes, a corrupt file does not bring down the rest |
+| `MeetingPipeline` | The end-to-end path from sound to archive; the transcriber is plugged in from outside |
+| `ExternalTranscriber` | Transcription by someone else's engine: 16 kHz WAV, `{файл}` substitution, engine errors arrive intact |
+| `SpeechEval` | Recognition scoring: WER and engine disagreement without a reference |
+| `PromptCatalog` | Quick-action buttons, their text in JSON |
 
-Ядро не знает ни про SwiftUI, ни про CoreML, ни про ScreenCaptureKit. Порт на
-Windows стоит ровно того, что лежит снаружи `OrakulCore`: захват звука (WASAPI
-вместо ScreenCaptureKit) и оболочка.
+The core knows nothing about SwiftUI, CoreML or ScreenCaptureKit. A Windows port
+costs exactly what lies outside `OrakulCore`: audio capture (WASAPI instead of
+ScreenCaptureKit) and the shell.
 
-Это закреплено тестом, а не намерением: `PortabilityTests` разрешает ядру
-только те системные модули, которые есть и вне Apple, — `Foundation` и
-`FoundationNetworking`. `import AppKit` ради одной удобной функции не сломает
-ничего на macOS и молча удвоит цену порта — поэтому его ловит набор тестов, а не
-будущий разработчик через полгода.
+This is held in place by a test rather than by intent: `PortabilityTests` allows
+the core only those system modules that exist outside Apple too — `Foundation`
+and `FoundationNetworking`. An `import AppKit` for the sake of one convenient
+function would break nothing on macOS and would silently double the cost of the
+port — so it is caught by a test suite rather than by a future developer six
+months from now.
 
-Проверка импортов, впрочем, доказывает меньше, чем кажется, и это выяснилось
-17 августа: ядро с одним `import Foundation` на Linux не собиралось вовсе —
-`URLRequest` и `URLSession` там лежат в отдельном модуле, и шесть коннекторов
-падали на первой же строке. Теперь ядро и командная строка не только собираются
-в контейнере `swift:6.0` на каждый пулл-реквест: там выполняется полный
-`swift test`. Различия corelibs (Windows-1251, разбор URL и права под root)
-закреплены отдельными Linux-ветками и явными причинами пропуска там, где root
-не позволяет честно проверить отказ. Разбор — в
-[`docs/ROADMAP.md`](docs/ROADMAP.md), §6.1.
+An import check proves less than it seems, though, and that became clear on
+17 August: the core, with its single `import Foundation`, would not build on Linux
+at all — `URLRequest` and `URLSession` live in a separate module there, and six
+connectors failed on the very first line. Now the core and the command line are
+not merely built in a `swift:6.0` container on every pull request: a full
+`swift test` runs there. corelibs differences (Windows-1251, URL parsing and
+permissions under root) are pinned by separate Linux branches, with explicit skip
+reasons where root makes an honest check of a refusal impossible. The analysis is
+in [`docs/ROADMAP.md`](docs/ROADMAP.md), §6.1.
 
-## Чего ещё нет
+## What is still missing
 
-- своей модели распознавания: orakul использует ту, что уже стоит у вас
-  (`ExternalTranscriber`), а гигабайты весов не возит;
-- универсального импорта истории из сервисов звонков. Звук Телемоста, VK Teams,
-  SaluteJazz, TrueConf и Jitsi берётся системным захватом — записывать текущие
-  звонки можно уже сейчас; Jitsi определяется по окну/приложению, TrueConf — по
-  работающему клиенту и микрофону. Для прошлого у Телемоста нет перечисления, у
-  VK Teams звонков в Bot API нет, у TrueConf точные методы зависят от API
-  конкретного сервера, у Jitsi запись живёт в Jibri/JaaS-инфраструктуре
-  владельца, а SaluteJazz требует бэкенд для выпуска токена — которого у orakul
-  нет по устройству. Разбор по каждой — `docs/RESEARCH-AND-PLAN.md`, §11;
-- коннектора к Pyrus: в его API нет поиска задач по тексту, только реестр
-  конкретной формы. Это не про сроки — так устроен API;
-- коннекторов к базам знаний: у Яндекс Вики в открытой документации есть
-  выдача страницы по адресу, но не поиск по тексту; у Teamly публичного
-  описания API мы не нашли (подробности — `docs/RESEARCH-AND-PLAN.md`, §2.1);
-- версии для Windows: захват звука там свой (WASAPI), и он не написан.
+- a recognition model of our own: orakul uses the one you already have
+  (`ExternalTranscriber`) and does not ship gigabytes of weights;
+- universal history import from call services. Audio from Telemost, VK Teams,
+  SaluteJazz, TrueConf and Jitsi is taken by system capture — you can record
+  ongoing calls today; Jitsi is detected by window/application, TrueConf by a
+  running client and microphone. For the past, Telemost has no enumeration, VK
+  Teams has no calls in its Bot API, TrueConf's exact methods depend on a
+  particular server's API, Jitsi recording lives in the owner's Jibri/JaaS
+  infrastructure, and SaluteJazz requires a backend to issue a token — which
+  orakul does not have by design. The analysis of each is in
+  `docs/RESEARCH-AND-PLAN.md`, §11;
+- a Pyrus connector: its API has no text search over tasks, only a registry of a
+  particular form. This is not about timing — it is how the API is built;
+- knowledge-base connectors: Yandex Wiki's public documentation has page
+  retrieval by address but no text search; for Teamly we found no public API
+  description (details in `docs/RESEARCH-AND-PLAN.md`, §2.1);
+- a Windows version: audio capture there is its own thing (WASAPI), and it has
+  not been written.
 
-В каком порядке это разбирается и что мешает каждому пункту — в
-[`docs/ROADMAP.md`](docs/ROADMAP.md) (на английском, как и `RESEARCH-AND-PLAN`).
-Там же очередь коннекторов: у каждого сервиса написано не «когда», а что именно
-неизвестно и чем это разблокируется.
+The order in which this is worked through, and what blocks each item, is in
+[`docs/ROADMAP.md`](docs/ROADMAP.md) (in English, as is `RESEARCH-AND-PLAN`).
+The connector queue is there too: for each service it says not "when" but what
+exactly is unknown and what would unblock it.
 
-Коннекторы к российским трекерам — Яндекс Трекер, Kaiten, YouGile и WEEEK — уже есть:
-подключение по токену в «Настройки → Подключённые приложения», первым блоком.
-Работают в обе стороны: orakul спрашивает их по ходу звонка, когда у него задана
-цель, и заводит туда задачи по итогам — если указать, куда класть (очередь у
-Яндекса, доска у Kaiten, колонка у YouGile, проект у WEEEK).
+Connectors to Russian trackers — Yandex Tracker, Kaiten, YouGile and WEEEK — are
+already here: connect by token under "Настройки → Подключённые приложения", in the
+first block. They work in both directions: orakul queries them during a call when
+it has been given a goal, and files tasks from the outcome — provided you say
+where to put them (a queue in Yandex, a board in Kaiten, a column in YouGile, a
+project in WEEEK).
 
-Битрикс24 подключается тоже, но иначе — вебхуком, у которого ключ лежит прямо в
-адресе. И честная оговорка: он **сделан по документации, а не проверен на живом
-портале**, потому что портала у нас нет. Битрикс отвечает HTTP 200 и кладёт
-ошибку в тело, так что отозванный вебхук способен выглядеть как «ничего не
-нашлось»; эту ветку мы разбираем, но на выдуманном ответе. Разбор — в
-`docs/RESEARCH-AND-PLAN.md`, §2.0.1; если у вас есть портал, помогите проверить:
-выпуск [#1](https://github.com/theasder/orakul/issues/1).
+Bitrix24 connects as well, but differently — by a webhook whose key sits directly
+in the address. And an honest caveat: it is **built from the documentation, not
+verified against a live portal**, because we have no portal. Bitrix answers
+HTTP 200 and puts the error in the body, so a revoked webhook can look like
+"nothing found"; we do handle that branch, but on a fabricated response. The
+analysis is in `docs/RESEARCH-AND-PLAN.md`, §2.0.1; if you have a portal, help us
+check it: issue [#1](https://github.com/theasder/orakul/issues/1).
 
-Telegram-супергруппы подключаются отдельным ботом. Bot API не отдаёт старую
-историю, поэтому orakul получает и локально индексирует только новые сообщения
-из явно указанных супергрупп после подключения. Токен остаётся в Связке ключей,
-бот ничего не отправляет, а при отключении накопленный архив удаляется.
+Telegram supergroups connect through a separate bot. The Bot API does not hand
+over old history, so orakul receives and locally indexes only new messages from
+explicitly named supergroups after connecting. The token stays in the Keychain,
+the bot sends nothing, and on disconnection the accumulated archive is deleted.
 
-Как собрать закрытый интеграционный билд, выдать тестировщикам минимальные права
-и затем отозвать доступ, описано в
-[`app/docs/TESTER-INTEGRATIONS.md`](app/docs/TESTER-INTEGRATIONS.md). Действующие
-ключи в ветку или форк не кладутся.
+How to build a closed integration build, grant testers minimal rights and then
+revoke access is described in
+[`app/docs/TESTER-INTEGRATIONS.md`](app/docs/TESTER-INTEGRATIONS.md). Working keys
+are not committed to a branch or a fork.
 
-Про две папки. В `mvp/` — первая версия, написанная с нуля: командная строка,
-ядро поиска и словарь, без захвата системного звука. Быстрый старт выше идёт
-через неё, потому что она собирается за минуту и её видно целиком. В `app/` —
-приложение: захват звука, расшифровка на устройстве, коннекторы, установщик.
-Всё, что ниже про интеграции, ключи и тарифы, — про `app/`.
+About the two folders. `mvp/` holds the first version, written from scratch: the
+command line, the search core and the lexicon, without system audio capture. The
+quick start above goes through it because it builds in a minute and can be seen
+whole. `app/` holds the application: audio capture, on-device transcription,
+connectors, the installer. Everything below about integrations, keys and plans is
+about `app/`.
 
-## Свой ключ провайдера
+## Your own provider key
 
-В готовые установщики ключи не зашиты намеренно, поэтому ответы модели работают
-по вашему ключу: «Настройки → ИИ → Ключи провайдеров». Ключ лежит в Связке
-ключей и переживает перезапуск; расход идёт по вашему договору с провайдером —
-orakul в этой цепочке не стоит.
+Keys are deliberately not baked into the finished installers, so model answers run
+on your key: "Настройки → ИИ → Ключи провайдеров". The key lives in the Keychain
+and survives a restart; spending goes through your contract with the provider —
+orakul does not stand in that chain.
 
-Автоматические запросы к модели на новой установке выключены одним общим
-переключателем. Пока он выключен, запись сама не запускает предложения цели и
-названия, сводку или фоновые проверки, а после явного вопроса не делает
-дополнительные проходы для уточнений и следующих действий. Если включить —
-каждый проход и автоматическое сведение Fireflies оплачиваются вашим
-провайдером. Явное действие само может использовать несколько запросов для
-чтения подключённых источников, совета моделей, повтора или резервного
-провайдера в глобальном Auto. Общая пауза и mute отдельного приложения
-запрещают его чтение, а ответ называет использованные или отклонённые источники.
+Automatic requests to the model are switched off on a new installation by one
+shared toggle. While it is off, recording does not by itself start goal and title
+suggestions, a summary, or background checks, and after an explicit question it
+does not make extra passes for clarifications and next steps. Turn it on and every
+pass, plus automatic Fireflies consolidation, is paid for by your provider. An
+explicit action may itself use several requests — to read connected sources, poll
+a council of models, retry, or fall back to another provider in global Auto. A
+global pause and muting an individual application forbid reading it, and the
+answer names the sources it used or rejected.
 
-Первым в списке — **YandexGPT**: единственный путь, на котором данные остаются
-в России. Ему кроме ключа нужен идентификатор каталога (`b1g…`), иначе запрос
-уходит с моделью, которой сервис не знает. Берут его за место хранения, а не за
-силу: на сравнении двенадцати практических задач домашние модели не выиграли ни
-одной (`docs/RESEARCH-AND-PLAN.md`, §3).
+**YandexGPT** comes first: the only path on which data stays in Russia. Besides a
+key it needs a catalogue identifier (`b1g…`), otherwise the request goes out with
+a model the service does not know. It is chosen for where data is stored, not for
+strength: across twelve practical tasks the domestic models won none
+(`docs/RESEARCH-AND-PLAN.md`, §3).
 
-Дальше — те, что дешевле и достаточно уверенно отвечают по-русски (DeepSeek,
-Qwen, GLM, Kimi), потом OpenAI, Anthropic, Google. Рядом с каждым написано, где
-взять ключ.
+Then come the ones that are cheaper and answer Russian confidently enough
+(DeepSeek, Qwen, GLM, Kimi), then OpenAI, Anthropic, Google. Beside each one it
+says where to get a key.
 
-GigaChat не подключен: у него в открытой документации не сходятся ни адрес
-выдачи токена, ни требование к корневому сертификату — то же правило, по
-которому выпал Pyrus.
+GigaChat is not connected: in its public documentation neither the token issuance
+address nor the root certificate requirement is consistent — the same rule that
+ruled out Pyrus.
 
-## Сколько стоит
+## What it costs
 
-Нисколько. Тарифов нет, платных функций нет, аккаунт не нужен. Запись,
-расшифровка, архив и поиск работают на вашем компьютере. Запросы к модели идут
-по вашему ключу и оплачиваются по вашему договору с провайдером; orakul денег не
-принимает и посредником в этом запросе не выступает.
+Nothing. There are no plans, no paid features, no account needed. Recording,
+transcription, archive and search work on your computer. Requests to the model go
+on your key and are paid under your contract with the provider; orakul takes no
+money and is not an intermediary in that request.
 
-В приложении это значит: открыты все модели каталога, а не две из двенадцати;
-экрана с ценами нет; в настройках нет строки «Тариф». Механика тарифов внутри
-ещё компилируется как совместимость с Cruxwing, но прямой BYOK-путь не ведёт локальную
-продуктовую статистику и не ограничивает запросы часами, кредитами или циклами. Структурно
-изолировать оставшиеся типы — P1 перед выпуском.
+In the application this means: every model in the catalogue is open, not two out
+of twelve; there is no pricing screen; there is no "Тариф" row in settings. The
+plan machinery inside still compiles as Cruxwing compatibility, but the direct
+BYOK path keeps no local product statistics and limits no requests by hours,
+credits or cycles. Structurally isolating the remaining types is a P1 before
+release.
 
-## Как участвовать
+## How to take part
 
-Issue и пулл-реквесты — на русском. Что нужнее всего и по каким правилам это
-принимают, написано в [CONTRIBUTING.md](CONTRIBUTING.md); самое короткое из
-правил — не заявлять того, чего нет.
+Issues and pull requests are in Russian. What is needed most, and the rules under
+which it is accepted, are written in [CONTRIBUTING.md](CONTRIBUTING.md); the
+shortest of those rules is: do not claim what does not exist.
 
-После восстановления канонического имени репозитория начать можно будет с
-готовой задачи — метка
-[«первая правка»](https://github.com/theasder/orakul/labels/%D0%BF%D0%B5%D1%80%D0%B2%D0%B0%D1%8F%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B0):
-там лежит то, что можно сделать, не разбираясь во всём проекте. Метка
-[«нужен доступ»](https://github.com/theasder/orakul/labels/%D0%BD%D1%83%D0%B6%D0%B5%D0%BD%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF)
-— обратное: работа упирается не в код, а в аккаунт или портал, которого у нас
-нет. Если такой доступ есть у вас, это и будет самой полезной правкой.
+Once the repository's canonical name is restored, you will be able to start from a
+ready task — the label
+["первая правка"](https://github.com/theasder/orakul/labels/%D0%BF%D0%B5%D1%80%D0%B2%D0%B0%D1%8F%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B0):
+it holds work that can be done without understanding the whole project. The label
+["нужен доступ"](https://github.com/theasder/orakul/labels/%D0%BD%D1%83%D0%B6%D0%B5%D0%BD%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF)
+is the opposite: the work is blocked not by code but by an account or a portal we
+do not have. If you have such access, that will be the most useful change of all.
 
-Каждый пулл-реквест прогоняется целиком: нативное приложение и mvp — на macOS;
-ядро, командная строка и весь набор mvp дополнительно собираются и тестируются
-на Linux; проверки страницы и документации тоже идут на Linux —
-[.github/workflows/ci.yml](.github/workflows/ci.yml). Узнать о поломке от
-робота через минуту лучше, чем от человека через день.
+Every pull request is run in full: the native application and mvp on macOS; the
+core, the command line and the whole mvp suite are additionally built and tested
+on Linux; the page and documentation checks run on Linux too —
+[.github/workflows/ci.yml](.github/workflows/ci.yml). Hearing about a breakage from
+a robot in a minute beats hearing it from a person in a day.
 
-Что мы обязаны сделать в ответ на вашу правку — в
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Там не про вежливость: там
-обязанность объяснить каждое закрытие и право потребовать пересмотра. Мы
-делаем инструмент для тех, кто ушёл с форумов, где решение принимают молча.
+What we are obliged to do in response to your change is in
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). It is not about politeness: it is the
+duty to explain every closure and the right to demand a review. We are making a
+tool for people who left forums where decisions are made in silence.
 
-Проверить, из какого кода собран пакет для Linux, можно тем же способом, что и
-для macOS: штамп лежит внутри файла, а не в журнале сборки.
-`bash scripts/audit-package.sh orakul_0.1.0-179_arm64.deb` читает его и
-пересчитывает хеш по дереву.
+You can check which code a Linux package was built from the same way as for
+macOS: the stamp is inside the file, not in the build log.
+`bash scripts/audit-package.sh orakul_0.1.0-179_arm64.deb` reads it and recomputes
+the hash over the tree.
 
-**Сопровождающий тут один.** Это не скромность и не приглашение жалеть: от
-этого зависит, чего ждать. Ответ на issue может занять несколько дней, а на
-время отпуска — не прийти вовсе. Обещать сроки, которых никто не гарантировал,
-хуже, чем сказать это прямо; правило из [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
-— объяснить каждое закрытие — остаётся в силе и при одном человеке.
+**There is one maintainer here.** That is neither modesty nor an invitation to
+pity: what to expect depends on it. An answer to an issue can take several days,
+and during a holiday may not come at all. Promising deadlines nobody guaranteed is
+worse than saying this plainly; the rule from
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — explain every closure — holds even with
+one person.
 
-Нашли дыру в безопасности — не в публичный issue, а по инструкции из
-[SECURITY.md](SECURITY.md). Там же написано, что именно уходит наружу: для
-программы, которая слушает звонки, это первый вопрос и он заслуживает
-письменного ответа, а не абзаца про то, как мы серьёзно к этому относимся.
+Found a security hole — not in a public issue, but by the instructions in
+[SECURITY.md](SECURITY.md). That file also states exactly what leaves the machine:
+for a program that listens to calls this is the first question, and it deserves a
+written answer rather than a paragraph about how seriously we take it.
 
-## Лицензия
+## Licence
 
-Mozilla Public License 2.0 — см. [LICENSE](LICENSE).
+Mozilla Public License 2.0 — see [LICENSE](LICENSE).
 
-Копилефт на уровне файла: изменения в файлах этого проекта возвращаются в общий
-доступ, а собственный код рядом с ними может оставаться закрытым. Это позволяет
-встраивать orakul в закрытые продукты и при этом не даёт унести улучшения нашей
-части в закрытый форк.
+File-level copyleft: changes to this project's files return to the commons, while
+your own code beside them may stay closed. That makes it possible to embed orakul
+in closed products while preventing improvements to our part from being carried
+off into a closed fork.
 
-Явная выдача прав на патенты в MPL 2.0 есть (раздел 2.1) — это то, на что смотрит
-юрист компании-заказчика, и именно из-за этого раньше была выбрана Apache 2.0
-вместо MIT. При переходе на MPL патентная часть сохранилась.
+MPL 2.0 has an explicit patent grant (section 2.1) — that is what a client
+company's lawyer looks at, and it is precisely why Apache 2.0 was previously
+chosen over MIT. The patent part was preserved in the move to MPL.

@@ -91,8 +91,8 @@ test('английская строка, разнесённая на две ст
 test('CONTRIBUTING называет задачу и то же самое число', () => {
   const doc = readFileSync('CONTRIBUTING.md', 'utf8');
   const { total, without } = stated();
-  assert.match(doc, /Русские строки на экранах/,
-    'CONTRIBUTING не называет задачу, а §6.4 обещает, что называет');
+  assert.match(doc, /Russian strings on screen/,
+    'CONTRIBUTING no longer names the task, and §6.4 promises that it does');
   assert.ok(doc.includes(String(total)) && doc.includes(String(without)),
     `CONTRIBUTING не повторяет числа ${total}/${without} из §6.4 — ` +
     'человек прочтёт устаревшее и не поймёт, куда двигать');

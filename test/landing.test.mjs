@@ -194,7 +194,7 @@ describe('orakul landing (ru)', () => {
       .map((m) => m[1].trim());
     assert.ok(asked.length >= 3, `the form asks for ${asked.length} test commands`);
 
-    const quickstart = contributing.slice(contributing.indexOf('## Быстрый старт'));
+    const quickstart = contributing.slice(contributing.indexOf('## Quick start'));
     const block = quickstart.slice(0, quickstart.indexOf('```', quickstart.indexOf('```') + 3));
 
     for (const command of asked) {
@@ -361,7 +361,7 @@ describe('orakul landing (ru)', () => {
     // Правила — жирные заголовки в своём разделе, а не по всему файлу: выше по
     // тексту тем же способом оформлена подсказка про кеш SwiftPM.
     const section = contributing.slice(
-      contributing.indexOf('## Правила, о которые ломаются чужие пулл-реквесты'));
+      contributing.indexOf("## Rules that other people's pull requests break against"));
     assert.ok(section.length > 200, 'CONTRIBUTING no longer has the rules section');
 
     const rules = [...section.matchAll(/^\*\*(.+?)\*\*/gm)].map((m) => m[1].trim());
@@ -429,7 +429,7 @@ describe('orakul landing (ru)', () => {
     const mvp = count('mvp');
     assert.equal(mvp, 0,
       `mvp declares ${mvp} external package(s) — README promises none`);
-    assert.match(readme, /У `mvp\/`[\s\S]{0,80}внешних зависимостей нет ни одной/,
+    assert.match(readme, /`mvp\/`[\s\S]{0,80}has no external dependencies at all/,
       'README no longer scopes the "no dependencies" promise to mvp');
 
     // CONTRIBUTING обещало то же самое и так же без оговорки. Участник,
@@ -439,10 +439,10 @@ describe('orakul landing (ru)', () => {
       'CONTRIBUTING promises no dependencies for every step, including the one that fetches four');
 
     const app = count('app');
-    const words = { 2: 'две', 3: 'три', 4: 'четыре', 5: 'пять', 6: 'шесть' };
+    const words = { 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six' };
     const stated = words[app];
     assert.ok(stated, `app declares ${app} packages — this check has no word for that`);
-    assert.match(readme, new RegExp(`У приложения в \`app/\` их ${stated}`),
+    assert.match(readme, new RegExp(`The application in \`app/\` has ${stated}`),
       `app declares ${app} external packages; README says otherwise`);
 
     // Прямых четыре, но сборка тянет двадцать семь — столько строк `Fetching`
@@ -456,7 +456,7 @@ describe('orakul landing (ru)', () => {
     // Число обязано стоять рядом со словом «пакет». Голое вхождение не
     // годится: в README есть идентификатор из примера, начинающийся на 27,
     // и первая версия проверки прошла на нём, ничего не проверив.
-    const saysTotal = new RegExp(`${pins.length}\\s+пакет`);
+    const saysTotal = new RegExp(`${pins.length}\\s+packages`);
     for (const [name, text] of [['README.md', readme], ['CONTRIBUTING.md', contributing]]) {
       assert.match(text, saysTotal,
         `the build fetches ${pins.length} packages, and ${name} never says so`);
@@ -572,7 +572,7 @@ describe('orakul landing (ru)', () => {
       'the audit does not consume explicit DMG paths');
 
     const readme = readFileSync(resolve(here, '..', 'README.md'), 'utf8');
-    const build = /Сборка установщика: `([^`]+)`/.exec(readme);
+    const build = /Building the installer: `([^`]+)`/.exec(readme);
     assert.ok(build, 'README no longer states how to build the installer');
     assert.ok(build[1].includes('dist-all.sh'),
       `README documents "${build[1]}" — following it can leave one architecture stale`);

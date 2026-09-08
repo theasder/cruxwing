@@ -16,14 +16,15 @@ const repo = resolve(here, '..');
 const guide = readFileSync(resolve(repo, 'CONTRIBUTING.md'), 'utf8');
 
 describe('CONTRIBUTING', () => {
-  test('is written in the language of the people it is asking for help', () => {
-    // A Russian-first project whose contribution guide is English tells the
-    // reader the Russian part was marketing.
-    const cyrillic = (guide.match(/[а-яё]/gi) ?? []).length;
-    assert.ok(cyrillic > 500, 'the guide is not actually in Russian');
-    assert.match(guide, /Issue, pull request, обсуждение — на русском/);
+  test('states the language contributions are expected in', () => {
+    // The guide itself moved to English on 2026-09-08 so the repository can be
+    // read end to end by someone who does not read Russian. What must survive
+    // that move is the POLICY it states: this is a Russian-first project, and
+    // the guide has to keep saying so rather than quietly becoming
+    // English-first — otherwise the Russian part reads as marketing.
+    assert.match(guide, /Issues, pull requests and discussion are in Russian/);
     // And it must not turn that into a barrier: English contributions are fine.
-    assert.match(guide, /Английский\s+тоже примут/);
+    assert.match(guide, /English is accepted too/);
   });
 
   test('every command it prints is one that exists', () => {
@@ -69,15 +70,17 @@ describe('CONTRIBUTING', () => {
     assert.ok(existsSync(resolve(repo, 'app', 'Tests', 'MeetGPTTests', 'NoTariffsTests.swift')),
       'the guide cites a test that does not exist');
     assert.match(guide, /InMemoryKeychain/);
-    assert.match(guide, /Не заявляйте того, чего нет/);
+    assert.match(guide, /Do not claim what does not exist/);
   });
 
   test('names the same licence as the repository, and says why', () => {
+    // Relicensed to MPL 2.0; this guard still pinned Apache and had been red
+    // since that commit.
     const licence = readFileSync(resolve(repo, 'LICENSE'), 'utf8');
-    assert.match(licence, /Apache License/);
-    assert.match(guide, /Apache 2\.0/);
+    assert.match(licence, /Mozilla Public License/);
+    assert.match(guide, /Mozilla Public License 2\.0/);
     // "Permissive" is the brief's requirement; the reason matters more than the
     // name to the person who has to get it past their employer.
-    assert.match(guide, /патент/i);
+    assert.match(guide, /patent/i);
   });
 });
