@@ -19,13 +19,13 @@ public enum ConnectorQuery {
     /// списка из тринадцати строк.
     /// Одна формулировка на оба места, где сервис оказался незнакомым.
     static func unknownService(_ name: String) -> String {
-        "Не знаю сервис «\(name)». Есть: \(services.joined(separator: ", "))."
+        "Unknown service «\(name)». Available: \(services.joined(separator: ", "))."
     }
 
     public static let services: [String] =
         RussianTrackers.Service.allCases.map(\.rawValue)
         + ["pachca", "mattermost", "rocketChat", "zulip", "slack",
-           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "jira", "outline", "bookstack", "wikijs", "nextcloud", "github", "linear", "trello", "заметки"]
+           "matrix", "gitlab", "gitea", "redmine", "plane", "gitflic", "jira", "outline", "bookstack", "wikijs", "nextcloud", "github", "linear", "trello", "notes"]
 
     public struct Settings {
         public let service: String
@@ -73,27 +73,33 @@ public enum ConnectorQuery {
                            trackerRUHTTP: @escaping RussianTrackers.HTTP = RussianTrackers.live,
                            githubHTTP: @escaping GitHubConnector.HTTP = RussianTrackers.live) async -> Answer {
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return .init(text: "Пустой вопрос — спрашивать нечего.", failed: true) }
+        guard !trimmed.isEmpty else { return .init(text: "Empty question — there is nothing to ask.", failed: true) }
         // Сначала имя сервиса, потом токен. Опечатка в названии — это то, что
         // человек только что напечатал; токен — это настройка. Раньше проверка
         // токена стояла первой, и на `orakul спросить нетакого вопрос` продукт
         // отвечал «нет токена»: человек шёл заводить токен для сервиса,
         // которого не существует. Нужное сообщение при этом уже было написано,
         // но лежало в конце и до него не доходило.
-        guard services.contains(settings.service) else {
+        // `заметки` was the one service named in Russian while every other name
+        // is an English identifier. The name is now `notes`; the old one keeps
+        // resolving, because it is a word people have already typed into
+        // scripts, and breaking those silently would be the rudest possible
+        // way to announce a rename.
+        let service = settings.service == "заметки" ? "notes" : settings.service
+        guard services.contains(service) else {
             return .init(text: unknownService(settings.service), failed: true)
         }
         // Заметки на диске — раньше проверки токена: токена у них нет и быть
         // не может, в этом вся их суть. Требовать его значило бы не пускать
         // единственный источник, который ничего не обещает сети.
-        if settings.service == "заметки" {
+        if service == "notes" {
             guard let folder = settings.host, !folder.isEmpty else {
-                return .init(text: "Заметки: нужна папка — положите путь в ORAKUL_HOST.",
+                return .init(text: "Notes: a folder is required — put the path in ORAKUL_HOST.",
                              failed: true)
             }
             do {
                 let outcome = try LocalNotes(root: URL(fileURLWithPath: folder)).search(trimmed)
-                return render("Заметки",
+                return render("Notes",
                               outcome.hits.map { "\($0.path): \($0.context)" },
                               note: outcome.coverage.note(.folder))
             } catch {
@@ -102,7 +108,7 @@ public enum ConnectorQuery {
         }
 
         guard !settings.token.isEmpty else {
-            return .init(text: "Нет токена. Положите его в ORAKUL_TOKEN — он никуда не пишется.",
+            return .init(text: "No token. Put it in ORAKUL_TOKEN — it is not written anywhere.",
                          failed: true)
         }
 
@@ -113,7 +119,7 @@ public enum ConnectorQuery {
                 // 403, из которого не видно, чего не хватало. Поэтому
                 // спрашиваем словами самого сервиса, до сети.
                 if let prompt = service.secondaryPrompt, (settings.host ?? "").isEmpty {
-                    return .init(text: "\(service.title): нужен \(prompt) — положите его в ORAKUL_HOST.",
+                    return .init(text: "\(service.title): \(prompt) is required — put it in ORAKUL_HOST.",
                                  failed: true)
                 }
                 let issues = try await RussianTrackers(
@@ -129,7 +135,7 @@ public enum ConnectorQuery {
                     .map { $0.trimmingCharacters(in: .whitespaces) }
                     .filter { !$0.isEmpty }
                 guard !repositories.isEmpty else {
-                    return .init(text: "GitHub: нужны \(GitHubConnector.repositoriesPrompt) — в ORAKUL_SCOPE.",
+                    return .init(text: "GitHub: \(GitHubConnector.repositoriesPrompt) are required — in ORAKUL_SCOPE.",
                                  failed: true)
                 }
                 let items = try await GitHubConnector(
@@ -188,29 +194,29 @@ public enum ConnectorQuery {
         let host = url.failingURL?.host.map { " (\($0))" } ?? ""
         switch url.code {
         case .notConnectedToInternet:
-            return "Нет сети. Проверьте подключение."
+            return "No network. Check the connection."
         case .timedOut:
-            return "Сервис\(host) не ответил вовремя. Попробуйте ещё раз."
+            return "The service\(host) did not answer in time. Try again."
         case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
-            return "Не достучались до сервиса\(host). Проверьте адрес в ORAKUL_HOST."
+            return "Could not reach the service\(host). Check the address in ORAKUL_HOST."
         case .serverCertificateUntrusted, .serverCertificateHasBadDate,
              .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot:
-            return "Сервис\(host) отвечает сертификатом, которому система не доверяет "
-                + "(самоподписанный, просроченный или с чужим корнем). Добавьте его "
-                + "в Связку ключей как доверенный или поставьте сертификат от "
-                + "известного удостоверяющего центра."
+            return "The service\(host) answers with a certificate the system does not trust "
+                + "(self-signed, expired, or from an unknown root). Add it to the "
+                + "Keychain as trusted, or install a certificate from a well-known "
+                + "certificate authority."
         case .secureConnectionFailed:
             // Отдельно от недоверенного сертификата: причина другая и чинится
             // по-другому. Проверено на живых серверах: самоподписанный даёт
             // -1202, а сервер, который вовсе не говорит по TLS, — -1200.
             // Внутренние серверы часто стоят на http, и совет «поправьте
             // сертификат» отправил бы человека чинить то, чего нет.
-            return "Сервис\(host) не принял защищённое соединение. Обычно это "
-                + "значит, что он отвечает по http, а не https, или говорит на "
-                + "другой версии TLS. Проверьте, что адрес в ORAKUL_HOST начинается "
-                + "с того же, что вы открываете в браузере."
+            return "The service\(host) refused the secure connection. Usually that means it "
+                + "answers over http rather than https, or speaks a different TLS "
+                + "version. Check that the address in ORAKUL_HOST starts the same "
+                + "way as the one you open in a browser."
         default:
-            return "Не получилось спросить сервис\(host): \(url.localizedDescription)"
+            return "Could not ask the service\(host): \(url.localizedDescription)"
         }
     }
 
@@ -229,7 +235,7 @@ public enum ConnectorQuery {
             // «Ничего не нашлось» — тот самый ответ, который без охвата врёт:
             // человек прочтёт его как «в трекере этого нет», хотя смотрели мы
             // последние пятьсот задач из сорока тысяч.
-            return .init(text: "\(service): по этим словам ничего не нашлось.\(tail)", failed: false)
+            return .init(text: "\(service): nothing matched those words.\(tail)", failed: false)
         }
         var text = ([service + ":"] + lines.prefix(searchLimit).map { "    " + $0 })
             .joined(separator: "\n")
@@ -248,7 +254,7 @@ public enum ConnectorQuery {
         // Это потребовало бы протащить его через все коннекторы; пока сказано
         // то, что верно всегда и без лишней проводки.
         if lines.count >= searchLimit {
-            text += "\n\nПоказаны первые \(searchLimit) — сузьте запрос, если нужного здесь нет."
+            text += "\n\nShowing the first \(searchLimit) — narrow the query if what you need is not here."
         }
         if !note.isEmpty { text += "\n\n\(note.prefix(1).uppercased())\(note.dropFirst())." }
         return .init(text: text, failed: false)

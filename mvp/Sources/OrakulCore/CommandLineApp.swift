@@ -57,23 +57,24 @@ public struct CommandLineApp {
     let makeTranscriber: @Sendable (String) -> any Transcriber
 
     public static let usage = """
-    orakul — поиск по своим звонкам, на русском и без сети
+    orakul — search your own calls: Russian speech, no network
 
-      orakul добавить <файл> [название]   готовая расшифровка в архив
-      orakul записать [секунды] [название] записать с микрофона и расшифровать
-      orakul расшифровать <wav> [название] расшифровать запись и положить в архив
-      orakul найти <вопрос>               что решили по этому поводу
-      orakul список                       что вообще есть в архиве
-      orakul удалить <идентификатор>      убрать один звонок
-      orakul спросить <сервис> <вопрос>   спросить подключённый сервис
-      orakul корпус <папка>               проверить корпус речи перед замером
+      orakul add <file> [title]           put an existing transcript in the archive
+      orakul record [seconds] [title]     record from the microphone and transcribe
+      orakul transcribe <wav> [title]     transcribe a recording into the archive
+      orakul search <question>            what was decided about it
+      orakul list                         what the archive holds
+      orakul delete <id>                  remove one call
+      orakul ask <service> <question>     ask a connected service
+      orakul corpus <folder>              check a speech corpus before measuring
 
-    Архив — обычные JSON-файлы: их можно читать и без нас.
-    Сервисы: \(ConnectorQuery.services.joined(separator: ", ")).
-    Токен — в ORAKUL_TOKEN. В ORAKUL_HOST — второе, что просит сервис: адрес
-    своего сервера, организация Яндекс Трекера, адрес команды Kaiten. В
-    ORAKUL_SCOPE — где искать: команда в мессенджере, репозитории для GitHub.
-    Расшифровка идёт вашим движком: ORAKUL_ENGINE="whisper-cli -l ru -otxt -f {файл}"
+    The archive is plain JSON files: they can be read without us.
+    Services: \(ConnectorQuery.services.joined(separator: ", ")).
+    The token goes in ORAKUL_TOKEN. ORAKUL_HOST is the second thing a service asks
+    for: the address of your own server, a Yandex Tracker organisation, a Kaiten
+    team address. ORAKUL_SCOPE is where to look: a team in the messenger, the
+    repositories for GitHub.
+    Transcription runs on your engine: ORAKUL_ENGINE="whisper-cli -l ru -otxt -f {file}"
     """
 
     /// Имена команд так, как их набирает человек.
@@ -87,6 +88,18 @@ public struct CommandLineApp {
     /// каждое имя отсюда есть в справке, и каждая команда из справки есть
     /// здесь.
     public static let commandNames = [
+        "add", "record", "transcribe", "search", "list", "delete",
+        "ask", "corpus",
+    ]
+
+    /// The Russian names the command line still accepts.
+    ///
+    /// They are not printed in the help text — it names the English ones — but a
+    /// typo in them has to be recognised all the same: someone who has typed
+    /// `найти` for a year does not care which of the two names we consider
+    /// canonical, and "unknown command" with no suggestion is the worst answer
+    /// we could give them.
+    public static let legacyCommandNames = [
         "добавить", "записать", "расшифровать", "найти", "список", "удалить",
         "спросить", "корпус",
     ]
@@ -116,9 +129,10 @@ public struct CommandLineApp {
             // Промах мимо одной клавиши — и в ответ полотно справки. Формально
             // верно и бесполезно: расстояние в одну опечатку уже посчитано для
             // поиска, тем же и лечится.
-            let similar = Self.commandNames.first { RecallIndex.isOneEditApart(command, $0) }
-            let hint = similar.map { "\nВозможно, «\($0)»?" } ?? ""
-            return Result(output: "Не знаю команду «\(command)».\(hint)\n\n\(Self.usage)",
+            let similar = (Self.commandNames + Self.legacyCommandNames)
+                .first { RecallIndex.isOneEditApart(command, $0) }
+            let hint = similar.map { "\nDid you mean «\($0)»?" } ?? ""
+            return Result(output: "Unknown command «\(command)».\(hint)\n\n\(Self.usage)",
                           exitCode: 2)
         }
     }
@@ -134,22 +148,22 @@ public struct CommandLineApp {
         var isDirectory: ObjCBool = false
         let exists = FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory)
         if exists && isDirectory.boolValue {
-            return "Это каталог, а не файл: \(path)\n"
-                + "Укажите файл с расшифровкой внутри него."
+            return "That is a directory, not a file: \(path)\n"
+                + "Name a transcript file inside it."
         }
         if !exists {
-            return "Файла нет: \(path)\nПроверьте путь."
+            return "No such file: \(path)\nCheck the path."
         }
-        return "Не смог прочитать файл: \(path)\n"
-            + "Он есть, но не открылся: проверьте права доступа, "
-            + "а если это запись звонка, её расшифровывают: orakul расшифровать <wav>"
+        return "Could not read the file: \(path)\n"
+            + "It exists but did not open: check the permissions, "
+            + "and if it is a call recording, transcribe it: orakul transcribe <wav>"
     }
 
     // MARK: - Команды
 
     private func add(_ arguments: [String]) -> Result {
         guard let path = arguments.first else {
-            return Result(output: "Нужен файл с расшифровкой: orakul добавить <файл>", exitCode: 2)
+            return Result(output: "A transcript file is required: orakul add <file>", exitCode: 2)
         }
         guard let raw = readFile(path) else {
             return Result(output: Self.whyUnreadable(path), exitCode: 1)
@@ -167,7 +181,7 @@ public struct CommandLineApp {
             // содержимое и не понимает, кому верить. Пустым файл стал у нас.
             let fileWasEmpty = raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             return Result(output: fileWasEmpty
-                ? "Файл пустой — сохранять нечего."
+                ? "The file is empty, so there is nothing to save."
                 : """
                   В файле нет реплик — только разметка и отметки времени.
                   Сохранять нечего: выгрузите расшифровку с текстом.
@@ -208,14 +222,14 @@ public struct CommandLineApp {
         do {
             try store.save(session)
         } catch {
-            return Result(output: "Не смог сохранить. \(Self.explain(error))", exitCode: 1)
+            return Result(output: "Could not save. \(Self.explain(error))", exitCode: 1)
         }
-        return Result(output: "Добавлено: «\(session.title)» (\(session.id))", exitCode: 0)
+        return Result(output: "Added: «\(session.title)» (\(session.id))", exitCode: 0)
     }
 
     /// Отказ файловой системы — по-русски и с действием.
     ///
-    /// Было `"Не смог сохранить: \(error)"`, и человек получал
+    /// Было `"Could not save: \(error)"`, и человек получал
     /// `Error Domain=NSCocoaErrorDomain Code=513 "You don\u{2019}t have permission
     /// to save the file..."` — внутренности по-английски ровно там, где нужна
     /// помощь. Ту же ошибку продукт уже исправлял в коннекторах; в командной
@@ -224,20 +238,20 @@ public struct CommandLineApp {
         let code = (error as NSError).code
         let domain = (error as NSError).domain
         guard domain == NSCocoaErrorDomain else {
-            return "Система ответила: \(error.localizedDescription)"
+            return "The system replied: \(error.localizedDescription)"
         }
         switch code {
         case 513, 257:
-            return "Нет прав на запись в архив. Проверьте права на каталог "
-                + "или укажите другой в ORAKUL_HOME."
+            return "No permission to write to the archive. Check the directory permissions "
+                + "or name another one in ORAKUL_HOME."
         case 640:
-            return "На диске не осталось места."
+            return "The disk is full."
         case 4, 260:
-            return "Архив не найден. Проверьте ORAKUL_HOME."
+            return "Archive not found. Check ORAKUL_HOME."
         case 642:
-            return "Каталог архива только для чтения."
+            return "The archive directory is read-only."
         default:
-            return "Система ответила: \(error.localizedDescription)"
+            return "The system replied: \(error.localizedDescription)"
         }
     }
 
@@ -267,7 +281,7 @@ public struct CommandLineApp {
 
     private func transcribe(_ arguments: [String]) -> Result {
         guard let path = arguments.first else {
-            return Result(output: "Нужен файл записи: orakul расшифровать <wav>", exitCode: 2)
+            return Result(output: "A recording file is required: orakul transcribe <wav>", exitCode: 2)
         }
         // Файл проверяется раньше движка: имя файла — это то, что человек
         // только что напечатал, а движок — настройка. При опечатке в имени и
@@ -275,7 +289,7 @@ public struct CommandLineApp {
         // настраивал и лишь потом узнавал, что файла нет. Два захода вместо
         // одного, и первый — не про его ошибку.
         guard let data = readAudio(path) else {
-            return Result(output: "Не смог прочитать запись: \(path)", exitCode: 1)
+            return Result(output: "Could not read the recording: \(path)", exitCode: 1)
         }
         guard let command = engineCommand, !command.isEmpty else {
             // Молча ничего не делать здесь нельзя: человек ждёт расшифровку и
@@ -284,7 +298,7 @@ public struct CommandLineApp {
             Не настроен движок распознавания. orakul не возит свою модель — он \
             запускает вашу:
 
-              export ORAKUL_ENGINE="whisper-cli -m модель.bin -l ru -otxt -f {файл}"
+              export ORAKUL_ENGINE="whisper-cli -m model.bin -l ru -otxt -f {file}"
             """, exitCode: 2)
         }
 
@@ -299,7 +313,7 @@ public struct CommandLineApp {
               ffmpeg -i \(path) -ar 16000 -ac 1 запись-16k.wav
             """, exitCode: 1)
         } catch {
-            return Result(output: "Не понял формат записи: нужен WAV, PCM 16 бит.", exitCode: 1)
+            return Result(output: "Unrecognised recording format: WAV, PCM 16-bit required.", exitCode: 1)
         }
 
         let title = arguments.dropFirst().joined(separator: " ")
@@ -317,10 +331,10 @@ public struct CommandLineApp {
                     title: title.isEmpty
                         ? URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
                         : title)
-                outcome.set(Result(output: "Расшифровано: «\(session.title)» (\(session.id))",
+                outcome.set(Result(output: "Transcribed: «\(session.title)» (\(session.id))",
                                    exitCode: 0))
             } catch {
-                outcome.set(Result(output: "Не смог расшифровать: \(error)", exitCode: 1))
+                outcome.set(Result(output: "Could not transcribe: \(error)", exitCode: 1))
             }
         }
         return outcome.wait()
@@ -329,7 +343,7 @@ public struct CommandLineApp {
     private func search(_ arguments: [String]) -> Result {
         let query = arguments.joined(separator: " ")
         guard !query.trimmingCharacters(in: .whitespaces).isEmpty else {
-            return Result(output: "Нужен вопрос: orakul найти что решили по тарифам", exitCode: 2)
+            return Result(output: "A question is required: orakul search what did we decide about pricing", exitCode: 2)
         }
         // Ответ собирает RecallAnswer — тот же текст, что увидит пользователь
         // приложения. Двух разных «форматов ответа» у продукта быть не должно,
@@ -355,7 +369,7 @@ public struct CommandLineApp {
     private func list() -> Result {
         let archive = store.load()
         guard !archive.sessions.isEmpty else {
-            return Result(output: "Архив пуст. Добавьте расшифровку: orakul добавить <файл>",
+            return Result(output: "The archive is empty. Add a transcript: orakul add <file>",
                           exitCode: 0)
         }
         // Порядок — свежие сверху. Раньше список шёл в порядке имён файлов, то
@@ -372,14 +386,14 @@ public struct CommandLineApp {
             // Пропущенные файлы обязаны быть видны: молчание здесь означает
             // тихо потерянную встречу.
             lines.append("")
-            lines.append("Не смог прочитать: \(archive.skipped.joined(separator: ", "))")
+            lines.append("Could not read: \(archive.skipped.joined(separator: ", "))")
         }
         return Result(output: lines.joined(separator: "\n"), exitCode: 0)
     }
 
     private func delete(_ arguments: [String]) -> Result {
         guard let id = arguments.first else {
-            return Result(output: "Нужен идентификатор: orakul удалить <идентификатор>",
+            return Result(output: "An id is required: orakul delete <id>",
                           exitCode: 2)
         }
         // Человек копирует идентификатор из `список`, где он в тридцать шесть
@@ -418,9 +432,9 @@ public struct CommandLineApp {
                 """, exitCode: 1)
             }
         } catch {
-            return Result(output: "Не смог удалить. \(Self.explain(error))", exitCode: 1)
+            return Result(output: "Could not delete. \(Self.explain(error))", exitCode: 1)
         }
-        return Result(output: "Удалено: \(resolved)", exitCode: 0)
+        return Result(output: "Deleted: \(resolved)", exitCode: 0)
     }
 
     /// Во что превращается начало идентификатора.

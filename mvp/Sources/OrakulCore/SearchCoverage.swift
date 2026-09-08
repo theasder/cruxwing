@@ -34,20 +34,20 @@ public enum SearchCoverage: Equatable, Sendable {
     /// приписка к обычному поиску была бы шумом в каждой подсказке.
     public func note(_ subject: Subject = .service) -> String {
         let because = subject == .service
-            ? "сервис не ищет по слову, отбирали у себя"
-            : "искали по файлам на этом компьютере"
+            ? "the service does not search by word, so we filtered locally"
+            : "searched the files on this computer"
         switch self {
         case .cached(let seconds, _):
-            return "сервис просит обращаться реже — это ответ \(seconds) с назад, из памяти"
+            return "the service asks for fewer requests — this is a \(seconds)s-old answer from memory"
         case .searched:
             return ""
         case .wholeList(let scanned):
-            let what = subject == .service ? "все" : "все файлы"
-            return "просмотрены \(what) \(scanned) — \(because)"
+            let what = subject == .service ? "all" : "all files"
+            return "looked through \(what) \(scanned) — \(because)"
         case .latest(let scanned, let total):
-            let whole = total.map { " из \($0)" } ?? ""
-            let what = subject == .service ? "последние" : "последние файлы"
-            return "просмотрены \(what) \(scanned)\(whole) — \(because)"
+            let whole = total.map { " of \($0)" } ?? ""
+            let what = subject == .service ? "the most recent" : "the most recent files"
+            return "looked through \(what) \(scanned)\(whole) — \(because)"
         }
     }
 }

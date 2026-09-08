@@ -144,9 +144,9 @@ struct NearMissTests {
         let ответ = RecallAnswer.compose(query: "тарифф", hits: [],
                                          suggestions: ["тарифам"])
         #expect(ответ.contains("«тарифам»"))
-        #expect(ответ.contains("Похоже на опечатку"))
+        #expect(ответ.contains("Looks like a typo"))
         // Отказ придумывать остаётся: подсказка его дополняет, а не отменяет.
-        #expect(ответ.contains("придумывать не буду"))
+        #expect(ответ.contains("will not invent"))
     }
 
     @Test("Без подсказок лишней строки нет")

@@ -127,7 +127,7 @@ import FoundationNetworking
         let second = try await connector.run("лимиты")
         #expect(second.items.map(\.title) == ["Поднять лимиты"], "источник замолчал под троттлингом")
         #expect(second.coverage == .cached(seconds: 120, under: .service))
-        #expect(second.coverage.note().contains("120 с назад"),
+        #expect(second.coverage.note().contains("120s-old"),
                 "ответ из памяти не назвал свой возраст: «\(second.coverage.note())»")
     }
 

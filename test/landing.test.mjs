@@ -83,8 +83,8 @@ describe('orakul landing (ru)', () => {
     // product that does not exist. The refusal case matters more than the
     // success case: it is the whole trust argument, and it is the one a
     // competitor cannot copy without building the check behind it.
-    assert.match(text, /«Планёрка по тарифам», 24 июля 2026/);
-    assert.match(text, /Ответ придумывать не буду/);
+    assert.match(text, /«Планёрка по тарифам», 24 July 2026/);
+    assert.match(text, /I will not invent an answer/);
     assert.match(text, /цитат/i);
   });
 
@@ -1505,7 +1505,7 @@ describe('orakul landing (ru)', () => {
   });
 
   test('the "first ten, not all" notice is real and conditional', () => {
-    assert.match(text, /Показаны первые 10/,
+    assert.match(text, /Showing the first 10/,
       'the page no longer shows the truncation notice');
     assert.match(text, /Когда нашлось меньше десяти, приписки нет/,
       'the page no longer states the notice is conditional');
@@ -1514,13 +1514,13 @@ describe('orakul landing (ru)', () => {
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'ConnectorQuery.swift'), 'utf8'));
     assert.match(query, /lines\.count >= searchLimit/,
       'the notice is unconditional or gone — either way the page is wrong');
-    assert.match(query, /Показаны первые \\\(searchLimit\)/,
+    assert.match(query, /Showing the first \\\(searchLimit\)/,
       'the notice no longer quotes the same limit it enforces');
 
     // Число на странице обязано быть тем же, что просят у сервиса.
     const limit = /static let searchLimit = (\d+)/.exec(query);
     assert.ok(limit, 'the shared limit constant is gone');
-    const onPage = /Показаны первые (\d+)/.exec(text);
+    const onPage = /Showing the first (\d+)/.exec(text);
     assert.equal(onPage[1], limit[1],
       `page says ${onPage[1]}, the code asks for ${limit[1]}`);
   });
@@ -1773,8 +1773,8 @@ describe('orakul landing (ru)', () => {
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8');
 
     for (const [quoted, why] of [
-      ['В сохранённых звонках об этом не говорили', 'честный отказ'],
-      ['Архив пуст — искать пока негде', 'ответ на пустом архиве'],
+      ['The saved calls did not discuss this', 'честный отказ'],
+      ['The archive is empty, so there is nowhere to search yet', 'ответ на пустом архиве'],
     ]) {
       assert.ok(text.includes(quoted), `страница больше не показывает ${why}`);
       assert.ok(answers.includes(quoted),
@@ -1840,7 +1840,7 @@ describe('orakul landing (ru)', () => {
     // Проверяется соседство, а не точная строка: между текстом и `failed`
     // теперь стоит охват выдачи (§7.2), и точное совпадение ломалось бы на
     // каждой правке формулировки, ничего не проверяя сверх этого.
-    assert.match(query, /ничего не нашлось[^\n]*failed: false/,
+    assert.match(query, /nothing matched[^\n]*failed: false/,
       'an empty result counts as a failure again — scripts stall on a normal answer');
 
     // Транспортная ошибка должна разбираться, а не пересказываться.
@@ -1902,9 +1902,9 @@ describe('orakul landing (ru)', () => {
     // Обещание из двух частей: команда есть, и коннекторы лежат в ядре, а не
     // в оболочке. Вторая часть — то, ради чего их и переносили: одна копия
     // кода на приложение и терминал вместо двух.
-    const example = /orakul спросить ([A-Za-z]+) /.exec(text);
+    const example = /orakul ask ([A-Za-z]+) /.exec(text);
     assert.ok(example, 'the page no longer shows the terminal connector command');
-    // Пример должен звать НАСТОЯЩИЙ сервис: `orakul спросить jira` на странице
+    // Пример должен звать НАСТОЯЩИЙ сервис: `orakul ask jira` на странице
     // выглядит так же убедительно и не работает.
     const known = stripComments(readFileSync(
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'ConnectorQuery.swift'), 'utf8'));
@@ -1913,7 +1913,7 @@ describe('orakul landing (ru)', () => {
     const cases = /case (yandexTracker[^\n]*)/.exec(russian)?.[1].split(',').map((s) => s.trim()) ?? [];
     assert.ok(cases.length >= 3, 'the Russian tracker cases could not be read');
     assert.ok(cases.includes(example[1]) || known.includes(`"${example[1]}"`),
-      `the page shows «orakul спросить ${example[1]}» — no such service`);
+      `the page shows «orakul ask ${example[1]}» — no such service`);
     // Продукт делается для российской команды: в примере стоит российский трекер.
     assert.ok(cases.includes(example[1]),
       `the example points at ${example[1]}, not one of the Russian trackers`);
@@ -1929,7 +1929,7 @@ describe('orakul landing (ru)', () => {
 
     // И в подсказке CLI — те же сервисы, что есть в коде.
     const cli = readFileSync(resolve(core, 'CommandLineApp.swift'), 'utf8');
-    assert.match(cli, /orakul спросить <сервис> <вопрос>/,
+    assert.match(cli, /orakul ask <service> <question>/,
       'the command is not listed in the CLI help');
   });
 
@@ -2402,7 +2402,7 @@ describe('orakul landing (ru)', () => {
 
     const answer = readFileSync(
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8');
-    const refusal = /"(В сохранённых [^"]+)"/.exec(answer)?.[1];
+    const refusal = /"(The saved calls [^"]+)"/.exec(answer)?.[1];
     assert.ok(refusal, 'отказ пропал из RecallAnswer.swift');
     assert.ok(demo.includes(refusal),
       `в блоке показан не тот отказ, что печатает программа: «${refusal}»`);
@@ -2412,7 +2412,7 @@ describe('orakul landing (ru)', () => {
     // Без привязки к открывающей кавычке: строка начинается с переноса
     // (`"\nПохоже на опечатку…`), и образец, ждавший кавычку вплотную, не
     // совпадал ни с чем.
-    const hint = /(Похоже на опечатку[^"\\]*)/.exec(answer)?.[1];
+    const hint = /(Looks like a typo[^"\\]*)/.exec(answer)?.[1];
     assert.ok(hint, 'подсказка про опечатку пропала из RecallAnswer.swift');
     assert.ok(demo.includes(hint.trim()),
       `в блоке показана не та подсказка: «${hint}»`);

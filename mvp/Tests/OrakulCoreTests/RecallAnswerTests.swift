@@ -23,7 +23,7 @@ struct RecallAnswerTests {
                        excerpt: "Решили перейти на оплату за использование")])
 
         #expect(answer.contains("«Планёрка по тарифам»"))
-        #expect(answer.contains("24 июля 2026"))
+        #expect(answer.contains("24 July 2026"))
         #expect(answer.contains("Решили перейти на оплату за использование"))
     }
 
@@ -35,15 +35,15 @@ struct RecallAnswerTests {
             query: "что решили по отпускам",
             hits: [hit("s1", "Планёрка по тарифам", excerpt: "")])
 
-        #expect(answer.contains("цитировать нечего"))
+        #expect(answer.contains("nothing to quote"))
         #expect(answer.contains("«Планёрка по тарифам»"), "человек должен знать, где смотрели")
     }
 
     @Test("пустой поиск отвечает отказом, а не пустотой")
     func emptyResultSaysSo() {
         let answer = RecallAnswer.compose(query: "что решили по отпускам", hits: [])
-        #expect(answer.contains("не говорили"))
-        #expect(answer.contains("придумывать не буду"))
+        #expect(answer.contains("did not discuss"))
+        #expect(answer.contains("will not invent"))
     }
 
     @Test("две причины пустоты звучат по-разному")
@@ -65,7 +65,7 @@ struct RecallAnswerTests {
 
         #expect(answer.contains("Планёрка 1"))
         #expect(!answer.contains("Планёрка 4"), "ответ превратился в выдачу")
-        #expect(answer.contains("Ещё 2 звонка"), "остальные должны быть посчитаны, а не забыты")
+        #expect(answer.contains("2 more calls"), "остальные должны быть посчитаны, а не забыты")
     }
 
     @Test("русский счёт звонков не ломается на 1, 2, 5 и 11")
@@ -75,12 +75,12 @@ struct RecallAnswerTests {
         // Слово было «встреча»: в одном файле уживались «созвон», «встреча» и
         // «звонок» — три названия одной вещи. На странице и в README везде
         // «звонок», он и остался.
-        #expect(RecallAnswer.callsWord(1) == "звонок")
-        #expect(RecallAnswer.callsWord(3) == "звонка")
-        #expect(RecallAnswer.callsWord(5) == "звонков")
-        #expect(RecallAnswer.callsWord(11) == "звонков")
-        #expect(RecallAnswer.callsWord(21) == "звонок")
-        #expect(RecallAnswer.callsWord(112) == "звонков")
+        #expect(RecallAnswer.callsWord(1) == "call")
+        #expect(RecallAnswer.callsWord(3) == "calls")
+        #expect(RecallAnswer.callsWord(5) == "calls")
+        #expect(RecallAnswer.callsWord(11) == "calls")
+        #expect(RecallAnswer.callsWord(21) == "calls")
+        #expect(RecallAnswer.callsWord(112) == "calls")
     }
 
     @Test("во всех ответах вещь называется одним словом")
@@ -104,9 +104,9 @@ struct RecallAnswerTests {
 
     @Test("дата читается по-русски, а не как в базе")
     func dateIsHumanReadable() {
-        #expect(RecallAnswer.humanDate("2026-07-24") == "24 июля 2026")
-        #expect(RecallAnswer.humanDate("2026-01-01") == "1 января 2026")
-        #expect(RecallAnswer.humanDate("2026-12-31") == "31 декабря 2026")
+        #expect(RecallAnswer.humanDate("2026-07-24") == "24 July 2026")
+        #expect(RecallAnswer.humanDate("2026-01-01") == "1 January 2026")
+        #expect(RecallAnswer.humanDate("2026-12-31") == "31 December 2026")
     }
 
     @Test("испорченная дата показывается как есть, а не подменяется сегодняшней")
@@ -157,9 +157,9 @@ struct RecallAnswerTests {
         let hits: [RecallIndex.Hit] = []
         let answer = RecallAnswer.compose(query: query, hits: hits)
 
-        #expect(!answer.contains("не говорили"),
+        #expect(!answer.contains("did not discuss"),
                 "сказано про несостоявшийся поиск: «\(answer)»")
-        #expect(answer.contains("искать"),
+        #expect(answer.contains("no words to search by"),
                 "не объяснено, что искать было нечем: «\(answer)»")
     }
 
@@ -168,7 +168,7 @@ struct RecallAnswerTests {
         // Граница: если счесть «пустым» любой короткий вопрос, пропадёт
         // честный отказ, ради которого продукт и делается.
         let answer = RecallAnswer.compose(query: "что решили по тарифам", hits: [])
-        #expect(answer.contains("не говорили"),
+        #expect(answer.contains("did not discuss"),
                 "потерян честный отказ на настоящем вопросе: «\(answer)»")
     }
 
@@ -191,9 +191,9 @@ struct RecallAnswerTests {
     func emptyArchiveIsItsOwnAnswer() {
         let answer = RecallAnswer.compose(query: "что решили по тарифам", hits: [],
                                           archiveIsEmpty: true)
-        #expect(answer.contains("пуст"), "не сказано, что архив пуст: «\(answer)»")
-        #expect(answer.contains("добавить"), "не сказано, что делать: «\(answer)»")
-        #expect(!answer.contains("не говорили"),
+        #expect(answer.contains("empty"), "не сказано, что архив пуст: «\(answer)»")
+        #expect(answer.contains("add"), "не сказано, что делать: «\(answer)»")
+        #expect(!answer.contains("did not discuss"),
                 "утверждение о несуществующих звонках: «\(answer)»")
     }
 
@@ -203,8 +203,8 @@ struct RecallAnswerTests {
         // честный отказ — тот, ради которого продукт и existsует.
         let answer = RecallAnswer.compose(query: "что решили по тарифам", hits: [],
                                           archiveIsEmpty: false)
-        #expect(answer.contains("не говорили"), "потерян честный отказ: «\(answer)»")
-        #expect(!answer.contains("Архив пуст"), "непустой архив назван пустым")
+        #expect(answer.contains("did not discuss"), "потерян честный отказ: «\(answer)»")
+        #expect(!answer.contains("The archive is empty"), "непустой архив назван пустым")
     }
 
     @Test("обе поверхности продукта передают признак пустоты")
@@ -246,7 +246,7 @@ struct UnreadableArchiveTests {
 
         let answer = RecallAnswer.compose(query: "тарифы", hits: [],
                                           archiveIsEmpty: true, unreadable: archive.skipped)
-        #expect(answer.contains("Архив пуст"))
+        #expect(answer.contains("The archive is empty"))
     }
 
     /// Каталог есть, а прочитать нельзя. Сказать «пуст» — значит уверенно
@@ -271,9 +271,9 @@ struct UnreadableArchiveTests {
 
         let answer = RecallAnswer.compose(query: "тарифы", hits: [],
                                           archiveIsEmpty: true, unreadable: archive.skipped)
-        #expect(!answer.contains("Архив пуст"),
+        #expect(!answer.contains("The archive is empty"),
                 "непрочитанный архив назван пустым: \(answer)")
-        #expect(answer.contains("Не смог прочитать архив"))
+        #expect(answer.contains("Could not read the archive"))
     }
 
     /// Отдельно от каталога: сам ответ обязан различать эти два случая.
@@ -283,8 +283,8 @@ struct UnreadableArchiveTests {
                                          archiveIsEmpty: true, unreadable: [])
         let broken = RecallAnswer.compose(query: "тарифы", hits: [],
                                           archiveIsEmpty: true, unreadable: [".orakul/"])
-        #expect(empty.contains("Архив пуст"))
-        #expect(broken.contains("Не смог прочитать архив"))
+        #expect(empty.contains("The archive is empty"))
+        #expect(broken.contains("Could not read the archive"))
         #expect(empty != broken, "оба случая звучат одинаково")
     }
 }

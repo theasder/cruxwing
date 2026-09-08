@@ -245,9 +245,9 @@ struct LaunchSendsNothingTests {
         #expect(state.contains("startReminderPolling()"))
         #expect(security.contains("Telegram"))
         #expect(security.contains("Google Calendar"))
-        #expect(security.contains("возобнов"))
-        #expect(readme.contains("возобновления ранее включённого опроса коннектора"))
-        #expect(security.contains("незапрошенных вызовов к серверу разработчика"))
+        #expect(security.contains("may resume on the next"))
+        #expect(readme.contains("the resumption at startup of a"))
+        #expect(security.contains("no unrequested calls to the developer's server"))
     }
 
     @Test("манифест конфиденциальности не приписывает orakul сбор данных")

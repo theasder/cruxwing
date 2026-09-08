@@ -118,7 +118,7 @@ struct TranscriptEncodingTests {
 
 /// Три причины, по которым файл не прочитался, — три разных совета.
 ///
-/// `orakul добавить /tmp` отвечал «Не смог прочитать файл: /tmp». Сообщение о
+/// `orakul добавить /tmp` отвечал «Could not read файл: /tmp». Сообщение о
 /// следствии: каталог не «не прочитался», он не файл, и чинится это иначе, чем
 /// опечатка в пути или отсутствие прав.
 @Suite("Почему файл не прочитался")
@@ -132,7 +132,7 @@ struct UnreadableReasonTests {
         defer { try? FileManager.default.removeItem(at: каталог) }
 
         let ответ = CommandLineApp.whyUnreadable(каталог.path)
-        #expect(ответ.contains("каталог, а не файл"), "получилось: \(ответ)")
+        #expect(ответ.contains("a directory, not a file"), "получилось: \(ответ)")
         #expect(!ответ.hasPrefix("Не смог прочитать"), "причина названа следствием")
     }
 
@@ -141,7 +141,7 @@ struct UnreadableReasonTests {
         let путь = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent(UUID().uuidString).path
         let ответ = CommandLineApp.whyUnreadable(путь)
-        #expect(ответ.contains("Файла нет"), "получилось: \(ответ)")
+        #expect(ответ.contains("No such file"), "получилось: \(ответ)")
     }
 
     /// Файл на месте и читается как байты — значит дело в правах или в том,
@@ -154,9 +154,9 @@ struct UnreadableReasonTests {
         defer { try? FileManager.default.removeItem(at: файл) }
 
         let ответ = CommandLineApp.whyUnreadable(файл.path)
-        #expect(ответ.hasPrefix("Не смог прочитать файл"), "получилось: \(ответ)")
-        #expect(ответ.contains("права доступа"))
-        #expect(ответ.contains("orakul расшифровать"),
+        #expect(ответ.hasPrefix("Could not read the file"), "получилось: \(ответ)")
+        #expect(ответ.contains("permissions"))
+        #expect(ответ.contains("orakul transcribe"),
                 "про запись звонка не сказано, а .wav сюда попадает чаще всего")
     }
 

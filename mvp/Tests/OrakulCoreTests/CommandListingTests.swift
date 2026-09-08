@@ -61,13 +61,15 @@ struct CommandListingTests {
 
     @Test("каждая команда названа в подсказке")
     func everyCommandIsListed() throws {
-        // Английские синонимы (`record`, `ask`, `help`) в подсказке не нужны:
-        // продукт русский, а синонимы — вежливость к тем, кто печатает вслепую.
-        let synonyms: Set<String> = ["record", "ask", "help", "list", "find", "add",
-                                     "delete", "transcribe", "search", "corpus"]
+        // Русские синонимы (`добавить`, `найти`, `помощь`) в подсказке не нужны:
+        // справка называет английские имена, а синонимы остаются разобранными
+        // ради тех, кто уже печатает их по памяти.
+        let synonyms: Set<String> = ["добавить", "записать", "расшифровать", "найти",
+                                     "список", "удалить", "спросить", "корпус",
+                                     "помощь", "find"]
         let handled = try dispatched().subtracting(synonyms)
         #expect(handled.count > 4, "разбор не прочитался: \(handled)")
-        let undocumented = handled.subtracting(listed).subtracting(["помощь"])
+        let undocumented = handled.subtracting(listed).subtracting(["help"])
         #expect(undocumented.isEmpty,
                 "реализованы, но не названы в подсказке: \(undocumented.sorted())")
     }

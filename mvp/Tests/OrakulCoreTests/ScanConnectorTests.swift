@@ -81,7 +81,7 @@ import FoundationNetworking
                                           host: "https://example.com", http: http)
         let outcome = try await connector.run("лимиты")
         #expect(outcome.coverage == .wholeList(scanned: 1))
-        #expect(outcome.coverage.note().contains("все 1"))
+        #expect(outcome.coverage.note().contains("all 1"))
     }
 
     @Test("граница сработала — выдача называет и охват, и полный размер")
@@ -95,7 +95,7 @@ import FoundationNetworking
         let outcome = try await connector.run("которой нет")
         #expect(outcome.items.isEmpty)
         #expect(outcome.coverage == .latest(scanned: 200, total: 40000))
-        #expect(outcome.coverage.note().contains("последние 200"))
+        #expect(outcome.coverage.note().contains("the most recent 200"))
         #expect(outcome.coverage.note().contains("40000"))
     }
 
@@ -273,7 +273,7 @@ import FoundationNetworking
         #expect(tracker.isConfigured)
         let outcome = try await tracker.run("лимиты")
         #expect(outcome.items.map(\.key) == ["#7"])
-        #expect(outcome.note.contains("просмотрены все"))
+        #expect(outcome.note.contains("looked through all"))
     }
 
     @Test("токен и адрес есть, а поля пустые — это «не подключён»")
@@ -312,8 +312,8 @@ import FoundationNetworking
                 (page, HTTPURLResponse(url: request.url!, statusCode: 200,
                                        httpVersion: nil, headerFields: [:])!)
             })
-        #expect(answer.text.contains("ничего не нашлось"))
-        #expect(answer.text.contains("последние 500"), "ответ: «\(answer.text)»")
+        #expect(answer.text.contains("nothing matched"))
+        #expect(answer.text.contains("the most recent 500"), "ответ: «\(answer.text)»")
         #expect(answer.text.contains("40000"))
         #expect(!answer.failed, "пустая выдача — ответ, а не сбой")
     }

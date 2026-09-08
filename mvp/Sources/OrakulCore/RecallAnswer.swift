@@ -50,10 +50,10 @@ public enum RecallAnswer {
             // на месте, и «пуст» отправит его заводить всё заново.
             guard unreadable.isEmpty else {
                 return withWarning(
-                    "Не смог прочитать архив — сказать, что в нём, не могу.", unreadable)
+                    "Could not read the archive, so I cannot say what is in it.", unreadable)
             }
             return withWarning(
-                "Архив пуст — искать пока негде. Добавьте расшифровку: orakul добавить <файл>",
+                "The archive is empty, so there is nowhere to search yet. Add a transcript: orakul add <file>",
                 unreadable)
         }
         let grounded = hits.filter { !$0.excerpt.isEmpty }
@@ -71,8 +71,8 @@ public enum RecallAnswer {
         // определению, и придираться к нему поздно.
         if grounded.isEmpty, RecallIndex.tokens(query).isEmpty {
             return withWarning("""
-            В вопросе нет слов, по которым можно искать, — только служебные.
-            Спросите конкретнее: orakul найти что решили по тарифам
+            The question contains no words to search by, only stop words.
+            Ask something more specific: orakul search what did we decide about pricing
             """, unreadable)
         }
 
@@ -93,7 +93,7 @@ public enum RecallAnswer {
 
         if grounded.count > maximumMeetings {
             let rest = grounded.count - maximumMeetings
-            lines.append("Ещё \(rest) \(callsWord(rest)) с упоминанием — в архиве.")
+            lines.append("\(rest) more \(callsWord(rest)) in the archive mention it.")
         }
         return withWarning(lines.joined(separator: "\n"), unreadable)
     }
@@ -106,9 +106,9 @@ public enum RecallAnswer {
     private static func withWarning(_ answer: String, _ unreadable: [String]) -> String {
         guard !unreadable.isEmpty else { return answer }
         let files = unreadable.sorted().joined(separator: ", ")
-        let word = unreadable.count == 1 ? "файл" : "файла(ов)"
-        return answer + "\n\nНе смог прочитать \(unreadable.count) \(word) в архиве, "
-            + "ответ может быть неполным: \(files)"
+        let word = unreadable.count == 1 ? "file" : "files"
+        return answer + "\n\nCould not read \(unreadable.count) \(word) in the archive, "
+            + "so this answer may be incomplete: \(files)"
     }
 
     /// Почему ответа нет — разными словами для разных причин.
@@ -129,16 +129,16 @@ public enum RecallAnswer {
     /// какие слова в архиве есть, а решает он.
     static func notFound(hits: [RecallIndex.Hit], suggestions: [String] = []) -> String {
         if hits.isEmpty {
-            let refusal = "В сохранённых звонках об этом не говорили. Ответ придумывать не буду."
+            let refusal = "The saved calls did not discuss this. I will not invent an answer."
             guard !suggestions.isEmpty else { return refusal }
             let words = suggestions.map { "«\($0)»" }.joined(separator: ", ")
-            return refusal + "\nПохоже на опечатку — в архиве есть \(words)."
+            return refusal + "\nLooks like a typo — the archive has \(words)."
         }
         let titles = hits.prefix(maximumMeetings)
             .map { "«\($0.session.title)»" }
             .joined(separator: ", ")
-        return "Похожие звонки есть — \(titles), — но точных слов по вашему вопросу "
-            + "в расшифровке нет, поэтому цитировать нечего."
+        return "There are similar calls — \(titles) — but the transcript has none of "
+            + "your question's exact words, so there is nothing to quote."
     }
 
     /// «2026-07-24» → «24 июля 2026». Дату в ответе читает человек, а не
@@ -147,19 +147,13 @@ public enum RecallAnswer {
         let parts = iso.split(separator: "-")
         guard parts.count == 3, let month = Int(parts[1]), (1...12).contains(month),
               let day = Int(parts[2]) else { return iso }
-        let months = ["января", "февраля", "марта", "апреля", "мая", "июня",
-                      "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+        let months = ["January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
         return "\(day) \(months[month - 1]) \(parts[0])"
     }
 
-    /// Русский счёт: 1 звонок, 2 звонка, 5 звонков.
+    /// 1 call, 2 calls. English has no case forms, so the count alone decides.
     static func callsWord(_ count: Int) -> String {
-        let hundred = count % 100
-        if (11...14).contains(hundred) { return "звонков" }
-        switch count % 10 {
-        case 1: return "звонок"
-        case 2, 3, 4: return "звонка"
-        default: return "звонков"
-        }
+        count == 1 ? "call" : "calls"
     }
 }

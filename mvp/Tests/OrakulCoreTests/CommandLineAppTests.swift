@@ -42,7 +42,7 @@ struct CommandLineAppTests {
         // должна остаться — она короче и понятнее.
         let (app, _) = makeApp(files: ["п.txt": "   \n\n  "])
         let result = app.run(["добавить", "п.txt", "Планёрка"])
-        #expect(result.output.contains("пуст"), "получилось: «\(result.output)»")
+        #expect(result.output.contains("empty"), "получилось: «\(result.output)»")
         #expect(result.exitCode != 0)
     }
 
@@ -98,10 +98,10 @@ struct CommandLineAppTests {
         // видит один и тот же трижды и больше ничего.
         let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли на пятнадцать процентов."])
         let first = app.run(["добавить", "з.txt", "Планёрка"])
-        #expect(first.output.contains("Добавлено"))
+        #expect(first.output.contains("Added"))
 
         let second = app.run(["добавить", "з.txt", "Планёрка"])
-        #expect(!second.output.contains("Добавлено"),
+        #expect(!second.output.contains("Added"),
                 "вторая копия завелась молча: «\(second.output)»")
         #expect(second.output.contains("уже есть"),
                 "не сказано, что такая расшифровка уже в архиве: «\(second.output)»")
@@ -143,7 +143,7 @@ struct CommandLineAppTests {
         #expect(app.run(["удалить", String(id)]).exitCode == 0)
 
         let again = app.run(["добавить", "з.txt", "Планёрка по тарифам"])
-        #expect(again.output.contains("Добавлено"),
+        #expect(again.output.contains("Added"),
                 "после удаления добавить не дали: «\(again.output)»")
         #expect(app.run(["найти", "что", "решили", "по", "тарифам"]).output
             .contains("Планёрка по тарифам"), "звонок не ищется после повторного добавления")
@@ -159,7 +159,7 @@ struct CommandLineAppTests {
         ])
         _ = app.run(["добавить", "1.txt", "Планёрка"])
         let second = app.run(["добавить", "2.txt", "Планёрка"])
-        #expect(second.output.contains("Добавлено"),
+        #expect(second.output.contains("Added"),
                 "разные расшифровки под одним названием не добавились: «\(second.output)»")
     }
 
@@ -262,8 +262,8 @@ struct CommandLineAppTests {
         let result = app.run(["найти", "что", "решили", "по", "тарифам"])
         #expect(result.output.contains("сломанный.json"),
                 "не назван файл, который не прочитался: «\(result.output)»")
-        #expect(result.output.lowercased().contains("не смог прочитать")
-                || result.output.lowercased().contains("не прочит"),
+        #expect(result.output.lowercased().contains("could not read")
+                || result.output.lowercased().contains("could not read"),
                 "не сказано, что часть архива не открылась: «\(result.output)»")
     }
 
@@ -289,7 +289,7 @@ struct CommandLineAppTests {
         _ = app.run(["добавить", "з.txt", "Планёрка"])
 
         let result = app.run(["найти", "что", "решили", "по", "тарифам"])
-        #expect(!result.output.lowercased().contains("не прочит"),
+        #expect(!result.output.lowercased().contains("could not read"),
                 "жалуется на целом архиве: «\(result.output)»")
     }
 
@@ -309,7 +309,7 @@ struct CommandLineAppTests {
 
     @Test("удаление несуществующего не выдаётся за успех")
     func deletingWhatIsNotThereFails() throws {
-        // Было: «Удалено: нет-такого» и код возврата ноль. То есть команда
+        // Было: «Deleted: нет-такого» и код возврата ноль. То есть команда
         // сообщала об удалении записи, которой никогда не было, — и `orakul
         // удалить $id && дальше` продолжал работу по опечатке в
         // идентификаторе. Хранилище молча пропускает отсутствующий файл, а
@@ -318,7 +318,7 @@ struct CommandLineAppTests {
         let result = app.run(["удалить", "нет-такого-идентификатора"])
 
         #expect(result.exitCode != 0, "удаление пустоты вернуло успех")
-        #expect(!result.output.contains("Удалено"),
+        #expect(!result.output.contains("Deleted"),
                 "сказано «удалено» про то, чего не было: «\(result.output)»")
         #expect(result.output.contains("нет-такого-идентификатора"),
                 "не названо, что именно не нашлось")
@@ -335,7 +335,7 @@ struct CommandLineAppTests {
 
         let result = app.run(["удалить", String(id)])
         #expect(result.exitCode == 0, "обычное удаление сломалось: «\(result.output)»")
-        #expect(result.output.contains("Удалено"))
+        #expect(result.output.contains("Deleted"))
     }
 
     @Test("пустой архив не выдаётся за архив без совпадений")
@@ -347,9 +347,9 @@ struct CommandLineAppTests {
         let (app, _) = makeApp()
         let result = app.run(["найти", "что", "решили", "по", "тарифам"])
 
-        #expect(result.output.contains("пуст"),
+        #expect(result.output.contains("empty"),
                 "на пустом архиве ответ про несуществующие звонки: «\(result.output)»")
-        #expect(result.output.contains("добавить"),
+        #expect(result.output.contains("add"),
                 "не сказано, что делать дальше: «\(result.output)»")
         #expect(result.exitCode == 0, "пустой архив — не сбой")
     }
@@ -362,9 +362,9 @@ struct CommandLineAppTests {
         _ = app.run(["добавить", "з.txt", "Планёрка по дизайну"])
 
         let result = app.run(["найти", "что", "решили", "по", "тарифам"])
-        #expect(result.output.contains("не говорили"),
+        #expect(result.output.contains("did not discuss"),
                 "потеряли честный ответ при непустом архиве: «\(result.output)»")
-        #expect(!result.output.contains("пуст"), "непустой архив назван пустым")
+        #expect(!result.output.contains("empty"), "непустой архив назван пустым")
     }
 
     private struct StubEngine: Transcriber {
@@ -402,7 +402,7 @@ struct CommandLineAppTests {
 
         let result = app.run([])
         #expect(result.exitCode == 0, "человек, спросивший «что ты умеешь», не ошибся")
-        #expect(result.output.contains("orakul найти"))
+        #expect(result.output.contains("orakul search"))
     }
 
     @Test("незнакомая команда не молчит и показывает список команд")
@@ -412,8 +412,8 @@ struct CommandLineAppTests {
 
         let result = app.run(["всё-сломать"])
         #expect(result.exitCode == 2)
-        #expect(result.output.contains("Не знаю команду"))
-        #expect(result.output.contains("orakul найти"), "рядом с отказом обязан быть список команд")
+        #expect(result.output.contains("Unknown command"))
+        #expect(result.output.contains("orakul search"), "рядом с отказом обязан быть список команд")
     }
 
     @Test("добавить и найти — весь путь за две команды")
@@ -429,7 +429,7 @@ struct CommandLineAppTests {
 
         let found = app.run(["найти", "что", "решили", "по", "тарифам"])
         #expect(found.exitCode == 0)
-        #expect(found.output.contains("«Планёрка по тарифам», 24 июля 2026"))
+        #expect(found.output.contains("«Планёрка по тарифам», 24 July 2026"))
         #expect(found.output.contains("оплату за использование"))
     }
 
@@ -493,7 +493,7 @@ struct CommandLineAppTests {
         // Нулевой код возврата важен: иначе скрипт, вызвавший orakul, решит,
         // что программа сломалась, хотя она честно ответила «не знаю».
         #expect(result.exitCode == 0)
-        #expect(result.output.contains("придумывать не буду"))
+        #expect(result.output.contains("will not invent"))
     }
 
     @Test("вопрос без слов отклоняется с подсказкой")
@@ -503,7 +503,7 @@ struct CommandLineAppTests {
 
         let result = app.run(["найти"])
         #expect(result.exitCode == 2)
-        #expect(result.output.contains("Нужен вопрос"))
+        #expect(result.output.contains("A question is required"))
     }
 
     @Test("пустой архив предлагает следующий шаг, а не пустую строку")
@@ -513,8 +513,8 @@ struct CommandLineAppTests {
 
         let result = app.run(["список"])
         #expect(result.exitCode == 0)
-        #expect(result.output.contains("Архив пуст"))
-        #expect(result.output.contains("добавить"))
+        #expect(result.output.contains("The archive is empty"))
+        #expect(result.output.contains("add"))
     }
 
     @Test("непрочитанные файлы видны в списке")
@@ -525,7 +525,7 @@ struct CommandLineAppTests {
         try Data("{ битый".utf8).write(to: store.root.appendingPathComponent("bad.json"))
 
         let result = app.run(["список"])
-        #expect(result.output.contains("Не смог прочитать"))
+        #expect(result.output.contains("Could not read"))
         #expect(result.output.contains("bad.json"), "тихо потерянная встреча — худший исход")
     }
 
@@ -533,13 +533,13 @@ struct CommandLineAppTests {
     func transcribeEndToEnd() {
         let wav = WAVFile.encode(samples: [0.1, -0.1, 0.2])
         let (app, store) = makeApp(audio: ["созвон.wav": wav],
-                                   engine: "whisper -f {файл}",
+                                   engine: "whisper -f {file}",
                                    recognised: "Решили выкатить в prod.")
         defer { cleanUp(store) }
 
         let result = app.run(["расшифровать", "созвон.wav", "Планёрка"])
         #expect(result.exitCode == 0)
-        #expect(result.output.contains("Расшифровано"))
+        #expect(result.output.contains("Transcribed"))
 
         // И сразу ищется — вся цепочка целиком, включая словарь.
         let found = app.run(["найти", "что решили про прод"])
@@ -562,7 +562,7 @@ struct CommandLineAppTests {
     @Test("чужая частота записи объясняется вместе с командой конвертации")
     func wrongSampleRateIsActionable() {
         let wav = WAVFile.encode(samples: [0.1], sampleRate: 44_100)
-        let (app, store) = makeApp(audio: ["a.wav": wav], engine: "whisper -f {файл}")
+        let (app, store) = makeApp(audio: ["a.wav": wav], engine: "whisper -f {file}")
         defer { cleanUp(store) }
 
         let result = app.run(["расшифровать", "a.wav"])
@@ -574,7 +574,7 @@ struct CommandLineAppTests {
     @Test("не-WAV не уходит движку впустую")
     func nonWavIsRejectedBeforeTheEngine() {
         let (app, store) = makeApp(audio: ["a.wav": Data("не запись".utf8)],
-                                   engine: "whisper -f {файл}")
+                                   engine: "whisper -f {file}")
         defer { cleanUp(store) }
 
         let result = app.run(["расшифровать", "a.wav"])
@@ -656,12 +656,12 @@ struct ProductVocabularyTests {
                 "продукт говорит «звонок», а здесь «созвон»:\n\(offenders.joined(separator: "\n"))")
     }
 
-    @Test("подсказка командной строки говорит «звонкам»")
+    @Test("the usage text uses the product's one word for the thing: «call»")
     func usageUsesTheProductWord() {
-        #expect(CommandLineApp.usage.contains("звонкам"))
-        #expect(!CommandLineApp.usage.lowercased().contains("созвон"))
-        #expect(!CommandLineApp.usage.lowercased().contains("встреч"),
-                "«встреча» — второе имя тому же звонку")
+        #expect(CommandLineApp.usage.contains("calls"))
+        #expect(!CommandLineApp.usage.lowercased().contains("meeting"))
+        #expect(!CommandLineApp.usage.lowercased().contains("conversation"),
+                "«conversation» would be a second name for the same call")
     }
 }
 
@@ -757,22 +757,22 @@ struct DeleteByPrefixTests {
         let app = CommandLineApp(store: SessionStore(root: root), readFile: { _ in nil })
         let result = app.run(["расшифровать", "нетакого.wav"])
         #expect(result.exitCode == 1)
-        #expect(result.output.contains("Не смог прочитать запись"))
+        #expect(result.output.contains("Could not read the recording"))
         #expect(!result.output.contains("Не настроен движок"),
                 "человека послали настраивать движок из-за опечатки в имени файла")
     }
 
     /// Отказ файловой системы человек читает ровно тогда, когда ему нужна
-    /// помощь. Было: «Не смог сохранить: Error Domain=NSCocoaErrorDomain
+    /// помощь. Было: «Could not save: Error Domain=NSCocoaErrorDomain
     /// Code=513 "You don\u{2019}t have permission to save the file…"» — внутренности
     /// по-английски. Ту же ошибку продукт уже исправлял в коннекторах.
-    @Test("отказ файловой системы объясняется по-русски и с действием")
-    func filesystemErrorsSpeakRussian() {
+    @Test("filesystem refusals are explained in plain words, with an action")
+    func filesystemErrorsExplainThemselves() {
         let cases: [(Int, [String])] = [
-            (513, ["Нет прав на запись", "ORAKUL_HOME"]),
-            (640, ["места"]),
-            (4, ["не найден", "ORAKUL_HOME"]),
-            (642, ["только для чтения"]),
+            (513, ["No permission to write", "ORAKUL_HOME"]),
+            (640, ["disk is full"]),
+            (4, ["not found", "ORAKUL_HOME"]),
+            (642, ["read-only"]),
         ]
         for (code, expected) in cases {
             let text = CommandLineApp.explain(
@@ -805,7 +805,7 @@ struct DeleteByPrefixTests {
                                  readFile: { _ in "Аня: по тарифам решили не трогать" })
         let result = app.run(["добавить", "расшифровка.txt", "Планёрка"])
         #expect(result.exitCode == 1)
-        #expect(result.output.contains("Нет прав на запись"),
+        #expect(result.output.contains("No permission to write"),
                 "человеку показали не то: \(result.output)")
         #expect(!result.output.contains("NSCocoaErrorDomain"),
                 "наружу вылезли внутренности: \(result.output)")
@@ -821,7 +821,7 @@ struct DeleteByPrefixTests {
         let text = CommandLineApp.explain(
             NSError(domain: "ЧужойДомен", code: 513,
                     userInfo: [NSLocalizedDescriptionKey: "странное"]))
-        #expect(text.contains("Система ответила"))
+        #expect(text.contains("The system replied"))
         #expect(text.contains("странное"))
         #expect(!text.contains("Нет прав"), "чужая ошибка выдана за отказ в правах")
     }
@@ -857,7 +857,7 @@ struct DeleteByPrefixTests {
 
 /// Опечатка в имени команды лечится тем же, чем опечатка в вопросе.
 ///
-/// «Не знаю команду «найтии»» и полотно справки — ответ формально верный и
+/// «Unknown command «найтии»» и полотно справки — ответ формально верный и
 /// бесполезный: человек промахнулся мимо одной клавиши, а ему предлагают
 /// перечитать всё. Расстояние в одну опечатку уже посчитано для поиска.
 @Suite("Похожая команда")
@@ -899,7 +899,7 @@ struct CommandSuggestionTests {
     @Test("непохожему слову подсказки нет")
     func непохожемуМолчим() {
         let вывод = app().run(["квакать"]).output
-        #expect(вывод.contains("Не знаю команду"))
+        #expect(вывод.contains("Unknown command"))
         #expect(!вывод.contains("Возможно"), "подсказка взялась ниоткуда: \(вывод.prefix(120))")
     }
 

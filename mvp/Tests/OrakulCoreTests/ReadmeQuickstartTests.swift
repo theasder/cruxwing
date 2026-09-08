@@ -100,11 +100,11 @@ struct ReadmeQuickstartTests {
 
         let output = makeApp(transcript: transcript).run(arguments).output
 
-        // README печатает `Добавлено: «Планёрка по тарифам» (27AE25B5-…)` —
+        // README печатает `Added: «Планёрка по тарифам» (27AE25B5-…)` —
         // идентификатор в нём заведомо сокращён, поэтому сверяется всё, кроме
         // него: слово, название в кавычках и наличие скобок с идентификатором.
         let promised = try #require(
-            readme.split(separator: "\n").first(where: { $0.hasPrefix("Добавлено:") }),
+            readme.split(separator: "\n").first(where: { $0.hasPrefix("Added:") }),
             "README больше не показывает ответ команды «добавить»")
         let word = String(promised.prefix(while: { $0 != " " }))
         #expect(output.hasPrefix(word),

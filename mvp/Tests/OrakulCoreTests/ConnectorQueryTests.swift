@@ -43,7 +43,7 @@ struct ConnectorQueryTests {
     func emptyResultIsAnAnswer() async {
         let answer = await ConnectorQuery.ask(settings, query: "корпоратив",
                                               messengerHTTP: stub(#"{"order":[],"posts":{}}"#))
-        #expect(answer.text.contains("ничего не нашлось"),
+        #expect(answer.text.contains("nothing matched"),
                 "пустая выдача выглядит как ошибка: «\(answer.text)»")
     }
 
@@ -85,10 +85,10 @@ struct ConnectorQueryTests {
             .union(TeamNotes.Service.allCases.map(\.rawValue))
             .union(RussianTrackers.Service.allCases.map(\.rawValue))
             .union(WesternTrackers.Service.allCases.map(\.rawValue))
-            // `github` — отдельный тип, а не случай перечисления. `заметки` —
+            // `github` — отдельный тип, а не случай перечисления. `notes` —
             // папка на диске: ни сервиса, ни токена у неё нет вовсе, и в этом
             // её смысл.
-            .union(["github", "заметки"])
+            .union(["github", "notes"])
         #expect(Set(ConnectorQuery.services) == real,
                 "список в подсказке разошёлся с коннекторами")
     }
@@ -216,22 +216,28 @@ struct ConnectorQueryFailureTests {
         { _ in throw URLError(code, userInfo: [NSURLErrorFailingURLErrorKey: URL(string: url)!]) }
     }
 
-    @Test("сеть не отвечает — объяснение по-русски, а не системной строкой",
+    @Test("a transport failure is explained in our words, not the system's",
           arguments: [URLError.Code.cannotConnectToHost, .cannotFindHost,
                       .dnsLookupFailed, .timedOut, .notConnectedToInternet])
-    func transportFailuresSpeakRussian(code: URLError.Code) async {
+    func transportFailuresExplainThemselves(code: URLError.Code) async {
         let answer = await ConnectorQuery.ask(
             failing(code, host: "team.kaiten.ru"), query: "лимиты",
             trackerRUHTTP: thrower(code, url: "https://team.kaiten.ru/api/latest"))
 
-        // Кириллица обязана быть: `localizedDescription` у URLError приходит
-        // на языке системы, и на английской macOS это ровно та строка, из-за
-        // которой всё это и написано.
-        #expect(answer.text.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) != nil,
-                "ответ не по-русски: «\(answer.text)»")
-        #expect(!answer.text.contains("Could not connect"),
-                "наружу вышла системная строка: «\(answer.text)»")
-        #expect(answer.failed, "сбой сети выдан за успех")
+        // `localizedDescription` on URLError arrives in the system's own
+        // wording. That string is the reason this test exists: it names a
+        // "server" and a "host" to someone who typed a service name, and it
+        // never says what to do next.
+        for system in ["Could not connect to the server",
+                       "A server with the specified hostname could not be found",
+                       "The request timed out",
+                       "The Internet connection appears to be offline"] {
+            #expect(!answer.text.contains(system),
+                    "the system string reached the person: «\(answer.text)»")
+        }
+        #expect(answer.text.contains("Check") || answer.text.contains("Try again"),
+                "the failure names no next step: «\(answer.text)»")
+        #expect(answer.failed, "a network failure was reported as success")
     }
 
     @Test("в сообщении назван адрес, по которому не достучались")
@@ -272,7 +278,7 @@ struct ConnectorQueryFailureTests {
             (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
                                               httpVersion: nil, headerFields: [:])!)
         })
-        #expect(answer.text.contains("ничего не нашлось"))
+        #expect(answer.text.contains("nothing matched"))
         #expect(!answer.failed, "пустой ответ выдан за сбой — скрипты встанут на ровном месте")
     }
 
@@ -285,8 +291,8 @@ struct ConnectorQueryFailureTests {
             .init(service: "нетакого", token: "", host: nil, scope: nil),
             query: "лимиты")
         #expect(answer.failed)
-        #expect(answer.text.contains("Не знаю сервис «нетакого»"))
-        #expect(!answer.text.contains("Нет токена"), "продукт послал заводить токен впустую")
+        #expect(answer.text.contains("Unknown service «нетакого»"))
+        #expect(!answer.text.contains("No token"), "продукт послал заводить токен впустую")
         // И список настоящих сервисов рядом — иначе непонятно, что печатать.
         #expect(answer.text.contains("kaiten"))
     }
@@ -297,14 +303,14 @@ struct ConnectorQueryFailureTests {
             .init(service: "kaiten", token: "", host: nil, scope: nil),
             query: "лимиты")
         #expect(answer.failed)
-        #expect(answer.text.contains("Нет токена"))
+        #expect(answer.text.contains("No token"))
     }
 
     @Test("пустой вопрос важнее незнакомого сервиса — спрашивать нечего в любом случае")
     func emptyQuestionComesFirst() async {
         let answer = await ConnectorQuery.ask(
             .init(service: "нетакого", token: "", host: nil, scope: nil), query: "   ")
-        #expect(answer.text.contains("Пустой вопрос"))
+        #expect(answer.text.contains("Empty question"))
     }
 
     /// Два отказа TLS выглядят похоже, а чинятся по-разному, и раньше о них
@@ -319,8 +325,8 @@ struct ConnectorQueryFailureTests {
             query: "лимиты",
             trackerRUHTTP: { _ in throw URLError(.secureConnectionFailed) })
         #expect(http.failed)
-        #expect(http.text.contains("не принял защищённое соединение"))
-        #expect(http.text.contains("http, а не https"), "не сказано, что проверить")
+        #expect(http.text.contains("refused the secure connection"))
+        #expect(http.text.contains("http rather than https"), "не сказано, что проверить")
         #expect(!http.text.contains("сертификат"), "снова про сертификат: \(http.text)")
 
         let cert = await ConnectorQuery.ask(
@@ -328,8 +334,8 @@ struct ConnectorQueryFailureTests {
             query: "лимиты",
             trackerRUHTTP: { _ in throw URLError(.serverCertificateUntrusted) })
         #expect(cert.failed)
-        #expect(cert.text.contains("которому система не доверяет"))
-        #expect(cert.text.contains("Связку ключей"), "не сказано, что делать")
+        #expect(cert.text.contains("the system does not trust"))
+        #expect(cert.text.contains("Keychain"), "не сказано, что делать")
     }
 
     /// Просроченный и с чужим корнем — тот же случай для человека.
@@ -343,6 +349,6 @@ struct ConnectorQueryFailureTests {
             query: "лимиты",
             trackerRUHTTP: { _ in throw URLError(code) })
         #expect(answer.failed)
-        #expect(answer.text.contains("которому система не доверяет"), "\(code): \(answer.text)")
+        #expect(answer.text.contains("the system does not trust"), "\(code): \(answer.text)")
     }
 }

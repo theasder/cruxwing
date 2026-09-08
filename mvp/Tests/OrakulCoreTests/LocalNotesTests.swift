@@ -177,7 +177,7 @@ import Foundation
             .init(service: "заметки", token: "", host: nil, scope: nil),
             query: "лимиты")
         #expect(answer.failed)
-        #expect(answer.text.contains("папка"), "ответ: «\(answer.text)»")
+        #expect(answer.text.contains("folder"), "ответ: «\(answer.text)»")
         #expect(!answer.text.contains("токен"), "токена у заметок нет и быть не может")
     }
 
@@ -188,8 +188,8 @@ import Foundation
         let answer = await ConnectorQuery.ask(
             .init(service: "заметки", token: "", host: vault.root.path, scope: nil),
             query: "лимиты")
-        #expect(answer.text.contains("ничего не нашлось"))
-        #expect(answer.text.contains("файл"), "ответ: «\(answer.text)»")
+        #expect(answer.text.contains("nothing matched"))
+        #expect(answer.text.contains("file"), "ответ: «\(answer.text)»")
         #expect(!answer.failed)
     }
 }

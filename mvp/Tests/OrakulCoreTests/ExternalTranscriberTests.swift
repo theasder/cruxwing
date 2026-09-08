@@ -115,7 +115,7 @@ struct ExternalTranscriberTests {
     func audioPathIsSubstituted() async throws {
         let seen = Box()
         let transcriber = ExternalTranscriber(
-            command: "whisper-cli -l ru -f {файл}",
+            command: "whisper-cli -l ru -f {file}",
             run: { executable, arguments, _ in
                 seen.value = ([executable] + arguments).joined(separator: " ")
                 return "Решили выкатить в прод."
@@ -125,7 +125,7 @@ struct ExternalTranscriberTests {
         #expect(text == "Решили выкатить в прод.")
         #expect(seen.value.contains("whisper-cli"))
         #expect(seen.value.contains(".wav"), "движку не передали файл")
-        #expect(!seen.value.contains("{файл}"), "подстановка не сработала")
+        #expect(!seen.value.contains("{file}"), "подстановка не сработала")
     }
 
     @Test("английская подстановка тоже работает")
@@ -159,7 +159,7 @@ struct ExternalTranscriberTests {
     func silentEngineThrows() async {
         // Пустая строка от движка — сбой распознавания, а не созвон, на котором
         // никто не говорил. Разница видна только здесь.
-        let transcriber = ExternalTranscriber(command: "engine -f {файл}",
+        let transcriber = ExternalTranscriber(command: "engine -f {file}",
                                               run: { _, _, _ in "   \n " })
         await #expect(throws: ExternalTranscriber.TranscriberError.engineSaidNothing) {
             try await transcriber.transcribe(samples: [0.1])
@@ -169,7 +169,7 @@ struct ExternalTranscriberTests {
     @Test("ошибка движка доходит до пользователя его же словами")
     func engineFailureIsPropagated() async {
         let transcriber = ExternalTranscriber(
-            command: "engine -f {файл}",
+            command: "engine -f {file}",
             run: { _, _, _ in
                 throw ExternalTranscriber.TranscriberError.engineFailed("нет модели")
             })
@@ -189,7 +189,7 @@ struct ExternalTranscriberTests {
         // Собрать значение до захвата дешевле, чем городить замок.
         let mixed = Data("Решили выкатить в прод.".utf8) + Data([0xFF, 0xFE])
         let transcriber = ExternalTranscriber(
-            command: "engine -f {файл}",
+            command: "engine -f {file}",
             run: { _, _, _ in String(decoding: mixed, as: UTF8.self) })
 
         let text = try await transcriber.transcribe(samples: [0.1])
@@ -199,7 +199,7 @@ struct ExternalTranscriberTests {
     @Test("временный файл убирается за собой")
     func temporaryFileIsRemoved() async throws {
         let seen = Box()
-        let transcriber = ExternalTranscriber(command: "engine -f {файл}",
+        let transcriber = ExternalTranscriber(command: "engine -f {file}",
                                               run: { _, _, audio in
             seen.value = audio.path
             return "текст"
@@ -215,7 +215,7 @@ struct ExternalTranscriberTests {
             .appendingPathComponent("orakul-ext-\(UUID().uuidString)", isDirectory: true))
         defer { try? FileManager.default.removeItem(at: store.root) }
 
-        let transcriber = ExternalTranscriber(command: "engine -f {файл}",
+        let transcriber = ExternalTranscriber(command: "engine -f {file}",
                                               run: { _, _, _ in "Решили выкатить в prod." })
         let pipeline = MeetingPipeline(transcriber: transcriber, store: store,
                                        today: { "2026-07-24" }, makeIdentifier: { "s1" })
@@ -240,7 +240,7 @@ private final class Box: @unchecked Sendable {
 
 /// Что человек читает, когда расшифровка не удалась.
 ///
-/// Печаталось `Не смог расшифровать: engineFailed("движок упал\n")` — имя
+/// Печаталось `Could not transcribe: engineFailed("the engine crashed\n")` — имя
 /// случая перечисления в строке для человека. Соседние сообщения той же
 /// команды написаны нормально: «Запись на 44100 Гц, а движку нужно 16000».
 /// Разница проявляется ровно в момент отказа — там, где помощь и нужна.
@@ -249,7 +249,7 @@ struct TranscriberErrorTextTests {
 
     private static let engineErrors: [ExternalTranscriber.TranscriberError] = [
         .commandIsEmpty, .commandHasNoFilePlaceholder,
-        .engineFailed("движок упал"), .engineSaidNothing,
+        .engineFailed("the engine crashed"), .engineSaidNothing,
     ]
     private static let decodeErrors: [WAVFile.DecodeError] = [
         .notRIFF, .notPCM16, .unsupportedSampleRate(44_100),
@@ -267,13 +267,15 @@ struct TranscriberErrorTextTests {
         }
     }
 
-    @Test("каждое сообщение — по-русски и не пустое",
+    @Test("every message is a sentence a person can act on",
           arguments: engineErrors.map(String.init(describing:))
                    + decodeErrors.map(String.init(describing:)))
-    func everyMessageIsRussian(text: String) {
-        #expect(text.count > 20, "слишком коротко, чтобы что-то объяснить: «\(text)»")
-        #expect(text.contains(where: { ("а"..."я").contains($0) || ("А"..."Я").contains($0) }),
-                "сообщение не по-русски: «\(text)»")
+    func everyMessageExplainsItself(text: String) {
+        #expect(text.count > 20, "too short to explain anything: «\(text)»")
+        #expect(text.contains(where: { ("a"..."z").contains($0) || ("A"..."Z").contains($0) }),
+                "the message carries no words: «\(text)»")
+        #expect(text.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                "a Russian message outlived the switch to English: «\(text)»")
     }
 
     @Test("сообщение о частоте называет её и даёт команду")
@@ -294,7 +296,7 @@ struct TranscriberErrorTextTests {
     @Test("молчаливый движок объясняется без его слов")
     func silentEngineStillExplains() {
         let text = String(describing: ExternalTranscriber.TranscriberError.engineFailed("   "))
-        #expect(text.contains("ничего не сказал"), "пустой вывод оставил пустое сообщение: «\(text)»")
+        #expect(text.contains("gave no reason"), "пустой вывод оставил пустое сообщение: «\(text)»")
     }
 
     /// Пустой вывод продукт отвергал, а двоичный мусор — нет: «Расшифровано» и
@@ -316,7 +318,7 @@ struct TranscriberErrorTextTests {
     @Test("мусор отвергается на настоящем пути расшифровки")
     func binaryOutputIsRefusedThroughTranscribe() async {
         let junk = String(decoding: (0..<200).map { UInt8(($0 * 37 + 11) % 256) }, as: UTF8.self)
-        let transcriber = ExternalTranscriber(command: "engine -f {файл}",
+        let transcriber = ExternalTranscriber(command: "engine -f {file}",
                                               run: { _, _, _ in junk })
         await #expect(throws: (any Error).self) {
             try await transcriber.transcribe(samples: [0.1])

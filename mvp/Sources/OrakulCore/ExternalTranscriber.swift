@@ -58,13 +58,13 @@ public enum WAVFile {
         public var description: String {
             switch self {
             case .notRIFF:
-                return "Это не WAV-файл: в начале нет заголовка RIFF."
+                return "This is not a WAV file: it has no RIFF header."
             case .notPCM16:
-                return "WAV не в формате PCM 16 бит. Переведите так: "
-                    + "ffmpeg -i запись -ar 16000 -ac 1 -sample_fmt s16 запись-16k.wav"
+                return "The WAV is not PCM 16-bit. Convert it like this: "
+                    + "ffmpeg -i recording -ar 16000 -ac 1 -sample_fmt s16 recording-16k.wav"
             case .unsupportedSampleRate(let rate):
-                return "Запись на \(rate) Гц, а движку нужно 16000. "
-                    + "Переведите её заранее: ffmpeg -i запись -ar 16000 -ac 1 запись-16k.wav"
+                return "The recording is \(rate) Hz, and the engine needs 16000. "
+                    + "Convert it first: ffmpeg -i recording -ar 16000 -ac 1 recording-16k.wav"
             }
         }
     }
@@ -163,7 +163,7 @@ public struct ExternalTranscriber: Transcriber {
 
         /// По-русски и с действием.
         ///
-        /// Печаталось `engineFailed("движок упал\n")` — имя случая
+        /// Печаталось `engineFailed("the engine crashed\n")` — имя случая
         /// перечисления прямо в строке для человека. Соседние сообщения этой же
         /// команды написаны нормально («Запись на 44100 Гц, а движку нужно
         /// 16000»), и разница видна только в момент отказа: там, где человеку
@@ -171,24 +171,24 @@ public struct ExternalTranscriber: Transcriber {
         public var description: String {
             switch self {
             case .commandIsEmpty:
-                return "В ORAKUL_ENGINE пустая команда — запускать нечего."
+                return "ORAKUL_ENGINE holds an empty command — there is nothing to run."
             case .commandHasNoFilePlaceholder:
-                return "В команде нет места для файла. Добавьте {файл} — "
-                    + "orakul подставит туда путь к записи."
+                return "The command has no place for the file. Add {file} — "
+                    + "orakul substitutes the recording's path there."
             case .engineFailed(let output):
                 let detail = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                let tail = detail.isEmpty ? "Движок ничего не сказал о причине."
-                                          : "Движок ответил: \(detail)"
-                return "Движок распознавания не справился. \(tail)"
+                let tail = detail.isEmpty ? "The engine gave no reason."
+                                          : "The engine replied: \(detail)"
+                return "The recognition engine failed. \(tail)"
             case .engineSaidNothing:
-                return "Движок отработал, но текста не вернул. Обычно это "
-                    + "тишина в записи или неверные ключи запуска — проверьте "
-                    + "команду в ORAKUL_ENGINE на этом же файле вручную."
+                return "The engine ran but returned no text. Usually that is "
+                    + "silence in the recording or the wrong launch flags — run "
+                    + "the ORAKUL_ENGINE command on this same file by hand."
             case .engineSaidGibberish(let letters, let total):
-                return "Движок вернул не текст: букв \(letters) из \(total) знаков. "
-                    + "Обычно в ORAKUL_ENGINE стоит не та программа — например, "
-                    + "путь к модели вместо распознавателя, — и она печатает "
-                    + "двоичные данные. Проверьте команду на этом же файле вручную."
+                return "The engine returned something other than text: \(letters) letters out of \(total) characters. "
+                    + "Usually ORAKUL_ENGINE holds the wrong program — a path to "
+                    + "the model instead of the recogniser, say — and it prints "
+                    + "binary data. Run the command on this same file by hand."
             }
         }
     }
@@ -288,7 +288,7 @@ public struct ExternalTranscriber: Transcriber {
         guard process.terminationStatus == 0 else {
             let message = String(data: errorData, encoding: .utf8) ?? ""
             throw TranscriberError.engineFailed(
-                message.isEmpty ? "код \(process.terminationStatus)" : message)
+                message.isEmpty ? "exit code \(process.terminationStatus)" : message)
         }
         // Декодируем терпимо. Строгий UTF-8 возвращает nil на ОДНОМ битом
         // байте и выбрасывает вместе с ним всю расшифровку — движок, который

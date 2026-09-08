@@ -60,8 +60,8 @@ The command line lives in `mvp/`, the application in `app/`. This used to say
 no `.build/release/orakul` there.
 
 ```
-Добавлено: «Планёрка по тарифам» (27AE25B5-…)
-«Планёрка по тарифам», 12 августа 2026
+Added: «Планёрка по тарифам» (27AE25B5-…)
+«Планёрка по тарифам», 12 August 2026
     Аня: По тарифам — что решили в итоге
     Борис: Годовой не трогаем до декабря, месячный поднимаем на пятнадцать процентов.
 ```
@@ -75,7 +75,7 @@ invention:
 
 ```
 $ orakul search когда корпоратив
-В сохранённых звонках об этом не говорили. Ответ придумывать не буду.
+The saved calls did not discuss this. I will not invent an answer.
 ```
 
 It tells a typo apart from an absent conversation. Search is lexicon-based, and
@@ -84,8 +84,8 @@ to that would pass sentence on a topic that was in fact discussed:
 
 ```
 $ orakul search тарифф
-В сохранённых звонках об этом не говорили. Ответ придумывать не буду.
-Похоже на опечатку — в архиве есть «тарифам».
+The saved calls did not discuss this. I will not invent an answer.
+Looks like a typo — the archive has «тарифам».
 ```
 
 The word is not substituted silently: replacing the question means answering a

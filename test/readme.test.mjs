@@ -171,13 +171,13 @@ describe('README', () => {
     // опечатку, и привязанный к `return` образец перестал совпадать. Сторож
     // тогда не промолчал — `assert.ok` ниже поймал исчезновение, — но чинить
     // проверку после каждой перестановки строк незачем.
-    const refusal = /"(В сохранённых [^"]+)"/.exec(source)?.[1];
+    const refusal = /"(The saved calls [^"]+)"/.exec(source)?.[1];
     assert.ok(refusal, 'the refusal string is gone from RecallAnswer.swift');
     assert.ok(readme.includes(refusal),
       `README quotes a refusal the program does not print; it prints: ${refusal}`);
 
     // And one word for the thing, everywhere a reader can see it.
-    for (const wrong of ['созвон', 'встреч']) {
+    for (const wrong of ['meeting', 'conversation']) {
       assert.ok(!refusal.includes(wrong), `the refusal calls a call a "${wrong}"`);
     }
 
@@ -185,7 +185,7 @@ describe('README', () => {
     // такая же цитата вывода, как отказ выше. Первый пример здесь однажды
     // цитировал слова, которых программа не печатала; повторять это на втором
     // примере незачем.
-    const hint = /(Похоже на опечатку[^"\\]*)/.exec(source)?.[1];
+    const hint = /(Looks like a typo[^"\\]*)/.exec(source)?.[1];
     assert.ok(hint, 'подсказка про опечатку пропала из RecallAnswer.swift');
     assert.ok(readme.includes(hint.trim()),
       `README показывает не ту подсказку; программа печатает: ${hint.trim()}`);

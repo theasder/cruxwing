@@ -214,9 +214,9 @@ struct ConnectorHTTPStatusTests {
                                                host: "http://gitlab.internal", scope: nil)
         let answer = await ConnectorQuery.ask(settings, query: "лимиты",
                                               trackerHTTP: returning(ConnectorQuery.searchLimit))
-        #expect(answer.text.contains("Показаны первые \(ConnectorQuery.searchLimit)"),
+        #expect(answer.text.contains("Showing the first \(ConnectorQuery.searchLimit)"),
                 "об обрезке не сказано: «\(answer.text.suffix(80))»")
-        #expect(answer.text.contains("сузьте запрос"), "не сказано, что делать дальше")
+        #expect(answer.text.contains("narrow the query"), "не сказано, что делать дальше")
         #expect(!answer.failed, "обрезка — не сбой")
     }
 
