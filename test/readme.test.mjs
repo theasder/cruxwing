@@ -44,7 +44,7 @@ describe('README', () => {
     assert.match(readme, /RESEARCH-AND-PLAN\.md`, §2\.0\.1/,
       'README no longer leads to the Bitrix24 analysis');
     const doc = readFileSync(resolve(repo, 'docs', 'RESEARCH-AND-PLAN.md'), 'utf8');
-    assert.match(doc, /### 2\.0\.1 Битрикс24/, 'раздел §2.0.1 пропал из исследования');
+    assert.match(doc, /### 2\.0\.1 Bitrix24/, 'section §2.0.1 has gone from the research doc');
   });
 
   test('the dependency counts in the quick start are the real ones', () => {

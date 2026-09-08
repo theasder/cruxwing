@@ -291,7 +291,7 @@ describe('orakul landing (ru)', () => {
       .filter((line) => /^\s*case\s/.test(line)).join(',');
     const shipsGigaChat = /\bgigaChat\b/.test(caseLines);
 
-    const explained = /GigaChat: не оценка модели/.test(plan);
+    const explained = /GigaChat: not a judgement about the model/.test(plan);
     assert.equal(shipsGigaChat, !explained,
       shipsGigaChat
         ? 'GigaChat ships, but the plan still explains why it is absent'
@@ -392,7 +392,7 @@ describe('orakul landing (ru)', () => {
     // держится и оговорка: замер названного дня, а не постоянная величина.
     const plan = readFileSync(resolve(here, '..', 'docs', 'RESEARCH-AND-PLAN.md'), 'utf8');
 
-    const planDate = /Измерено нами (\d{4}-\d{2}-\d{2})/.exec(plan);
+    const planDate = /Measured by us (\d{4}-\d{2}-\d{2})/.exec(plan);
     assert.ok(planDate, 'the plan no longer says when the Q&A feed was measured');
 
     const [, year, month, day] = planDate[1].match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -408,8 +408,10 @@ describe('orakul landing (ru)', () => {
       assert.ok(plan.includes(feed), `the plan stopped naming ${feed}`);
     }
 
-    // Число вопросов и число «про разработку» — из одного замера.
-    assert.match(plan, /двадцать штук[\s\S]{0,60}семь дней/,
+    // Число вопросов и число «про разработку» — из одного замера. План теперь
+    // по-английски, страница по-русски, поэтому сверяются ЧИСЛА, а не слова:
+    // общей строки у двух языков нет, а измерение одно.
+    assert.match(plan, /twenty of them[\s\S]{0,80}seven[\s\S]{0,10}days/,
       'the plan no longer states the twenty-questions-over-seven-days measurement');
     assert.match(html, /двадцать штук[\s\S]{0,60}семь дней/,
       'the page no longer states the same measurement as the plan');
@@ -2195,9 +2197,9 @@ describe('orakul landing (ru)', () => {
       .map((l) => l.split('|').map((c) => c.trim()))
       .filter((cells) => cells.length >= 4 && cells[2] && !/^-+$/.test(cells[2]))
       .map((cells) => cells[2])
-      .filter((state) => state !== 'Состояние');
-    const connectedRows = states.filter((s) => s.startsWith('подключён')).length;
-    const missingRows = states.filter((s) => s === 'нет').length;
+      .filter((state) => state !== 'State');
+    const connectedRows = states.filter((s) => s.startsWith('connected')).length;
+    const missingRows = states.filter((s) => s === 'no').length;
     assert.equal(states.length, total,
       `в переписи ${states.length} сервисов, страница говорит ${total}`);
     assert.equal(connectedRows, connected,

@@ -37,48 +37,51 @@ overlaps itself.[^qna] A question that goes stale in a day is a question whose
 answer is never found again by the next person with the same problem — the
 searchability failure and the response-time failure are one failure.
 
-**Измерено нами 2026-08-13, а не взято из чужого обзора.** Первая страница
-ленты новых вопросов Хабр Q&A — двадцать штук — покрывает **семь дней**: от «8
-минут назад» до 6 августа.[^qna-new] Это меньше трёх вопросов в сутки на весь
-русскоязычный IT-сервис вопросов и ответов. Для сравнения: у Stack Overflow на
-пике счёт шёл на тысячи в день.
+**Measured by us 2026-08-13, not taken from somebody else's survey.** The first
+page of the new-questions feed on Хабр Q&A — twenty of them — covers **seven
+days**: from "8 minutes ago" back to 6 August.[^qna-new] That is fewer than three
+questions a day for the entire Russian-language IT question-and-answer service.
+For comparison: at its peak Stack Overflow counted thousands a day.
 
-Состав ленты важнее объёма. Из двадцати вопросов к разработке программ
-относятся семь: axis в Pandas, выборочное копирование колонок со страницы,
-автообновление при выборе option, react против его фреймворков, редактируемые
-поля, дублирование select в Firefox, ChatGPT как репетитор по архитектуре.
-Ещё семь — сети и администрирование (VPN, 3X-UI, Asterisk, RDS, ядро), шесть —
-общая техподдержка: «Что это за разъём Wi-Fi?», «Как исправить прилипание
-крышки MacBook Air M1?». То есть вопросов по разработке — около одного в сутки.
+The composition of the feed matters more than the volume. Of those twenty
+questions, seven relate to software development: axis in Pandas, selectively
+copying columns from a page, auto-refresh on selecting an option, react versus its
+frameworks, editable fields, duplicated selects in Firefox, ChatGPT as an
+architecture tutor. Another seven are networking and administration (VPN, 3X-UI,
+Asterisk, RDS, the kernel), and six are general technical support: "what is this
+Wi-Fi connector?", "how do I fix the lid sticking on a MacBook Air M1?". So
+development questions run at roughly one a day.
 
-Лента вопросов без ответа даёт вторую половину картины: на её первой странице
-рядом с вопросом восьмиминутной давности лежат вопросы от 2 июля.[^qna-noanswer]
-Полтора месяца без ответа — и это не хвост архива, а первая страница.
+The unanswered-questions feed gives the other half of the picture: on its first
+page, next to a question eight minutes old, sit questions from 2
+July.[^qna-noanswer] A month and a half without an answer — and that is the first
+page, not the tail of the archive.
 
-**Оговорка, без которой число врёт:** это один замер одного дня и только первых
-страниц двух лент. Не временной ряд и не выборка по всему сайту. Проверяется
-руками за минуту по двум адресам в сносках — и на том стоит.
+**The caveat without which the number lies:** this is one measurement on one day,
+and only of the first pages of two feeds. Not a time series and not a sample
+across the whole site. It can be re-checked by hand in a minute at the two
+addresses in the footnotes — and that is what it rests on.
 
-**Модерация: бриф спрашивал про предвзятость, и она называется конкретно
-(прочитано 2026-08-13).** Не по чужим обзорам, а в обсуждении собственных
-правил Хабра 2026 года — там авторы спорят с модерацией прямо.[^habr-rules]
-Претензии повторяются и все три про одно: решение принимает кто-то другой, и
-оспорить его нечем.
+**Moderation: the brief asked about bias, and it has specific names (read
+2026-08-13).** Not from third-party reviews, but in the discussion of Хабр's own
+2026 rules, where authors argue with moderation directly.[^habr-rules] The
+complaints recur and all three are about one thing: somebody else makes the
+decision, and there is no way to contest it.
 
-| Механизм | В чём претензия |
+| Mechanism | The complaint |
 |---|---|
-| Карма | «можно под любым предлогом убрать карму человеку в минус» — и оспорить нельзя |
-| Избирательность | правила про политику применяют к обычным пользователям, но не к корпоративным блогам |
-| Непрозрачность | человек не видит, какой именно комментарий стоил ему кармы |
+| Karma | "karma can be driven negative on any pretext" — with no way to contest it |
+| Selectivity | the political rules are applied to ordinary users but not to corporate blogs |
+| Opacity | a person cannot see which comment cost them the karma |
 
-Формального порядка обжалования нет: обращения в поддержку остаются без ответа
-по словам самих комментаторов.
+There is no formal appeal procedure: support requests go unanswered, according to
+the commenters themselves.
 
-**Почему это важно именно нам.** Претензия здесь не «модераторы злые», а
-«статус ответа зависит от чужого решения, которое не объяснено и не
-оспаривается». Ровно этого нет у ответа из собственного звонка: у него есть
-автор, дата и запись, и никакой третьей стороны, которая может его снять. Это
-не «форум, но добрее» — это другой источник правды.
+**Why this matters to us specifically.** The complaint here is not "the moderators
+are unkind" but "the status of an answer depends on someone else's decision, which
+is neither explained nor contestable". An answer from your own call has none of
+that: it has an author, a date and a recording, and no third party who can take it
+away. This is not "a forum, but nicer" — it is a different source of truth.
 
 **What this means for orakul:** the opportunity is not "build a better forum".
 The forum model is what died. The opportunity is answering from the material a
@@ -134,28 +137,28 @@ call leaves behind* is not — a raw transcript dumped into a chat is precisely 
 
 ---
 
-### 1.4 Быстрый старт пройден из чистого клона (2026-08-13)
+### 1.4 The quick start was walked from a clean clone (2026-08-13)
 
-Всё, что обещают README и CONTRIBUTING, выполнено по написанному в пустой
-папке, а не «должно работать».
+Everything README and CONTRIBUTING promise was carried out as written, in an
+empty folder, rather than "ought to work".
 
-| шаг | результат |
+| step | result |
 |---|---|
-| `git clone` | клон полный, лишнего соседнего репозитория не требует |
-| `cd mvp && swift build -c release` | 73 с |
-| пример с расшифровкой | вывод совпал с README дословно, включая строку ответа; отказ на несуществующем вопросе — тоже дословно |
-| `cd app && swift build` | 176 с, скачано 27 пакетов, ошибок нет |
-| `cd app && swift test` | 2654 пройдено, 11 пропущено (нужны настоящие модели, записи, живой сервис) |
-| `cd mvp && swift test` | 294 пройдено |
-| `npm test` | 158 проверок, 154 пройдено, 4 пропущено с указанной причиной — им нужен соседний репозиторий автора |
+| `git clone` | the clone is complete and needs no neighbouring repository |
+| `cd mvp && swift build -c release` | 73 s |
+| the transcript example | the output matched README word for word, including the answer line; the refusal on a question about nothing was word for word too |
+| `cd app && swift build` | 176 s, 27 packages downloaded, no errors |
+| `cd app && swift test` | 2654 passed, 11 skipped (they need real models, recordings, a live service) |
+| `cd mvp && swift test` | 294 passed |
+| `npm test` | 158 checks, 154 passed, 4 skipped with a stated reason — they need the author's neighbouring repository |
 
-Разошлось одно место, и оно исправлено: у `app/` четыре прямые зависимости, но
-сборка печатает **27** строк `Fetching`. «Четыре» рядом с наблюдаемыми
-двадцатью семью читается как заниженное число.
+One place disagreed, and it is fixed: `app/` has four direct dependencies, but the
+build prints **27** `Fetching` lines. "Four" standing next to the twenty-seven a
+person observes reads as an understatement.
 
-Смысл замера не в том, что всё сошлось. Смысл в том, что до него это было
-предположением: набор тестов проверяет код, а не то, выполнимы ли строки из
-README на машине, где ничего нет.
+The point of the measurement is not that everything matched. The point is that
+before it, this was an assumption: a test suite checks the code, not whether the
+lines from README can be carried out on a machine that has nothing on it.
 
 ## 2. Integration targets, ranked by what teams actually run
 
@@ -169,71 +172,74 @@ the value of betting on any single one.
 | Task tracking (SMB) | WEEEK, YouGile, Planfix, Shtab | The small-team tier: YouGile is free to ten people with all features, Shtab has no headcount limit — this is where unfunded teams actually are.[^trackers][^trackers-smb] |
 | Process/approvals | Pyrus | Different shape: built around заявки and согласования (leave, contracts, invoices), so it is a workflow target rather than a task target.[^trackers] |
 | Calls | Yandex Telemost, VK Teams, SberJazz/SaluteJazz, TrueConf | The four repeatedly named as the domestic ВКС set.[^vks][^vks-alt] |
-| Notes | Yandex Wiki (Yandex 360), Teamly | Проверено 2026-08-11: подключить сейчас нельзя ни один — см. §2.1. |
+| Notes | Yandex Wiki (Yandex 360), Teamly | Verified 2026-08-11: neither can be connected today — see §2.1. |
 
-### 2.0 Открытое, что команда поднимает у себя (проверено 2026-08-12)
+### 2.0 Open services a team hosts itself (verified 2026-08-12)
 
-Вывод §2.1 ниже — про российские облака, и он в силе. Но он не про открытые
-сервисы, которые команда разворачивает на своём сервере: там поиск по тексту
-есть, и подключение упирается только в поле «адрес сервера».
+The conclusion of §2.1 below is about Russian clouds, and it stands. But it is not
+about open services a team deploys on its own server: those do have text search,
+and connecting runs up against nothing but a "server address" field.
 
-| Сервис | Запрос | Особенность |
+| Service | Request | The particular |
 |---|---|---|
-| Mattermost | `POST /api/v4/teams/{id}/posts/search` | `is_or_search: false` — И, а не ИЛИ |
-| Rocket.Chat | `GET /api/v1/chat.search?roomId=` | нужны ДВА значения: токен и user-id |
-| Zulip | `GET /api/v1/messages?narrow=[{"operator":"search"}]` | Basic-авторизация `почта:ключ` |
-| Matrix / Element | `POST /_matrix/client/v3/search` | тело с `search_categories.room_events` |
-| GitLab | `GET /api/v4/search?scope=issues&search=` | заголовок `PRIVATE-TOKEN` |
-| Gitea / Forgejo | `GET /api/v1/repos/issues/search?q=&type=issues` | `Authorization: token`, не `Bearer` |
-| Redmine | `GET /search.json?q=&issues=1` | единственный оборачивает выдачу в `results` |
-| Битрикс24 | `POST /rest/{id}/{код}/tasks.task.list` | ключ в адресе, а не в заголовке; список под `result.tasks`, поля прописными; страница всегда 50; **отказ приходит с HTTP 200** и полями `error`/`error_description` |
-| Outline | `POST /api/documents.search` | адрес НЕ обязателен — бывает облачным |
+| Mattermost | `POST /api/v4/teams/{id}/posts/search` | `is_or_search: false` — AND, not OR |
+| Rocket.Chat | `GET /api/v1/chat.search?roomId=` | needs TWO values: the token and a user-id |
+| Zulip | `GET /api/v1/messages?narrow=[{"operator":"search"}]` | Basic authorization, `mail:key` |
+| Matrix / Element | `POST /_matrix/client/v3/search` | a body with `search_categories.room_events` |
+| GitLab | `GET /api/v4/search?scope=issues&search=` | the `PRIVATE-TOKEN` header |
+| Gitea / Forgejo | `GET /api/v1/repos/issues/search?q=&type=issues` | `Authorization: token`, not `Bearer` |
+| Redmine | `GET /search.json?q=&issues=1` | the only one that wraps results in `results` |
+| Bitrix24 | `POST /rest/{id}/{code}/tasks.task.list` | the key is in the address, not a header; the list sits under `result.tasks` with upper-case fields; the page is always 50; **a refusal arrives with HTTP 200** and `error`/`error_description` fields |
+| Outline | `POST /api/documents.search` | the address is NOT required — it can be cloud-hosted |
 
-Две детали закреплены тестами, потому что по тексту ошибки их не восстановить:
-Gitea со словом `Bearer` отвечает 401, неотличимо от плохого токена;
-Rocket.Chat без `roomId` возвращает пустой список, неотличимо от «ничего не
-нашлось».
+Two details are pinned by tests, because the error text cannot reconstruct them:
+Gitea answers 401 to the word `Bearer`, indistinguishable from a bad token;
+Rocket.Chat without `roomId` returns an empty list, indistinguishable from
+"nothing found".
 
-**Outline закрывает то, что §2.1 оставлял пустым.** Раздел заметок был закрыт
-как невозможный — и для Яндекс Вики с Teamly это по-прежнему так. Но открытая
-вики на своём сервере отдаёт `context` — готовый кусок текста вокруг совпадения,
-то есть ровно то, что нужно подсказке: не ссылку, а слова.
+**Outline closes what §2.1 left empty.** The notes section was closed as
+impossible — and for Yandex Wiki and Teamly it still is. But an open wiki on your
+own server returns `context`: a ready-made piece of text around the match, which is
+exactly what a hint needs — words, not a link.
 
-#### 2.0.0 Адрес сервера: где путь срезается, а где нет (решено 2026-08-13)
+#### 2.0.0 The server address: where the path is trimmed and where it is not (decided 2026-08-13)
 
-Три семейства коннекторов обходятся с вставленным адресом по-разному, и это
-решение, а не недосмотр.
+Three families of connectors treat a pasted address differently, and that is a
+decision rather than an oversight.
 
-| Кто | Путь из адреса | Почему |
+| Who | The path from the address | Why |
 |---|---|---|
-| Kaiten | срезается | подсказка ведёт на доску, человек копирует `.../boards/5`, и с `/api/latest` это 404 без объяснения. Так и было |
-| Битрикс24 | разбирается целиком | вебхук показывают одной строкой, и в ней же лежит ключ (§2.0.1) |
-| GitLab, Gitea, Redmine, мессенджеры | сохраняется | их ставят в подкаталог (`company.ru/gitlab`); срезание сломало бы рабочую настройку |
+| Kaiten | trimmed | the hint leads to a board, a person copies `.../boards/5`, and with `/api/latest` that is a 404 with no explanation. It did happen |
+| Bitrix24 | parsed in full | the webhook is shown as one line, and the key sits inside it (§2.0.1) |
+| GitLab, Gitea, Redmine, messengers | preserved | they are installed in a subdirectory (`company.ru/gitlab`); trimming would break a working configuration |
 
-Соблазн — «выровнять поведение». Он неверен: у Kaiten срезание чинит
-наблюдавшуюся ошибку, у своих серверов оно ломало бы работающее ради ошибки,
-которой мы не видели, — их подсказка просит адрес сервера, а не адрес страницы.
-Разница закреплена `HostNormalisationPolicyTests`, чтобы тот, кто решит
-выравнивать, сначала увидел, что теряет.
+The temptation is to "make the behaviour consistent". It is wrong: for Kaiten
+trimming fixes an error we observed, while for self-hosted servers it would break
+what works for the sake of an error we have never seen — their hint asks for a
+server address, not a page address. The difference is pinned by
+`HostNormalisationPolicyTests`, so that whoever decides to unify them sees first
+what would be lost.
 
-### 2.0.1 Битрикс24: сделано по документации, не по живому порталу (2026-08-13)
+### 2.0.1 Bitrix24: built from the documentation, not against a live portal (2026-08-13)
 
-Коннектор к Битрикс24 написан и закрыт тестами, но **на настоящем портале не
-проверен** — портала с вебхуком у нас нет. Это отличается от трёх остальных
-трекеров и от правила «не заявляйте того, чего нет» ровно на одну вещь: здесь
-проверена документация вендора, а не ответ сервера.
+The Bitrix24 connector is written and covered by tests, but **has not been verified
+against a real portal** — we have no portal with a webhook. It differs from the
+other three trackers, and from the rule "do not claim what does not exist", in
+exactly one respect: what was verified here is the vendor's documentation, not the
+server's answer.
 
-Что взято из документации метода `tasks.task.list`: адрес
-`POST /rest/{id_пользователя}/{код_вебхука}/tasks.task.list`, поиск по `TITLE`
-шаблоном со знаками `%` и `_` **в значении**, ответ `{"result": {"tasks": []}}`,
-размер страницы всегда пятьдесят и параметром не задаётся.
+What was taken from the documentation of the `tasks.task.list` method: the address
+`POST /rest/{user_id}/{webhook_code}/tasks.task.list`, search on `TITLE` by a
+pattern with `%` and `_` **in the value**, the response
+`{"result": {"tasks": []}}`, and a page size that is always fifty and cannot be set
+by a parameter.
 
-Одно место осталось неоднозначным. Общий приём Битрикса для поиска по подстроке
-— приставка к имени поля (`%TITLE`), но в документации именно этого метода
-показан шаблон в значении. Реализовано то, что описано; если живая проверка
-покажет обратное, менять одну строку в `body(for:limit:)`.
+One place stayed ambiguous. Bitrix's general idiom for substring search is a prefix
+on the field name (`%TITLE`), but the documentation for this particular method
+shows the pattern in the value. What is described is what is implemented; if a live
+check shows otherwise, one line changes in `body(for:limit:)`.
 
-**Как проверить за одну команду,** когда портал есть:
+**How to check it in one command,** once a portal exists:
 
 ```bash
 cd app && ORAKUL_PROBE_SERVICE=bitrix24 ORAKUL_PROBE_TOKEN='1/код' \
@@ -241,197 +247,205 @@ cd app && ORAKUL_PROBE_SERVICE=bitrix24 ORAKUL_PROBE_TOKEN='1/код' \
   swift test --filter LiveConnectorProbe
 ```
 
-### 2.0.2 Мегаплан: отпадает по тому же правилу (проверено 2026-08-13)
+### 2.0.2 Megaplan: ruled out by the same rule (verified 2026-08-13)
 
-Мегаплан стоял в списке ожидаемых трекеров и не проходит ту же проверку, что
-сняла два сервиса раньше.
+Megaplan was on the list of expected trackers and fails the same check that removed
+two services earlier.
 
-- **Долгоживущего ключа нет.** Токен берётся обменом логина и пароля:
-  `POST /api/v3/auth/access_token`, `grant_type=password`. Приложению, чтобы
-  обновлять токен, пришлось бы держать пароль от рабочего аккаунта. Для
-  продукта, у которого секреты живут в Связке ключей именно затем, чтобы
-  пароля нигде не было, это не мелкая неудобность, а смена условий.
-- **Описание методов закрыто аккаунтом.** Публичная страница прямо говорит:
-  описание всех методов и сущностей — внутри Мегаплана, по пути
-  `/api/v3/docs`.[^megaplan] То есть параметр поиска задач, форму фильтра и
-  форму ответа проверить снаружи нельзя, а правило CONTRIBUTING требует
-  проверить их до кнопки.
+- **There is no long-lived key.** The token is obtained by exchanging a login and
+  password: `POST /api/v3/auth/access_token`, `grant_type=password`. To refresh the
+  token, the application would have to hold the password to a work account. For a
+  product whose secrets live in the Keychain precisely so that no password is kept
+  anywhere, that is not a small inconvenience but a change of terms.
+- **The method reference is behind an account.** The public page says so outright:
+  the description of all methods and entities is inside Megaplan, at
+  `/api/v3/docs`.[^megaplan] So the task search parameter, the filter shape and the
+  response shape cannot be verified from outside, and the CONTRIBUTING rule
+  requires them to be verified before the button.
 
-**Что изменит вывод:** появление ключа приложения без пароля пользователя, или
-публичное описание метода списка задач. Тогда это обычная работа на день.
+**What would change the conclusion:** an application key that does not require the
+user's password, or a public description of the task-list method. Then it becomes
+an ordinary day's work.
 
-### 2.0.3 Трекеры: перепись целиком (проверено 2026-08-16)
+### 2.0.3 Trackers: the full census (verified 2026-08-16)
 
-Обход списка закончен. Восемь сервисов, пять подключены, три нет — и у
-каждого «нет» названа причина, а не «руки не дошли».
+The sweep of the list is finished. Eight services, five connected, three not — and
+every "not" has a named reason rather than "we did not get to it".
 
-| Сервис | Состояние | Чем решено |
+| Service | State | How it was settled |
 |---|---|---|
-| Яндекс Трекер | подключён | OAuth-токен и идентификатор организации; заголовок выбирается по форме идентификатора (§2.2) |
-| Kaiten | подключён | токен из профиля, адрес команды свой у каждой |
-| YouGile | подключён | API-ключ, полученный через `POST /api-v2/auth/keys`; поиск через актуальный `GET /api-v2/task-list` |
-| WEEEK | подключён | Bearer-токен рабочего пространства; документированный `GET /public/v1/tm/tasks?search=…`, создание в числовой `projectId`[^weeek-api] |
-| Битрикс24 | подключён **по документации**, не на живом портале | вебхук в пути; §2.0.1 — команда для живой проверки |
-| Pyrus | нет | другая форма продукта: заявки и согласования, не задачи (§2) |
-| Мегаплан | нет | нет долгоживущего ключа, вход логином и паролем; описание методов — внутри аккаунта (§2.0.2) |
-| Аспро.Cloud | нет | публичного описания методов найти не удалось: на `aspro.cloud/api/` страница о том, что API есть, без справочника[^aspro] |
+| Яндекс Трекер | connected | OAuth token and organisation identifier; the header is chosen by the identifier's shape (§2.2) |
+| Kaiten | connected | a token from the profile, with each team having its own address |
+| YouGile | connected | an API key obtained through `POST /api-v2/auth/keys`; search through the current `GET /api-v2/task-list` |
+| WEEEK | connected | a workspace Bearer token; the documented `GET /public/v1/tm/tasks?search=…`, creation into a numeric `projectId`[^weeek-api] |
+| Битрикс24 | connected **from the documentation**, not against a live portal | the webhook in the path; §2.0.1 has the command for a live check |
+| Pyrus | no | a different product shape: requests and approvals, not tasks (§2) |
+| Мегаплан | no | no long-lived key, sign-in by login and password; the method reference is inside the account (§2.0.2) |
+| Aspro.Cloud | no | no public method reference could be found: `aspro.cloud/api/` is a page saying an API exists, with no reference[^aspro] |
 
-Про Аспро формулировка узкая намеренно: **не «API нет», а «справочника снаружи
-не нашли»**. Если у кого-то есть аккаунт и он покажет метод списка задач, его
-параметр поиска и форму ответа — это работа на день. Именно так разблокировался
-WEEEK: публичная страница метода теперь содержит и фильтр `search`, и форму
-ответа, поэтому прежний исследовательский тупик снят, а не забыт.
+The wording about Aspro is deliberately narrow: **not "there is no API" but "we did
+not find a reference from outside"**. If somebody has an account and shows the
+task-list method, its search parameter and its response shape, that is a day's
+work. WEEEK unblocked in exactly that way: the public method page now contains both
+the `search` filter and the response shape, so the earlier research dead end was
+lifted rather than forgotten.
 
-Общее у трёх отказов одно: правило «не заявляйте того, чего нет» проверяется
-до кнопки, а не после жалобы. Два сервиса выпали на этой проверке ещё в первом
-обходе, и это правильный исход, а не потеря.
+The three refusals have one thing in common: the rule "do not claim what does not
+exist" is checked before the button, not after the complaint. Two services fell out
+on that check in the very first sweep, and that is the right outcome, not a loss.
 
-## 2.1 Заметки: почему коннектора нет (проверено 2026-08-11)
+## 2.1 Notes: why there is no connector (verified 2026-08-11)
 
-Строка про заметки год стояла с пометкой «предположение». Проверка по
-документации вендоров показала, что предположение было неверным в важной части:
-доступ к API есть, а нужного нам метода — нет.
+The notes row stood marked "assumption" for a year. Checking the vendors'
+documentation showed the assumption was wrong in an important part: API access
+exists, the method we need does not.
 
-**Яндекс Вики.** База `https://api.wiki.yandex.net`, авторизация ровно как у
-Яндекс Трекера: `Authorization: OAuth <токен>` плюс `X-Org-Id`. Задокументирован
-`GET /v1/pages?slug=…` — страница по адресу. Полнотекстового поиска в публичной
-справке нет: обзорная страница обещает «искать страницы по тексту с помощью
-методов API», но самого метода, его параметров и формы ответа в открытой
-документации не приводится.
+**Yandex Wiki.** The base is `https://api.wiki.yandex.net`, with authorization
+exactly as in Yandex Tracker: `Authorization: OAuth <token>` plus `X-Org-Id`.
+`GET /v1/pages?slug=…` — a page by its address — is documented. There is no
+full-text search in the public reference: the overview page promises "search pages
+by text using API methods", but the method itself, its parameters and its response
+shape do not appear in the open documentation.
 
-**Teamly.** Публичного описания API найти не удалось — только материалы про
-продукт и его собственный ИИ-поиск.
+**Teamly.** No public API description could be found — only material about the
+product and its own AI search.
 
-**Вывод.** Коннектор к заметкам не пишется, пока не подтверждён метод поиска.
-Взять `GET /v1/pages?slug=` и назвать это поиском нельзя: он находит страницу,
-адрес которой уже известен, то есть отвечает на вопрос, которого у пользователя
-нет. Из тех же соображений выпал Pyrus (см. заголовок файла
-`RussianTrackers.swift`), и это дешевле, чем кнопка, которая молчит.
+**Conclusion.** No notes connector is written until a search method is confirmed.
+Taking `GET /v1/pages?slug=` and calling it search is not allowed: it finds a page
+whose address is already known, that is, it answers a question the user does not
+have. Pyrus fell out on the same reasoning (see the header of
+`RussianTrackers.swift`), and that is cheaper than a button that says nothing.
 
-Что разблокирует работу: доступ к организации в Яндекс 360, где метод поиска
-можно вызвать и увидеть ответ. До этого — строка «Заметки» остаётся в списке
-несделанного, а не в списке интеграций.
+What would unblock the work: access to an organisation in Yandex 360 where the
+search method can be called and its answer seen. Until then, the "Notes" row stays
+in the list of things not done rather than in the list of integrations.
 
-**Yonote проверен 2026-08-18 и раздел не закрывает.** Кандидат выглядел
-подходящим: продукт того же рода, что Outline, а Outline у нас уже подключён —
-значит, при совпадении формы коннектор был бы почти написан. Проверка этого не
-подтвердила. Страницы для разработчиков (`yonote.ru/developers`, тот же адрес с
-`?v=2`, `docs.yonote.ru`) отдают навигацию без описания методов: ни адреса, ни
-параметра поиска, ни формы ответа снаружи не видно. Сторонние клиенты MCP
-сходятся на базовом адресе `app.yonote.ru/api` и доступе по токену, но один из
-них умеет только перечисление документов (`documents_list`, `documents_info`),
-а перечисление поиском не считается — по тому же правилу, по которому выпали
-Pyrus и Яндекс Вики.
+**Yonote was checked on 2026-08-18 and does not close this section.** The candidate
+looked suitable: a product of the same kind as Outline, and Outline is already
+connected here — so if the shape matched, the connector would be nearly written.
+The check did not bear that out. The developer pages (`yonote.ru/developers`, the
+same address with `?v=2`, `docs.yonote.ru`) serve navigation with no method
+descriptions: neither the address, nor the search parameter, nor the response shape
+is visible from outside. Third-party MCP clients agree on the base address
+`app.yonote.ru/api` and token access, but one of them can only enumerate documents
+(`documents_list`, `documents_info`), and enumeration does not count as search — by
+the same rule that removed Pyrus and Yandex Wiki.
 
-Чужая реализация вообще не может закрыть этот вопрос: она показывает, что у
-кого-то работало, а не что вендор это обещает. Разблокирует либо публичное
-описание метода, либо аккаунт, где вызов можно сделать и увидеть ответ.
+Somebody else's implementation cannot settle this question at all: it shows that it
+worked for someone, not that the vendor promises it. What unblocks it is either a
+public description of the method, or an account where the call can be made and its
+answer seen.
 
-### 2.2 Чертёж коннектора (как сделано, а не как задумано)
+### 2.2 The connector blueprint (as built, not as intended)
 
-Пять трекеров уже написаны, поэтому чертёж описывает работающий код —
-`mvp/Sources/OrakulCore/RussianTrackers.swift` и его хранилище. Новый коннектор
-повторяет эту форму; отклонение от неё требует причины в комментарии.
+Five trackers are already written, so the blueprint describes working code —
+`mvp/Sources/OrakulCore/RussianTrackers.swift` and its store. A new connector
+repeats this shape; departing from it requires a reason in a comment.
 
-**1. Три поля вместо одного.** Токена почти никогда не хватает, и не хватает
-по-разному:
+**1. Three fields instead of one.** A token is almost never enough, and it falls
+short in different ways:
 
-| Поле | Зачем | Пример |
+| Field | What for | Example |
 |---|---|---|
-| токен | доступ | OAuth-токен Яндекса, API-ключ Kaiten |
-| второе поле | без него запрос уходит не туда | `X-Org-Id` у Яндекса, домен команды у Kaiten |
-| место назначения | куда класть заведённую задачу | очередь `TREK`, доска `4`, колонка |
+| token | access | a Yandex OAuth token, a Kaiten API key |
+| second field | without it the request goes to the wrong place | `X-Org-Id` for Yandex, the team domain for Kaiten |
+| destination | where to put a filed task | the `TREK` queue, board `4`, a column |
 
-Подпись каждого поля живёт рядом с кодом, который это поле использует
-(`secondaryPrompt`, `destinationPrompt`), а не в интерфейсе: в интерфейсе она
-разъезжается с назначением при первой же правке.
+Each field's label lives next to the code that uses it (`secondaryPrompt`,
+`destinationPrompt`) rather than in the interface: in the interface it drifts away
+from its purpose at the first edit.
 
-**2. Чтение и запись — разные права.** `isConfigured` разрешает спрашивать,
-`canFileTasks` — заводить. Трекер, подключённый только на чтение, это нормальное
-состояние, а не недоделанное: место назначения нужно лишь для записи.
+**2. Reading and writing are different rights.** `isConfigured` permits asking,
+`canFileTasks` permits filing. A tracker connected read-only is a normal state, not
+a half-finished one: the destination is needed only for writing.
 
-**3. HTTP приходит снаружи.** `RussianTrackers.HTTP` — замыкание, у продакшена
-`live` на `URLSession`, у теста своё. Значения по умолчанию в инициализаторе нет
-намеренно: забытый аргумент в тесте иначе молча пошёл бы в чужой сервис.
+**3. HTTP comes from outside.** `RussianTrackers.HTTP` is a closure — `live` on
+`URLSession` in production, its own in a test. There is deliberately no default in
+the initialiser: otherwise a forgotten argument in a test would quietly reach
+somebody else's service.
 
-**4. Дедлайн 8 секунд** — тот же, что у MCP-источников. Один зависший сервис
-стоит одного источника, а не всего ответа. Это и есть требование брифа про
-низкую задержку, выраженное числом.
+**4. An 8-second deadline** — the same as for MCP sources. One wedged service costs
+one source rather than the whole answer. That is the brief's low-latency
+requirement, expressed as a number.
 
-**5. Ошибки различимы.** `notConfigured` / `unauthorised` / `forbidden` /
-`rateLimited` / `tooLarge(байт)` / `http(код)` / `vendor(код, описание)` /
-`webPage` / `unreadable`. Разница не косметическая:
-первое чинится в настройках, второе — новым токеном, третье — ожиданием (и
-только им: слово «ошибка» здесь отправило бы человека перевыпускать исправный
-токен), четвёртое — тоже ожиданием, но причина неизвестна, пятое пересказывает
-слова самого сервиса, шестое означает, что сервис сменил формат и коннектор
-пора править.
+**5. Errors are distinguishable.** `notConfigured` / `unauthorised` / `forbidden` /
+`rateLimited` / `tooLarge(bytes)` / `http(code)` / `vendor(code, description)` /
+`webPage` / `unreadable`. The difference is not cosmetic: the first is fixed in
+settings, the second by a new token, the third by waiting (and only by waiting: the
+word "error" here would send a person to reissue a perfectly good token), the
+fourth also by waiting but with an unknown cause, the fifth relays the service's own
+words, and the sixth means the service changed its format and the connector needs
+fixing.
 
-`tooLarge` — оттуда же: сервису не нужно врать, чтобы навредить, достаточно
-ответить двумястами мегабайтами, и разбирать их придётся на машине человека
-посреди звонка. Восемь мегабайт — потолок с запасом: сотня задач с описаниями
-весит десятки килобайт, а предел, срабатывающий на нормальном ответе, — это
-отказ в обслуживании, устроенный себе самим.
+`tooLarge` belongs to the same family: a service does not have to lie in order to
+do harm, it is enough to answer with two hundred megabytes, and they will be parsed
+on a person's machine in the middle of a call. Eight megabytes is a ceiling with
+room to spare: a hundred tasks with descriptions weigh tens of kilobytes, and a
+limit that trips on a normal response is a denial of service arranged against
+oneself.
 
-`forbidden` отделён от `unauthorised` в движке давно, но 2026-08-19
-обнаружилось, что четыре обёртки семей сводили его обратно. 403 значит, что
-токен настоящий, а права на поиск ему не выдали: у GitLab это область
-`read_api`, у мессенджеров — отдельное право приложения. Совет «перевыпустите
-токен» на 403 даёт тот же токен и потерянный вечер. Проверка
-`test/perevod-oshibok.test.mjs` не даёт разным ошибкам движка сойтись в одну
-ошибку семьи без пометки о намеренности.
+`forbidden` was separated from `unauthorised` in the engine long ago, but on
+2026-08-19 it turned out that four family wrappers were collapsing it back. A 403
+means the token is genuine and the search right was not granted to it: in GitLab
+that is the `read_api` scope, in messengers a separate application right. The advice
+"reissue your token" on a 403 yields the same token and a lost evening. The check
+`test/perevod-oshibok.test.mjs` prevents distinct engine errors from collapsing into
+one family error without a note that it is deliberate.
 
-`webPage` выделен из `unreadable` 2026-08-19. Отрезать дешевле всего не кодом
-401, а формой входа: так отвечает истёкшая сессия за единым входом, так отвечает
-портал гостиничного Wi-Fi, и так отвечает сервис, которому не хочется говорить
-«нет». Все три присылают код 200 и разметку, то есть выглядят как исправная
-работа. «Ответил непонятно» отправляло человека проверять адрес и версию
-сервера, хотя адрес верный, а чинить надо сессию или подключение к сети.
-Распознаётся по НАЧАЛУ тела: задача, в описании которой процитирован `<html>`,
-— обычное дело, и принять её за форму входа значило бы сломать работающий поиск.
+`webPage` was split out of `unreadable` on 2026-08-19. The cheapest way to cut you
+off is not a 401 but a sign-in form: that is what an expired single-sign-on session
+answers with, what a hotel Wi-Fi portal answers with, and what a service that would
+rather not say "no" answers with. All three send code 200 and markup, so they look
+like working operation. "Answered unintelligibly" sent a person to check the address
+and the server version, when the address is right and what needs fixing is the
+session or the network connection. It is recognised by the START of the body: a task
+quoting `<html>` in its description is an ordinary thing, and mistaking it for a
+sign-in form would break a working search.
 
-`rateLimited` выделен из `http` 2026-08-18, когда разбирали, чем недружелюбный
-сервис может навредить, не блокируя: придушить дешевле, чем закрыть, и выглядит
-это как обычная работа. Если сервис прислал `Retry-After`, число доходит до
-человека.
+`rateLimited` was split out of `http` on 2026-08-18, while working out how an
+unfriendly service can do harm without blocking: throttling is cheaper than closing,
+and it looks like ordinary operation. If the service sent `Retry-After`, the number
+reaches the person.
 
-**5.1. Успех не значит согласие.** Битрикс24 отвечает `200` и кладёт отказ в
-тело: `{"error": …, "error_description": …}`. Коннектор, который смотрит только
-на код ответа, покажет отозванный вебхук как «задач не нашлось». Проверять тело
-до разбора списка — правило, а не частность Битрикса: так же ведут себя многие
-корпоративные API.
+**5.1. Success does not mean consent.** Bitrix24 answers `200` and puts the refusal
+in the body: `{"error": …, "error_description": …}`. A connector that looks only at
+the response code will show a revoked webhook as "no tasks found". Checking the body
+before parsing the list is a rule, not a Bitrix peculiarity: many corporate APIs
+behave the same way.
 
-**5.2. Пустой список — только знакомой формы.** Ответ без единого известного
-ключа — отказ, а не «ничего нет». `[]` и `{"content": []}` проходят, потому что
-форма узнана и строк ноль; `{"detail": "…"}` — нет. Разница решает, заведёт ли
-человек вторую задачу поверх существующей.
+**5.2. An empty list only in a familiar shape.** A response without a single known
+key is a refusal, not "there is nothing". `[]` and `{"content": []}` pass, because
+the shape is recognised and there are zero rows; `{"detail": "…"}` does not. That
+difference decides whether a person files a second task on top of an existing one.
 
-**6. Мягко читаем, строго пишем.** В выдаче поиска задача без заголовка
-показывается как «Без названия» — одна кривая запись не стоит всей выдачи. При
-создании наоборот: ответ без ключа задачи — это ошибка, а не успех. Сказать
-«задача заведена», когда её нет, — худшее, что коннектор может сделать.
+**6. Read leniently, write strictly.** In search results a task with no title is
+shown as "Без названия" — one malformed record is not worth the whole result set.
+On creation it is the opposite: a response with no task key is an error, not a
+success. Saying "the task was filed" when it was not is the worst thing a connector
+can do.
 
-**7. Подсказка вместо голой цели.** В трекер уходит не «что мы решили по
-срокам», а цель плюс `ConnectorProbeStrategy.trackerProbe.queryHint`: их
-ранжирование опирается на слова из задач.
+**7. A hint instead of a bare goal.** What goes to the tracker is not "what did we
+decide about deadlines" but the goal plus
+`ConnectorProbeStrategy.trackerProbe.queryHint`: their ranking leans on the words in
+tasks.
 
-**7.1. Учётные данные не обязаны ехать в заголовке.** У Битрикса вебхук —
-это путь: `/rest/{id}/{код}/метод`. Отсюда два следствия. Первое: общая
-проверка «ключ уехал» не должна требовать заголовка — иначе сервис либо
-выпадает из проверки, либо ему придумывают заголовок, которого вендор не ждёт.
-Второе: адрес такого сервиса нельзя показывать в сообщении об ошибке — в нём
-лежит ключ.
+**7.1. Credentials do not have to travel in a header.** In Bitrix the webhook is the
+path: `/rest/{id}/{code}/method`. Two consequences follow. First, the general "the
+key travelled" check must not require a header — otherwise the service either drops
+out of the check, or gets a header invented for it that the vendor does not expect.
+Second, such a service's address must not be shown in an error message: the key is
+inside it.
 
-**7.2. Размер страницы не всегда наш.** У Битрикса он всегда пятьдесят и
-параметром не задаётся, поэтому запрошенная граница применяется после разбора.
-Молча вернуть пятьдесят там, где просили десять, — тихо раздуть подсказку и
-съесть чужие источники из общего бюджета.
+**7.2. The page size is not always ours.** In Bitrix it is always fifty and cannot
+be set by a parameter, so the requested bound is applied after parsing. Silently
+returning fifty where ten were asked for means quietly inflating the hint and eating
+other sources out of a shared budget.
 
-**8. Ничего не заявляем без документации вендора.** Метод, адрес, параметр
-поиска и форма ответа проверяются в справке вендора и указываются в
-комментарии. На этом правиле отсеялись Pyrus и обе базы знаний; WEEEK появился
-только после публикации проверяемой страницы метода. Это дешевле, чем кнопка,
-которая не срабатывает.
+**8. We claim nothing without the vendor's documentation.** The method, the address,
+the search parameter and the response shape are verified in the vendor's reference
+and cited in a comment. Pyrus and both knowledge bases were filtered out by this
+rule; WEEEK appeared only after a verifiable method page was published. That is
+cheaper than a button that does not work.
 
 **Architectural consequence.** Cruxwing's existing MCP connector layer is the
 right substrate: each of these becomes a connector descriptor rather than a
@@ -443,28 +457,29 @@ architecture. Per-connector blueprints: next iteration.
 
 ---
 
-## 2.3 Приложение задач в трекер: что позволяют API (проверено 2026-08-11)
+## 2.3 Filing tasks into a tracker: what the APIs allow (verified 2026-08-11)
 
-Чтение из трекера уже работает. Обратный путь — завести задачу из решения,
-принятого на звонке, — упирается в то, что каждому сервису нужен адрес
-назначения, и он у всех разный:
+Reading from a tracker already works. The reverse path — filing a task from a
+decision made on a call — runs into the fact that every service needs a destination
+address, and each one's is different:
 
-| Сервис | Метод и путь | Обязательные поля |
+| Service | Method and path | Required fields |
 |---|---|---|
-| Яндекс Трекер | `POST /v3/issues/` | `summary`, `queue` (ключ очереди, например `TREK`) |
-| Kaiten | `POST /api/latest/cards` | `title`, `board_id` (целое) |
-| YouGile | `POST /api-v2/tasks` | `title`; `columnId` — колонка, куда положить |
-| WEEEK | `POST /public/v1/tm/tasks` | `title`; `locations: [{projectId}]` — числовой проект |
+| Yandex Tracker | `POST /v3/issues/` | `summary`, `queue` (the queue key, for example `TREK`) |
+| Kaiten | `POST /api/latest/cards` | `title`, `board_id` (an integer) |
+| YouGile | `POST /api-v2/tasks` | `title`; `columnId` — the column to put it in |
+| WEEEK | `POST /public/v1/tm/tasks` | `title`; `locations: [{projectId}]` — a numeric project |
 
-Отсюда следует устройство настройки: одного токена мало. Кроме второго поля
-(организация у Яндекса, домен команды у Kaiten) нужно третье — куда именно
-класть задачу. Без него кнопка «Завести задачу» была бы кнопкой, которая
-отправляет запрос в никуда, а ответ об ошибке пришёл бы уже после звонка.
+The shape of the settings follows from this: one token is not enough. Besides the
+second field (the organisation for Yandex, the team domain for Kaiten) a third is
+needed — exactly where to put the task. Without it, a "File a task" button would be
+a button that sends a request into nowhere, and the error would arrive after the
+call had ended.
 
-Про YouGile документация расходится: `columnId` местами помечен необязательным.
-Мы всё равно требуем его — задача без колонки не попадает на доску, то есть
-пропадает с точки зрения пользователя, а лишний валидный параметр никогда не
-ошибка.
+The documentation disagrees with itself about YouGile: `columnId` is marked
+optional in places. We require it anyway — a task with no column does not reach the
+board, that is, it disappears from the user's point of view, and a redundant valid
+parameter is never an error.
 
 ## 3. Model strategy
 
@@ -482,34 +497,34 @@ warning against picking a model from a leaderboard. It is the same mistake as
 choosing a diarization threshold from a tiny fixture set: the result does not
 generalize to real calls.
 
-### 3.0 GigaChat: не оценка модели, а хранилище доверенных корней (проверено 2026-08-13)
+### 3.0 GigaChat: not a judgement about the model but about the trusted root store (verified 2026-08-13)
 
-GigaChat в списке провайдеров orakul нет, и причина не в качестве. С обычного
-macOS до него не доходит TLS: цепочка заканчивается корнем Минцифры, которого
-в системном хранилище нет.
+GigaChat is not in orakul's provider list, and the reason is not quality. TLS does
+not reach it from an ordinary macOS: the chain ends at the Ministry of Digital
+Development's root, which is not in the system store.
 
-Замер `curl`, 2026-08-13:
+A `curl` measurement, 2026-08-13:
 
-| адрес | `ssl_verify_result` | что это значит |
+| address | `ssl_verify_result` | what it means |
 |---|---|---|
-| `ngw.devices.sberbank.ru:9443` (обмен ключа на токен) | 19 | самоподписанный сертификат в цепочке |
-| `api.giga.chat` (OpenAI-совместимый) | 20 | локально не найден издатель |
+| `ngw.devices.sberbank.ru:9443` (exchanging a key for a token) | 19 | a self-signed certificate in the chain |
+| `api.giga.chat` (OpenAI-compatible) | 20 | the issuer was not found locally |
 
-Цепочка первого: `CN=ngw.devices.sberbank.ru` → `Russian Trusted Sub CA` →
+The first one's chain: `CN=ngw.devices.sberbank.ru` → `Russian Trusted Sub CA` →
 `Russian Trusted Root CA` (The Ministry of Digital Development and
 Communications).
 
-**Почему это решает вопрос.** Кнопка «Подключить», которая падает с «сертификат
-сервера недействителен», хуже отсутствующей кнопки — правило из CONTRIBUTING.
-Ставить корневой сертификат за человека приложение не должно и не будет: это
-изменение доверия всей системы, а не настройка одного продукта.
+**Why this settles the question.** A "Connect" button that fails with "the server's
+certificate is invalid" is worse than an absent button — the rule from CONTRIBUTING.
+The application should not and will not install a root certificate on a person's
+behalf: that changes trust for the whole system, not the settings of one product.
 
-**Что изменит вывод.** Пользователь, поставивший корень Минцифры сам, получает
-рабочий OpenAI-совместимый адрес `https://api.giga.chat/v1` с Bearer-токеном.
-Токен там живёт тридцать минут и берётся обменом ключа на `/api/v2/oauth` —
-это не статический ключ, как у остальных восьми провайдеров, и потребует
-отдельной ветки обновления. Если корень появится в macOS по умолчанию или
-Сбер выпустит цепочку от общедоверенного центра, эта заметка устаревает.
+**What would change the conclusion.** A user who installs the Ministry's root
+themselves gets a working OpenAI-compatible address `https://api.giga.chat/v1` with
+a Bearer token. The token there lives thirty minutes and is obtained by exchanging a
+key at `/api/v2/oauth` — that is not a static key like the other eight providers'
+and would need a refresh branch of its own. If the root appears in macOS by default,
+or Sber issues a chain from a generally trusted authority, this note goes stale.
 
 **Decision for v1:**
 
@@ -533,34 +548,34 @@ acronyms) built under the same collision-audit rule that keeps ordinary words ou
 
 ---
 
-### 3.1 Ключ провайдера вводит пользователь (сделано)
+### 3.1 The user enters the provider key (done)
 
-Из решения «сервера нет» следует то, о чём легко забыть: в готовом установщике
-ключей провайдеров нет ни одного — их туда не кладут намеренно, — а значит без
-пользовательского ключа приложение не отвечает вообще. Скачанное приложение,
-которое не может ответить ни на один вопрос, — это не бесплатный продукт, а
-неработающий.
+Something easy to forget follows from the "there is no server" decision: the
+finished installer contains not a single provider key — they are deliberately not
+put there — which means that without a user's key the application does not answer at
+all. A downloaded application that cannot answer a single question is not a free
+product but a broken one.
 
-У Cruxwing ввод ключа убрали, когда появился серверный шлюз: ключи уехали на
-сервер, `Secrets` стал пустым. orakul унаследовал этот код без шлюза, то есть
-худшую половину решения.
+Cruxwing removed key entry when the server gateway appeared: the keys moved to the
+server and `Secrets` became empty. orakul inherited that code without the gateway,
+that is, the worse half of the decision.
 
-Поэтому `ProviderKeyStore`: ключ вводится в «Настройки → ИИ → Ключи
-провайдеров», лежит в Связке ключей, и при запросе он важнее зашитого при
-сборке. Порядок именно такой — обратный означал бы, что ключ из чужого `.env`,
-случайно попавший в сборку, молча переопределяет тот, который человек только
-что вписал и видит на экране.
+Hence `ProviderKeyStore`: the key is entered under "Настройки → ИИ → Ключи
+провайдеров", lives in the Keychain, and takes precedence over anything baked in at
+build time. The order is deliberate — the reverse would mean that a key from
+somebody else's `.env`, accidentally caught in a build, silently overrides the one a
+person has just typed and can see on screen.
 
-Побочный, но важный эффект для позиционирования: расход идёт по договору
-пользователя с провайдером. Нам не за что брать деньги, потому что мы не стоим
-в этой цепочке, — и это то же самое основание, по которому в продукте нет
-тарифов.
+A side effect that matters for positioning: spending runs on the user's own contract
+with the provider. There is nothing for us to charge for, because we do not stand in
+that chain — the same ground on which the product has no plans.
 
-Порядок провайдеров в списке: сначала DeepSeek, Qwen, GLM, Kimi, потом OpenAI,
-Anthropic, Google. Основание — ожидаемая цена запроса, и только она. Про Qwen и
-DeepSeek выше есть ссылки; про GLM и Kimi своих измерений мы не проводили, и
-раньше здесь стояло «дешевле при приемлемом русском» — оценка качества, которую
-никто не проверял. Порядок в списке её не заменяет.
+The order of providers in the list: DeepSeek, Qwen, GLM and Kimi first, then OpenAI,
+Anthropic, Google. The basis is the expected price of a request, and nothing else.
+There are references for Qwen and DeepSeek above; for GLM and Kimi we made no
+measurements of our own, and what used to stand here was "cheaper with acceptable
+Russian" — a quality judgement nobody had checked. The order in the list does not
+substitute for it.
 
 ---
 
@@ -577,150 +592,156 @@ searchable in Russian.* Answering «что мы решили по ценам?» 
 calls is something no Habr thread and no Telegram chat can do, because the
 material is yours.
 
-**Одна форма ошибки повторяется чаще всех остальных вместе взятых.** Не
-падение и не неверный расчёт, а *уверенная фраза о том, чего не было*. За одну
-ночь она нашлась восемь раз, и каждый раз выглядела как исправная работа:
+**One shape of error recurs more often than all the others put together.** Not a
+crash and not a wrong calculation, but *a confident sentence about something that
+did not happen*. In one night it was found eight times, and every time it looked
+like working operation:
 
-| что человек видел | что произошло на самом деле |
+| what the person saw | what actually happened |
 |---|---|
-| «В сохранённых звонках об этом не говорили» | архив пуст, звонков нет вовсе |
-| то же | часть файлов архива не открылась, их не искали |
-| то же | в вопросе одни служебные слова, поиск не запускался |
-| «Удалено: <идентификатор>» | такой встречи не существовало |
-| десять задач из трекера | их сорок семь, показаны первые десять |
-| «Трекер ответил непонятным образом» | сервер внятно ответил 502 |
-| `[#314, unknown]` | сервис состояния не сообщал, его выдумали |
-| «В сохранённых звонках об этом не говорили» | в вопросе опечатка в одну букву; §6.8 |
+| "В сохранённых звонках об этом не говорили" | the archive is empty, there are no calls at all |
+| the same | some of the archive files would not open and were not searched |
+| the same | the question is all function words, search never ran |
+| "Удалено: <identifier>" | no such meeting existed |
+| ten tasks from the tracker | there are forty-seven; the first ten were shown |
+| "Трекер ответил непонятным образом" | the server answered a clear 502 |
+| `[#314, unknown]` | the service reported no state; it was invented |
+| "В сохранённых звонках об этом не говорили" | the question has a one-letter typo; §6.8 |
 
-Восьмой случай — та же фраза в четвёртый раз, и это стоит сказать прямо:
-из восьми случаев четыре пришлись на одно сообщение. Уверенная фраза ломается
-не там, где её писали, а там, где появился новый способ до неё дойти. Проверять
-такие фразы поэтому надо не однажды, а каждый раз, когда рядом заводится новый
-путь к ним.
+The eighth case is the same sentence for the fourth time, and that is worth saying
+plainly: of eight cases, four landed on a single message. A confident sentence
+breaks not where it was written but where a new way of reaching it appeared. Such
+sentences therefore have to be checked not once, but every time a new path to them
+is created nearby.
 
-Общее у всех восьми: продукт утверждал результат операции, которой не
-происходило. Для инструмента, чьё единственное обещание — «отвечает цитатой и
-не выдумывает», это и есть главный класс дефектов: он не ломает работу, он
-тихо подменяет её. Тесты его не ловят, потому что код делает ровно то, что
-задумано; ловится он только запуском собранного продукта и вопросом «а это
-правда?» к каждой уверенной фразе.
+What all eight have in common: the product asserted the result of an operation that
+never took place. For a tool whose only promise is "answers with a quote and does
+not invent", that is the principal class of defect: it does not break the work, it
+quietly substitutes for it. Tests do not catch it, because the code does exactly
+what it was meant to; it is caught only by running the built product and asking "is
+that true?" of every confident sentence.
 
-Отсюда правило для новых сообщений: **если фраза утверждает исход, найдите
-случай, когда исхода не было, и скажите об этом отдельно.**
+Hence the rule for new messages: **if a sentence asserts an outcome, find the case
+where there was no outcome, and say so separately.**
 
-**Обход 2026-08-13: где ошибка ещё превращается в благополучный результат.**
-После Битрикса проверены все места, где разбор ответа мог отдать пустоту вместо
-отказа. Закрыто: `RussianTrackers` (незнакомая форма и отказ с кодом 200),
-`SessionStore` (непрочитанный каталог архива). В ядре `?? []` не осталось.
+**The 2026-08-13 sweep: where an error still turns into a happy result.** After
+Bitrix, every place where parsing a response could return emptiness instead of a
+refusal was checked. Closed: `RussianTrackers` (an unfamiliar shape, and a refusal
+with code 200) and `SessionStore` (an unread archive directory). No `?? []` is left
+in the core.
 
-Закрыто последним и `FirefliesPastCalls`: разбор списка встреч возвращал пустой
-список и когда понять ответ не вышло, и когда встреч правда нет. Через импорт
-это показывалось как «прошлых звонков нет» — при смене схемы у сервиса человек
-решил бы, что импортировать нечего.
+`FirefliesPastCalls` was the last one closed: parsing the meeting list returned an
+empty list both when the response could not be understood and when there genuinely
+were no meetings. Through import that showed as "there are no past calls" — and if
+the service changed its schema, a person would have concluded there was nothing to
+import.
 
-Сделано так, как и было записано: `parsedMeetingList` отдаёт `nil` на непонятый
-ответ, импорт на `nil` поднимает ошибку, а прежняя форма осталась тонкой
-обёрткой для мест, где различать нечего, — девять проверок не пришлось трогать.
+It was done as written down: `parsedMeetingList` returns `nil` on an
+unintelligible response, import raises an error on `nil`, and the old shape stayed
+as a thin wrapper for the places where there is nothing to distinguish — nine checks
+did not have to be touched.
 
-**Отдельно — проверка, которой не будет (2026-08-13).** Веер источников для
-подсказки собран группой задач: пять подключённых трекеров опрашиваются разом,
-а не по очереди, иначе восьмисекундный срок каждого сложился бы в тридцать две
-секунды посреди звонка. Это верно, но **закрепить проверкой не удалось**.
+**Separately: a check that will not exist (2026-08-13).** The fan-out of sources for
+a hint is assembled as a task group: five connected trackers are polled at once
+rather than in turn, otherwise each one's eight-second deadline would add up to
+thirty-two seconds in the middle of a call. That is true, but **it could not be
+pinned by a check**.
 
-Две попытки, обе оказались пустыми:
+Two attempts, both hollow:
 
-1. Счёт `group.addTask` с порогом «хотя бы три» — удаление целого семейства
-   источников компилируется и оставляет счётчик выше порога.
-2. Поимённое упоминание семейств в файле — имена остаются в объявлениях и
-   арифметике даже после удаления самого опроса.
+1. Counting `group.addTask` with a threshold of "at least three" — deleting a whole
+   family of sources compiles and leaves the counter above the threshold.
+2. Naming the families in the file — the names remain in declarations and arithmetic
+   even after the polling itself is deleted.
 
-Мутация показала обе. Замер длительности не годится тем более: на загруженной
-машине последовательный веер укладывается в те же миллисекунды, и такая
-проверка падала бы у случайного участника, ничего не сообщая о продукте.
+Mutation exposed both. Measuring duration is even less suitable: on a loaded machine
+a sequential fan-out fits in the same milliseconds, and such a check would fail for
+a random contributor while saying nothing about the product.
 
-Проверка удалена. Зелёная проверка, которая ничего не ловит, хуже отсутствующей:
-она закрывает вопрос. Здесь вопрос оставлен открытым честно.
+The check was deleted. A green check that catches nothing is worse than an absent
+one: it closes the question. Here the question is left open honestly.
 
-Итог обхода: пустота больше нигде не выдаётся за ответ. Проверки на обе стороны
-у каждого случая: возврат к молчанию роняет их, и объявление настоящей пустоты
-ошибкой — тоже. Вторая половина важна не меньше первой: без неё «ничего не
-нашлось» исчезло бы там, где оно правда.
+The sweep's result: emptiness is nowhere passed off as an answer any more. Each case
+has checks on both sides: returning to silence fails them, and so does declaring
+genuine emptiness an error. The second half matters as much as the first: without
+it, "nothing found" would disappear from the places where it is true.
 
-**У класса есть вторая половина, найденная 2026-08-13: не утверждение об
-исходе, а указание, которое не сработает.** Проверять его надо иначе — вопрос
-не «правда ли это?», а «сделает ли это тот, кто послушается?».
+**The class has a second half, found on 2026-08-13: not an assertion about an
+outcome, but an instruction that will not work.** It has to be checked differently —
+the question is not "is this true?" but "will it work for someone who follows it?".
 
-| что написано | что выйдет у того, кто послушается |
+| what is written | what happens to someone who follows it |
 |---|---|
-| «platform.moonshot.cn → API keys» рядом с полем ключа | ключ оттуда отвечает 401: запрос идёт на `api.moonshot.ai`, а зарегистрироваться на китайской половине обычно нельзя без местного телефона |
-| README: «Сборка установщика: `MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh`» | собран один DMG из двух; второй остаётся вчерашним, а пример аудита требует явно передать оба |
+| "platform.moonshot.cn → API keys" beside the key field | a key from there answers 401: the request goes to `api.moonshot.ai`, and registering on the Chinese half is usually impossible without a local phone number |
+| README: "Building the installer: `MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh`" | one DMG of two is built; the second stays at yesterday's build, while the audit example requires both to be passed explicitly |
 
-Обе половины одного факта — консоль и адрес запроса, команда сборки и явные
-аргументы проверки образов — расходятся именно потому, что лежат порознь. Отсюда
-второе правило: **держите половины рядом либо свяжите их проверкой**;
-`ProviderConsoleMatchTests` и проверка README против `audit-dmg.sh` сделаны
-ровно за этим.
+Both halves of one fact — the console and the request address, the build command and
+the explicit arguments of the image audit — drift apart precisely because they sit
+separately. Hence the second rule: **keep the halves together or tie them with a
+check**; `ProviderConsoleMatchTests` and the README-against-`audit-dmg.sh` check
+exist for exactly that.
 
 ---
 
-## 5. Business model — бесплатно, целиком
+## 5. Business model — free, entirely
 
-Решение владельца: платных уровней нет. Не «пока не назначены цены», а нет
-вообще — тарифы, платные кнопки и разграничение по подписке удалены из продукта,
-из каталога, со страницы и из кода.
+The owner's decision: there are no paid tiers. Not "prices have not been set yet"
+but none at all — plans, paid buttons and subscription gating were removed from the
+product, from the catalogue, from the page and from the code.
 
-Это не только про деньги. Граница проходила по инфраструктуре: бесплатно то, что
-считается на компьютере пользователя, платно то, за что платим мы. Убрав вторую
-половину, продукт получает свойство, которое раньше приходилось обещать словами:
-**всё работает без сети, потому что ничего другого просто нет**. Кнопка,
-требующая сети, теперь не грузится — не по вкусу, а потому что каталог с ней
-не проходит проверку при сборке.
+This is not only about money. The boundary ran along infrastructure: free was what
+is computed on the user's machine, paid was what we pay for. With the second half
+removed, the product gains a property that previously had to be promised in words:
+**everything works without the network, because there is simply nothing else**. A
+button that requires the network no longer loads — not as a matter of taste, but
+because a catalogue containing one fails a check at build time.
 
-Что удалено:
+What was deleted:
 
-- `config/plans.ru.json` и его тесты — каталог уровней;
-- кнопки `to-tracker` и `week-digest` — единственные, которым нужен наш сервер;
-- поле `tier` у кнопок — место, где платный уровень отрастает обратно;
-- `PromptCatalog.Tier`, `available(for:)`, `unavailabilityReason(...)` —
-  механизм разграничения, которому больше нечего разграничивать;
-- раздел «Тарифы» на странице.
+- `config/plans.ru.json` and its tests — the tier catalogue;
+- the `to-tracker` and `week-digest` buttons — the only ones needing our server;
+- the buttons' `tier` field — the place where a paid tier grows back;
+- `PromptCatalog.Tier`, `available(for:)`, `unavailabilityReason(...)` — the gating
+  mechanism, which now has nothing left to gate;
+- the "Тарифы" section on the page.
 
-Метрика прежняя: звёзды и установки. Она стала честнее — у репозитория, где
-нечего продавать, README и есть весь маркетинг.
+The metric is unchanged: stars and installs. It became more honest — in a repository
+with nothing to sell, the README is the entire marketing.
 
-**Что это стоит.** Коннекторы к трекерам и сводка недели были обоснованием
-платного уровня; вместе с ним ушли и они. Это сознательный размен: продукт,
-который целиком работает на устройстве, проще обещать и невозможно испортить
-тихим переносом функции за платную стену.
+**What it costs.** The tracker connectors and the weekly digest were the
+justification for a paid tier; they left with it. That is a deliberate trade: a
+product that works entirely on the device is easier to promise and impossible to
+spoil by quietly moving a feature behind a paywall.
 
-### 5.1 Адрес сервера не зашивается — и это проверяется при сборке (2026-08-12)
+### 5.1 The server address is not baked in — and that is checked at build time (2026-08-12)
 
-Решения «сервера нет» недостаточно, пока в коде остаётся место, куда адрес может
-вернуться. 2026-08-12 выяснилось, что он там и был: `build.sh` для
-DIST-сборки честно оставлял `BACKEND_URL` пустым, а `Config.backendBaseURL`
-на пустое значение подставлял продуктовый адрес по умолчанию — `api.cruxwing.ai`,
-сервер другого продукта, который существует и отвечает. В установщике orakul
-из-за этого оживали вход в аккаунт, счёт и обещание «моделей без своих ключей».
+The "there is no server" decision is not enough while a place remains in the code
+where an address can return. On 2026-08-12 it turned out that it was there:
+`build.sh` honestly left `BACKEND_URL` empty for a DIST build, and
+`Config.backendBaseURL` substituted a default production address for the empty
+value — `api.cruxwing.ai`, another product's server, which exists and answers.
+Because of that, account sign-in, billing and the promise of "models without your
+own keys" came alive in the orakul installer.
 
-Отсюда правило, а не разовая правка:
+Hence a rule, not a one-off fix:
 
-1. `build.sh` в режиме DIST **печатает пустую строку** для `BACKEND_URL` и
-   **останавливает сборку**, если значение непустое. Проверка перевёрнута
-   относительно cruxwing: там запрещался адрес рабочей копии при обязательном
-   боевом, здесь запрещён любой.
-2. `Config.resolveBackendBaseURL` возвращает пустую строку и **ничего не
-   подставляет**. Разбор вынесен из вычисляемого свойства отдельной функцией
-   именно затем, чтобы его можно было проверить на всех входах, а не только на
-   том, с которым собрана машина разработчика.
-3. Всё, что требует сервера, закрыто признаком `backendBaseURL.isEmpty`:
-   вход (четыре места), раздел «Аккаунт» в настройках, кнопка «Проверить в
-   вебе», рельса кредитов. `NoBackendPromisesTests` проверяет **отрисовку**
-   экрана, а не наличие строки в исходнике.
+1. `build.sh` in DIST mode **prints an empty string** for `BACKEND_URL` and
+   **stops the build** if the value is non-empty. The check is inverted relative to
+   cruxwing: there a working-copy address was forbidden while a production one was
+   mandatory; here any address is forbidden.
+2. `Config.resolveBackendBaseURL` returns an empty string and **substitutes
+   nothing**. The parsing was lifted out of the computed property into a separate
+   function precisely so it could be checked against all inputs rather than only the
+   one the developer's machine was built with.
+3. Everything requiring a server is gated on `backendBaseURL.isEmpty`: sign-in (four
+   places), the "Аккаунт" settings section, the "Проверить в вебе" button, the
+   credits rail. `NoBackendPromisesTests` checks the screen's **rendering**, not the
+   presence of a line in the source.
 
-Почему так подробно: ошибка была не видна ни на одной проверке, которая читала
-конфигурацию. Единственный способ её увидеть — смонтировать собранный DMG и
-поискать адрес в бинарнике. Это и есть правило проверки для всего проекта:
-проверять то, что уезжает пользователю, а не то, из чего оно собрано.
+Why in this much detail: the error was invisible to every check that read
+configuration. The only way to see it was to mount the built DMG and look for the
+address in the binary. That is the checking rule for the whole project: check what
+goes to the user, not what it was assembled from.
 
 ---
 
@@ -768,35 +789,36 @@ at segment boundaries; complete audio is recognised **better than the sum of its
 parts**.[^asr-gigaam] Cruxwing's whole-file post-call pass is therefore the right
 shape and must not be "optimised" into chunked decoding.
 
-### 6.4 Измерено нами, на русской речи разработчиков
+### 6.4 Measured by us, on Russian developer speech
 
-Первое собственное измерение, а не чужой бенчмарк. Корпус: три фрагмента
-русского доклада по AI-безопасности (`cruxwing-api/data/russian`), расшифрованные
-тремя движками — Whisper large, Parakeet, Fireflies. Эталона, размеченного
-человеком, нет, поэтому WER не считался; считалось расхождение движков между
-собой, потому что разногласие само по себе доказывает ошибку.
+The first measurement of our own rather than somebody else's benchmark. The corpus:
+three fragments of a Russian talk on AI safety (`cruxwing-api/data/russian`),
+transcribed by three engines — Whisper large, Parakeet, Fireflies. There is no
+human-annotated reference, so WER was not computed; what was computed is the
+disagreement between the engines, because disagreement by itself proves an error.
 
-| фрагмент | терминов прозвучало | спорных | согласие |
+| fragment | terms spoken | disputed | agreement |
 |---|---|---|---|
 | w900 | 4 | 2 | 50% |
 | w2700 | 8 | 1 | 88% |
 | w4300 | 4 | 1 | 75% |
-| **среднее** | | | **71%** |
+| **average** | | | **71%** |
 
-Whisper и Parakeet расходятся на **11–14% слов**. На фрагменте w2700 у Parakeet
-57 пропусков против 3 вставок — движок не ошибается, а молчит, и это ровно та
-болезнь, которую суммарный WER не отличает от искажения.
+Whisper and Parakeet disagree on **11–14% of words**. On fragment w2700 Parakeet has
+57 omissions against 3 insertions — the engine is not making mistakes, it is falling
+silent, and that is exactly the ailment an aggregate WER cannot tell apart from
+distortion.
 
-**Спорные термины — это в точности код-свитчинг:** «прод», «промпт», «API»,
-«джейлбрейк». Русские фразы с английскими корнями, ровно там, где исследование
-и предсказывало провал.[^asr-codeswitch] Ни один спорный термин не оказался
-обычным русским словом.
+**The disputed terms are precisely code-switching:** "прод", "промпт", "API",
+"джейлбрейк". Russian phrases with English roots, exactly where the research
+predicted the failure.[^asr-codeswitch] Not one disputed term turned out to be an
+ordinary Russian word.
 
-Вывод для продукта, и он подтверждает архитектуру: чинить это в декодере
-бессмысленно — термин, которого модель не слышала, она не расслышит и с
-подсказкой. Чинится это после расшифровки, текстом, где ошибка стоит одного
-токена и не может съесть речь. То есть `GlossaryRestore` с русским словарём —
-не «улучшение», а основной механизм для этого рынка.
+The conclusion for the product, and it confirms the architecture: fixing this in the
+decoder is pointless — a term the model has never heard it will not hear with a hint
+either. It is fixed after transcription, as text, where a mistake costs one token
+and cannot swallow speech. That is, `GlossaryRestore` with a Russian lexicon is not
+an "improvement" but the principal mechanism for this market.
 
 ### 6.5 Candidate models
 
@@ -814,266 +836,277 @@ the model choice.
 
 ---
 
-## 6.6 Словарь продукта задаёт демо-фильм, а не переводчик
+## 6.6 The product's vocabulary is set by the demo film, not by a translator
 
-Русские тексты orakul сверяются с `cruxwing-marketing/public/demo-film/scene.ru.js`
-— это уже снятая русская дорожка, то есть голос продукта, который люди слышали.
-Я успел написать свой вариант и разошёлся с ним на трёх словах:
+orakul's Russian copy is checked against
+`cruxwing-marketing/public/demo-film/scene.ru.js` — an already-recorded Russian
+track, that is, the product's voice as people have heard it. I managed to write my
+own variant first and diverged from it on three words:
 
-| В фильме | Было у меня |
+| In the film | What I had |
 |---|---|
-| **звонок** («Резюме звонка», «об этом звонке») | созвон |
+| **звонок** ("Резюме звонка", "об этом звонке") | созвон |
 | **слепые зоны** | спорные места |
-| **владелец**, «без владельца» | «ответственный не назван» |
+| **владелец**, "без владельца" | "ответственный не назван" |
 
-Каждое из моих слов — нормальный русский. Проблема не в них, а в том, что два
-слова для одной вещи читаются как два разных продукта: пользователь, увидевший
-в ролике «звонок», а в приложении «созвон», решает, что это разные штуки.
+Every one of my words is ordinary Russian. The problem is not the words but that
+two words for one thing read as two different products: a user who sees "звонок" in
+the film and "созвон" in the application concludes they are different things.
 
-Проверяется тестом, который читает сам файл дорожки, а не копию из него:
-разойтись молча теперь нельзя.
+It is checked by a test that reads the track file itself rather than a copy of it:
+diverging silently is no longer possible.
 
 ---
 
-## 6.7 Падежи: центральное обещание не работало на целом разряде слов (проверено 2026-08-14)
+## 6.7 Cases: the central promise did not work on an entire class of words (verified 2026-08-14)
 
-Поиск сводит слово вопроса и слово речи к одной основе обрезкой окончаний.
-Разряд существительных на «-ние» разъезжался целиком:
+Search reduces the question's word and the speech's word to one stem by trimming
+endings. The class of nouns ending in "-ние" drifted apart entirely:
 
-| Сказано на звонке | Спрошено | Основа речи | Основа вопроса |
+| Said on the call | Asked | Speech stem | Question stem |
 |---|---|---|---|
 | развёртывание | развёртыванием | `развёртыван` | `развёртывани` |
 | обновление | обновления | `обновлен` | `обновлени` |
 | решение | решению | `решен` | `решени` |
 
-Именительный падеж терял «ие» целиком, косвенные — только последнюю букву.
-Две разные основы у одного слова, то есть честное «в сохранённых звонках об
-этом не говорили» о том, что говорили. Разряд — обычная лексика работы:
-развёртывание, обновление, подключение, решение, тестирование, согласование,
-требование. Прилагательные разъезжались так же на творительном: «годовой» →
-`годов`, «годовым» → без изменений.
+The nominative lost "ие" entirely, the oblique cases only the last letter. Two
+different stems for one word — that is, an honest "в сохранённых звонках об этом не
+говорили" about something that was in fact discussed. The class is ordinary work
+vocabulary: развёртывание, обновление, подключение, решение, тестирование,
+согласование, требование. Adjectives drifted the same way in the instrumental:
+"годовой" → `годов`, "годовым" → unchanged.
 
-**Чем это ловится и чем не ловится.** Ни одна из 3006 проверок не падала.
-Замер качества выдачи (`hit@1` на десяти вопросах реальной формы) показывал
-10 из 10 до починки и 10 из 10 после — этого разряда в корпусе нет. Нашлось
-запуском поиска на обычных русских словах, а не чтением кода и не замером.
+**What catches this and what does not.** Not one of 3006 checks was failing. The
+result-quality measurement (`hit@1` on ten questions of a realistic shape) showed
+10 out of 10 before the fix and 10 out of 10 after — this class is absent from the
+corpus. It was found by running search on ordinary Russian words, not by reading
+code and not by measurement.
 
-**Что исправлено.** В список окончаний добавлено семейство на «и» («иями»,
-«ием», «ией», «иям», «иях», «ия», «ию», «ии») и творительный прилагательных
-(«ым», «им»); цикл обрезки начинается с четырёх знаков, иначе самое длинное
-окончание не срабатывает никогда. Составные слова с дефисом теперь попадают в
-указатель и целиком, и частями: «кластер» находит «Kubernetes-кластер».
+**What was fixed.** The ending list gained the "и" family ("иями", "ием", "ией",
+"иям", "иях", "ия", "ию", "ии") and the adjectival instrumental ("ым", "им"); the
+trimming loop starts at four characters, otherwise the longest ending never fires.
+Hyphenated compounds now enter the index both whole and in parts: "кластер" finds
+"Kubernetes-кластер".
 
-**В приложении этого не было вовсе.** Разбор слова там сводился к «термин
-словаря или слово как есть» — обрезки окончаний ни одной, при комментарии, что
-шаг тот же, что в командной строке. Для русского вопроса совпадение множеств
-слов и есть весь поиск: вторая половина — эмбеддинг системной модели macOS, а
-она англоязычная. Теперь обе стороны зовут `RecallIndex.searchToken`.
+**In the application this did not exist at all.** Word analysis there amounted to
+"a lexicon term or the word as it is" — no ending trimming whatsoever, alongside a
+comment saying the step was the same as in the command line. For a Russian question,
+the intersection of word sets is the whole of search: the other half is the macOS
+system model's embedding, and that model is English-language. Both sides now call
+`RecallIndex.searchToken`.
 
-**Чего обрезка окончаний не умеет и не будет.** Глагол через вид и
-словообразование не сводится: «выкатываем» не найдётся по «выкатить»,
-«переносим» по «перенос». Это не тот же изъян — суффиксная обрезка такого не
-умеет в принципе, и настоящий стеммер (Snowball) эту пару тоже не сводит.
-Написано на странице прямо, а не умолчано.
+**What ending trimming cannot and will not do.** A verb is not reduced across aspect
+and derivation: "выкатываем" will not be found by "выкатить", nor "переносим" by
+"перенос". That is not the same flaw — suffix trimming cannot do it in principle,
+and a real stemmer (Snowball) does not reduce that pair either. It is written on the
+page plainly rather than passed over.
 
-## 6.8 Опечатка выдавалась за отсутствие разговора (проверено 2026-08-14)
+## 6.8 A typo was passed off as the absence of a conversation (verified 2026-08-14)
 
-Найдено прогоном, а не чтением кода: тем же способом, что и §6.7. Архив из
-одного звонка про тарифы, шесть запросов подряд с клавиатуры.
+Found by running it rather than by reading the code: the same way as §6.7. An
+archive of one call about pricing, six queries typed in a row.
 
-| Запрос | Что было | Почему |
+| Query | What happened | Why |
 |---|---|---|
-| `тариф`, `ТАРИФЫ`, `деплоя` | находит | основа и регистр сходятся |
-| `что решили по тарифам` | находит | служебные слова отброшены |
-| `тарифф` | «в сохранённых звонках об этом не говорили» | лишняя буква |
-| `рскатываем` | то же | пропущенная буква |
+| `тариф`, `ТАРИФЫ`, `деплоя` | finds it | stem and case agree |
+| `что решили по тарифам` | finds it | function words are discarded |
+| `тарифф` | "в сохранённых звонках об этом не говорили" | an extra letter |
+| `рскатываем` | the same | a missing letter |
 
-Поиск словарный, и промах на одну букву не совпадает ни с чем. Само по себе
-это не изъян — изъян в том, что говорилось в ответ. Фраза «об этом не
-говорили» есть утверждение о содержимом архива, и человек уходит уверенным,
-что темы не было, хотя она лежит строкой выше. Одна опечатка — самый частый
-способ не найти лежащее на месте; для аудитории, которая набирает вопрос
-между двумя звонками, это не редкий случай.
+Search is lexicon-based, and a one-letter miss matches nothing. That in itself is
+not the flaw — the flaw is what was said in reply. The sentence "об этом не
+говорили" is an assertion about the archive's contents, and a person leaves
+convinced the topic never came up, when it is sitting one line above. A single typo
+is the commonest way to fail to find something that is right there; for an audience
+typing a question between two calls, that is not a rare case.
 
-**Что сделано.** При пустом ответе ищутся слова архива, отличающиеся на одну
-опечатку: лишняя буква, пропущенная, не та, переставленные соседние
-(`RecallIndex.isOneEditApart`). Перестановка не роскошь: «таирфы» набирается
-не реже, чем «тарифф», а через замены это расстояние два. Найденное
-показывается — «Похоже на опечатку — в архиве есть «тарифам»» — и не
-подставляется молча: подменить вопрос значит ответить не на него.
+**What was done.** On an empty answer, the archive's words are searched for ones
+that differ by a single typo: an extra letter, a missing one, a wrong one, or two
+adjacent ones transposed (`RecallIndex.isOneEditApart`). Transposition is not a
+luxury: "таирфы" is typed no less often than "тарифф", and through substitutions
+that distance is two. What is found is shown — "Похоже на опечатку — в архиве есть
+«тарифам»" — and is not substituted silently: replacing the question means answering
+a different one.
 
-**Границы, поставленные нарочно.** Слова короче четырёх букв не
-подсказываются: для «код» одна буква — треть слова, и «кот» ему «похож» ровно
-так же. Слово, которое в архиве есть, подсказки не получает, даже если рядом
-лежит похожее. Промах в окончании чинить не понадобилось: «тарифя» находится
-и так, окончания отбрасываются на общих основаниях. Первая редакция проверки
-требовала подсказку и на него — то есть требовала чинить целое.
+**Boundaries drawn deliberately.** Words shorter than four letters get no
+suggestion: for "код" one letter is a third of the word, and "кот" is "similar" to
+it in exactly the same way. A word that is in the archive gets no suggestion even if
+something similar sits beside it. A miss in the ending did not need fixing: "тарифя"
+is found as it is, endings being discarded on general grounds. The first draft of
+the check demanded a suggestion for that too — that is, demanded that the whole be
+repaired.
 
-**Цена.** Первая редакция ради написаний слов заново разбирала весь архив: на
-608 тыс. слов промах стоил 4,52 с против 2,52 с у попадания — лишние 1,8 с,
-ровно стоимость построения указателя. Теперь похожее ищется по уже разобранным
-основам, а до текста дело доходит только ради написания найденных основ, и
-проход обрывается, как только оно есть у каждой: промах 2,19 с, дешевле
-попадания. Держит это `SearchPerformanceTests`, сравнивая время подсказки со
-временем разбора в том же прогоне: абсолютный потолок здесь врал бы вместе с
-занятостью машины.
+**The cost.** For the sake of the words' spellings, the first draft re-parsed the
+entire archive: over 608 thousand words a miss cost 4.52 s against 2.52 s for a hit
+— an extra 1.8 s, exactly the cost of building the index. Now similar words are
+sought among the already-parsed stems, and the text is reached only to recover the
+spelling of the stems found, with the pass breaking off as soon as each has one: a
+miss takes 2.19 s, cheaper than a hit. `SearchPerformanceTests` holds this by
+comparing the suggestion's time against the parsing time in the same run: an
+absolute ceiling here would lie along with the machine's load.
 
-Проверки: `NearMissTests`, двенадцать штук. Пять свойств подтверждены порчей
-исходника; шестое, ранний выход по разнице длин, порчей не ломается, и это
-записано рядом с ним — проход и без него отсекает разницу в две буквы.
+Checks: `NearMissTests`, twelve of them. Five properties are confirmed by damaging
+the source; the sixth, the early exit on a length difference, does not break under
+damage, and that is recorded beside it — the pass cuts off a two-letter difference
+even without it.
 
-## 7. Отдельное приложение, и почему Windows идёт первым
+## 7. A separate application, and why Windows comes first
 
-**orakul — не сборка Cruxwing под другим именем.** Идентичность разведена
-полностью (`config/app.json`, проверяется `test/identity.test.mjs`): bundle id
-`ai.orakul.desktop` против `com.meetgpt.macapp`, свой том установщика, свой
-набор настроек и своя служба в Связке ключей.
+**orakul is not a Cruxwing build under a different name.** The identity is fully
+separated (`config/app.json`, checked by `test/identity.test.mjs`): bundle id
+`ai.orakul.desktop` against `com.meetgpt.macapp`, its own installer volume, its own
+set of settings and its own Keychain service.
 
-Это не косметика. macOS привязывает разрешение на запись экрана и микрофона к
-bundle id: при совпадении две программы делят один доступ, и отозвать его у
-одной, не забрав у второй, нельзя. Общий `UserDefaults` suite означал бы, что
-установка orakul меняет настройки Cruxwing на той же машине. Установщики
-называются `orakul-*` и складываются в собственный каталог — файл с именем
-Cruxwing не может быть перезаписан и наоборот.
+This is not cosmetic. macOS ties the screen-recording and microphone permissions to
+the bundle id: if they coincide, two programs share one grant, and revoking it from
+one without taking it from the other is impossible. A shared `UserDefaults` suite
+would mean that installing orakul changes Cruxwing's settings on the same machine.
+The installers are named `orakul-*` and go into a directory of their own — a file
+named Cruxwing cannot be overwritten and vice versa.
 
-### 7.1 Windows: не «потом», а, возможно, вперёд macOS
+### 7.1 Windows: not "later", and possibly ahead of macOS
 
-Cruxwing — нативное приложение macOS: захват через ScreenCaptureKit, модели
-через CoreML. На российском рынке это ограничение бьёт сильнее, чем на
-американском: корпоративный парк здесь преимущественно Windows, и продукт для
-разработчиков, доступный только на Mac, отсекает большую часть аудитории до
-первого запуска. **ASSUMPTION** — доля macOS среди российских разработчиков не
-измерена, и это следующий вопрос к исследованию; но направление ошибки понятное.
+Cruxwing is a native macOS application: capture through ScreenCaptureKit, models
+through CoreML. In the Russian market that constraint bites harder than in the
+American one: the corporate fleet here is predominantly Windows, and a product for
+developers available only on a Mac cuts off most of the audience before the first
+launch. **ASSUMPTION** — the macOS share among Russian developers has not been
+measured, and that is the next research question; but the direction of the error is
+clear.
 
-Что реально стоит порт (честная оценка, а не «перекомпилировать»):
+What a port actually costs (an honest estimate, not "recompile it"):
 
-| Слой | macOS сегодня | Windows |
+| Layer | macOS today | Windows |
 |---|---|---|
-| Захват системного звука | ScreenCaptureKit | **WASAPI loopback** — другая реализация целиком |
-| Расшифровка | CoreML | ONNX Runtime / whisper.cpp — модель та же, рантайм другой |
-| Поиск по встречам, глоссарий, ответы с цитатой | общий код | **переносится без изменений** |
-| Интерфейс | SwiftUI | отдельный слой |
+| System audio capture | ScreenCaptureKit | **WASAPI loopback** — an entirely different implementation |
+| Transcription | CoreML | ONNX Runtime / whisper.cpp — the same model, a different runtime |
+| Meeting search, glossary, answers with a quote | shared code | **ports unchanged** |
+| Interface | SwiftUI | a separate layer |
 
-Ядро — то, ради чего продукт существует, — платформенно-независимо. Платформенны
-захват и оболочка. Это делает Windows дорогим, но не «вторым продуктом»: граница
-проходит там же, где она уже проходит в коде.
-
----
-
-## 8. Telegram: фрагментация, у которой есть число
-
-Телеграм — фактическая замена форуму, и его беда структурная, а не культурная.
-Все источники сведены в одну ленту чатов, поэтому найти нужное трудно
-by design.[^tg-search] Масштаб виден по чужой попытке починить это: автор
-проекта «StackOverflow из IT-чатов Telegram» вручную вступил примерно в **250
-тематических чатов** и отдельным сервисом отфильтровывал сообщения-вопросы из
-общего потока.[^tg-so] Инструментов-поисковиков по каналам (Teleteg, TGStat) и
-каталогов (TLGRM) хватает — то есть проблему признают все, и решают её снаружи,
-поиском по чужим чатам.[^tg-search]
-
-**Вывод для orakul, и он ограничивающий.** Соблазн — «сделать поиск по
-телеграм-чатам». Это ошибка по трём причинам: чужие чаты не наш контент, ответ в
-чате не имеет статуса решения, и рынок таких поисковиков уже есть. Ценность
-orakul в обратном: **не искать ответ у посторонних, а находить его в своих
-звонках**, где он уже прозвучал и где у него есть автор и дата. Телеграм в
-продукте появляется как источник контекста для собственной команды (свои чаты,
-по явному подключению), а не как поисковый индекс по экосистеме.
+The core — the thing the product exists for — is platform-independent. What is
+platform-specific is capture and the shell. That makes Windows expensive but not "a
+second product": the boundary runs where it already runs in the code.
 
 ---
 
-## 8.1 Telegram: старая история недоступна, новая архивируется (проверено 2026-08-16)
+## 8. Telegram: fragmentation that has a number
 
-§8 измерил фрагментацию и назвал поиск по рабочим чатам очевидным продолжением.
-Проверка Bot API это закрывает: **бот не может ни читать, ни искать историю**.
+Telegram is the de facto replacement for the forum, and its trouble is structural
+rather than cultural. Every source is collapsed into one chat feed, so finding what
+you need is hard by design.[^tg-search] The scale is visible in somebody else's
+attempt to fix it: the author of the "StackOverflow from Telegram IT chats" project
+joined roughly **250 topical chats** by hand and used a separate service to filter
+question-shaped messages out of the general stream.[^tg-so] There is no shortage of
+channel search tools (Teleteg, TGStat) and directories (TLGRM) — that is, everyone
+acknowledges the problem and solves it from outside, by searching other people's
+chats.[^tg-search]
 
-- `getUpdates` отдаёт только новые события и хранит недоставленные **не дольше
-  24 часов**;
-- сообщений, отправленных до добавления бота, он не видит вовсе;
-- метода «найти в переписке» в Bot API нет.
-
-Значит, честного коннектора «поиск по всей вашей истории Telegram» не существует.
-Единственный способ добраться до старой истории — MTProto с пользовательской
-сессией, то есть попросить разработчика отдать приложению свой личный аккаунт
-Telegram. Для продукта, который обещает, что всё остаётся на компьютере, это не
-деталь реализации, а смена обещания.
-
-Реализован именно более узкий путь, который не требует чужого аккаунта: отдельный
-бот, добавленный в явно разрешённые супергруппы, получает сообщения **с момента
-подключения**. Privacy Mode должен быть выключен либо бот должен быть
-администратором. Orakul проверяет это при подключении, сохраняет токен в Связке
-ключей, сообщения — в локальном архиве, а поиск выполняет тем же `RecallIndex`.
-Бот ничего не отправляет. Отключение удаляет и токен, и накопленный архив.
-
-Это prospective-only интеграция, не импорт истории. Интерфейс поэтому прямо
-говорит: «история начинается после подключения». Для старых сообщений остаётся
-только явный импорт пользовательского экспорта; маскировать MTProto-сессию под
-обычный API-токен продукт не будет.
+**The conclusion for orakul, and it is a limiting one.** The temptation is to "build
+search over Telegram chats". That is a mistake for three reasons: other people's
+chats are not our content, an answer in a chat has no status as a decision, and a
+market for such search tools already exists. orakul's value is the opposite: **not
+finding an answer among strangers but finding it in your own calls**, where it has
+already been said and where it has an author and a date. Telegram appears in the
+product as a context source for your own team (your own chats, by explicit
+connection), not as a search index over the ecosystem.
 
 ---
 
-## 9. Интеграция с GitHub (черновик архитектуры)
+## 8.1 Telegram: old history is unavailable, new history is archived (verified 2026-08-16)
 
-Метрика проекта — звёзды и установки, поэтому GitHub здесь не «ещё один
-коннектор», а витрина. Две разные вещи, которые нельзя путать:
+§8 measured the fragmentation and named search over work chats the obvious
+continuation. Checking the Bot API closes that: **a bot can neither read nor search
+history**.
 
-**9.1. Репозиторий как продукт.** Открытое ядро под Apache 2.0. Что решает
-судьбу звезды: README, который запускается с первого раза, и понятная граница
-между открытым и платным. Правило: всё, что обрабатывает речь пользователя, —
-открыто; закрыто только то, что работает на нашей инфраструктуре.
+- `getUpdates` returns only new events and keeps undelivered ones for **no longer
+  than 24 hours**;
+- it does not see messages sent before the bot was added at all;
+- there is no "find in the conversation" method in the Bot API.
 
-**9.2. GitHub как источник контекста.** Связывает звонок с кодом: обсуждение
-«давайте вынесем биллинг в отдельный сервис» и PR, который это делает, — одно
-решение в двух местах.
+So an honest "search across your entire Telegram history" connector does not exist.
+The only way to reach old history is MTProto with a user session — that is, asking a
+developer to hand the application their personal Telegram account. For a product
+that promises everything stays on the computer, that is not an implementation detail
+but a change of promise.
 
-| Что | Как | Почему так |
+What is implemented is the narrower path that requires nobody's account: a separate
+bot, added to explicitly allowed supergroups, receives messages **from the moment of
+connection**. Privacy Mode must be off, or the bot must be an administrator. Orakul
+checks this on connection, saves the token in the Keychain and the messages in a
+local archive, and performs search with the same `RecallIndex`. The bot sends
+nothing. Disconnecting deletes both the token and the accumulated archive.
+
+This is a prospective-only integration, not a history import. The interface
+therefore says so outright: "история начинается после подключения". For old messages
+what remains is an explicit import of the user's own export; the product will not
+disguise an MTProto session as an ordinary API token.
+
+---
+
+## 9. GitHub integration (architecture draft)
+
+The project's metric is stars and installs, so GitHub here is not "one more
+connector" but the shop window. Two different things that must not be confused:
+
+**9.1. The repository as the product.** An open core under Apache 2.0. What decides
+the fate of a star: a README that runs first time, and a clear boundary between open
+and paid. The rule: everything that processes the user's speech is open; only what
+runs on our infrastructure is closed.
+
+**9.2. GitHub as a context source.** It ties a call to the code: the discussion
+"let's split billing into a separate service" and the PR that does it are one
+decision in two places.
+
+| What | How | Why this way |
 |---|---|---|
-| Чтение issues/PR | GitHub REST + MCP-коннектор | Тот же слой, что и трекеры: коннектор, а не частный случай |
-| Привязка решения к PR | по номеру и по названию ветки, произнесённым на звонке | Номер PR в речи — самый надёжный якорь; распознаётся как цифра, а не термин |
-| Запись обратно | черновик комментария, отправляет человек | Правило продукта: сам он не отправляет ничего |
-| Приватность | только по явному подключению репозитория | Код не уходит в модель без отдельного согласия |
+| Reading issues/PRs | GitHub REST + an MCP connector | The same layer as the trackers: a connector, not a special case |
+| Tying a decision to a PR | by the number and the branch name spoken on the call | A PR number in speech is the most reliable anchor; it is recognised as a digit, not a term |
+| Writing back | a draft comment, sent by a person | The product's rule: it sends nothing itself |
+| Privacy | only on an explicit repository connection | Code does not reach the model without separate consent |
 
-**Задержка.** Тот же дедлайн, что у остальных коннекторов (8 с): один
-подвисший источник стоит одного источника, а не всего ответа.
+**Latency.** The same deadline as the other connectors (8 s): one wedged source
+costs one source rather than the whole answer.
 
 ---
 
-## 9.1 GitHub: почему токен, а не OAuth (проверено 2026-08-12)
+## 9.1 GitHub: why a token rather than OAuth (verified 2026-08-12)
 
-Черновик выше предполагал подключение как у остальных: через MCP, в одно
-нажатие. Живая проверка это опровергла.
+The draft above assumed a connection like the others: through MCP, in one click. A
+live check refuted that.
 
-`https://api.githubcopilot.com/mcp/` отвечает по спецификации: 401 и
-`WWW-Authenticate` с адресом метаданных. Метаданные ресурса указывают на сервер
-авторизации `https://github.com/login/oauth`. Его метаданные лежат по
-нестандартному пути (`/.well-known/oauth-authorization-server/login/oauth`, а не
-под issuer) и содержат:
+`https://api.githubcopilot.com/mcp/` answers per the specification: 401 and a
+`WWW-Authenticate` carrying a metadata address. The resource metadata points at the
+authorization server `https://github.com/login/oauth`. Its metadata sits at a
+non-standard path (`/.well-known/oauth-authorization-server/login/oauth` rather than
+under the issuer) and contains:
 
 ```
 authorization_endpoint: https://github.com/login/oauth/authorize
 token_endpoint:         https://github.com/login/oauth/access_token
 code_challenge_methods_supported: ["S256"]
-registration_endpoint:  ОТСУТСТВУЕТ
+registration_endpoint:  ABSENT
 ```
 
-PKCE есть, **динамической регистрации клиента нет**. Весь MCP-каталог в
-приложении построен на ней: клиент регистрируется на лету, пользователь ничего
-не заводит заранее. Для GitHub этот путь закрыт.
+PKCE is there, **dynamic client registration is not**. The application's entire MCP
+catalogue is built on it: the client registers on the fly and the user sets nothing
+up in advance. For GitHub that path is closed.
 
-Второй вариант — заранее зарегистрированное OAuth-приложение с зашитым
-секретом, как у HubSpot. Он тоже не работает: в готовые установщики секреты не
-попадают намеренно (`build.sh`, `SECRET_VARS`), значит в скачанном orakul такой
-строки просто не будет.
+The second option — a pre-registered OAuth application with a baked-in secret, as
+with HubSpot — does not work either: secrets deliberately do not reach the finished
+installers (`build.sh`, `SECRET_VARS`), so in a downloaded orakul that line simply
+will not exist.
 
-Остаётся личный токен — то, что GitHub поддерживает сам и что совпадает с
-устройством остального продукта: ключи провайдеров и токены трекеров человек
-вставляет руками. Реализовано в `GitHubConnector`, поиск по
+What remains is a personal token — something GitHub supports itself, and which
+matches how the rest of the product is arranged: provider keys and tracker tokens
+are pasted in by hand. Implemented in `GitHubConnector`, searching through
 `GET /search/issues`.
 
-Две детали, найденные на живом API и закреплённые тестами: без `is:issue`
-GitHub отвечает 422 части токенов, а версия API фиксируется заголовком
-`X-GitHub-Api-Version` — иначе формат ответа вправе поменяться под нами.
-Репозитории обязательны: без них поиск идёт по всему GitHub и приносит чужие
-задачи, неотличимые от контекста команды.
+Two details found on the live API and pinned by tests: without `is:issue` GitHub
+answers 422 to some tokens, and the API version is fixed by the
+`X-GitHub-Api-Version` header — otherwise the response format is free to change
+under us. Repositories are mandatory: without them search runs across the whole of
+GitHub and brings back other people's issues, indistinguishable from the team's own
+context.
 
 ---
 
@@ -1083,12 +1116,13 @@ GitHub отвечает 422 части токенов, а версия API фи�
    researched and implemented in §8.1. Remaining unknown is adoption: whether
    teams will connect their own work chats. That is now a tester question, not
    an architecture guess.
-2. ~~Willingness to pay, and where the tier boundary sits~~ — вопрос снят
-   решением: тарифов нет, и это закреплено `NoTariffsTests`. Граница платного
-   не ищется, потому что платного нет.
-3. ~~Note-taking tool landscape~~ — проверено в §2.1. Осталось уже, чем было:
-   нужен доступ к организации в Яндекс 360, чтобы вызвать метод поиска по вики и
-   увидеть его ответ. Без этого коннектор не пишется.
+2. ~~Willingness to pay, and where the tier boundary sits~~ — the question was
+   removed by a decision: there are no plans, and that is pinned by
+   `NoTariffsTests`. The paid boundary is not being sought, because there is
+   nothing paid.
+3. ~~Note-taking tool landscape~~ — verified in §2.1. What remains is narrower than
+   it was: access to an organisation in Yandex 360 is needed to call the wiki search
+   method and see its answer. Without that, no connector is written.
 4. ~~Whether Russian ASR quality on developer speech is good enough~~ —
    researched in §6. Downgraded from unknown to a build task: assemble a Russian
    developer-meeting eval corpus, then measure T-one against shipped Whisper on
@@ -1122,47 +1156,49 @@ GitHub отвечает 422 части токенов, а версия API фи�
 [^llm-compare]: [Сравнение отечественных LLM 2026 — AZONE-AI](https://azoneai.ru/blog/10-sravnenie-llm/); [Чем заменить ChatGPT в России в 2026 — autollab](https://autollab.ru/blog/chem-zamenit-chatgpt-v-rossii-2026)
 [^llm-oss]: [Лучшая LLM для русского языка 2026 — ofox.ai](https://ofox.ai/ru/blog/luchshaya-llm-dlya-russkogo-yazyka-sravnenie-2026/)
 
-## 11. ВКС: почему коннектора к звонкам нет ни к одному из четырёх (проверено 2026-08-12)
+## 11. ВКС (video conferencing): why there is no call connector to any of the four (verified 2026-08-12)
 
-§2 назвал четыре домашние платформы ВКС — Телемост, VK Teams, SaluteJazz
-(бывш. SberJazz), TrueConf — и оставил коннекторы к ним в плане. Проверка по
-документации каждой закрывает вопрос: **ни одна не даёт того, ради чего
-коннектор нужен**.
+§2 named the four domestic video-conferencing platforms — Телемост, VK Teams,
+SaluteJazz (formerly SberJazz), TrueConf — and left connectors to them in the plan.
+Checking each one's documentation closes the question: **not one of them provides
+the thing a connector is needed for**.
 
-Сначала — зачем он вообще нужен, потому что это не очевидно. На самом звонке
-orakul не нужен ничей API: он берёт системный звук, и платформа для него
-неотличима от плеера. Коннектор к ВКС дал бы ровно одно — **прошлые звонки, на
-которых orakul не работал**: список встреч и их расшифровки. Это и проверялось.
+First, why one is needed at all, because that is not obvious. On the call itself
+orakul needs nobody's API: it takes system audio, and the platform is
+indistinguishable from a media player as far as it is concerned. A video-conferencing
+connector would give exactly one thing — **past calls, during which orakul was not
+running**: the list of meetings and their transcripts. That is what was checked.
 
-| Платформа | Список встреч | Записи | Расшифровка | Что мешает |
+| Platform | Meeting list | Recordings | Transcript | What blocks it |
 |---|---|---|---|---|
-| Яндекс Телемост | нет | нет | нет | В API три операции: `POST /v1/telemost-api/conferences`, `GET …/conferences/{id}`, изменение. Встречу можно создать и прочитать **по известному идентификатору** — перечислить нельзя. Записи приходят письмом ссылкой на Яндекс Диск, эндпоинта нет. Плюс нужен Яндекс 360 для бизнеса на домене организации |
-| VK Teams | нет | нет | нет | Bot API — это отправка и приём сообщений, чаты, файлы, события. Звонков в нём нет вовсе. И та же стена, что у Telegram (§8.1): бот видит только адресованное ему |
-| TrueConf | зависит от сервера | отчёты сервера | нет универсальной | REST API v4 и OAuth 2.0 существуют во всех редакциях сервера, но точные методы и права документирует сам сервер по `https://<server>/api/v4/docs/`. Публичная справка не гарантирует переносимого метода списка/скачивания записей: для реализации нужен адрес и read-only доступ к документации конкретной установки[^trueconf-api] |
-| SaluteJazz | комнаты | **есть** | **есть** | Единственная, у кого API покрывает и записи, и транскрипции. Упирается в авторизацию: нужен **ключ SDK организации**, а транспортный токен вендор требует генерировать **на бэкенде** приложения, и уже его менять на токен доступа через `POST /auth/login` |
+| Яндекс Телемост | no | no | no | The API has three operations: `POST /v1/telemost-api/conferences`, `GET …/conferences/{id}`, and modification. A meeting can be created and read **by a known identifier** — it cannot be enumerated. Recordings arrive by email as a Yandex Disk link; there is no endpoint. Plus Yandex 360 for business on the organisation's domain is required |
+| VK Teams | no | no | no | The Bot API is sending and receiving messages, chats, files, events. It has no calls at all. And the same wall as Telegram (§8.1): a bot sees only what is addressed to it |
+| TrueConf | depends on the server | server reports | no portable one | REST API v4 and OAuth 2.0 exist in every server edition, but the exact methods and rights are documented by the server itself at `https://<server>/api/v4/docs/`. The public reference does not guarantee a portable method for listing or downloading recordings: implementing it needs the address and read-only access to that particular installation's documentation[^trueconf-api] |
+| SaluteJazz | rooms | **yes** | **yes** | The only one whose API covers both recordings and transcriptions. It runs up against authorization: an **organisation SDK key** is required, and the vendor requires the transport token to be generated **on the application's backend**, then exchanged for an access token through `POST /auth/login` |
 
-**Jitsi — отдельная форма.** Текущий звонок уже определяется по браузерному
-заголовку либо официальному desktop bundle и записывается системным захватом.
-Универсального облачного архива у Jitsi нет: self-hosted запись складывает Jibri
-в хранилище владельца, а JaaS сообщает о готовой записи webhook-событием. Поэтому
-исторический импорт должен настраиваться под Jibri storage/finalize hook или
-JaaS webhook конкретной организации; одного «ключа Jitsi» для всех установок не
-существует.[^jitsi-recording]
+**Jitsi is a separate shape.** A current call is already detected by the browser
+title or the official desktop bundle and recorded by system capture. Jitsi has no
+universal cloud archive: a self-hosted recording is deposited by Jibri into the
+owner's storage, and JaaS reports a finished recording by a webhook event. So a
+historical import has to be configured against a particular organisation's Jibri
+storage/finalize hook or JaaS webhook; there is no single "Jitsi key" for all
+installations.[^jitsi-recording]
 
-**Вывод по SaluteJazz — отдельно, потому что он не про них, а про нас.** Их API
-подошёл бы. Не подходит наша архитектура: у orakul нет бэкенда, на котором
-положено генерировать транспортный токен, и появиться ему неоткуда — «сервера нет»
-проверяется при сборке (§5.1). Зашить ключ SDK в клиент значит раздать ключ
-организации всем, кто скачал приложение. Так что это не «не успели», а прямое
-следствие решения, которое мы приняли раньше и не собираемся отменять.
+**The SaluteJazz conclusion, separately, because it is not about them but about
+us.** Their API would fit. What does not fit is our architecture: orakul has no
+backend on which the transport token is supposed to be generated, and there is
+nowhere for one to come from — "there is no server" is checked at build time (§5.1).
+Baking the SDK key into the client would mean handing the organisation's key to
+everyone who downloaded the application. So this is not "we did not get to it" but a
+direct consequence of a decision we made earlier and do not intend to reverse.
 
-**Что это меняет в продукте: ничего.** Запись звонка на любой из четырёх
-платформ работает уже сегодня — системным захватом, без бота в комнате и без
-разрешения вендора. Отсутствует только импорт чужого прошлого, и цена этого —
-одна строка в «Чего ещё нет», а не сломанный сценарий.
+**What this changes in the product: nothing.** Recording a call on any of the four
+platforms works today — by system capture, with no bot in the room and no vendor's
+permission. What is missing is only the import of somebody else's past, and the
+price of that is one line in "What is still missing", not a broken scenario.
 
-**Что осталось бы сделать, если решение изменится.** Только SaluteJazz и только
-с бэкендом: `POST /auth/login` за токеном доступа, затем список видеозаписей и
-расшифровка встречи — тем же слоем `MCPGrounding`, что и трекеры, с тем же
-кэшем и тем же тестом на живом сервисе (`LiveConnectorProbe`). Остальные три
-не станут возможны от того, что мы передумаем.
+**What would remain to be done if the decision changes.** Only SaluteJazz, and only
+with a backend: `POST /auth/login` for an access token, then the list of recordings
+and the meeting transcript — through the same `MCPGrounding` layer as the trackers,
+with the same cache and the same live-service test (`LiveConnectorProbe`). The other
+three will not become possible because we changed our minds.

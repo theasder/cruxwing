@@ -296,15 +296,15 @@ describe('RESEARCH-AND-PLAN', () => {
     // появится следующая ошибка того же рода. Обобщение без случаев быстро
     // превращается в лозунг, поэтому проверяется, что случаи на месте и что
     // они настоящие — каждый из них лежит починенным в истории.
-    const section = doc.slice(doc.indexOf('Одна форма ошибки повторяется'));
+    const section = doc.slice(doc.indexOf('One shape of error recurs'));
     assert.ok(section.length > 400, 'the recurring-defect section is missing or a stub');
 
-    for (const seen of ['Удалено', '502', 'unknown', 'служебные слова']) {
+    for (const seen of ['Удалено', '502', 'unknown', 'function words']) {
       assert.ok(section.includes(seen),
         `the section no longer cites the ${seen} case`);
     }
     // Правило важнее таблицы: таблица стареет, правило переносится на новое.
-    assert.match(section, /найдите\s+случай, когда исхода не было/,
+    assert.match(section, /find the case\s+where there was no outcome/,
       'the rule the table exists to support is gone');
 
     // Число случаев названо словом в двух местах и перечислено строками в
@@ -312,8 +312,8 @@ describe('RESEARCH-AND-PLAN', () => {
     // то устаревшее число, про которое весь этот раздел и написан. Теперь
     // слово и таблица считаются вместе.
     const words = {
-      три: 3, четыре: 4, пять: 5, шесть: 6, семь: 7, восемь: 8,
-      девять: 9, десять: 10, одиннадцать: 11, двенадцать: 12,
+      three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8,
+      nine: 9, ten: 10, eleven: 11, twelve: 12,
     };
     // `section` тянется до конца документа, поэтому строки таблицы берутся
     // только до следующего заголовка: без границы сюда попадали таблицы всех
@@ -324,18 +324,18 @@ describe('RESEARCH-AND-PLAN', () => {
     // таблица. Строки берутся подряд от первой и до первой не-строки.
     const lines = section.split('\n');
     const start = lines.findIndex((line) => /^\| /.test(line));
-    assert.ok(start >= 0, 'таблица случаев исчезла из раздела');
+    assert.ok(start >= 0, 'the table of cases vanished from the section');
     const table = [];
     for (let i = start; i < lines.length && /^\|/.test(lines[i]); i += 1) table.push(lines[i]);
     const rows = table.filter((line) => !/^\|\s*-+/.test(line)).slice(1);
-    assert.ok(rows.length >= 3, 'таблица случаев опустела');
+    assert.ok(rows.length >= 3, 'the table of cases is empty');
 
     for (const [phrase, word] of section.matchAll(
-      /(?:нашлась|Общее у всех)\s+(?:она\s+)?([а-я]+)/g)) {
+      /(?:it was found|What all)\s+([a-z]+)/g)) {
       const value = words[word];
-      if (value === undefined) continue;   // «всех восьми» склоняется иначе
+      if (value === undefined) continue;
       assert.equal(value, rows.length,
-        `в разделе написано «${phrase.trim()}», а случаев в таблице ${rows.length}`);
+        `the section says "${phrase.trim()}", and the table holds ${rows.length} cases`);
     }
   });
 
@@ -401,7 +401,7 @@ describe('RESEARCH-AND-PLAN', () => {
     }
     // И должно быть сказано, что запись звонка при этом работает — иначе
     // раздел читается как «продукт не работает с российскими ВКС».
-    assert.match(section, /системным захватом/,
+    assert.match(section, /by system capture/,
       'the section does not say local capture still works on all four');
   });
 
@@ -434,11 +434,11 @@ describe('RESEARCH-AND-PLAN', () => {
 
     assert.match(doc, /habr\.com\/ru\/companies\/habr\/articles\/1019036/,
       'the plan lost the thread the moderation complaints came from');
-    assert.match(doc, /прочитано 2026-\d{2}-\d{2}/,
+    assert.match(doc, /read\s+2026-\d{2}-\d{2}/,
       'the moderation reading has no date, so nobody knows how stale it is');
 
     // Три механизма — не риторика, а то, что реально называют авторы.
-    for (const mechanism of [/карм/i, /корпоративн/i, /оспорить|обжалован/i]) {
+    for (const mechanism of [/karma/i, /corporate blogs/i, /contest it|appeal/i]) {
       assert.match(doc, mechanism, `the plan dropped a named moderation mechanism: ${mechanism}`);
     }
 
@@ -467,7 +467,7 @@ describe('RESEARCH-AND-PLAN', () => {
     for (const service of shipped) {
       const row = table.split('\n').find((line) => line.startsWith(`| ${service} `));
       assert.ok(row, `${service} ships and is missing from the census`);
-      assert.match(row, /подключён/,
+      assert.match(row, /connected/,
         `${service} ships, and the census does not say so: ${row}`);
     }
 
@@ -494,11 +494,11 @@ describe('RESEARCH-AND-PLAN', () => {
 
     // Тупик без причины — это «мы не стали», а не результат исследования.
     // У каждого должно быть сказано, что именно закрыло путь.
-    for (const [name, cause] of [['Мегаплан', /долгоживущего ключа нет/i],
+    for (const [name, cause] of [['Мегаплан', /no long-lived key/i],
                                  ['GigaChat', /Russian Trusted Root CA/]]) {
       assert.match(doc, cause, `${name} is listed as a dead end with no stated cause`);
     }
-    const dated = doc.match(/проверено \d{4}-\d{2}-\d{2}/g) ?? [];
+    const dated = doc.match(/verified \d{4}-\d{2}-\d{2}/g) ?? [];
     assert.ok(dated.length >= 3,
       `only ${dated.length} findings carry a verification date; they all should`);
   });
