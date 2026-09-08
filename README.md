@@ -51,8 +51,8 @@ cat > расшифровка.txt <<'TXT'
 Борис: Я, к пятнице выкачу в биллинг.
 TXT
 
-.build/release/orakul добавить расшифровка.txt "Планёрка по тарифам"
-.build/release/orakul найти что решили по тарифам
+.build/release/orakul add расшифровка.txt "Планёрка по тарифам"
+.build/release/orakul search что решили по тарифам
 ```
 
 The command line lives in `mvp/`, the application in `app/`. This used to say
@@ -74,7 +74,7 @@ Ask about something the calls never covered and you get a refusal, not an
 invention:
 
 ```
-$ orakul найти когда корпоратив
+$ orakul search когда корпоратив
 В сохранённых звонках об этом не говорили. Ответ придумывать не буду.
 ```
 
@@ -83,7 +83,7 @@ It tells a typo apart from an absent conversation. Search is lexicon-based, and
 to that would pass sentence on a topic that was in fact discussed:
 
 ```
-$ orakul найти тарифф
+$ orakul search тарифф
 В сохранённых звонках об этом не говорили. Ответ придумывать не буду.
 Похоже на опечатку — в архиве есть «тарифам».
 ```
@@ -93,7 +93,7 @@ different one. A miss in the inflection needs no hint — "тарифя" is foun
 is, because search strips endings on its own.
 
 A call can be deleted by the start of its identifier, like a git commit:
-`orakul удалить 49290B26`. A prefix shorter than four characters is refused, and
+`orakul delete 49290B26`. A prefix shorter than four characters is refused, and
 if several calls match it, nothing is deleted and the list is shown. Deletion
 cannot be undone, so guessing is not allowed here.
 
@@ -162,12 +162,12 @@ To check for yourself: `spctl -a -vv -t open --context context:primary-signature
 orakul-AppleSilicon.dmg` should answer `accepted, source=Notarized Developer ID`.
 
 If you already have whisper.cpp installed, transcription works too — Cruxwing runs
-your own program, substituting the path for `{файл}`:
+your own program, substituting the path for `{file}`:
 
 ```bash
-export ORAKUL_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {файл}"
-orakul расшифровать звонок.wav "Планёрка по тарифам"
-orakul найти что решили по тарифам
+export ORAKUL_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {file}"
+orakul transcribe звонок.wav "Планёрка по тарифам"
+orakul search что решили по тарифам
 ```
 
 A 16 kHz WAV is required. If the rate differs, Cruxwing will not resample it
@@ -252,7 +252,7 @@ request are described in [SECURITY.md](SECURITY.md).
 | `RussianLexicon` | The canonical spelling of terms, including cross-alphabet (`prod` → "прод", "апи" → `API`) |
 | `SessionStore` | The on-disk archive: one file per call, atomic writes, a corrupt file does not bring down the rest |
 | `MeetingPipeline` | The end-to-end path from sound to archive; the transcriber is plugged in from outside |
-| `ExternalTranscriber` | Transcription by someone else's engine: 16 kHz WAV, `{файл}` substitution, engine errors arrive intact |
+| `ExternalTranscriber` | Transcription by someone else's engine: 16 kHz WAV, `{file}` substitution, engine errors arrive intact |
 | `SpeechEval` | Recognition scoring: WER and engine disagreement without a reference |
 | `PromptCatalog` | Quick-action buttons, their text in JSON |
 

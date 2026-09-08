@@ -1,7 +1,7 @@
 # Security
 
-orakul listens to your work calls. That is the worst class of program to take on
-trust, so what follows is not "we take security seriously" but what exactly happens
+Cruxwing listens to your work calls. That is the worst class of program to take
+on trust, so what follows is not "we take security seriously" but what exactly happens
 to a recording and where data goes.
 
 ## The boundary of this document
@@ -160,22 +160,21 @@ be determined reliably.
 
 ## How to report a vulnerability
 
-**There is currently no working confidential channel.**
-`github.com/theasder/cruxwing` redirects to `theasder/cruxwing`, so do not send a
-report through Security at the destination address: that is a different product. A
-public release of orakul before that address is fixed is forbidden.
+**The confidential channel is not yet verified working.** The repository name is no
+longer the obstacle: this repository is `github.com/theasder/cruxwing`, and the
+redirect to a different product that earlier versions of this file warned about is
+gone.
 
-Only the owner can clear the external blocker: restore the canonical name
-`theasder/orakul`, enable GitHub Private Vulnerability Reporting, and verify from a
-separate account that the **Security → Report a vulnerability** tab really does
-accept a private report. After that verification, do not open a public issue: use
-that tab. Until then, the words in this file do not by themselves create a channel.
+What remains is the owner's to do: enable GitHub Private Vulnerability Reporting,
+then confirm from a separate account that the **Security → Report a vulnerability**
+tab really does accept a private report. Until that confirmation exists, do not
+open a public issue about a suspected vulnerability, and do not read this file as
+evidence that a channel is already working.
 
-There is deliberately no separate email address. Setting up a mailbox in the
-project's domain would be the easiest thing — and it would be an address in a
-domain that currently leads nowhere, that is, one quietly losing reports. Until the
-GitHub channel is restored there is no working confidential address; this is a
-release blocker, not a hidden caveat.
+There is deliberately no security email address here. A mailbox is the easiest
+thing to add and the easiest way to lose reports quietly when nobody is watching
+it; an address that is published but unmonitored is worse than none. The GitHub
+tab, once enabled and verified, is the channel.
 
 What helps get to the bottom of it faster:
 

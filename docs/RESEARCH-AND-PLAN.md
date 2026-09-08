@@ -117,7 +117,7 @@ chats grows, real control of the project *falls*.[^calls-manage] Two recurring
 failures:
 
 - **Agreements live only in heads and chats** — the explicit recommendation in
-  Russian practitioner writing is that договорённости must not stay in memory or
+  Russian practitioner writing is that agreements must not stay in memory or
   in chat threads, but be recorded in structured form.[^calls-agreements]
 - **Re-deciding**: having reached agreement and progress, teams find themselves
   going back and working through what was already worked through
@@ -170,7 +170,7 @@ the value of betting on any single one.
 |---|---|---|
 | Task tracking | **Yandex Tracker** first, then **Kaiten** | Tracker already exposes an API and webhooks and integrates with GitHub/GitLab and messengers, so the connector has a documented surface; Kaiten is named alongside it as the Agile-team default.[^trackers][^tracker-api] |
 | Task tracking (SMB) | WEEEK, YouGile, Planfix, Shtab | The small-team tier: YouGile is free to ten people with all features, Shtab has no headcount limit — this is where unfunded teams actually are.[^trackers][^trackers-smb] |
-| Process/approvals | Pyrus | Different shape: built around заявки and согласования (leave, contracts, invoices), so it is a workflow target rather than a task target.[^trackers] |
+| Process/approvals | Pyrus | Different shape: built around requests and approvals (leave, contracts, invoices), so it is a workflow target rather than a task target.[^trackers] |
 | Calls | Yandex Telemost, VK Teams, SberJazz/SaluteJazz, TrueConf | The four repeatedly named as the domestic ВКС set.[^vks][^vks-alt] |
 | Notes | Yandex Wiki (Yandex 360), Teamly | Verified 2026-08-11: neither can be connected today — see §2.1. |
 
