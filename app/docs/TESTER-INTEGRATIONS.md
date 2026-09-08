@@ -1,48 +1,48 @@
-# Интеграции: безопасная передача тестовой сборки
+# Integrations: handing over a test build safely
 
-Актуально для тестовой ветки от 2026-08-16. Этот документ описывает именно
-реализованные в macOS-приложении границы. Он не обещает импорт, которого в коде
-нет, и не предполагает хранение секретов в Git.
+Current as of the test branch of 2026-08-16. This document describes the
+boundaries actually implemented in the macOS application. It does not promise
+imports the code does not have, and it does not assume secrets are stored in Git.
 
-## Главное правило передачи
+## The main rule of handing over
 
-Ветка или форк должны содержать **ноль действующих ключей**. «Форк с
-установленными ключами» небезопасен и технически не решает задачу:
+A branch or a fork must contain **zero working keys**. "A fork with the keys
+already set up" is unsafe and does not technically solve the problem:
 
-- токены WEEEK, YouGile, Яндекс Трекера, Пачки и Telegram принадлежат тестовому
-  пользователю или боту и вводятся на его Mac в интерфейсе приложения;
-- пользовательские OAuth-токены Asana и Google выдаются каждому тестировщику в
-  браузере и сохраняются только в его macOS Keychain;
-- лишь идентификатор и секрет OAuth-клиента Asana и Google нужны во время
-  локальной сборки. Они читаются из игнорируемого `app/.env`, а не из ветки;
-- собранное тестовое приложение с такими OAuth-клиентами тоже является
-  контролируемым артефактом. Для него нужны отдельные тестовые приложения у
-  вендоров, ограниченный круг получателей и ротация после теста.
+- the WEEEK, YouGile, Yandex Tracker, Pachca and Telegram tokens belong to the
+  test user or bot and are entered on their Mac in the application's interface;
+- the user OAuth tokens for Asana and Google are issued to each tester in the
+  browser and saved only in their macOS Keychain;
+- only the OAuth client identifier and secret for Asana and Google are needed at
+  local build time. They are read from an ignored `app/.env`, not from the branch;
+- a built test application carrying such OAuth clients is a controlled artifact
+  too. It needs separate test applications at the vendors, a limited set of
+  recipients, and rotation after the test.
 
-Нельзя добавлять значения в `app/.env.example`, документацию, тестовые фикстуры
-или коммиты. Нельзя передавать тестировщикам чужой Keychain или персональные
-токены сотрудников.
+Values must not be added to `app/.env.example`, the documentation, test fixtures
+or commits. Testers must not be handed someone else's Keychain or employees'
+personal tokens.
 
-## Что сейчас реализовано
+## What is implemented today
 
-| Интеграция | Реализованный сценарий | Что требуется | Где хранится секрет |
+| Integration | Implemented scenario | What is required | Where the secret lives |
 |---|---|---|---|
-| WEEEK | Поиск задач; создание задачи после подтверждения | Токен доступа; числовой ID проекта только для записи | Keychain тестировщика |
-| YouGile | Поиск задач; создание задачи после подтверждения | API-ключ; ID колонки только для записи | Keychain тестировщика |
-| Яндекс Трекер | Поиск задач; создание задачи после подтверждения | OAuth-токен, ID организации; ключ очереди только для записи | Keychain тестировщика |
-| Пачка | Полнотекстовый поиск сообщений, без отправки | Персональный токен с `search:messages` | Keychain тестировщика |
-| Telegram — супергруппы | Получение новых сообщений и изменений, локальный архив и поиск; без отправки | Токен отдельного бота и allowlist числовых ID супергрупп | Токен и allowlist — Keychain; сообщения — локальный архив приложения |
-| Asana | Поиск задач через официальный MCP V2; создание после подтверждения | OAuth-клиент тестовой сборки и согласие пользователя в браузере | Client ID/secret — только `app/.env` при сборке; OAuth-токен — Keychain |
-| Google Sheets | Импорт таблицы по явной ссылке; создание новой таблицы из ответа | Google Desktop OAuth client и выбранные права Sheets | Client ID/secret — только `app/.env` при сборке; OAuth-токен — Keychain |
-| Google Slides | Чтение презентации по явной ссылке | Google Desktop OAuth client и право Slides | Как у Sheets |
-| Google Forms | Чтение вопросов и ответов по явной ссылке редактора | Google Desktop OAuth client и два read-only права Forms | Как у Sheets |
-| Jitsi | Обнаружение живого звонка и обычная запись системного звука/микрофона | Ключ не нужен; разрешения macOS | Секрета нет |
-| TrueConf | Акустическая эвристика при запущенном официальном клиенте и обычная запись живого звонка | Ключ не нужен; разрешения macOS | Секрета нет |
+| WEEEK | Task search; task creation after confirmation | Access token; numeric project ID for writing only | The tester's Keychain |
+| YouGile | Task search; task creation after confirmation | API key; column ID for writing only | The tester's Keychain |
+| Yandex Tracker | Task search; task creation after confirmation | OAuth token, organisation ID; queue key for writing only | The tester's Keychain |
+| Pachca | Full-text message search, no sending | Personal token with `search:messages` | The tester's Keychain |
+| Telegram — supergroups | Receiving new messages and edits, a local archive and search; no sending | A separate bot's token and an allowlist of numeric supergroup IDs | Token and allowlist in the Keychain; messages in the application's local archive |
+| Asana | Task search through the official MCP V2; creation after confirmation | The test build's OAuth client and the user's consent in the browser | Client ID/secret only in `app/.env` at build time; OAuth token in the Keychain |
+| Google Sheets | Importing a spreadsheet by an explicit link; creating a new spreadsheet from an answer | A Google Desktop OAuth client and the selected Sheets permissions | Client ID/secret only in `app/.env` at build time; OAuth token in the Keychain |
+| Google Slides | Reading a presentation by an explicit link | A Google Desktop OAuth client and the Slides permission | As for Sheets |
+| Google Forms | Reading questions and responses by an explicit editor link | A Google Desktop OAuth client and two read-only Forms permissions | As for Sheets |
+| Jitsi | Detecting a live call and ordinary system-audio/microphone recording | No key needed; macOS permissions | No secret |
+| TrueConf | An acoustic heuristic while the official client is running, plus ordinary recording of a live call | No key needed; macOS permissions | No secret |
 
-## Подготовка тестовой сборки
+## Preparing a test build
 
-Для Asana и Google оператор сборки создаёт **отдельные тестовые OAuth-приложения**.
-В одноразовом или закрытом checkout:
+For Asana and Google the build operator creates **separate test OAuth
+applications**. In a disposable or private checkout:
 
 ```sh
 cd app
@@ -51,380 +51,383 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-В `app/.env` заполняются только необходимые поля, без кавычек и без отправки
-самого файла тестировщикам:
+Only the necessary fields are filled in `app/.env`, without quotes, and the file
+itself is not sent to testers:
 
 ```dotenv
-ASANA_CLIENT_ID=<идентификатор тестового Asana MCP app>
-ASANA_CLIENT_SECRET=<секрет тестового Asana MCP app>
-GOOGLE_CLIENT_ID=<идентификатор Google Desktop OAuth client>
-GOOGLE_CLIENT_SECRET=<секрет того же Desktop OAuth client>
+ASANA_CLIENT_ID=<id of the test Asana MCP app>
+ASANA_CLIENT_SECRET=<secret of the test Asana MCP app>
+GOOGLE_CLIENT_ID=<id of the Google Desktop OAuth client>
+GOOGLE_CLIENT_SECRET=<secret of that same Desktop OAuth client>
 ```
 
-Собрать артефакт без установки в `/Applications`:
+Building the artifact without installing into `/Applications`:
 
 ```sh
 MEETGPT_NO_INSTALL=1 ./build.sh
 open "$PWD/build/orakul.app"
 ```
 
-Обычная сборка для распространения с `MEETGPT_DIST=1` намеренно вычищает эти
-четыре значения и не подходит для данного интеграционного прогона. Локальная
-тестовая сборка встраивает OAuth-клиенты в бинарник, поэтому её нельзя
-публиковать как общий релиз.
+An ordinary distribution build with `MEETGPT_DIST=1` deliberately scrubs those
+four values and is unsuitable for this integration run. A local test build embeds
+the OAuth clients in the binary, so it must not be published as a general release.
 
-`build.sh` генерирует игнорируемый
-`app/Sources/MeetGPT/LocalSecrets.generated.swift`; отслеживаемый
-`Secrets.swift` он не меняет. Не применяйте `git add -f` к сгенерированному
-файлу. Надёжнее собирать такой артефакт в одноразовом checkout, а затем удалить
-checkout вместе с `app/.env`.
+`build.sh` generates an ignored
+`app/Sources/MeetGPT/LocalSecrets.generated.swift`; it does not modify the tracked
+`Secrets.swift`. Do not `git add -f` the generated file. It is safer to build such
+an artifact in a disposable checkout and then delete the checkout together with
+`app/.env`.
 
-WEEEK, YouGile, Яндекс Трекер, Пачка и Telegram не читают ключи из `.env`.
-Предварительно «запечь» их в общий билд нельзя: каждый тестировщик подключает
-свою тестовую учётную запись через **Настройки → Рабочие приложения**.
+WEEEK, YouGile, Yandex Tracker, Pachca and Telegram do not read keys from `.env`.
+They cannot be "baked" into a shared build in advance: each tester connects their
+own test account through **Настройки → Рабочие приложения**.
 
 ## WEEEK
 
-### Доступ
+### Access
 
-1. Создать отдельного тестового пользователя или рабочее пространство без
-   производственных данных.
-2. В настройках рабочего пространства WEEEK открыть раздел API и выпустить
-   токен доступа. Публичный API выполняет запросы от имени создателя токена;
-   отдельные OAuth-redirect и scopes для этого токена не используются.
-3. Для проверки записи узнать **числовой** ID тестового проекта. Если оставить
-   поле проекта пустым, интеграция подключится только на чтение.
+1. Create a separate test user or workspace with no production data.
+2. In the WEEEK workspace settings open the API section and issue an access token.
+   The public API performs requests on behalf of the token's creator; no separate
+   OAuth redirect or scopes are used for this token.
+3. To check writing, find the **numeric** ID of the test project. If the project
+   field is left empty, the integration connects read-only.
 
-Официальный контракт: [WEEEK Public API V1](https://developers.weeek.net/api/task).
+The official contract: [WEEEK Public API V1](https://developers.weeek.net/api/task).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Российские трекеры → WEEEK**.
-2. Вставить токен доступа; для полного прогона добавить числовой ID проекта и
-   сохранить.
-3. Создать в WEEEK задачу с уникальным маркером, например
-   `ORAKUL-QA-WEEEK-<дата>`, и убедиться, что вопрос о ней находит задачу.
-4. В подтверждаемом сценарии «Завести задачу» создать вторую тестовую задачу и
-   проверить, что она попала именно в указанный проект. Запись никогда не должна
-   происходить без подтверждения человека.
+1. Open **Настройки → Рабочие приложения → Российские трекеры → WEEEK**.
+2. Paste the access token; for a full run add the numeric project ID and save.
+3. Create a task in WEEEK with a unique marker, for example
+   `ORAKUL-QA-WEEEK-<date>`, and confirm that a question about it finds the task.
+4. In the confirmed "file a task" scenario create a second test task and check that
+   it landed in exactly the specified project. A write must never happen without a
+   human confirmation.
 
-Ограничение: приложение возвращает ключ и название задачи; WEEEK сейчас не даёт
-этому коннектору надёжную permalink-ссылку из ответа.
+Limitation: the application returns the task's key and title; WEEEK does not
+currently give this connector a reliable permalink in the response.
 
 ## YouGile
 
-### Доступ
+### Access
 
-1. В официальной интерактивной документации YouGile создать API-ключ через
-   `POST /api-v2/auth/keys`. Для выпуска ключа на стороне YouGile нужны login,
-   password и companyId.
-2. В orakul вводится **только выданный API-ключ**. Логин и пароль нельзя
-   переносить ни в приложение, ни в `.env`, ни в этот документ.
-3. Для проверки записи скопировать ID тестовой колонки. Пустая колонка означает
-   подключение только на чтение.
+1. In YouGile's official interactive documentation create an API key through
+   `POST /api-v2/auth/keys`. Issuing a key on YouGile's side requires a login,
+   password and companyId.
+2. Only the **issued API key** is entered into orakul. The login and password must
+   not be carried into the application, into `.env`, or into this document.
+3. To check writing, copy the ID of a test column. An empty column means a
+   read-only connection.
 
-Официальная точка входа: [YouGile REST API v2](https://ru.yougile.com/api-v2)
-и [машиночитаемая схема](https://ru.yougile.com/api-json).
+The official entry points: [YouGile REST API v2](https://ru.yougile.com/api-v2)
+and the [machine-readable schema](https://ru.yougile.com/api-json).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Российские трекеры → YouGile**.
-2. Вставить API-ключ; для полного прогона добавить ID тестовой колонки.
-3. Проверить поиск по уникальной существующей задаче.
-4. После явного подтверждения создать тестовую задачу и проверить её в нужной
-   колонке.
+1. Open **Настройки → Рабочие приложения → Российские трекеры → YouGile**.
+2. Paste the API key; for a full run add the test column ID.
+3. Check search against a unique existing task.
+4. After an explicit confirmation, create a test task and check it in the intended
+   column.
 
-Ограничение: поиск использует актуальный `GET /api-v2/task-list`; ссылка на
-созданную задачу не выдумывается, если API её не вернул.
+Limitation: search uses the current `GET /api-v2/task-list`; a link to a created
+task is not invented if the API did not return one.
 
-## Яндекс Трекер
+## Yandex Tracker
 
-### Доступ
+### Access
 
-1. Создать тестовое приложение в Яндекс OAuth.
-2. Для поиска достаточно `tracker:read`. Для полного теста создания нужны
-   `tracker:write` и реальные права пользователя на создание задач в выбранной
-   очереди. Для тестового приложения допустимо выдать оба права, но не права к
-   производственным очередям.
-3. Выпустить OAuth-токен от тестового пользователя.
-4. Скопировать ID организации из **Администрирование → Организации**. Числовой
-   ID относится к Яндекс 360; Cloud Organization обычно использует строковый
-   ID, для которого приложение само выберет `X-Cloud-Org-ID`.
-5. Для записи подготовить ключ тестовой очереди, например `QA`. Пустое поле
-   очереди оставляет интеграцию только на чтение.
+1. Create a test application in Yandex OAuth.
+2. `tracker:read` is enough for search. A full creation test needs `tracker:write`
+   and the user's real rights to create tasks in the chosen queue. For a test
+   application it is acceptable to grant both, but not rights to production queues.
+3. Issue an OAuth token from the test user.
+4. Copy the organisation ID from **Администрирование → Организации**. A numeric ID
+   belongs to Yandex 360; a Cloud Organization usually uses a string ID, for which
+   the application selects `X-Cloud-Org-ID` itself.
+5. For writing, prepare a test queue key, for example `QA`. An empty queue field
+   leaves the integration read-only.
 
-Официальная инструкция и названия прав: [Доступ к API Яндекс Трекера](https://yandex.ru/support/tracker/ru/api-ref/access).
+The official instructions and permission names:
+[Access to the Yandex Tracker API](https://yandex.ru/support/tracker/ru/api-ref/access).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Российские трекеры → Яндекс
-   Трекер**.
-2. Вставить OAuth-токен, ID организации и, для записи, ключ очереди.
-3. Найти задачу по уникальному заголовку.
-4. После явного подтверждения создать тестовую задачу; проверить ключ вида
-   `QA-…` и открывающуюся ссылку.
+1. Open **Настройки → Рабочие приложения → Российские трекеры → Яндекс Трекер**.
+2. Paste the OAuth token, the organisation ID and, for writing, the queue key.
+3. Find a task by a unique title.
+4. After an explicit confirmation, create a test task; check the key of the form
+   `QA-…` and that the link opens.
 
-Ограничение: текущая форма принимает именно OAuth-токен. IAM-токен Yandex Cloud
-имеет другой заголовок авторизации и не должен вставляться в это поле.
+Limitation: the current form accepts an OAuth token specifically. A Yandex Cloud
+IAM token has a different authorization header and must not be pasted into this
+field.
 
-## Пачка
+## Pachca
 
-### Доступ
+### Access
 
-1. В Пачке открыть **Автоматизации → API** и создать отдельный персональный
-   токен тестировщика.
-2. Выдать ровно scope `search:messages`. Другие права, включая отправку и
-   управление чатами, этому коннектору не нужны.
+1. In Pachca open **Автоматизации → API** and create a separate personal token for
+   the tester.
+2. Grant exactly the `search:messages` scope. This connector needs no other
+   permissions, including sending and chat management.
 
-Официальные страницы: [авторизация](https://dev.pachca.com/api/authorization)
-и [поиск сообщений](https://dev.pachca.com/api/search/list-messages).
+The official pages: [authorization](https://dev.pachca.com/api/authorization)
+and [message search](https://dev.pachca.com/api/search/list-messages).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Рабочие мессенджеры → Пачка**.
-2. Вставить персональный токен и сохранить.
-3. Написать в тестовом чате сообщение с уникальным маркером
-   `ORAKUL-QA-PACHCA-<дата>` и убедиться, что вопрос «обсуждали ли …» возвращает
-   его как источник.
+1. Open **Настройки → Рабочие приложения → Рабочие мессенджеры → Пачка**.
+2. Paste the personal token and save.
+3. Write a message in a test chat with a unique marker
+   `ORAKUL-QA-PACHCA-<date>` and confirm that a question of the form "did we
+   discuss …" returns it as a source.
 
-Ограничение: интеграция только читает результаты полнотекстового поиска по тем
-чатам, которые видит владелец токена. Она не отправляет и не изменяет сообщения.
+Limitation: the integration only reads full-text search results across the chats
+the token's owner can see. It does not send or modify messages.
 
-## Telegram — супергруппы
+## Telegram — supergroups
 
-### Доступ
+### Access
 
-1. Через BotFather создать **отдельного тестового бота**. Не использовать бота,
-   на котором уже работает webhook или другой consumer `getUpdates`.
-2. Добавить бота только в тестовые супергруппы.
-3. Для чтения обычных сообщений либо отключить Privacy Mode в BotFather, либо
-   сделать бота администратором каждой разрешённой супергруппы.
-4. Получить `message.chat.id` каждой супергруппы из ответа собственного
-   `getUpdates` или из внутреннего администраторского инструмента. Не передавать
-   содержимое закрытой группы стороннему боту ради определения ID. ID
-   супергруппы обычно имеет отрицательный вид `-100…`.
+1. Create a **separate test bot** through BotFather. Do not use a bot that already
+   has a webhook or another `getUpdates` consumer.
+2. Add the bot only to test supergroups.
+3. To read ordinary messages, either disable Privacy Mode in BotFather or make the
+   bot an administrator of every allowed supergroup.
+4. Obtain each supergroup's `message.chat.id` from your own `getUpdates` response
+   or from an internal administrative tool. Do not hand a private group's contents
+   to a third-party bot just to determine an ID. A supergroup ID usually has the
+   negative form `-100…`.
 
-Требуются только Bot API token и список ID; OAuth scopes и redirect отсутствуют.
-Контракт: [Telegram Bot API](https://core.telegram.org/bots/api).
+Only a Bot API token and a list of IDs are required; there are no OAuth scopes and
+no redirect. The contract: [Telegram Bot API](https://core.telegram.org/bots/api).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Рабочие мессенджеры → Telegram —
+1. Open **Настройки → Рабочие приложения → Рабочие мессенджеры → Telegram —
    супергруппы**.
-2. Вставить токен бота и ID разрешённых супергрупп через запятую, затем нажать
-   **Проверить и сохранить**. Проверка отклонит неверный токен, занятый webhook,
-   неизвестный чат и бота, который из-за Privacy Mode не видит сообщения.
-3. После подключения отправить в разрешённую супергруппу новое текстовое
-   сообщение с уникальным маркером. Не использовать старое сообщение как тест.
-4. Дождаться опроса и задать вопрос о маркере. Проверить название группы,
-   автора и, если применимо, ID темы.
-5. Изменить сообщение и убедиться, что локальный результат обновился, а не
-   продублировался.
+2. Paste the bot token and the allowed supergroup IDs separated by commas, then
+   press **Проверить и сохранить**. The check rejects a wrong token, a webhook
+   already in use, an unknown chat, and a bot that cannot see messages because of
+   Privacy Mode.
+3. After connecting, send a new text message with a unique marker to an allowed
+   supergroup. Do not use an old message as the test.
+4. Wait for the poll and ask a question about the marker. Check the group name, the
+   author and, where applicable, the topic ID.
+5. Edit the message and confirm that the local result was updated rather than
+   duplicated.
 
-Ограничения существенны:
+The limitations are substantial:
 
-- Bot API не отдаёт старую историю и не умеет искать по ней; архив начинается
-  после подключения и наполняется, пока приложение получает обновления;
-- учитываются только `supergroup`, а не личные чаты, обычные группы или каналы;
-- читаются текст и подпись к медиа, но сами файлы не скачиваются;
-- отправки сообщений из orakul нет;
-- allowlist применяется и при получении, и при локальном поиске.
+- the Bot API does not hand over old history and cannot search it; the archive
+  begins after connecting and fills up while the application receives updates;
+- only `supergroup` chats count, not private chats, ordinary groups or channels;
+- text and media captions are read, but the files themselves are not downloaded;
+- orakul does not send messages;
+- the allowlist applies both on receipt and in local search.
 
-Токен и allowlist лежат в Keychain. Локальный архив находится в каталоге
-Application Support приложения
-(`ai.orakul.desktop/Telegram/messages.json`) и не содержит токен. Кнопка
-**Отключить** останавливает опрос, удаляет записи Keychain и стирает этот архив.
-Каталог прежнего продукта `MeetGPT` автоматически не читается и не импортируется.
+The token and the allowlist live in the Keychain. The local archive is in the
+application's Application Support directory
+(`ai.orakul.desktop/Telegram/messages.json`) and does not contain the token. The
+**Отключить** button stops polling, deletes the Keychain entries and erases that
+archive. The former product's `MeetGPT` directory is not read or imported
+automatically.
 
 ## Asana MCP V2
 
-### OAuth-приложение сборки
+### The build's OAuth application
 
-1. Создать отдельное тестовое **Asana MCP app**.
-2. Зарегистрировать redirect **точно**
-   `http://127.0.0.1:52703/callback`.
-3. Поместить client ID и client secret в `ASANA_CLIENT_ID` и
-   `ASANA_CLIENT_SECRET` в локальном `app/.env` и пересобрать приложение.
+1. Create a separate test **Asana MCP app**.
+2. Register the redirect **exactly** as `http://127.0.0.1:52703/callback`.
+3. Put the client ID and client secret into `ASANA_CLIENT_ID` and
+   `ASANA_CLIENT_SECRET` in the local `app/.env` and rebuild the application.
 
-Используется официальный endpoint `https://mcp.asana.com/v2/mcp` и OAuth
-resource `https://mcp.asana.com/v2`. Живая OAuth-метаинформация рекламирует
-scope `default`, поэтому стандартный selector SDK обычно отправляет
-`scope=default`; сервер также допускает отсутствие параметра. Гранулярных
-Asana-scopes этот контракт не предлагает. Если хотя бы одна половина build
-credential пуста, Asana скрыта из каталога, а не показывает неработающую кнопку.
+The official endpoint `https://mcp.asana.com/v2/mcp` and the OAuth resource
+`https://mcp.asana.com/v2` are used. The live OAuth metadata advertises the
+`default` scope, so the SDK's standard selector usually sends `scope=default`; the
+server also tolerates the parameter being absent. This contract offers no granular
+Asana scopes. If either half of the build credential is empty, Asana is hidden from
+the catalogue rather than showing a button that does not work.
 
-Официальный контракт: [Integrating with Asana's MCP server](https://developers.asana.com/docs/integrating-with-asanas-mcp-server).
+The official contract:
+[Integrating with Asana's MCP server](https://developers.asana.com/docs/integrating-with-asanas-mcp-server).
 
-### Подключение и smoke test
+### Connecting and the smoke test
 
-1. Открыть **Настройки → Рабочие приложения → Рабочие приложения → Asana** и
-   нажать **Подключить**.
-2. В браузере выбрать тестовый workspace и подтвердить доступ. Пользовательский
-   OAuth-токен сохраняется в Keychain под версионированным пространством
-   `asana-v2`; client secret туда не переносится.
-3. Проверить поиск уникальной тестовой задачи. Приложение предпочитает
-   `search_objects`, доступный шире; `search_tasks` может зависеть от тарифа
-   workspace.
-4. В подтверждаемом сценарии создания выбрать Asana, просмотреть список задач,
-   явно подтвердить создание и найти результат в тестовом workspace. Отдельного
-   фиксированного выбора проекта в настройках orakul нет: допустимые поля и
-   место назначения определяет живая схема `create_tasks` и контекст Asana.
+1. Open **Настройки → Рабочие приложения → Рабочие приложения → Asana** and press
+   **Подключить**.
+2. In the browser choose the test workspace and confirm access. The user's OAuth
+   token is saved in the Keychain under the versioned namespace `asana-v2`; the
+   client secret is not carried there.
+3. Check search for a unique test task. The application prefers `search_objects`,
+   which is more widely available; `search_tasks` may depend on the workspace's
+   plan.
+4. In the confirmed creation scenario choose Asana, review the task list, confirm
+   creation explicitly and find the result in the test workspace. orakul's settings
+   have no separate fixed project choice: the permitted fields and the destination
+   are determined by the live `create_tasks` schema and the Asana context.
 
-Ограничение: список и схема инструментов принадлежат живому MCP-серверу Asana.
-Если в тестовом workspace нет требуемого инструмента или поля, приложение не
-должно подменять их выдуманным REST-контрактом.
+Limitation: the tool list and schema belong to Asana's live MCP server. If a
+required tool or field is absent from the test workspace, the application must not
+substitute an invented REST contract for it.
 
-## Google Sheets, Slides и Forms
+## Google Sheets, Slides and Forms
 
-### OAuth-приложение сборки
+### The build's OAuth application
 
-1. В отдельном тестовом Google Cloud project включить **Google Sheets API**,
-   **Google Slides API**, **Google Forms API** и **Google Drive API**. Drive API
-   нужен сценарию создания новой таблицы, но широкое чтение Диска не выдаётся.
-2. Настроить OAuth consent screen. Для External-приложения в статусе Testing
-   добавить адреса тестировщиков в **Test users**.
-3. Создать OAuth client типа **Desktop app** и записать его значения в
-   `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET` локального `app/.env`.
-4. Фиксированный redirect в Google Cloud Console не регистрируется. При каждой
-   попытке приложение поднимает локальный callback вида
-   `http://127.0.0.1:<случайный порт 49500–64500>/callback` и использует PKCE.
+1. In a separate test Google Cloud project enable **Google Sheets API**,
+   **Google Slides API**, **Google Forms API** and **Google Drive API**. The Drive
+   API is needed by the scenario that creates a new spreadsheet, but broad Drive
+   reading is not granted.
+2. Configure the OAuth consent screen. For an External application in Testing
+   status, add the testers' addresses to **Test users**.
+3. Create an OAuth client of type **Desktop app** and record its values in
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` of the local `app/.env`.
+4. No fixed redirect is registered in the Google Cloud Console. On each attempt the
+   application raises a local callback of the form
+   `http://127.0.0.1:<random port 49500–64500>/callback` and uses PKCE.
 
-Перед подключением в **Настройки → Рабочие приложения → Google** включить только
-нужные переключатели. Для полного прогона нужны:
+Before connecting, enable only the switches you need under **Настройки → Рабочие
+приложения → Google**. A full run needs:
 
-| Сервис | Запрашиваемые OAuth scopes | Фактическая граница |
+| Service | Requested OAuth scopes | The actual boundary |
 |---|---|---|
-| Sheets | `spreadsheets.readonly`, `drive.file` | Читать указанную таблицу; создавать и обслуживать только файлы, созданные приложением |
-| Slides | `presentations.readonly` | Читать только презентацию с явно вставленным ID |
-| Forms | `forms.body.readonly`, `forms.responses.readonly` | Читать структуру и ответы только явно указанной формы |
+| Sheets | `spreadsheets.readonly`, `drive.file` | Read the specified spreadsheet; create and maintain only files the application created |
+| Slides | `presentations.readonly` | Read only the presentation whose ID was explicitly pasted |
+| Forms | `forms.body.readonly`, `forms.responses.readonly` | Read the structure and responses of the explicitly specified form only |
 
-`drive.readonly` и `drive.metadata.readonly` не запрашиваются. Глобального
-поиска/перебора файлов на Диске нет. После изменения переключателей или после
-обновления старой сборки нужно нажать **Переподключить**, иначе старый refresh
-token не получит новые права.
+`drive.readonly` and `drive.metadata.readonly` are not requested. There is no
+global search or enumeration of files on Drive. After changing the switches, or
+after updating an old build, press **Переподключить**, otherwise the old refresh
+token will not receive the new permissions.
 
-### Smoke test Sheets
+### Sheets smoke test
 
-1. Подключить Google в браузере.
-2. В боковой панели выбрать **Контекст → Добавить → Google Таблица…** и вставить
-   ссылку тестовой таблицы.
-3. Проверить название и значения из первого листа в диапазоне `A1:Z1000`.
-4. Получить ответ с Markdown-таблицей, подтвердить экспорт в новую Google Sheet,
-   проверить созданный файл и затем проверить действие отмены, которое
-   перемещает созданный приложением файл в корзину.
+1. Connect Google in the browser.
+2. In the side panel choose **Контекст → Добавить → Google Таблица…** and paste the
+   link to a test spreadsheet.
+3. Check the title and the values from the first sheet in the range `A1:Z1000`.
+4. Get an answer containing a Markdown table, confirm the export to a new Google
+   Sheet, check the created file, and then check the undo action, which moves the
+   application-created file to the trash.
 
-### Smoke test Slides
+### Slides smoke test
 
-1. Выбрать **Контекст → Добавить → Google Презентация…** и вставить явную ссылку
-   `/presentation/d/<id>/…`.
-2. Проверить границы слайдов, видимый текст, таблицы и заметки докладчика.
+1. Choose **Контекст → Добавить → Google Презентация…** and paste an explicit
+   `/presentation/d/<id>/…` link.
+2. Check slide boundaries, visible text, tables and speaker notes.
 
-Slides импортирует не более 80 000 символов. OCR картинок, видео, диаграмм без
-текстового представления и запись в презентацию не реализованы.
+Slides imports at most 80,000 characters. OCR of images, video, diagrams with no
+textual representation, and writing into a presentation are not implemented.
 
-### Smoke test Forms
+### Forms smoke test
 
-1. Создать синтетическую форму и несколько синтетических ответов. Не использовать
-   анкеты реальных подопечных или реальную обратную связь в первом прогоне.
-2. Выбрать **Контекст → Добавить → Google Форма + ответы…** и вставить ссылку
-   редактора вида `/forms/d/<formId>/edit`.
-3. Проверить названия вопросов, ответы и время отправки. Служебный
-   `respondentEmail` должен быть удалён до модельного контекста; email остаётся
-   только если респондент сам ввёл его как ответ на видимый вопрос формы.
-4. Отдельно проверить, что публичная ссылка вида `/forms/d/e/…` отклоняется: в
-   ней нет API form ID.
+1. Create a synthetic form and a few synthetic responses. Do not use real
+   questionnaires or real feedback on the first run.
+2. Choose **Контекст → Добавить → Google Форма + ответы…** and paste an editor link
+   of the form `/forms/d/<formId>/edit`.
+3. Check question titles, answers and submission times. The service field
+   `respondentEmail` must be removed before the model context; an email remains
+   only if the respondent typed it themselves as an answer to a visible question on
+   the form.
+4. Separately check that a public link of the form `/forms/d/e/…` is rejected: it
+   contains no API form ID.
 
-Forms по умолчанию импортирует максимум 100 ответов с пагинацией; внутренний
-жёсткий предел — 500, общий текстовый предел — 80 000 символов. Для ответа типа
-File upload берутся только имена файлов, сами файлы не скачиваются. Импорт
-Forms может включать персональные данные, поэтому тест должен использовать
-разрешённую синтетическую форму.
+Forms imports at most 100 responses by default with pagination; the internal hard
+limit is 500 and the overall text limit is 80,000 characters. For a File upload
+answer only the filenames are taken; the files themselves are not downloaded. A
+Forms import may include personal data, so the test must use a permitted synthetic
+form.
 
-OAuth access/refresh tokens Google лежат в Keychain. В `UserDefaults` остаются
-лишь несекретные флаги выбранных и выданных сервисов.
+Google's OAuth access and refresh tokens live in the Keychain. Only non-secret
+flags for the selected and granted services remain in `UserDefaults`.
 
-## Jitsi и TrueConf: только живой звонок
+## Jitsi and TrueConf: live calls only
 
-Это не коннекторы истории встреч. Реализована платформенно-независимая запись
-системного звука и микрофона плюс эвристическое обнаружение живого звонка:
+These are not meeting-history connectors. What is implemented is
+platform-independent recording of system audio and the microphone, plus a heuristic
+detection of a live call:
 
-- Jitsi распознаётся при активации официального нативного клиента
-  `org.jitsi.jitsi-meet` и по признаку `Jitsi Meet` в окне поддерживаемого
-  браузера;
-- TrueConf идёт только через акустическую эвристику: официальный клиент
-  `org.trueconf.client` должен быть запущен, а macOS должна сообщить, что
-  системный микрофон используется. Простого вывода клиента на передний план
-  недостаточно;
-- после обнаружения приложение предлагает начать запись. Ручной старт записи
-  остаётся запасным и контрольным путём.
+- Jitsi is recognised when the official native client `org.jitsi.jitsi-meet`
+  activates, and by a `Jitsi Meet` marker in a supported browser's window;
+- TrueConf goes only through an acoustic heuristic: the official client
+  `org.trueconf.client` must be running, and macOS must report that the system
+  microphone is in use. Simply bringing the client to the foreground is not enough;
+- after detection the application offers to start recording. Starting a recording
+  by hand remains the fallback and the control path.
 
-API key, OAuth scopes и redirect для этой функции не нужны. На первом запуске
-macOS должна получить разрешения **Screen Recording** и **Microphone**; после
-изменения разрешений приложение обычно нужно перезапустить.
+No API key, OAuth scopes or redirect are needed for this feature. On first launch
+macOS must be granted **Screen Recording** and **Microphone** permissions; after
+changing permissions the application usually has to be restarted.
 
-Smoke test для каждого сервиса:
+The smoke test for each service:
 
-1. Открыть тестовый звонок с двумя источниками звука.
-2. Убедиться, что появляется уведомление/предложение записи с правильным
-   названием сервиса.
-3. Начать запись, произнести уникальную фразу с локального микрофона и вторую —
-   с удалённой стороны.
-4. Остановить запись и убедиться, что в расшифровке есть оба фрагмента. Это
-   проверяет интеграционную границу лучше, чем один лишь детектор окна.
+1. Open a test call with two audio sources.
+2. Confirm that a recording notification/offer appears with the correct service
+   name.
+3. Start recording, say a unique phrase into the local microphone and a second one
+   from the remote side.
+4. Stop the recording and confirm both fragments are in the transcript. This tests
+   the integration boundary better than the window detector alone.
 
-История Jitsi и TrueConf, список прошлых конференций, участники и серверные
-записи сейчас не импортируются. Для TrueConf нельзя угадывать общий облачный
-endpoint: перед такой доработкой владелец должен дать URL **своего TrueConf
-Server**, после чего контракт и доступные методы проверяются в документации
-именно этого сервера по `<server-url>/api/v4/docs`. Только затем можно выбрать
-read-only учётную запись и реализовать историю. До этого момента вводить
-TrueConf server token в orakul негде и не нужно.
+Jitsi and TrueConf history, the list of past conferences, participants and
+server-side recordings are not imported at present. For TrueConf a shared cloud
+endpoint must not be guessed: before such work the owner has to supply the URL of
+**their own TrueConf Server**, after which the contract and available methods are
+verified in that specific server's documentation at `<server-url>/api/v4/docs`.
+Only then can a read-only account be chosen and history implemented. Until that
+point there is nowhere — and no need — to enter a TrueConf server token in orakul.
 
-## Общий приёмочный чек-лист
+## The shared acceptance checklist
 
-- [ ] В `git status` и `git diff` нет `.env`, токенов или заполненных значений;
-  `LocalSecrets.generated.swift` остаётся игнорируемым.
-- [ ] Все тесты выполняются на синтетических данных и отдельных тестовых
-  пользователях/проектах/чатах.
-- [ ] Подключение переживает перезапуск приложения: runtime-токен читается из
-  Keychain, а не из ветки.
-- [ ] Read-only конфигурация работает без поля назначения у трекеров.
-- [ ] Каждая запись в WEEEK, YouGile, Яндекс Трекер или Asana требует явного
-  подтверждения и попадает только в тестовое место назначения.
-- [ ] Telegram-проверка и подтверждённая запись в трекер показывают ошибку
-  авторизации при неверном или отозванном токене.
-- [ ] Известное ограничение зафиксировано в отчёте: read-side grounding
-  пропускает отказавший источник, поэтому отозванный токен трекера/мессенджера
-  сейчас может дать отсутствие сниппета. Это не следует записывать как
-  подтверждённое «в сервисе ничего не найдено».
-- [ ] Отключение интеграции убирает локальный токен; для Telegram также стирает
-  локальный архив.
-- [ ] После отключения повторный поиск больше не использует источник.
+- [ ] `git status` and `git diff` contain no `.env`, no tokens and no filled-in
+  values; `LocalSecrets.generated.swift` stays ignored.
+- [ ] Every test runs on synthetic data and separate test
+  users/projects/chats.
+- [ ] A connection survives an application restart: the runtime token is read from
+  the Keychain, not from the branch.
+- [ ] The read-only configuration works without a destination field on the
+  trackers.
+- [ ] Every write to WEEEK, YouGile, Yandex Tracker or Asana requires an explicit
+  confirmation and lands only in the test destination.
+- [ ] The Telegram check and a confirmed write to a tracker show an authorization
+  error on a wrong or revoked token.
+- [ ] A known limitation is recorded in the report: read-side grounding skips a
+  failed source, so a revoked tracker/messenger token can currently produce a
+  missing snippet. That must not be written down as a confirmed "nothing was found
+  in the service".
+- [ ] Disconnecting an integration removes the local token; for Telegram it also
+  erases the local archive.
+- [ ] After disconnection, a repeated search no longer uses the source.
 
-## Отзыв и очистка после теста
+## Revocation and cleanup after the test
 
-Сначала нажать **Отключить** у каждой интеграции в orakul. Это удаляет локальные
-записи Keychain; у Google дополнительно выполняется best-effort отзыв refresh
-token, у Telegram стирается архив. Затем завершить очистку у вендора:
+First press **Отключить** on each integration in orakul. That deletes the local
+Keychain entries; for Google a best-effort revocation of the refresh token is
+additionally performed, and for Telegram the archive is erased. Then finish the
+cleanup at the vendor:
 
-- **WEEEK:** удалить токен доступа и синтетические задачи/проект.
-- **YouGile:** удалить API-ключ через `DELETE /api-v2/auth/keys/{key}` и удалить
-  тестовые задачи.
-- **Яндекс Трекер:** отозвать OAuth-токен/тестовое OAuth-приложение и удалить
-  задачи тестовой очереди.
-- **Пачка:** удалить персональный API-токен и тестовые сообщения, если политика
-  пространства это допускает.
-- **Telegram:** удалить бота из супергрупп; в BotFather отозвать токен или
-  удалить тестового бота.
-- **Asana:** удалить авторизацию приложения из аккаунта тестировщика, убрать
-  доступ тестовых пользователей к workspace и ротировать secret тестового MCP
-  app.
-- **Google:** удалить доступ приложения в Google Account, убрать test users,
-  удалить синтетические Sheets/Slides/Forms и ротировать Desktop client secret.
-- **Jitsi/TrueConf:** ключей нет; удалить тестовые записи из orakul. На выделенном
-  тестовом Mac при необходимости снять разрешения Screen Recording и Microphone
-  в System Settings.
+- **WEEEK:** delete the access token and the synthetic tasks/project.
+- **YouGile:** delete the API key through `DELETE /api-v2/auth/keys/{key}` and
+  delete the test tasks.
+- **Yandex Tracker:** revoke the OAuth token / test OAuth application and delete
+  the test queue's tasks.
+- **Pachca:** delete the personal API token and the test messages, if the
+  workspace's policy allows it.
+- **Telegram:** remove the bot from the supergroups; in BotFather revoke the token
+  or delete the test bot.
+- **Asana:** remove the application's authorization from the tester's account,
+  remove the test users' access to the workspace and rotate the test MCP app's
+  secret.
+- **Google:** remove the application's access in the Google Account, remove the
+  test users, delete the synthetic Sheets/Slides/Forms and rotate the Desktop
+  client secret.
+- **Jitsi/TrueConf:** there are no keys; delete the test recordings from orakul. On
+  a dedicated test Mac, remove the Screen Recording and Microphone permissions in
+  System Settings if needed.
 
-В конце удалить `app/.env` и одноразовый checkout. Удаление `.env` не вычищает
-уже собранный бинарник: тестовый `.app`, zip/dmg и все их копии тоже должны быть
-удалены либо заменены сборкой без OAuth-клиентов.
+Finally, delete `app/.env` and the disposable checkout. Deleting `.env` does not
+scrub an already-built binary: the test `.app`, the zip/dmg and every copy of them
+must also be deleted or replaced by a build without the OAuth clients.

@@ -28,7 +28,7 @@ State: v1, 2026-08-17.
 | Stars and forks | 0 and 0 | same |
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
-| Page | На 2026-08-17 отдавала «orakul.ai — звонок, который можно спросить» | исторический `curl` |
+| Page | As of 2026-08-17 it served «orakul.ai — звонок, который можно спросить» | historical `curl` |
 | Page and doc checks | `npm test`; the runner reports the current total | root CI |
 | App and core checks | `cd app && swift test`; `cd mvp && swift test` | macOS CI |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
@@ -385,11 +385,12 @@ clear task, not for code.
 
 ### 5.5 README: a «what next» line — closed 2026-08-18
 
-README has «Чего ещё нет», which is state; the work order was supposed to be
-missing. It was not — the link to this file had been added at some point and the
-entry was never closed. What was genuinely missing is smaller and more useful: a
-door. «Чего ещё нет» tells a reader what is absent, and CONTRIBUTING tells them
-the rules, but neither hands them a task they could start today.
+README has a "What is still missing" section, which is state; the work order was
+supposed to be missing. It was not — the link to this file had been added at some
+point and the entry was never closed. What was genuinely missing is smaller and
+more useful: a door. "What is still missing" tells a reader what is absent, and
+CONTRIBUTING tells them the rules, but neither hands them a task they could start
+today.
 
 README now points at two labels. `первая правка` is what can be done without
 understanding the whole project. `нужен доступ` is the opposite and is the more
