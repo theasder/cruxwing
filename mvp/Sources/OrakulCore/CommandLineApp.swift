@@ -183,8 +183,8 @@ public struct CommandLineApp {
             return Result(output: fileWasEmpty
                 ? "The file is empty, so there is nothing to save."
                 : """
-                  В файле нет реплик — только разметка и отметки времени.
-                  Сохранять нечего: выгрузите расшифровку с текстом.
+                  The file has no speech in it, only markup and timestamps.
+                  There is nothing to save: export a transcript with text.
                   """,
                 exitCode: 1)
         }
@@ -203,8 +203,8 @@ public struct CommandLineApp {
         // сравнивается: планёрки называют одинаково каждую неделю.
         if let existing = store.load().sessions.first(where: { $0.digest == text }) {
             return Result(output: """
-            Такая расшифровка уже есть: «\(existing.title)» (\(existing.id))
-            Ничего не добавил. Посмотреть архив: orakul список
+            That transcript is already here: «\(existing.title)» (\(existing.id))
+            Nothing was added. To see the archive: orakul list
             """, exitCode: 0)   // в архиве лежит то, чего хотели, — это не сбой
         }
 
@@ -295,8 +295,8 @@ public struct CommandLineApp {
             // Молча ничего не делать здесь нельзя: человек ждёт расшифровку и
             // должен узнать, чего именно не хватает.
             return Result(output: """
-            Не настроен движок распознавания. orakul не возит свою модель — он \
-            запускает вашу:
+            No recognition engine is configured. orakul ships no model of its \
+            own — it runs yours:
 
               export ORAKUL_ENGINE="whisper-cli -m model.bin -l ru -otxt -f {file}"
             """, exitCode: 2)
@@ -308,9 +308,10 @@ public struct CommandLineApp {
         } catch WAVFile.DecodeError.unsupportedSampleRate(let rate) {
             // Пересчитывать частоту молча — значит тихо ухудшить распознавание.
             return Result(output: """
-            Запись на \(rate) Гц, а движку нужно 16000. Переведите её заранее:
+            The recording is \(rate) Hz, and the engine needs 16000. Convert it
+            first:
 
-              ffmpeg -i \(path) -ar 16000 -ac 1 запись-16k.wav
+              ffmpeg -i \(path) -ar 16000 -ac 1 recording-16k.wav
             """, exitCode: 1)
         } catch {
             return Result(output: "Unrecognised recording format: WAV, PCM 16-bit required.", exitCode: 1)
@@ -409,26 +410,26 @@ public struct CommandLineApp {
             resolved = full
         case .tooShort:
             return Result(output: """
-            Слишком короткое начало идентификатора: \(id)
-            Нужно хотя бы четыре знака — удаление не отменить.
+            That id prefix is too short: \(id)
+            At least four characters are required — a deletion cannot be undone.
             """, exitCode: 2)
         case .ambiguous(let matches):
             return Result(output: """
-            Под «\(id)» подходит несколько звонков — уточните:
+            More than one call matches «\(id)» — narrow it down:
             \(matches.joined(separator: "\n"))
             """, exitCode: 2)
         case .none:
             return Result(output: """
-            Такого звонка нет: \(id)
-            Посмотреть, что есть: orakul список
+            No such call: \(id)
+            To see what is here: orakul list
             """, exitCode: 1)
         }
 
         do {
             guard try store.delete(id: resolved) else {
                 return Result(output: """
-                Такого звонка нет: \(id)
-                Посмотреть, что есть: orakul список
+                No such call: \(id)
+                To see what is here: orakul list
                 """, exitCode: 1)
             }
         } catch {

@@ -1,6 +1,6 @@
 {
   "id": "jira",
-  "title": "Jira на своём сервере",
+  "title": "Self-hosted Jira",
   "docs": "https://docs.atlassian.com/software/jira/docs/api/REST/9.12.0/#api/2/search",
   "verifiedOn": "2026-08-19",
   "note": "Своя установка Jira, не облако: у облака свой путь через MCP. Метод, параметры и форма ответа взяты из WADL самого вендора (jira-rest-plugin.wadl), а не из пересказа: jql, maxResults (по умолчанию 50, потолок задаёт свойство jira.search.views.default.max), fields; ответ — {startAt, maxResults, total, issues:[{id, key, self}]}, поля задачи приходят в fields, поэтому заголовок лежит в fields.summary, а состояние в fields.status.name. Личный токен передаётся как «Authorization: Bearer», поддержан с Jira Core 8.14. Слово уходит внутрь кавычек JQL, поэтому берётся {queryWords}, а не {query}. ORDER BY updated DESC — потому что охват обещает «последние N», и без сортировки это обещание было бы неправдой. Живой установки не было: Data Center требует лицензии, и это записано честно, а не выдано за проверку.",

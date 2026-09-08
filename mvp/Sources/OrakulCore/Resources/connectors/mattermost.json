@@ -7,7 +7,7 @@
   "parameters": [
     {
       "name": "team",
-      "title": "Команда",
+      "title": "Team",
       "example": "9x7k2m4npq"
     }
   ],

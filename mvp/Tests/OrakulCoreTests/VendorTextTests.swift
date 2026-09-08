@@ -66,7 +66,7 @@ import Foundation
                      "TeamNotes", "RussianTrackers"] {
             let source = try String(contentsOf: root.appendingPathComponent("\(name).swift"),
                                     encoding: .utf8)
-            guard source.contains("отказал") || source.contains("отказала") else { continue }
+            guard source.contains("refused: ") else { continue }
             checked += 1
             #expect(source.contains("VendorText.forPerson"),
                     "\(name) показывает слова сервиса мимо общего правила")

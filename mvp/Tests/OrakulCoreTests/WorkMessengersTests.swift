@@ -256,10 +256,10 @@ struct WorkMessengersTests {
         for service in WorkMessengers.Service.allCases {
             #expect(!service.title.isEmpty)
             #expect(!service.credentialHint.isEmpty)
-            // Подсказку читает человек — значит по-русски.
+            // A person reads the hint, so it is in the product's language.
             #expect(service.credentialHint.range(
-                of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil,
-                "подсказка не по-русски: \(service)")
+                of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                "a Russian hint outlived the switch to English: \(service)")
         }
         // Пачке хватает токена; остальным нужны адрес и место поиска.
         #expect(!WorkMessengers.Service.pachca.needsSecondary)

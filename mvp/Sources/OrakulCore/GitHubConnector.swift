@@ -41,13 +41,13 @@ public struct GitHubConnector: Sendable {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "GitHub не подключён. Вставьте личный токен в «Настройки → Подключённые приложения» и укажите репозитории."
+                return "GitHub is not connected. Paste a personal token in Settings → Connected apps and name the repositories."
             case .unauthorised:
-                return "GitHub не принял токен: истёк или без права read на нужные репозитории."
+                return "GitHub rejected the token: expired, or without read rights on the repositories you need."
             case .http(let status):
-                return "GitHub ответил ошибкой \(status). При 404 обычно неверно указан репозиторий."
+                return "GitHub answered with error \(status). A 404 usually means the repository is wrong."
             case .unreadable:
-                return "GitHub вернул ответ, который не удалось разобрать."
+                return "GitHub returned a reply that could not be parsed."
             }
         }
 
@@ -78,9 +78,9 @@ public struct GitHubConnector: Sendable {
 
     /// Где взять токен. Без адреса подсказка бесполезна.
     public static let credentialHint =
-        "github.com → Settings → Developer settings → Personal access tokens; нужен доступ на чтение репозитория"
+        "github.com → Settings → Developer settings → Personal access tokens; read access to the repository is required"
 
-    public static let repositoriesPrompt = "репозитории через запятую, например myteam/backend"
+    public static let repositoriesPrompt = "repositories separated by commas, for example myteam/backend"
 
     // MARK: - Поиск
 
@@ -142,7 +142,7 @@ public struct GitHubConnector: Sendable {
             } ?? ""
             let key = repo.isEmpty ? "#\(number)" : "\(repo)#\(number)"
             return Item(key: key,
-                        title: (row["title"] as? String) ?? "Без названия",
+                        title: (row["title"] as? String) ?? "Untitled",
                         url: link,
                         state: (row["state"] as? String) ?? "open")
         }

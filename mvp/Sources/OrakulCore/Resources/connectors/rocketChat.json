@@ -7,7 +7,7 @@
   "parameters": [
     {
       "name": "room",
-      "title": "Комната",
+      "title": "Room",
       "example": "GENERAL"
     }
   ],

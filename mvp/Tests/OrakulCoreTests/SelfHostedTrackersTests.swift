@@ -175,13 +175,17 @@ struct SelfHostedTrackersTests {
                                          host: "gitlab.company.ru", http: http).search("q")
         }
     }
-    @Test("подсказки написаны по-русски")
-    func promptsAreRussian() {
+    @Test("every prompt is written for a person, in the product's language")
+    func promptsAreWrittenForPeople() {
         for service in SelfHostedTrackers.Service.allCases {
+            #expect(!service.credentialHint.isEmpty)
+            #expect(!service.hostPrompt.isEmpty)
             #expect(service.credentialHint.range(
-                of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil)
+                of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "a Russian hint outlived the switch to English: \(service)")
             #expect(service.hostPrompt.range(
-                of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil)
+                of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "a Russian prompt outlived the switch to English: \(service)")
         }
     }
 }

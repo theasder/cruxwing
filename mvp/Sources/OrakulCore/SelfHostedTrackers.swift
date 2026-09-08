@@ -55,41 +55,41 @@ public struct SelfHostedTrackers {
             case .redmine: return "Redmine"
             case .plane:  return "Plane"
             case .gitflic: return "GitFlic"
-            case .jira:   return "Jira на своём сервере"
+            case .jira:   return "Self-hosted Jira"
             }
         }
 
         public var credentialHint: String {
             switch self {
             case .gitlab:
-                return "Токен доступа с правом read_api и адрес вашего GitLab"
+                return "An access token with the read_api scope, plus your GitLab address"
             case .gitea:
-                return "Токен из настроек профиля и адрес вашего Gitea или Forgejo"
+                return "A token from your profile settings, plus your Gitea or Forgejo address"
             case .redmine:
-                return "Ключ API со страницы «Моя учётная запись» и адрес вашего Redmine"
+                return "The API key from the My account page, plus your Redmine address"
             case .plane:
                 // Про перечисление сказано здесь, а не в подсказке об ошибке:
                 // человек выбирает сервис до того, как задаст первый вопрос, и
                 // «ищет не сервис, а мы» — это то, что меняет его ожидания.
-                return "Ключ API из настроек Plane, адрес сервера и два поля из адреса вашего проекта. Поиска по слову у Plane нет: orakul просматривает последние задачи и отбирает их у себя — сколько именно просмотрено, пишется под ответом"
+                return "The API key from Plane settings, the server address, and two fields taken from your project URL. Plane has no word search: orakul looks through the most recent issues and filters them locally — how many it looked through is written under the answer"
             case .jira:
                 // «Data Center», а не просто «Jira»: в облаке путь другой, и
                 // человек с облачной Jira, вписав сюда свой адрес, получил бы
                 // отказ без объяснения, почему именно.
-                return "Личный токен (в профиле, раздел личных токенов доступа — есть начиная с Jira 8.14) и адрес вашего сервера. Это своя установка, а не облачная Jira: облачная подключается через MCP"
+                return "A personal token (in your profile, the personal access tokens section — available from Jira 8.14 on) plus your server address. This is a self-hosted install, not cloud Jira: the cloud one connects over MCP"
             case .gitflic:
-                return "Токен доступа из профиля GitFlic, адрес (api.gitflic.ru или своя сборка) и псевдонимы владельца и проекта. Поиска по слову у GitFlic нет: orakul просматривает последние задачи проекта и отбирает их у себя — сколько именно просмотрено, пишется под ответом"
+                return "An access token from your GitFlic profile, the address (api.gitflic.ru or your own install), and the owner and project slugs. GitFlic has no word search: orakul looks through the project's most recent issues and filters them locally — how many it looked through is written under the answer"
             }
         }
 
         public var hostPrompt: String {
             switch self {
-            case .gitlab: return "адрес сервера, например gitlab.company.ru"
-            case .gitea:  return "адрес сервера, например git.company.ru"
-            case .redmine: return "адрес сервера, например redmine.company.ru"
-            case .plane: return "адрес сервера, например api.plane.so"
-            case .gitflic: return "адрес, например api.gitflic.ru"
-            case .jira: return "адрес сервера, например jira.company.ru"
+            case .gitlab: return "server address, for example gitlab.company.ru"
+            case .gitea:  return "server address, for example git.company.ru"
+            case .redmine: return "server address, for example redmine.company.ru"
+            case .plane: return "server address, for example api.plane.so"
+            case .gitflic: return "address, for example api.gitflic.ru"
+            case .jira: return "server address, for example jira.company.ru"
             }
         }
 
@@ -140,27 +140,27 @@ public struct SelfHostedTrackers {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Трекер не подключён. Откройте «Настройки → Подключённые приложения» и вставьте токен."
+                return "The tracker is not connected. Open Settings → Connected apps and paste a token."
             case .unauthorised:
-                return "Трекер не принял токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+                return "The tracker rejected the token. Usually it expired or carries the wrong rights — create a new one in the service itself."
             case .manifestMissing:
-                return "Описание этого трекера не нашлось в сборке — запрос собрать не из чего. Это поломка сборки, а не ваших настроек: переустановите приложение."
+                return "This tracker has no description in the build, so there is nothing to build a request from. That is a broken build, not your settings: reinstall the application."
             case .tooLarge(let bytes):
-                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
+                return "The service sent back \(bytes / 1024 / 1024) MB — no search result weighs that much. We will not parse it in the middle of a call."
             case .rateLimited(let retryAfter):
-                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
-                return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
+                let wait = retryAfter.map { " Wait \($0)s." } ?? ""
+                return "The service asks for fewer requests — too many in a row.\(wait) The token is not the problem: there is no need to reissue it."
             case .http(let status):
-                return "Трекер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+                return "The tracker answered with error \(status). The server is up — check the address and the token's rights, and if it is a 5xx, the server itself or the proxy in front of it."
             case .forbidden:
-                return "Токен настоящий, но права на поиск ему не выдали. Проверьте область токена (у GitLab это read_api, у Gitea — права на задачи) и доступ к проекту. Новый токен с теми же правами не поможет."
+                return "The token is real, but it was never granted search rights. Check the token scope (read_api on GitLab, issue rights on Gitea) and its access to the project. A new token with the same rights will not help."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Трекер отказал: \(prefix)\(VendorText.forPerson(description))"
+                return "The tracker refused: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
-                return "Вместо данных пришла веб-страница — обычно это форма входа: сессия за единым входом истекла или адрес ведёт на сам сервер, а не на его API."
+                return "A web page arrived instead of data — usually a sign-in form: the single sign-on session expired, or the address points at the server itself rather than its API."
             case .unreadable:
-                return "Трекер ответил непонятным образом. Если у вас свой сервер, проверьте адрес и версию."
+                return "The tracker answered in a way we could not read. If the server is your own, check its address and version."
             }
         }
 

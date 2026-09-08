@@ -70,17 +70,17 @@ public struct WorkMessengers {
             case .slack:
                 // Прямо здесь, а не мелким шрифтом: это единственное место,
                 // где человек решает, отдавать ли доступ ко всей переписке.
-                return "ЛИЧНЫЙ токен (user token) с правом search:read. Ботом Slack искать по сообщениям не даёт, поэтому токен даёт доступ ко всему, что видите вы, — включая личные сообщения. orakul отбрасывает личные переписки и закрытые каналы до того, как что-то попадёт в подсказку, но выдаётся токен на всё"
+                return "A PERSONAL user token with the search:read scope. Slack does not allow message search from a bot, so the token reaches everything you can see, direct messages included. orakul discards direct messages and private channels before anything reaches a hint, but the token itself is issued for everything"
             case .pachca:
-                return "Персональный токен из «Автоматизации → API» с правом search:messages"
+                return "A personal token from Automations → API with the search:messages right"
             case .mattermost:
-                return "Личный токен доступа из профиля и адрес вашего сервера"
+                return "A personal access token from your profile, plus your server address"
             case .rocketChat:
-                return "Токен и идентификатор пользователя из профиля, через двоеточие"
+                return "The token and your user id from your profile, separated by a colon"
             case .zulip:
-                return "Почта и ключ API из настроек, через двоеточие, плюс адрес вашего сервера"
+                return "Your email and API key from settings, separated by a colon, plus your server address"
             case .matrix:
-                return "Токен доступа из «Настройки → Помощь» в Element и адрес вашего сервера"
+                return "An access token from Settings → Help in Element, plus your server address"
             }
         }
 
@@ -91,10 +91,10 @@ public struct WorkMessengers {
             case .pachca:     return nil
             // Slack облачный: адрес один и тот же, спрашивать нечего.
             case .slack:      return nil
-            case .mattermost: return "адрес сервера, например chat.company.ru"
-            case .rocketChat: return "адрес сервера, например chat.company.ru"
-            case .zulip:      return "адрес сервера, например zulip.company.ru"
-            case .matrix:     return "адрес сервера, например matrix.company.ru"
+            case .mattermost: return "server address, for example chat.company.ru"
+            case .rocketChat: return "server address, for example chat.company.ru"
+            case .zulip:      return "server address, for example zulip.company.ru"
+            case .matrix:     return "server address, for example matrix.company.ru"
             }
         }
 
@@ -111,8 +111,8 @@ public struct WorkMessengers {
             // Slack ищет по всей доступной человеку переписке сразу; сузить
             // область нечем, и поэтому лишнее отбрасывается уже в выдаче.
             case .slack:      return nil
-            case .mattermost: return "идентификатор команды (team_id)"
-            case .rocketChat: return "идентификатор комнаты (roomId)"
+            case .mattermost: return "the team id (team_id)"
+            case .rocketChat: return "the room id (roomId)"
             // Zulip и Matrix ищут по всему, что видит человек: сужать не нужно.
             case .zulip:      return nil
             case .matrix:     return nil
@@ -132,8 +132,8 @@ public struct WorkMessengers {
         public var pairedTokenPrompt: String? {
             switch self {
             case .slack:      return nil
-            case .rocketChat: return "токен и идентификатор пользователя через двоеточие"
-            case .zulip:      return "почта и ключ API через двоеточие"
+            case .rocketChat: return "the token and user id, separated by a colon"
+            case .zulip:      return "email and API key, separated by a colon"
             case .pachca, .mattermost, .matrix: return nil
             }
         }
@@ -186,29 +186,29 @@ public struct WorkMessengers {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Мессенджер не подключён. Откройте «Настройки → Подключённые приложения» и вставьте токен."
+                return "The messenger is not connected. Open Settings → Connected apps and paste a token."
             case .unauthorised:
-                return "Мессенджер не принял токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+                return "The messenger rejected the token. Usually it expired or carries the wrong rights — create a new one in the service itself."
             case .forbidden:
-                return "Токен настоящий, но права на поиск сообщений ему не выдали. Право выдают в настройках приложения в самом мессенджере — новый токен не поможет."
+                return "The token is real, but it was never granted the message-search right. That right is granted in the app settings inside the messenger itself — a new token will not help."
             case .missingScope(let scope):
-                return "Токен принят, но у него нет права \(scope). Добавьте это право в настройках токена."
+                return "The token was accepted, but it lacks the \(scope) right. Add that right in the token settings."
             case .incompleteToken(let expected):
-                return "В поле токена нужны два значения: \(expected). Сейчас там одно — сервис откажет, сколько бы раз токен ни перевыпускали."
+                return "The token field needs two values: \(expected). It currently holds one — the service will refuse however many times the token is reissued."
             case .tooLarge(let bytes):
-                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
+                return "The service sent back \(bytes / 1024 / 1024) MB — no search result weighs that much. We will not parse it in the middle of a call."
             case .rateLimited(let retryAfter):
-                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
-                return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
+                let wait = retryAfter.map { " Wait \($0)s." } ?? ""
+                return "The service asks for fewer requests — too many in a row.\(wait) The token is not the problem: there is no need to reissue it."
             case .http(let status):
-                return "Мессенджер ответил ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+                return "The messenger answered with error \(status). The server is up — check the address and the token's rights, and if it is a 5xx, the server itself or the proxy in front of it."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Мессенджер отказал: \(prefix)\(VendorText.forPerson(description))"
+                return "The messenger refused: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
-                return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
+                return "A web page arrived instead of data — usually a sign-in form. The token may have expired, and on hotel or cafe networks the network itself demands a sign-in."
             case .unreadable:
-                return "Мессенджер ответил непонятным образом. Если у вас свой сервер, проверьте адрес и версию."
+                return "The messenger answered in a way we could not read. If the server is your own, check its address and version."
             }
         }
 
@@ -347,7 +347,7 @@ public struct WorkMessengers {
             // Свои слова сервиса у этих трёх в отдельный случай не выделены:
             // их отказы приходят кодом HTTP, а не телом с флагом. Если такой
             // сервис появится, ветку надо будет раскрыть, а не оставить общей.
-            // Slack объявляет requireTrue: ["ok"] и errorCode: ["error"], то есть
+            // Slack объявляет requireTrue: ["ok"] and errorCode: ["error"], то есть
             // отказывает телом с кодом 200: «invalid_auth», «not_in_channel».
             case .vendor(let code, let description):
                 throw ConnectorError.vendor(code: code, description: description)
@@ -428,7 +428,7 @@ public struct WorkMessengers {
             ]
             guard let url = components?.url else { throw ConnectorError.notConfigured }
             var request = URLRequest(url: url)
-            // Basic-авторизация: почта и ключ API через двоеточие — так у Zulip.
+            // Basic-авторизация: email and API key, separated by a colon — так у Zulip.
             let credentials = Data(token.utf8).base64EncodedString()
             request.setValue("Basic \(credentials)", forHTTPHeaderField: "Authorization")
             return request

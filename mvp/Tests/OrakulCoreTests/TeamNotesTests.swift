@@ -110,11 +110,13 @@ struct TeamNotesTests {
         #expect(hits.isEmpty)
         #expect(recorder.count == 0)
     }
-    @Test("подсказка написана по-русски")
-    func promptIsRussian() {
+    @Test("every credential hint is written in the product's language")
+    func promptIsWrittenForPeople() {
         for service in TeamNotes.Service.allCases {
+            #expect(!service.credentialHint.isEmpty)
             #expect(service.credentialHint.range(
-                of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil)
+                of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "a Russian hint outlived the switch to English: \(service)")
         }
     }
 
@@ -127,19 +129,15 @@ struct TeamNotesTests {
     @Test("отказ написан по-русски и согласован с «базой знаний»")
     func errorsAgreeInGender() throws {
         let cases: [(TeamNotes.ConnectorError, String)] = [
-            (.notConfigured, "не подключена"),
-            (.unauthorised, "не приняла токен"),
-            (.http(500), "ответила ошибкой 500"),
-            (.unreadable, "ответила непонятным образом"),
+            (.notConfigured, "is not connected"),
+            (.unauthorised, "rejected the token"),
+            (.http(500), "answered with error 500"),
+            (.unreadable, "answered in a way we could not read"),
         ]
         for (error, expected) in cases {
             let text = try #require(error.errorDescription)
-            #expect(text.hasPrefix("База знаний "), "сервис не назван: \(text)")
+            #expect(text.hasPrefix("The knowledge base "), "the service is not named: \(text)")
             #expect(text.contains(expected), "в «\(text)» нет «\(expected)»")
-            for masculine in ["не подключён", "не принял ", "ответил ", "ответило "] {
-                #expect(!text.contains(masculine),
-                        "мужской род при женском подлежащем: \(text)")
-            }
         }
     }
 
@@ -147,7 +145,7 @@ struct TeamNotesTests {
           arguments: TeamNotes.Service.allCases)
     func serviceStrings(service: TeamNotes.Service) {
         #expect(!service.title.isEmpty)
-        #expect(service.hostPrompt.contains("адрес"),
-                "подсказка не говорит, что вписывать: \(service.hostPrompt)")
+        #expect(service.hostPrompt.lowercased().contains("address"),
+                "the prompt does not say what to type: \(service.hostPrompt)")
     }
 }

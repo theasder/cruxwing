@@ -78,24 +78,24 @@ public struct TelegramSupergroups: Sendable {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Укажите токен Telegram-бота и хотя бы один ID супергруппы."
+                return "Give a Telegram bot token and at least one supergroup id."
             case .unauthorised:
-                return "Telegram не принял токен бота. Проверьте токен в BotFather."
+                return "Telegram rejected the bot token. Check the token in BotFather."
             case .webhookConflict:
-                return "У бота уже включён webhook. Один бот не может одновременно получать обновления через webhook и orakul; создайте отдельного бота или удалите webhook."
+                return "The bot already has a webhook enabled. One bot cannot receive updates through a webhook and through orakul at the same time; create a separate bot or delete the webhook."
             case .notSupergroup(let chatIDs):
                 let ids = chatIDs.map(String.init).joined(separator: ", ")
-                return "Чаты \(ids) не являются супергруппами Telegram. Укажите ID супергрупп вида -100…; обычные группы, каналы и личные чаты не поддерживаются."
+                return "Chats \(ids) are not Telegram supergroups. Give supergroup ids of the -100… form; ordinary groups, channels and direct chats are not supported."
             case .privacyEnabled(let chatIDs):
                 let ids = chatIDs.map(String.init).joined(separator: ", ")
-                return "Бот не может читать все сообщения в супергруппах \(ids). Проверьте ID и что бот добавлен; затем отключите режим приватности в BotFather или сделайте его администратором каждой группы."
+                return "The bot cannot read every message in supergroups \(ids). Check the ids and that the bot was added; then turn off privacy mode in BotFather, or make it an administrator of each group."
             case .rateLimited(let seconds):
-                return seconds.map { "Telegram ограничил частоту запросов. Повтор через \($0) с." }
-                    ?? "Telegram ограничил частоту запросов. Повторите позже."
+                return seconds.map { "Telegram rate-limited the requests. Retry in \($0)s." }
+                    ?? "Telegram rate-limited the requests. Try again later."
             case .http(let status):
-                return "Telegram ответил ошибкой \(status)."
+                return "Telegram answered with error \(status)."
             case .unreadable:
-                return "Telegram ответил в непонятном формате."
+                return "Telegram answered in a format we could not read."
             }
         }
     }

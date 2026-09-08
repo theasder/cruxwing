@@ -102,9 +102,9 @@ import FoundationNetworking
         // переписке. Умолчать здесь — это и есть тот случай, ради которого
         // §7.4 называл вопрос продуктовым.
         let hint = WorkMessengers.Service.slack.credentialHint
-        #expect(hint.contains("личн"), "не сказано, что токен личный: «\(hint)»")
+        #expect(hint.contains("PERSONAL"), "the hint does not say the token is personal: «\(hint)»")
         #expect(hint.contains("search:read"), "не названо право, которое надо выдать")
-        for word in ["включая личные сообщения", "отбрасывает"] {
+        for word in ["direct messages included", "discards"] {
             #expect(hint.contains(word), "в подсказке нет «\(word)»: «\(hint)»")
         }
     }

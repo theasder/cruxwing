@@ -55,7 +55,7 @@ struct ConnectorQueryTests {
         }
         let answer = await ConnectorQuery.ask(settings, query: "тарифы",
                                               messengerHTTP: unauthorised)
-        #expect(answer.text.contains("токен"), "не сказано, что дело в токене: «\(answer.text)»")
+        #expect(answer.text.contains("token"), "the token is not named as the cause: «\(answer.text)»")
         #expect(!answer.text.contains("ConnectorError"), "наружу вышли внутренности")
     }
 
@@ -129,7 +129,7 @@ struct ConnectorQueryTests {
             return (Data("[]".utf8), HTTPURLResponse(url: request.url!, statusCode: 200,
                                                      httpVersion: nil, headerFields: [:])!)
         })
-        #expect(answer.text.contains("организации"), "не названо, чего не хватает: «\(answer.text)»")
+        #expect(answer.text.contains("organisation id"), "what is missing is not named: «\(answer.text)»")
         #expect(answer.text.contains("ORAKUL_HOST"), "не сказано, куда это положить")
         #expect(await calls.value == 0, "запрос ушёл, хотя отправлять было нечего")
     }

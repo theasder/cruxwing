@@ -75,7 +75,7 @@ struct WebPageInsteadOfDataTests {
     @Test("человеку сказано про вход и про портал, а не про версию сервера")
     func wordsPointAtTheRealCause() {
         let text = SelfHostedTrackers.ConnectorError.webPage.errorDescription ?? ""
-        #expect(text.contains("форма входа"))
+        #expect(text.contains("sign-in form"))
         #expect(!text.contains("версию"))
     }
 

@@ -343,7 +343,7 @@ struct RussianTrackersTests {
         let (http, _) = stub(json: json)
         let issues = try await client(.yandexTracker, http: http).search("q")
         #expect(issues.map(\.key) == ["TRACK-1", "TRACK-2"], "запись без ключа не отбрасывается")
-        #expect(issues.first?.title == "Без названия")
+        #expect(issues.first?.title == "Untitled")
     }
 
     @Test("не-JSON в ответе — ошибка, а не пустой список")
@@ -634,7 +634,7 @@ struct VendorErrorInsideSuccessTests {
             let text = try #require(error.errorDescription)
             #expect(text.contains("Method not allowed for this webhook"),
                     "слова сервиса потерялись: \(text)")
-            #expect(text.contains("Задачи"), "не сказано, какое право проверить")
+            #expect(text.contains("Tasks right"), "the right to check is not named")
         }
     }
 

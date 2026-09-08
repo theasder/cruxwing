@@ -54,22 +54,22 @@ public struct TeamNotes {
         public var credentialHint: String {
             switch self {
             case .outline:
-                return "Токен из «Settings → API tokens». Адрес нужен, только если вики поднята у вас; для облака оставьте поле пустым"
+                return "A token from Settings → API tokens. The address is needed only if the wiki is self-hosted; leave it empty for the cloud"
             case .bookstack:
-                return "Токен из профиля: «API Tokens → Create Token» даёт две половины, вставьте их через двоеточие — id:секрет. Нужен и адрес вашего сервера: облака у BookStack нет"
+                return "A token from your profile: API Tokens → Create Token gives two halves; paste them separated by a colon, id:secret. Your server address is needed too — BookStack has no cloud"
             case .wikijs:
-                return "Токен из «Администрирование → API Access» с правом read:pages и адрес вашей вики. Облака у Wiki.js нет — её ставят себе"
+                return "A token from Administration → API Access with the read:pages right, plus your wiki address. Wiki.js has no cloud — it is self-hosted"
             case .nextcloud:
-                return "Имя пользователя и пароль приложения через двоеточие — «ivan:xxxxx-xxxxx», обычный пароль лучше не вставлять. Нужен адрес сервера и место поиска: «talk-message» ищет по сообщениям в Talk, «files» — по именам файлов"
+                return "A username and an app password separated by a colon — «ivan:xxxxx-xxxxx»; better not to paste your ordinary password. The server address is needed, and where to search: «talk-message» searches Talk messages, «files» searches file names"
             }
         }
 
         public var hostPrompt: String {
             switch self {
-            case .outline: return "адрес, если сервер свой — например wiki.company.ru"
-            case .bookstack: return "адрес вашего BookStack, например wiki.company.ru"
-            case .wikijs: return "адрес вашей Wiki.js, например wiki.company.ru"
-            case .nextcloud: return "адрес вашего Nextcloud, например cloud.company.ru"
+            case .outline: return "address, if the server is your own — for example wiki.company.ru"
+            case .bookstack: return "your BookStack address, for example wiki.company.ru"
+            case .wikijs: return "your Wiki.js address, for example wiki.company.ru"
+            case .nextcloud: return "your Nextcloud address, for example cloud.company.ru"
             }
         }
 
@@ -122,25 +122,25 @@ public struct TeamNotes {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "База знаний не подключена. Откройте «Настройки → Подключённые приложения» и вставьте токен."
+                return "The knowledge base is not connected. Open Settings → Connected apps and paste a token."
             case .unauthorised:
-                return "База знаний не приняла токен. Обычно он истёк или у него не тех прав — создайте новый в самом сервисе."
+                return "The knowledge base rejected the token. Usually it expired or carries the wrong rights — create a new one in the service itself."
             case .tooLarge(let bytes):
-                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
+                return "The service sent back \(bytes / 1024 / 1024) MB — no search result weighs that much. We will not parse it in the middle of a call."
             case .rateLimited(let retryAfter):
-                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
-                return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
+                let wait = retryAfter.map { " Wait \($0)s." } ?? ""
+                return "The service asks for fewer requests — too many in a row.\(wait) The token is not the problem: there is no need to reissue it."
             case .http(let status):
-                return "База знаний ответила ошибкой \(status). Сервер на месте — проверьте адрес и права токена, а если это 5xx, то сам сервер или прокси перед ним."
+                return "The knowledge base answered with error \(status). The server is up — check the address and the token's rights, and if it is a 5xx, the server itself or the proxy in front of it."
             case .forbidden:
-                return "Токен настоящий, но права на поиск ему не выдали. Это чинится в самом сервисе — в правах токена или в доступе к пространству, — а не выпуском нового токена."
+                return "The token is real, but it was never granted search rights. That is fixed in the service itself — in the token rights or the space access — not by issuing a new token."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Вики отказала: \(prefix)\(VendorText.forPerson(description))"
+                return "The wiki refused: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
-                return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
+                return "A web page arrived instead of data — usually a sign-in form. The token may have expired, and on hotel or cafe networks the network itself demands a sign-in."
             case .unreadable:
-                return "База знаний ответила непонятным образом. Если у вас свой сервер, проверьте адрес и версию."
+                return "The knowledge base answered in a way we could not read. If the server is your own, check its address and version."
             }
         }
 
@@ -215,7 +215,7 @@ public struct TeamNotes {
                                           values: values, cache: cache, caseMemory: caseMemory, http: http)
         do {
             return try await connector.search(query).map {
-                Hit(title: $0.title.isEmpty ? "Без названия" : $0.title,
+                Hit(title: $0.title.isEmpty ? "Untitled" : $0.title,
                     context: $0.context, service: service)
             }
         } catch let error as ManifestConnector.ConnectorError {
@@ -291,7 +291,7 @@ public struct TeamNotes {
             let context = (row["context"] as? String) ?? ""
             let title = ((row["document"] as? [String: Any])?["title"] as? String) ?? ""
             guard !context.isEmpty || !title.isEmpty else { return nil }
-            return Hit(title: title.isEmpty ? "Без названия" : title,
+            return Hit(title: title.isEmpty ? "Untitled" : title,
                        context: context, service: service)
         }
         // Строки пришли, а прочитать не удалось ни одну — это смена формата, а

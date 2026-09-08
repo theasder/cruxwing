@@ -8,7 +8,7 @@
   "parameters": [
     {
       "name": "provider",
-      "title": "Где искать",
+      "title": "Where to search",
       "example": "talk-message"
     }
   ],

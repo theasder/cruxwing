@@ -237,15 +237,15 @@ struct RussianTrackerCreateTests {
     /// Ровно то, что человек читает, когда трекер отказал. Без этого наружу
     /// шло «The operation couldn't be completed» — по-английски и без имени
     /// сервиса, а подключённых может быть пять.
-    @Test("отказ объясняется по-русски и называет сервис")
-    func errorsSpeakRussian() throws {
+    @Test("a refusal explains itself and names the service")
+    func errorsNameTheService() throws {
         let cases: [(RussianTrackers.TrackerError, [String])] = [
-            (.notConfigured(.kaiten), ["Kaiten", "не подключён", "Настройки"]),
-            (.unauthorised(.yandexTracker), ["Яндекс Трекер", "не принял токен", "истёк"]),
-            (.http(.yougile, 404), ["YouGile", "404", "404 — проверьте"]),
-            (.unreadable(.bitrix24), ["Битрикс24", "разобрать"]),
+            (.notConfigured(.kaiten), ["Kaiten", "is not connected", "Settings"]),
+            (.unauthorised(.yandexTracker), ["Яндекс Трекер", "rejected the token", "expired"]),
+            (.http(.yougile, 404), ["YouGile", "404", "If it is a 404, check"]),
+            (.unreadable(.bitrix24), ["Битрикс24", "could not be parsed"]),
             (.vendor(.bitrix24, code: "ERROR_CORE", description: "нет права «Задачи»"),
-             ["Битрикс24", "нет права «Задачи»", "вебхук"]),
+             ["Битрикс24", "нет права «Задачи»", "webhook"]),
         ]
         for (error, expected) in cases {
             let text = try #require(error.errorDescription)
@@ -254,9 +254,9 @@ struct RussianTrackerCreateTests {
                         "в «\(text)» нет «\(fragment)»")
             }
             #expect(!text.contains("MeetGPT"), "наружу вылезло внутреннее имя типа")
-            #expect(text.range(of: "[a-zA-Z]{6,}", options: .regularExpression) == nil
-                    || text.contains("Kaiten") || text.contains("YouGile"),
-                    "в сообщении осталось длинное английское слово: \(text)")
+            #expect(text.range(of: "[а-яА-ЯёЁ]{4,}", options: .regularExpression) == nil
+                    || text.contains("Яндекс") || text.contains("Битрикс24"),
+                    "a Russian phrase outlived the switch to English: \(text)")
         }
     }
 }

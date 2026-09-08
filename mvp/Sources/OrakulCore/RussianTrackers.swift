@@ -58,17 +58,17 @@ public struct RussianTrackers {
         /// уточнения, какой именно, — это тупик.
         public var credentialHint: String {
             switch self {
-            case .yandexTracker: return "OAuth-токен и идентификатор организации: «Администрирование» → «Организации», поле ID"
-            case .kaiten:        return "API-токен из профиля, раздел «API», и адрес вашей команды"
+            case .yandexTracker: return "An OAuth token and the organisation id: Administration → Organisations, the ID field"
+            case .kaiten:        return "An API token from your profile, the API section, plus your team address"
             case .yougile:
-                return "API-ключ создаётся через POST /api-v2/auth/keys в интерактивной документации YouGile: нужны логин, пароль и ID компании"
+                return "The API key is created with POST /api-v2/auth/keys in the interactive YouGile documentation: it needs a login, a password and the company id"
             case .weeek:
-                return "Токен доступа из раздела API в настройках рабочего пространства WEEEK"
+                return "An access token from the API section of the WEEEK workspace settings"
             case .bitrix24:
                 // Вебхук показывают одной строкой вида
                 // https://фирма.bitrix24.ru/rest/1/abc.../ — сюда идёт
                 // середина, «1/abc...», а адрес портала в поле ниже.
-                return "Входящий вебхук: «Разработчикам» → «Другое» → «Входящий вебхук», право «Задачи». Вставьте ссылку целиком — адрес портала возьмётся из неё"
+                return "An inbound webhook: For developers → Other → Inbound webhook, with the Tasks right. Paste the whole link — the portal address is taken from it"
             }
         }
 
@@ -80,14 +80,14 @@ public struct RussianTrackers {
             switch self {
             // Один токен обслуживает несколько организаций; без X-Org-ID
             // запрос уходит в никуда с 403.
-            case .yandexTracker: return "идентификатор организации"
+            case .yandexTracker: return "the organisation id"
             // У Kaiten нет общего адреса API: он свой у каждой команды.
-            case .kaiten:        return "адрес команды, например team.kaiten.ru"
+            case .kaiten:        return "team address, for example team.kaiten.ru"
             // Портал у каждой фирмы свой, общего адреса API нет.
             // Заполнять не нужно, если вебхук вставлен целиком: адрес
             // возьмётся из ссылки. Поле остаётся для тех, кто вписывает
             // середину руками, и для порталов на своём домене.
-            case .bitrix24:      return "адрес портала, если вставили не ссылку целиком"
+            case .bitrix24:      return "the portal address, if you pasted something other than the whole link"
             case .yougile, .weeek: return nil
             }
         }
@@ -105,11 +105,11 @@ public struct RussianTrackers {
         /// лишний верный параметр никогда не ошибка.
         public var destinationPrompt: String? {
             switch self {
-            case .yandexTracker: return "ключ очереди, например TREK"
-            case .kaiten:        return "номер доски, например 4"
-            case .yougile:       return "идентификатор колонки"
-            case .weeek:         return "номер проекта, например 42"
-            case .bitrix24:      return "номер ответственного, например 1"
+            case .yandexTracker: return "the queue key, for example TREK"
+            case .kaiten:        return "the board number, for example 4"
+            case .yougile:       return "the column id"
+            case .weeek:         return "the project number, for example 42"
+            case .bitrix24:      return "the assignee number, for example 1"
             }
         }
 
@@ -180,25 +180,25 @@ public struct RussianTrackers {
         public var errorDescription: String? {
             switch self {
             case .tooLarge(let service, let bytes):
-                return "\(service.title) прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
+                return "\(service.title) sent back \(bytes / 1024 / 1024) MB — no search result weighs that much. We will not parse it in the middle of a call."
             case .rateLimited(let service, let retryAfter):
-                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
-                return "\(service.title) просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
+                let wait = retryAfter.map { " Wait \($0)s." } ?? ""
+                return "\(service.title) asks for fewer requests — too many in a row.\(wait) The token is not the problem: there is no need to reissue it."
             case .notConfigured(let service):
-                return "\(service.title) не подключён. Вставьте токен в «Настройки → Подключённые приложения»."
+                return "\(service.title) is not connected. Paste a token in Settings → Connected apps."
             case .unauthorised(let service):
-                return "\(service.title) не принял токен: истёк или не хватает прав. Создайте новый в самом сервисе."
+                return "\(service.title) rejected the token: expired, or missing rights. Create a new one in the service itself."
             case .vendor(let service, let code, let description):
                 let detail = VendorText.forPerson(description.isEmpty ? code : description)
-                return "\(service.title) отказал: \(detail). Если это Битрикс24 — проверьте, что вебхук не удалён и у него есть право «Задачи»."
+                return "\(service.title) refused: \(detail). If this is Битрикс24, check that the webhook still exists and carries the Tasks right."
             case .http(let service, let status):
-                return "\(service.title) ответил ошибкой \(status). Если это 404 — проверьте очередь или доску в настройках."
+                return "\(service.title) answered with error \(status). If it is a 404, check the queue or board in settings."
             case .forbidden(let service):
-                return "\(service.title): токен настоящий, но права на поиск ему не выдали. Право выдают в настройках приложения или вебхука в самом сервисе — новый токен не поможет."
+                return "\(service.title): the token is real, but it was never granted search rights. That right is granted in the app or webhook settings inside the service itself — a new token will not help."
             case .webPage(let service):
-                return "\(service.title) прислал веб-страницу вместо данных — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
+                return "\(service.title) sent a web page instead of data — usually a sign-in form. The token may have expired, and on hotel or cafe networks the network itself demands a sign-in."
             case .unreadable(let service):
-                return "\(service.title) вернул ответ, который не удалось разобрать."
+                return "\(service.title) returned a reply that could not be parsed."
             }
         }
 
@@ -688,7 +688,7 @@ public struct RussianTrackers {
                 ?? (row["title"] as? String)
                 ?? (row["name"] as? String)
                 ?? (row["TITLE"] as? String)
-                ?? "Без названия"
+                ?? "Untitled"
             guard !key.isEmpty else { return nil }
             return Issue(key: key, title: title, url: Self.link(row["url"]))
         }

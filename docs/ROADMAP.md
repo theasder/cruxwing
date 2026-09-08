@@ -61,7 +61,7 @@ the next step is capturing which neighbour wrote what, not another guess.
 |---|---|---|
 | Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
 | Work messengers | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, **Matrix / Element** | `WorkMessengers.swift` |
-| Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Jira на своём сервере | `SelfHostedTrackers.swift` |
+| Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Self-hosted Jira | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |
 | Code in the cloud | GitHub, personal token, `GET /search/issues` | `GitHubConnector.swift` |
@@ -1137,7 +1137,7 @@ setting.
 |---|---|---|
 | **Slack** | **Connected 2026-08-18 — see the decision below**[^slack] | The scope question is **answered 2026-08-20, and the answer is to stay**[^slackassistant]. Not sentiment: a bot token reaches public channels only, a user token needs six scopes instead of one, `limit` drops from 100 to 20, and search is semantic unless switched off — a product that promises to quote the source cannot quietly start answering from things that do not contain the word. Reopening when a live workspace can show what it returns |
 | **Plane**, open, self-hosted | **Connected 2026-08-18, verified against a live install 2026-08-19** under §7.2: `GET /api/v1/workspaces/{workspace_slug}/projects/{project_id}/work-items/`, header `X-API-Key`, response `{results, total_count, next_page_results, …}`, items carrying `name`, `sequence_id`, `description_html`[^plane] | Nothing blocking. The cursor `perPage:page:is_prev` is confirmed — the live service answered `100:1:0` to a request for `100:0:0`. Two other fields were not what the docs promised: see below |
-| **Jira on an own server** («Jira на своём сервере») | **Connected 2026-08-19.** `GET /rest/api/2/search`, `jql` / `maxResults` / `fields`, header `Authorization: Bearer <personal token>` (PATs exist from Jira Core 8.14); response `{startAt, maxResults, total, issues:[{id, key, fields}]}`, so the title is `fields.summary` and the state is `fields.status.name`[^jiradc] | Nothing blocking, and nothing verified live either: Data Center needs a licence, so this is a docs-only connector and says so in its manifest. It is the first service whose search takes an **expression**, not a word — see below |
+| **Jira on an own server** («Self-hosted Jira») | **Connected 2026-08-19.** `GET /rest/api/2/search`, `jql` / `maxResults` / `fields`, header `Authorization: Bearer <personal token>` (PATs exist from Jira Core 8.14); response `{startAt, maxResults, total, issues:[{id, key, fields}]}`, so the title is `fields.summary` and the state is `fields.status.name`[^jiradc] | Nothing blocking, and nothing verified live either: Data Center needs a licence, so this is a docs-only connector and says so in its manifest. It is the first service whose search takes an **expression**, not a word — see below |
 | **Confluence on an own server** | `GET /rest/api/search` with `cql` and `limit` (default 25) is documented[^confdc] | **Not connected, and the reason is worth keeping.** The vendor's own schema for that method declares a bare array of results, while every third-party account of a real install describes `{results: […], totalSize, …}`. One of the two is wrong, and picking by guess is how a connector answers «ничего не нашлось» forever. Unblocked by an install where the shape can be seen — the same bar the rest of this table is held to |
 | **BookStack** | **Connected 2026-08-18, verified against a live install 2026-08-19.** `GET /api/search?query=…&count=…` (count max 100), header `Authorization: Token <id>:<secret>` — the two halves are one string, not a login and a password; response `{data:[{name, type, url, preview_html:{name, content}}], total}`, 180 requests a minute[^bookstack] | Nothing blocking. The live answer matched the manifest field for field — reading the vendor's source, not only its docs, is why. What it did reveal is about Russian, not about BookStack: see «the word as spoken is not the word in the base» below |
 | **Wiki.js** | **Connected 2026-08-18.** GraphQL only: `POST /graphql`, `Authorization: Bearer`, `pages { search(query:) { results { id title description path locale } totalHits } }`[^wikijs] | Nothing blocking. `search` takes no limit, so the size of the answer is the server's choice |
@@ -1770,7 +1770,7 @@ replaced with a **space**, not deleted — «Wi-Fi» without the hyphen becomes
 «WiFi», a word the index does not contain, while «Wi Fi» is exactly what it
 does. Deleting would have looked tidier and quietly lost matches.
 
-**Jira («Jira на своём сервере» in Settings) was the first, and a sweep found it was not the only one.** The question
+**Jira («Self-hosted Jira» in Settings) was the first, and a sweep found it was not the only one.** The question
 reaching a connector is not a single stemmed word: the command line passes
 whatever was typed, and during a call the app passes the goal — free text, up to
 320 characters. So the question that lands in somebody else's search parameter is

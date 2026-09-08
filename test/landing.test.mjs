@@ -1537,7 +1537,7 @@ describe('orakul landing (ru)', () => {
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CommandLineApp.swift'), 'utf8'));
     assert.match(cli, /let fileWasEmpty = raw\.trimmingCharacters/,
       'the two causes are conflated again — a file with markup reads as empty');
-    assert.match(cli, /В файле нет реплик/,
+    assert.match(cli, /The file has no speech in it/,
       'the message for a markup-only file is gone');
   });
 

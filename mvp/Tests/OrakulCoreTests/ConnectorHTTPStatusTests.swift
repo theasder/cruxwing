@@ -98,10 +98,10 @@ struct ConnectorHTTPStatusTests {
         for message in messages {
             let text = message ?? ""
             #expect(text.contains("502"), "код ответа не назван: «\(text)»")
-            #expect(!text.contains("версию"),
+            #expect(!text.contains("version"),
                     "совет проверить версию остался там, где сервер просто ответил ошибкой")
-            #expect(text.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) != nil,
-                    "сообщение не по-русски: «\(text)»")
+            #expect(text.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "a Russian message outlived the switch to English: «\(text)»")
         }
     }
 

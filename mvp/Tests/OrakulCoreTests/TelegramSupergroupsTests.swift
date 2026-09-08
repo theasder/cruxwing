@@ -122,7 +122,7 @@ struct TelegramSupergroupsTests {
         #expect(!recorder.all.contains { $0.url?.path.hasSuffix("/getChatMember") == true })
         let copy = try #require(TelegramSupergroups.ConnectorError
             .notSupergroup(chatIDs: [-77]).errorDescription)
-        #expect(copy.contains("не являются супергруппами"))
+        #expect(copy.contains("are not Telegram supergroups"))
         #expect(copy.contains("-100"))
     }
 

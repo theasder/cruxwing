@@ -31,7 +31,7 @@ struct CommandLineAppTests {
 
         #expect(!result.output.contains("Файл пустой"),
                 "непустой файл назван пустым: «\(result.output)»")
-        #expect(result.output.contains("реплик") || result.output.contains("текста"),
+        #expect(result.output.contains("no speech in it") || result.output.contains("with text"),
                 "не сказано, чего в файле не нашлось: «\(result.output)»")
         #expect(result.exitCode != 0, "нечего сохранять — это отказ")
     }
@@ -103,7 +103,7 @@ struct CommandLineAppTests {
         let second = app.run(["добавить", "з.txt", "Планёрка"])
         #expect(!second.output.contains("Added"),
                 "вторая копия завелась молча: «\(second.output)»")
-        #expect(second.output.contains("уже есть"),
+        #expect(second.output.contains("already here"),
                 "не сказано, что такая расшифровка уже в архиве: «\(second.output)»")
         // Уже лежит в архиве — это и есть то, чего человек хотел, не сбой.
         #expect(second.exitCode == 0, "повтор объявлен ошибкой")
@@ -709,7 +709,7 @@ struct DeleteByPrefixTests {
 
         let result = app.run(["удалить", "ABCD"])
         #expect(result.exitCode == 2, "неоднозначное начало не должно ничего удалять")
-        #expect(result.output.contains("несколько"), "не сказано, что совпадений много")
+        #expect(result.output.contains("More than one call matches"), "не сказано, что совпадений много")
         #expect(store.load().sessions.count == 2, "при неоднозначности удалили звонок")
 
         // И обе стороны разбора, без удаления.
@@ -727,7 +727,7 @@ struct DeleteByPrefixTests {
         let (app, store) = app(with: ["Планёрка"])
         let result = app.run(["удалить", prefix])
         #expect(result.exitCode == 2)
-        #expect(result.output.contains("четыре"), "не сказано, сколько знаков нужно")
+        #expect(result.output.contains("four characters"), "не сказано, сколько знаков нужно")
         #expect(store.load().sessions.count == 1, "по короткому началу что-то удалилось")
     }
 
@@ -744,7 +744,7 @@ struct DeleteByPrefixTests {
         let (app, _) = app(with: ["Планёрка"])
         let result = app.run(["удалить", "00000000-0000-0000-0000-000000000000"])
         #expect(result.exitCode == 1)
-        #expect(result.output.contains("Такого звонка нет"))
+        #expect(result.output.contains("No such call"))
     }
 
     /// То же самое в расшифровке: имя файла — то, что человек напечатал,

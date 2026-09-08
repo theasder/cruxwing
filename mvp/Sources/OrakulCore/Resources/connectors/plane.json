@@ -8,12 +8,12 @@
   "parameters": [
     {
       "name": "workspace",
-      "title": "Пространство",
+      "title": "Workspace",
       "example": "moya-komanda"
     },
     {
       "name": "project",
-      "title": "Проект",
+      "title": "Project",
       "example": "550e8400-e29b-41d4-a716-446655440000"
     }
   ],

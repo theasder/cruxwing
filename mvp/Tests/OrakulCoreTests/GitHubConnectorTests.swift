@@ -124,7 +124,7 @@ struct GitHubConnectorTests {
         let (http, _) = stub(json: json)
         let items = try await client(http: http).search("q")
         #expect(items.count == 1)
-        #expect(items.first?.title == "Без названия")
+        #expect(items.first?.title == "Untitled")
     }
 
     @Test("ошибка от GitHub не выдаётся за пустую выдачу")
@@ -153,10 +153,10 @@ struct GitHubConnectorTests {
     @Test("отказ объясняется по-русски и говорит, что делать")
     func errorsSpeakRussian() throws {
         let cases: [(GitHubConnector.ConnectorError, [String])] = [
-            (.notConfigured, ["GitHub не подключён", "Настройки"]),
-            (.unauthorised, ["не принял токен", "read"]),
-            (.http(404), ["404", "репозиторий"]),
-            (.unreadable, ["разобрать"]),
+            (.notConfigured, ["GitHub is not connected", "Settings"]),
+            (.unauthorised, ["rejected the token", "read"]),
+            (.http(404), ["404", "repository"]),
+            (.unreadable, ["could not be parsed"]),
         ]
         for (error, expected) in cases {
             let text = try #require(error.errorDescription)

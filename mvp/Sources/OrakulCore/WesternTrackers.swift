@@ -46,9 +46,9 @@ public struct WesternTrackers: Sendable {
         public var credentialHint: String {
             switch self {
             case .linear:
-                return "Личный ключ из «Settings → Security & access». Вставляется как есть: Linear ждёт его в заголовке без слова Bearer"
+                return "A personal key from Settings → Security & access. Paste it as is: Linear expects it in the header without the word Bearer"
             case .trello:
-                return "Два значения из trello.com/power-ups/admin: ключ приложения и токен. Токен — в поле ниже, ключ — в отдельном поле: секрет из них только токен"
+                return "Two values from trello.com/power-ups/admin: the application key and the token. The token goes in the field below, the key in its own field — only the token is secret"
             }
         }
 
@@ -77,27 +77,27 @@ public struct WesternTrackers: Sendable {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Трекер не подключён. Откройте «Настройки → Подключённые приложения» и вставьте ключ."
+                return "The tracker is not connected. Open Settings → Connected apps and paste a key."
             case .unauthorised:
-                return "Трекер не принял ключ. Обычно он истёк или отозван — создайте новый в самом сервисе."
+                return "The tracker rejected the key. Usually it expired or was revoked — create a new one in the service itself."
             case .forbidden:
-                return "Ключ принят, но прав на поиск у него нет. Права выдаются в самом сервисе, перевыпуск ключа тут не поможет."
+                return "The key was accepted, but it carries no search rights. Rights are granted in the service itself; reissuing the key will not help."
             case .tooLarge(let bytes):
-                return "Сервис прислал ответ на \(bytes / 1024 / 1024) МБ — столько выдача поиска не весит. Разбирать его посреди звонка мы не станем."
+                return "The service sent back \(bytes / 1024 / 1024) MB — no search result weighs that much. We will not parse it in the middle of a call."
             case .rateLimited(let retryAfter):
-                let wait = retryAfter.map { " Подождите \($0) с." } ?? ""
-                return "Сервис просит обращаться реже — слишком много запросов подряд.\(wait) Токен тут ни при чём: перевыпускать его не нужно."
+                let wait = retryAfter.map { " Wait \($0)s." } ?? ""
+                return "The service asks for fewer requests — too many in a row.\(wait) The token is not the problem: there is no need to reissue it."
             case .http(let status):
-                return "Трекер ответил ошибкой \(status). Сервис на месте — если это 5xx, подождите и повторите."
+                return "The tracker answered with error \(status). The service is up — if it is a 5xx, wait and retry."
             case .vendor(let code, let description):
                 let prefix = code.isEmpty ? "" : "\(code) — "
-                return "Трекер отказал: \(prefix)\(VendorText.forPerson(description))"
+                return "The tracker refused: \(prefix)\(VendorText.forPerson(description))"
             case .webPage:
-                return "Вместо данных пришла веб-страница — обычно это форма входа. Токен мог истечь, а если вы в гостинице или в кафе, то сеть требует входа в свой портал."
+                return "A web page arrived instead of data — usually a sign-in form. The token may have expired, and on hotel or cafe networks the network itself demands a sign-in."
             case .unreadable:
-                return "Трекер ответил непонятным образом. Возможно, у сервиса изменился формат ответа."
+                return "The tracker answered in a way we could not read. The service may have changed its response format."
             case .manifestMissing:
-                return "Описание этого трекера не нашлось в сборке — запрос собрать не из чего. Это поломка сборки, а не ваших настроек: переустановите приложение."
+                return "This tracker has no description in the build, so there is nothing to build a request from. That is a broken build, not your settings: reinstall the application."
             }
         }
     }
