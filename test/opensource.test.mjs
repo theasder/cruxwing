@@ -400,22 +400,22 @@ describe('open-source furniture', () => {
     // Смысл файла — не в списке недопустимого (его даёт Contributor Covenant),
     // а в двух обязательствах мейнтейнера. Без них останется шаблон, который
     // защищает площадку от человека, — ровно то, из-за чего уходят с форумов.
-    test('обещает объяснять решения и разрешает их обжаловать', () => {
+    test('promises to explain decisions and allows them to be appealed', () => {
       const text = readFileSync(coc, 'utf8');
-      assert.match(text, /объясняется|объяснить/,
-        'пропало обязательство объяснять каждое закрытие');
-      assert.match(text, /обжаловать|пересмотр/,
-        'пропало право потребовать пересмотра');
-      assert.match(text, /дубликат/i,
-        'закрытие дубликатом — самый частый случай, он должен быть назван');
+      assert.match(text, /explained|explain/i,
+        'the obligation to explain every closure is gone');
+      assert.match(text, /appeal|review/i,
+        'the right to demand a review is gone');
+      assert.match(text, /duplicate/i,
+        'closing as a duplicate is the commonest case; it has to be named');
       assert.match(text, /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i,
-        'некуда написать — правила без адреса не работают');
+        'nowhere to write — rules without an address do not work');
     });
 
-    test('README ведёт к нему, а не оставляет его для одного GitHub', () => {
+    test('README leads to it rather than leaving it for GitHub alone', () => {
       const readme = readFileSync(resolve(here, '..', 'README.md'), 'utf8');
       assert.match(readme, /\(CODE_OF_CONDUCT\.md\)/,
-        'README не ссылается на правила поведения');
+        'README does not link to the code of conduct');
     });
   });
 

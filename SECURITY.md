@@ -1,226 +1,223 @@
-# Безопасность
+# Security
 
-orakul слушает ваши рабочие звонки. Это худший класс программ для того, чтобы
-верить на слово, поэтому дальше написано не «мы серьёзно относимся к
-безопасности», а что именно происходит с записью и куда уходят данные.
+orakul listens to your work calls. That is the worst class of program to take on
+trust, so what follows is not "we take security seriously" but what exactly happens
+to a recording and where data goes.
 
-## Граница этого документа
+## The boundary of this document
 
-Утверждения ниже относятся к публичной DIST-сборке (`MEETGPT_DIST=1`) из
-проверенного коммита этой ветки. Они не переносятся автоматически на старый DMG,
-локальную сборку с `app/.env` или форк, изменивший настройки. Исходники содержат
-несколько отключённых путей Cruxwing; они перечислены, а не выданы за удалённые.
-Техническая карта границ — в [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+The statements below apply to the public DIST build (`MEETGPT_DIST=1`) from a
+verified commit of this branch. They do not carry over automatically to an old DMG,
+a local build with `app/.env`, or a fork that changed the settings. The sources
+contain several disabled Cruxwing paths; they are listed rather than passed off as
+removed. A technical map of the boundaries is in
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Что уходит наружу
+## What leaves the machine
 
-В публичной DIST-сборке нет настроенного first-party бэкенда Orakul.
-`app/build.sh` останавливается, если в действительно компилируемом
-`Secrets.swift` оказался непустой адрес, а `Config` не подставляет адрес другого
-продукта. Это проверяемая конфигурационная граница, а не сетевой sandbox:
-унаследованные типы бэкенда, аккаунта, paywall API и тарифов ещё компилируются и
-остаются P1-долгом на удаление/изоляцию.
-Прямой BYOK-запуск при этом не читает старую сессию аккаунта Orakul из Keychain
-и не подписывается на уведомления управляемой сессии.
+The public DIST build has no configured first-party Orakul backend. `app/build.sh`
+stops if a non-empty address ends up in the `Secrets.swift` that is actually
+compiled, and `Config` does not substitute another product's address. That is a
+verifiable configuration boundary, not a network sandbox: the inherited backend,
+account, paywall API and plan types still compile and remain P1 debt to remove or
+isolate. A direct BYOK launch, meanwhile, does not read an old Orakul account
+session from the Keychain and does not subscribe to managed-session notifications.
 
-Реальные классы исходящего трафика такие:
+The real classes of outbound traffic are these:
 
-1. **Загрузка локальных моделей.** WhisperKit и FluidAudio могут при первом
-   использовании скачать веса и затем кешировать их. В запрос загрузки не
-   должен входить звук звонка, но сам факт сети и обычные HTTP-метаданные у
-   хоста модели остаются.
-2. **Запрос к выбранному AI-провайдеру.** Ключ модели пользователь сам добавляет,
-   заменяет и удаляет в Settings; в сборке запасного ключа нет. Провайдер
-   получает ключ для авторизации и содержимое конкретного запроса: системную
-   инструкцию, вопрос, нужную часть расшифровки, приложенные заметки/документы,
-   историю диалога и выбранные результаты подключённых сервисов. Режим Full
-   context может отправить гораздо больше расшифровки. Общий переключатель
-   автоматических AI-запросов выключен на новой установке. Пока он выключен,
-   Orakul не запускает модель для цели, названия, фоновой сводки и проверок и не
-   добавляет к явному вопросу проходы для уточнений, следующих вопросов или
-   предложений действий; автоматическое LLM-сведение Fireflies тоже не
-   запускается. Если пользователь включит переключатель, каждый такой
-   проход становится отдельным запросом к его провайдеру. Явное действие само
-   может использовать больше одного запроса для чтения подключённых источников,
-   совета моделей, повтора или резервного провайдера в глобальном Auto — это не
-   фоновая работа. Чтение источников подчиняется общему переключателю
-   подключённых приложений и их индивидуальному mute; использованные и
-   отклонённые источники подписываются в самом ответе.
-   Фильтр секретов включён по умолчанию, но это эвристика,
-   не DLP-гарантия.
-   В прямом BYOK-режиме Orakul не продаёт кредиты, не считает локальную
-   продуктовую активность и не отключает запросы по унаследованному месячному лимиту.
-   Оплату, rate limit и квоты применяет сам выбранный провайдер к аккаунту пользователя.
-3. **Запрос к подключённому сервису.** Он идёт на официальный API/MCP Telegram,
-   Google, Fireflies и других выбранных сервисов либо на адрес своей установки,
-   который указал пользователь. Запрос может читать, искать, импортировать или
-   записывать выбранный материал. Если ранее явно настроены Telegram или
-   напоминания из Google Calendar, их фоновый опрос может возобновиться при
-   следующем запуске. Team Watch и отложенное улучшение из Fireflies тоже
-   работают в фоне только после настройки соответствующего источника.
-4. **Облачная расшифровка по ключу пользователя.** Deepgram виден в публичных
-   настройках, но движок недоступен, пока пользователь не сохранит свой ключ в
-   Keychain; после выбора оба живых аудиотрека идут прямо в Deepgram.
-   Удаление ключа сначала закрывает запускающийся, активный или поставленный на
-   паузу облачный маршрут; ошибка удаления из Keychain не выдаётся за успех.
-   Старая недоступная cloud-настройка нормализуется в локальную и не включается
-   снова только от появления ключа — движок надо выбрать явно.
-   AssemblyAI — отдельный post-call инструмент: после добавления собственного
-   ключа только явное действие разделения говорящих загружает удержанный
-   системный трек. Унаследованные OpenAI Whisper и server Whisper остаются в
-   исходниках как compatibility-клиенты, но скрытые движки в публичной сборке
-   fail closed: старая настройка нормализуется в локальную, а OpenAI chat key
-   не считается согласием на загрузку аудио. Ни один AI/transcription key не читается из
-   `.env` и не зашивается в bundle. Полная таблица путей и триггеров — в
-   архитектурном документе.
+1. **Downloading local models.** WhisperKit and FluidAudio may download weights on
+   first use and then cache them. Call audio must not be part of a download
+   request, but the fact of network activity and ordinary HTTP metadata remain
+   visible to the model host.
+2. **A request to the chosen AI provider.** The user adds, replaces and deletes the
+   model key themselves in Settings; there is no fallback key in the build. The
+   provider receives the key for authorization and the contents of that specific
+   request: the system instruction, the question, the needed part of the
+   transcript, attached notes and documents, the dialogue history and the selected
+   results from connected services. Full context mode can send considerably more of
+   the transcript. The shared toggle for automatic AI requests is off on a new
+   installation. While it is off, Orakul does not run the model for the goal, the
+   title, a background summary or checks, and does not add passes for
+   clarifications, follow-up questions or suggested actions to an explicit
+   question; automatic LLM consolidation of Fireflies does not run either. If the
+   user turns the toggle on, each such pass becomes a separate request to their
+   provider. An explicit action may itself use more than one request — to read
+   connected sources, poll a council of models, retry, or fall back to another
+   provider in global Auto — and that is not background work. Reading sources
+   obeys the shared connected-applications toggle and each application's
+   individual mute; the sources used and rejected are named in the answer itself.
+   The secret filter is on by default, but it is a heuristic, not a DLP guarantee.
+   In direct BYOK mode Orakul does not sell credits, does not count local product
+   activity, and does not cut requests off at an inherited monthly limit. Billing,
+   rate limits and quotas are applied by the chosen provider to the user's own
+   account.
+3. **A request to a connected service.** It goes to the official API/MCP of
+   Telegram, Google, Fireflies and other chosen services, or to the address of a
+   self-hosted installation the user supplied. The request may read, search, import
+   or write the selected material. If Telegram or Google Calendar reminders were
+   explicitly configured earlier, their background polling may resume on the next
+   launch. Team Watch and deferred enrichment from Fireflies likewise run in the
+   background only after the corresponding source has been configured.
+4. **Cloud transcription on the user's key.** Deepgram is visible in the public
+   settings, but the engine is unavailable until the user saves their own key in
+   the Keychain; once selected, both live audio tracks go straight to Deepgram.
+   Deleting the key first closes a starting, active or paused cloud route; a
+   failure to delete from the Keychain is not reported as success. An old
+   unavailable cloud setting is normalised to local and is not re-enabled merely by
+   a key appearing — the engine has to be chosen explicitly. AssemblyAI is a
+   separate post-call tool: after the user adds their own key, only an explicit
+   speaker-separation action uploads the retained system track. The inherited
+   OpenAI Whisper and server Whisper remain in the sources as compatibility
+   clients, but hidden engines fail closed in the public build: an old setting is
+   normalised to local, and an OpenAI chat key does not count as consent to upload
+   audio. No AI or transcription key is read from `.env` or baked into the bundle.
+   The full table of paths and triggers is in the architecture document.
 
-Публичный app target не компилирует first-party аналитику, загрузчик обратной
-связи, StoreKit-покупки, checkout, promo и anonymous device trial; privacy
-manifest объявляет нулевой сбор разработчиком Orakul и отсутствие tracking.
-Это не означает, что выбранный внешний провайдер ничего не хранит: его
-обработка, журналы, обучение, регион и сроки удаления определяются вашим
-договором с ним.
+The public app target does not compile first-party analytics, the feedback
+uploader, StoreKit purchases, checkout, promo codes or the anonymous device trial;
+the privacy manifest declares zero collection by the Orakul developer and no
+tracking. That does not mean the chosen external provider stores nothing: its
+processing, logs, training, region and deletion periods are governed by your
+contract with it.
 
-По умолчанию запуск не делает незапрошенных вызовов к серверу разработчика.
-`LaunchSendsNothingTests` проверяет настоящий путь запуска и отдельно требует
-оговорку о возобновляемом Telegram/Google Calendar опросе выше. Проверка не
-доказывает отсутствие любого пакета во всех сценариях; новые сетевые пути должны
-быть описаны и закрыты поведенческим тестом.
+By default, launching makes no unrequested calls to the developer's server.
+`LaunchSendsNothingTests` checks the real launch path and separately requires the
+caveat about resumable Telegram/Google Calendar polling above. The check does not
+prove the absence of any packet in every scenario; new network paths must be
+described here and covered by a behavioural test.
 
-## Что записывается
+## What is written down
 
-Фрагменты микрофона и системного звука находятся в памяти во время живой
-расшифровки. Для локальной финальной обработки приложение может удержать в
-памяти до примерно 60 минут **системного** аудио после Stop — пока выбранный
-post-call проход ещё может его использовать. Это не сохранённая аудиозапись и в
-`SavedSession` она не входит; буфер сбрасывается после потребителей, при reset
-или перед новой сессией. Освобождение памяти Swift не является гарантированным
-криптографическим стиранием. Видео и снимки экрана не запрашиваются:
-разрешение «Запись экрана» нужно macOS для системного аудио через
-ScreenCaptureKit.
+Fragments of the microphone and system audio are held in memory during live
+transcription. For local final processing the application may hold up to roughly
+60 minutes of **system** audio in memory after Stop — for as long as the chosen
+post-call pass might still use it. That is not a saved audio recording and it is
+not part of `SavedSession`; the buffer is cleared after its consumers, on reset, or
+before a new session. Freeing memory in Swift is not a guaranteed cryptographic
+erasure. Video and screenshots are not requested: macOS needs the "Screen
+Recording" permission for system audio via ScreenCaptureKit.
 
-Постоянные файлы приложения лежат в
+The application's persistent files live in
 `~/Library/Application Support/ai.orakul.desktop`:
 
-- `Sessions/*.json` — незашифрованные расшифровки, ответы и история модели,
-  digest, приложенный текст/заметки, подсказки и результаты рабочих проходов.
-  После перезаписи рядом остаётся одна `*.json.recovery` с предыдущей
-  подтверждённо читаемой версией;
-- `Telegram/messages.json` — незашифрованные тексты и метаданные разрешённых
-  чатов, идентификатор бота и позиция опроса; токена там нет. После обычного
-  обновления рядом может лежать `messages.json.recovery` с предыдущим читаемым
-  снимком;
-- `team-watch.log` — на каждое совпадение: время, сервис/канал, совпавшее
-  ключевое слово, автор и первые 140 символов сообщения.
+- `Sessions/*.json` — unencrypted transcripts, answers and model history, the
+  digest, attached text and notes, prompts and the results of working passes.
+  After a rewrite, one `*.json.recovery` remains beside it holding the previous
+  confirmed-readable version;
+- `Telegram/messages.json` — unencrypted texts and metadata of allowed chats, the
+  bot identifier and the polling position; the token is not there. After an
+  ordinary update a `messages.json.recovery` may sit beside it with the previous
+  readable snapshot;
+- `team-watch.log` — for every match: the time, the service/channel, the matched
+  keyword, the author and the first 140 characters of the message.
 
-Для каталогов и двух JSON-хранилищ код запрашивает права `0700`/`0600`.
-Team Watch также пытается выставить `0600`. Это защита от другого системного
-пользователя, не от процесса под той же учётной записью; шифрования содержимого
-нет.
+For directories and the two JSON stores the code requests `0700`/`0600`
+permissions. Team Watch also attempts to set `0600`. This is protection from
+another system user, not from a process under the same account; the contents are
+not encrypted.
 
-JSON сначала полностью записывается и синхронизируется в скрытый файл
-`.имя.<случайный-id>.tmp` в том же каталоге, затем заменяет основной файл, после
-чего синхронизируется запись каталога. Обычное завершение и следующий успешный
-запуск записи убирают такой staging-файл. Если процесс или macOS погибли между
-этими шагами, он может остаться до следующей записи этого объекта или явного
-удаления архива. «Удалить звонок», «Удалить всю историю» и отключение Telegram
-удаляют основной файл, recovery и все staging-файлы именно этого объекта и
-показывают ошибку, если перечисление, удаление или синхронизация не завершились.
+JSON is first written and synced in full to a hidden file
+`.name.<random-id>.tmp` in the same directory, then replaces the main file, after
+which the directory entry is synced. A normal exit and the next successful write
+remove such a staging file. If the process or macOS died between those steps, it
+may remain until the next write of that object or an explicit deletion of the
+archive. "Delete call", "Delete all history" and disconnecting Telegram delete the
+main file, the recovery and every staging file belonging to that specific object,
+and report an error if enumeration, deletion or syncing did not complete.
 
-Recovery — не скрытая бессрочная корзина. Смена Telegram-бота и сужение списка
-разрешённых чатов сначала удаляют и синхронизируют recovery/staging со старым
-содержимым, затем атомарно заменяют основной снимок сокращённым. Если основной
-JSON повредился, приложение читает последнюю
-подтверждённую recovery-копию; для сессии это явно помечает Историю как
-неполную. Следующая запись не заменяет эту единственную исправную копию
-повреждённым основным файлом; Telegram проверяет обе копии заново перед каждой
-записью, а не только при запуске. Успешная обычная перезапись снова оставляет
-ровно одну предыдущую читаемую версию.
+Recovery is not a hidden, indefinite wastebasket. Changing the Telegram bot and
+narrowing the list of allowed chats first delete and sync the recovery/staging
+files holding the old contents, then atomically replace the main snapshot with the
+reduced one. If the main JSON became corrupt, the application reads the last
+confirmed recovery copy; for a session it marks History explicitly as incomplete.
+The next write does not replace that single sound copy with a corrupt main file;
+Telegram re-checks both copies before every write, not only at startup. A
+successful ordinary rewrite again leaves exactly one previous readable version.
 
-У Team Watch нет срока хранения по времени. После превышения текущим журналом
-512 KiB следующая запись пытается заменить единственную копию `.1` и начать
-новый файл. Ошибки создания каталога, записи, смены прав и ротации сейчас
-игнорируются. Поэтому журнал может потерять строку, остаться с неожиданными
-правами или не уложиться в предполагаемый размер; его нельзя считать надёжным
-аудитным журналом. Автоматической очистки по возрасту нет.
+Team Watch has no time-based retention. Once the current log exceeds 512 KiB, the
+next write attempts to replace the single `.1` copy and start a new file. Errors in
+directory creation, writing, permission changes and rotation are currently ignored.
+So the log may lose a line, end up with unexpected permissions, or exceed its
+intended size; it cannot be treated as a reliable audit log. There is no automatic
+cleanup by age.
 
-Ключи AI- и cloud-transcription провайдеров и токены подключений лежат в macOS
-Keychain, а не в `UserDefaults`. Пользователь сам добавляет, заменяет и удаляет
-ключи; проект их не выдаёт. Запись секрета в обычный plist настроек роняет
-проверку.
-`UserDefaults` всё равно содержит несекретные настройки, Team Watch keywords,
-подтверждение согласия и security-scoped bookmarks выбранных папок. Чтение
-старого `google.tokens` из настроек разрешено только для переноса в Keychain с
-последующим удалением.
+AI and cloud-transcription provider keys and connection tokens live in the macOS
+Keychain, not in `UserDefaults`. The user adds, replaces and deletes keys
+themselves; the project does not issue them. Writing a secret into an ordinary
+settings plist fails a check. `UserDefaults` still holds non-secret settings, Team
+Watch keywords, the consent confirmation and security-scoped bookmarks for chosen
+folders. Reading an old `google.tokens` from settings is permitted only to migrate
+it into the Keychain, after which it is deleted.
 
-Веса локальных моделей кешируют сторонние библиотеки. Пользовательские экспорты
-лежат в выбранном им месте и могут попасть в его iCloud, backup или корпоративную
-синхронизацию уже вне этой границы.
+Local model weights are cached by third-party libraries. The user's exports sit
+wherever they chose and may end up in their iCloud, backup or corporate sync,
+already outside this boundary.
 
-Унаследованный каталог `~/Library/Application Support/MeetGPT` мог содержать
-данные другого продукта, поэтому Orakul не читает и не импортирует его
-автоматически: без явного выбора пользователя нельзя надёжно определить
-владельца таких расшифровок и сообщений.
+The inherited directory `~/Library/Application Support/MeetGPT` may have held
+another product's data, so Orakul does not read or import it automatically: without
+an explicit choice by the user, the owner of such transcripts and messages cannot
+be determined reliably.
 
-## Как сообщить об уязвимости
+## How to report a vulnerability
 
-**Сейчас работоспособного конфиденциального канала нет.**
-`github.com/theasder/orakul` перенаправляет в `theasder/cruxwing`, поэтому
-не отправляйте отчёт через Security у адреса назначения: это другой продукт.
-Публичный выпуск orakul до исправления этого адреса запрещён.
+**There is currently no working confidential channel.**
+`github.com/theasder/orakul` redirects to `theasder/cruxwing`, so do not send a
+report through Security at the destination address: that is a different product. A
+public release of orakul before that address is fixed is forbidden.
 
-Внешний blocker снимает только владелец: вернуть каноническое имя
-`theasder/orakul`, включить GitHub Private Vulnerability Reporting и проверить
-из отдельной учётной записи, что вкладка **Security → Report a vulnerability**
-действительно принимает приватный отчёт. После такой проверки не открывайте
-публичный issue: используйте эту вкладку. До неё слова в этом файле не создают
-канал сами по себе.
+Only the owner can clear the external blocker: restore the canonical name
+`theasder/orakul`, enable GitHub Private Vulnerability Reporting, and verify from a
+separate account that the **Security → Report a vulnerability** tab really does
+accept a private report. After that verification, do not open a public issue: use
+that tab. Until then, the words in this file do not by themselves create a channel.
 
-Отдельного почтового адреса намеренно нет. Завести ящик в домене проекта было
-бы проще всего — и это был бы адрес в домене, который пока никуда не ведёт, то
-есть тихо теряющий отчёты. Пока GitHub-канал не восстановлен, работоспособного
-конфиденциального адреса нет; это release blocker, а не скрытая оговорка.
+There is deliberately no separate email address. Setting up a mailbox in the
+project's domain would be the easiest thing — and it would be an address in a
+domain that currently leads nowhere, that is, one quietly losing reports. Until the
+GitHub channel is restored there is no working confidential address; this is a
+release blocker, not a hidden caveat.
 
-Что помогает разобраться быстрее:
+What helps get to the bottom of it faster:
 
-* версия — `OrakulSourceHash` и `OrakulCommit` из `orakul.app/Contents/Info.plist`;
-* macOS и процессор (Apple Silicon или Intel);
-* что происходит и как это повторить.
+* the version — `OrakulSourceHash` and `OrakulCommit` from
+  `orakul.app/Contents/Info.plist`;
+* macOS and the processor (Apple Silicon or Intel);
+* what happens and how to reproduce it.
 
-Если считаете, что нашли утечку данных или обход разрешений, пишите даже при
-сомнениях: ложная тревога стоит дешевле пропущенной.
+If you think you have found a data leak or a permissions bypass, write even if you
+are unsure: a false alarm costs less than a missed one.
 
-## Что мы считаем уязвимостью
+## What we count as a vulnerability
 
-* недокументированная отправка звука, расшифровки, контекста или ключей, либо
-  отправка без описанного выше пользовательского триггера;
-* доступ к ключам в обход Связки ключей;
-* first-party backend, telemetry, crash/feedback upload или коммерческий путь,
-  оказавшийся активным в публичной сборке;
-* попадание credential или адреса first-party backend в публичный bundle;
-* запись, продолжающаяся после остановки;
-* подмена подписи или нотариального билета опубликованного установщика.
+* undocumented sending of audio, transcripts, context or keys, or sending without
+  the user trigger described above;
+* access to keys bypassing the Keychain;
+* a first-party backend, telemetry, crash/feedback upload or commercial path
+  turning out to be active in the public build;
+* a credential or a first-party backend address ending up in the public bundle;
+* recording that continues after it is stopped;
+* substitution of the signature or notarization ticket of a published installer.
 
-Не уязвимость: ошибка от провайдера при неверном ключе, отказ подключаться к
-сервису с самоподписанным сертификатом, документированная загрузка весов и то,
-что приложение просит необходимые разрешения macOS.
+Not a vulnerability: an error from a provider when the key is wrong, a refusal to
+connect to a service with a self-signed certificate, the documented download of
+weights, and the application asking for the macOS permissions it needs.
 
-## Проверить самостоятельно
+## Check it yourself
 
 ```bash
 bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg app/dist/orakul-Intel.dmg
-cd app && swift test                      # актуальное число печатает сам runner
+cd app && swift test                      # the runner prints the current count itself
 ```
 
-`audit-dmg.sh` привязывает подпись к bundle id `ai.orakul.desktop` и
-TeamIdentifier издателя из `config/app.json`, проверяет Gatekeeper, приложенный
-нотариальный билет и архитектуру каждого образа. Затем он сравнивает полный
-SHA-256 и commit из самоотчёта DMG с текущим деревом. Последняя часть —
-диагностика свежести, не доказательство воспроизводимой сборки: сам артефакт
-сообщает эти два значения.
+`audit-dmg.sh` ties the signature to the bundle id `ai.orakul.desktop` and the
+publisher's TeamIdentifier from `config/app.json`, checks Gatekeeper, the attached
+notarization ticket and the architecture of each image. It then compares the full
+SHA-256 and commit from the DMG's self-report against the current tree. That last
+part is freshness diagnostics, not proof of a reproducible build: the artifact
+itself reports those two values.
 
-Отдельно — коннектор на вашем сервисе, вашим токеном, тем же кодом, что и в
-приложении:
+Separately — a connector against your own service, with your token, using the same
+code as the application:
 
 ```bash
 cd app

@@ -1,52 +1,57 @@
-# Как здесь принято
+# How things are done here
 
-Этот файл — не про вежливость вообще. Он про то, из-за чего русскоязычные
-разработчики уходят с площадок для вопросов: решение принимается, а почему —
-не объясняют. Вопрос закрывают как дубликат без ссылки на оригинал, правку
-откатывают без причины, человека блокируют, и обжаловать некуда. Дальше идут
-правила, которые этому мешают, — и обязанности они накладывают в первую
-очередь на нас, а не на пришедшего.
+This file is not about politeness in general. It is about the thing that drives
+Russian-speaking developers off question-and-answer sites: a decision is made and
+the reason is never given. A question is closed as a duplicate with no link to the
+original, an edit is reverted without cause, a person is blocked and there is
+nowhere to appeal. What follows are the rules that stand in the way of that — and
+the obligations they impose fall first on us, not on the newcomer.
 
-## Что обещаем мы
+## What we promise
 
-**Каждое закрытие объясняется.** Закрытый выпуск или отклонённый пулл-реквест
-получает причину в одну-две фразы. «Дубликат» — со ссылкой на оригинал. «Не
-подходит проекту» — с тем, что именно не подходит. Молча не закрываем ничего.
+**Every closure is explained.** A closed issue or a rejected pull request gets a
+reason in one or two sentences. "Duplicate" comes with a link to the original.
+"Does not fit the project" comes with what exactly does not fit. We close nothing
+in silence.
 
-**Правила лежат в репозитории, а не в голове у мейнтейнера.** То, о что чаще
-всего ломаются правки, перечислено в [CONTRIBUTING.md](CONTRIBUTING.md) и в
-форме пулл-реквеста. Если ваш пулл-реквест отклонён по правилу, которого там
-нет, — это наша ошибка: правило надо либо записать, либо не применять.
+**The rules live in the repository, not in the maintainer's head.** The things
+changes most often break against are listed in [CONTRIBUTING.md](CONTRIBUTING.md)
+and in the pull request form. If your pull request is rejected under a rule that is
+not there, that is our mistake: the rule has either to be written down or not
+applied.
 
-**Решение можно обжаловать.** Ответьте в том же обсуждении словами «прошу
-пересмотреть». Пересматривает другой человек, если он есть; если мейнтейнер
-один — он обязан ответить по существу довода, а не повторить прежнее решение.
+**A decision can be appealed.** Reply in the same discussion with the words "прошу
+пересмотреть" ("I ask for a review"). Another person reviews it, if there is one;
+if there is a single maintainer, they are obliged to answer the substance of the
+argument rather than repeat the earlier decision.
 
-**Язык не влияет на решение.** Русский, английский — принимаем оба, ничего не
-разворачиваем из-за языка. Кривая грамматика не повод для отказа; непонятный
-по сути вопрос — повод переспросить, а не закрыть.
+**Language does not affect the decision.** Russian, English — we accept both and
+turn nothing away over language. Awkward grammar is no reason for rejection; a
+question that is unclear in substance is a reason to ask again, not to close.
 
-**Уровень не влияет на тон.** Вопрос новичка не хуже вопроса старожила.
-«Погуглите», «читайте документацию» и «очевидно же» — не ответы.
+**Level does not affect tone.** A beginner's question is no worse than a
+long-timer's. "Google it", "read the documentation" and "it is obvious" are not
+answers.
 
-## Чего ждём от вас
+## What we expect from you
 
-Обсуждаем код и решения, а не людей. Не переходим на личности, не публикуем
-чужие данные, не устраиваем травлю. Не выдаём догадку за проверенный факт: в
-проекте это правило распространяется и на код, и на разговор о нём.
+We discuss code and decisions, not people. No personal attacks, no publishing other
+people's data, no pile-ons. No passing a guess off as a verified fact: in this
+project that rule covers both the code and the conversation about it.
 
-## Если что-то пошло не так
+## If something went wrong
 
-Напишите на artem108980@gmail.com или откройте выпуск. Мы отвечаем в течение
-недели. Что произошло дальше — по возможности пишем публично, обезличенно:
-разбирательства, о которых никто не знает, ничем не отличаются от их отсутствия.
+Write to artem108980@gmail.com or open an issue. We answer within a week. What
+happened next we write up publicly where possible, anonymised: proceedings nobody
+hears about are indistinguishable from none at all.
 
-Меры по возрастанию: просьба, предупреждение, временный запрет на участие,
-постоянный. Каждая — с указанием, за что именно, и с возможностью обжаловать.
+Measures in increasing order: a request, a warning, a temporary ban from
+participation, a permanent one. Each states what exactly it is for, and each can be
+appealed.
 
-## Основано на
+## Based on
 
 [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
-— оттуда взято, что считать недопустимым. Обязательства по объяснению решений и
-обжалованию добавлены нами: без них правила поведения защищают площадку от
-человека, а не человека от площадки.
+— what counts as unacceptable is taken from there. The obligations to explain
+decisions and to allow appeals were added by us: without them a code of conduct
+protects the venue from the person rather than the person from the venue.
