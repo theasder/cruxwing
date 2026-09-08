@@ -229,7 +229,7 @@ private struct ConnectorRow: View {
 private struct StatusPill: View {
     let configured: Bool
     var body: some View {
-        Text(configured ? "Готово" : "Off")
+        Text(configured ? "Done" : "Off")
             .font(Typo.label)
             .foregroundStyle(configured ? Theme.speakerYou : Theme.inkTertiary)
             .padding(.horizontal, Space.s)

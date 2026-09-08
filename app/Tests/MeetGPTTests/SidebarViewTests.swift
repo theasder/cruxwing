@@ -20,7 +20,7 @@ struct SidebarViewTests {
     @Test("signed out: offers a Sign in control, no account menu")
     func signedOut() throws {
         let view = SidebarFooter(accountAvailable: true).environmentObject(state(connected: false))
-        #expect(throws: Never.self) { try view.inspect().find(viewWithAccessibilityLabel: "Войти") }
+        #expect(throws: Never.self) { try view.inspect().find(viewWithAccessibilityLabel: "Sign in") }
         #expect(throws: (any Error).self) {
             try view.inspect().find(viewWithAccessibilityLabel: "Аккаунт: nobody@example.com")
         }
@@ -34,7 +34,7 @@ struct SidebarViewTests {
             try view.inspect().find(viewWithAccessibilityLabel: "Аккаунт: artem@example.com")
         }
         // The sign-in control is gone once connected.
-        #expect(throws: (any Error).self) { try view.inspect().find(viewWithAccessibilityLabel: "Войти") }
+        #expect(throws: (any Error).self) { try view.inspect().find(viewWithAccessibilityLabel: "Sign in") }
     }
 
     @Test("backend unavailable: hides account controls")
@@ -45,7 +45,7 @@ struct SidebarViewTests {
             try view.inspect().find(viewWithAccessibilityLabel: "Аккаунт: artem@example.com")
         }
         #expect(throws: (any Error).self) {
-            try view.inspect().find(viewWithAccessibilityLabel: "Войти")
+            try view.inspect().find(viewWithAccessibilityLabel: "Sign in")
         }
     }
 

@@ -76,7 +76,7 @@ import Foundation
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let whisper = [TranscriptEntry(source: .system, text: "обсудили сроки поставки",
                                        timestamp: start.addingTimeInterval(10))]
-        let fireflies = FirefliesTranscript(title: "Звонок",
+        let fireflies = FirefliesTranscript(title: "Call",
                                             text: "Аня: обсудили сроки поставки.")
         let llm = MockLLMGateway(response: """
         {"summary":"свели",

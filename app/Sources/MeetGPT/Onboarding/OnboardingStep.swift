@@ -59,20 +59,20 @@ enum CoachTip: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .recordingType: "Это не звонок?"
-        case .goalQuality:   "Задайте цель звонку"
-        case .pinDecision:   "Это решение"
+        case .recordingType: "Not a call?"
+        case .goalQuality:   "Give the call a goal"
+        case .pinDecision:   "That is a decision"
         }
     }
 
     var body: String {
         switch self {
         case .recordingType:
-            "orakul смотрит, что происходит на экране, и подстраивается: у лекции будет план изучения, а не список задач. Тип можно переключить в любой момент."
+            "orakul watches what is happening on screen and adapts: a lecture gets a study plan, not a task list. The type can be switched at any moment."
         case .goalQuality:
-            "Одна строка: что должно быть верно к концу звонка? Ко-пилот меряет по ней каждую слепую зону."
+            "One line: what must be true by the end of the call? The copilot measures every blind spot against it."
         case .pinDecision:
-            "Нажмите 📌 — и решение попадёт в журнал вместе с обоснованием и владельцем. Транскрипт — не запись решений."
+            "Press 📌 and the decision goes into the log with its reasoning and its owner. A transcript is not a record of decisions."
         }
     }
 
@@ -106,7 +106,7 @@ enum CoachTipQueue {
         /// app can actually observe — there is no "decision candidate" state to
         /// key off, and pretending otherwise put the tip on the wrong trigger.
         let hasSomethingToLog: Bool
-        /// Whether the "До понедельника звонков нет?" card is on screen right now.
+        /// Whether the "No calls until Monday?" card is on screen right now.
         ///
         /// It already teaches what the recordingType tip teaches — a lecture
         /// gets a learning plan, and the type is yours to override — and it

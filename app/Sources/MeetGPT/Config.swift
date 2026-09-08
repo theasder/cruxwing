@@ -34,10 +34,10 @@ enum TranscriptionEngine: String, CaseIterable, Identifiable, Codable {
 
     var label: String {
         switch self {
-        case .local:    return "На устройстве · Whisper"
-        case .server:   return "На сервере · large-v3"
-        case .deepgram: return "Deepgram · вживую, с говорящими"
-        case .whisper:  return "Whisper · кусками через OpenAI"
+        case .local:    return "On this device · Whisper"
+        case .server:   return "On the server · large-v3"
+        case .deepgram: return "Deepgram · live, with speakers"
+        case .whisper:  return "Whisper · in chunks through OpenAI"
         }
     }
 
@@ -45,10 +45,10 @@ enum TranscriptionEngine: String, CaseIterable, Identifiable, Codable {
     // vendor name.
     var advantageTitle: String {
         switch self {
-        case .local:    return "Приватно — считается на этом компьютере"
-        case .server:   return "Точно — large-v3 на сервере"
-        case .deepgram: return "Мгновенно — пословно и с именами говорящих"
-        case .whisper:  return "Точно — по вашему ключу"
+        case .local:    return "Private — computed on this computer"
+        case .server:   return "Accurate — large-v3 on the server"
+        case .deepgram: return "Instant — word by word, with speaker names"
+        case .whisper:  return "Accurate — on your own key"
         }
     }
     // The frame (D35): every option answers the four things businesses ask —
@@ -60,10 +60,10 @@ enum TranscriptionEngine: String, CaseIterable, Identifiable, Codable {
         // каждой строке стояла цена в кредитах — «Free — no credits», «≈4 min
         // per credit», — и это был единственный оставшийся на экране счёт за
         // то, за что orakul денег не берёт.
-        case .local:    return "Звук не уходит с компьютера, работает без сети. Точность приличная, по силам вашего процессора. Титры отстают на пару секунд. Бесплатно."
-        case .server:   return "Лучшая точность — large-v3 и модели под язык на сервере; звук стирается после расшифровки. Титры отстают на пару секунд, нужен вход."
-        case .deepgram: return "Самый быстрый транскрипт, сразу видно кто говорит; звук идёт в облако Deepgram. Платите Deepgram по своему ключу."
-        case .whisper:  return "По вашему ключу OpenAI: расход идёт по вашему договору. Титры отстают на пару секунд."
+        case .local:    return "The audio never leaves the computer and it works with no network. Accuracy is decent, within your processor's means. Captions lag by a couple of seconds. Free."
+        case .server:   return "The best accuracy — large-v3 and language-specific models on the server; the audio is erased after transcription. Captions lag by a couple of seconds, and it needs a sign-in."
+        case .deepgram: return "The fastest transcript, and you can see who is speaking straight away; the audio goes to the Deepgram cloud. You pay Deepgram on your own key."
+        case .whisper:  return "On your own OpenAI key: the spend goes through your contract. Captions lag by a couple of seconds."
         }
     }
     var advantageSymbol: String {

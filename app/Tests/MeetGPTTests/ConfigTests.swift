@@ -43,20 +43,20 @@ struct TranscriptionEngineTests {
 
     @Test("в подписи движка видно и поставщика, и суть выбора")
     func labels() {
-        #expect(TranscriptionEngine.local.label == "На устройстве · Whisper")
-        #expect(TranscriptionEngine.server.label == "На сервере · large-v3")
-        #expect(TranscriptionEngine.deepgram.label == "Deepgram · вживую, с говорящими")
-        #expect(TranscriptionEngine.whisper.label == "Whisper · кусками через OpenAI")
+        #expect(TranscriptionEngine.local.label == "On this device · Whisper")
+        #expect(TranscriptionEngine.server.label == "On the server · large-v3")
+        #expect(TranscriptionEngine.deepgram.label == "Deepgram · live, with speakers")
+        #expect(TranscriptionEngine.whisper.label == "Whisper · in chunks through OpenAI")
     }
 
     @Test("заголовок называет выбор, а не поставщика")
     func advantageTitles() {
-        #expect(TranscriptionEngine.local.advantageTitle == "Приватно — считается на этом компьютере")
-        #expect(TranscriptionEngine.server.advantageTitle == "Точно — large-v3 на сервере")
-        #expect(TranscriptionEngine.deepgram.advantageTitle == "Мгновенно — пословно и с именами говорящих")
+        #expect(TranscriptionEngine.local.advantageTitle == "Private — computed on this computer")
+        #expect(TranscriptionEngine.server.advantageTitle == "Accurate — large-v3 on the server")
+        #expect(TranscriptionEngine.deepgram.advantageTitle == "Instant — word by word, with speaker names")
         // Имя поставщика убрано: строка называет размен (кто платит) — это и
         // отличает её от серверной.
-        #expect(TranscriptionEngine.whisper.advantageTitle == "Точно — по вашему ключу")
+        #expect(TranscriptionEngine.whisper.advantageTitle == "Accurate — on your own key")
         #expect(!TranscriptionEngine.whisper.advantageTitle.contains("OpenAI"))
     }
 
@@ -66,18 +66,18 @@ struct TranscriptionEngineTests {
         // требовал: «Free — no credits», «≈4 min per credit». Кредитов в orakul
         // нет, и это был последний счёт, оставшийся на экране.
         #expect(TranscriptionEngine.local.advantageCaption
-            == "Звук не уходит с компьютера, работает без сети. Точность приличная, по силам вашего процессора. Титры отстают на пару секунд. Бесплатно.")
+            == "The audio never leaves the computer and it works with no network. Accuracy is decent, within your processor's means. Captions lag by a couple of seconds. Free.")
         #expect(TranscriptionEngine.deepgram.advantageCaption
-            == "Самый быстрый транскрипт, сразу видно кто говорит; звук идёт в облако Deepgram. Платите Deepgram по своему ключу.")
+            == "The fastest transcript, and you can see who is speaking straight away; the audio goes to the Deepgram cloud. You pay Deepgram on your own key.")
 
         for engine in TranscriptionEngine.allCases {
             let caption = engine.advantageCaption.lowercased()
             // Куда уходит звук — сказано в каждой строке.
-            #expect(caption.contains("компьютер") || caption.contains("облако")
-                    || caption.contains("сервер") || caption.contains("ключ"),
+            #expect(caption.contains("computer") || caption.contains("cloud")
+                    || caption.contains("server") || caption.contains("key"),
                     "не сказано, куда уходит звук: \(engine)")
             // А про кредиты — ни в одной.
-            #expect(!caption.contains("кредит"), "вернулся счёт в кредитах: \(engine)")
+            #expect(!caption.contains("credit"), "the credit meter came back: \(engine)")
         }
     }
 

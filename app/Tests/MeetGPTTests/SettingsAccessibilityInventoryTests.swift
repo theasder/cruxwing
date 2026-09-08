@@ -83,11 +83,11 @@ struct SettingsAccessibilityInventoryTests {
                 .findAll(ViewType.Text.self).map { try $0.string() }
                 .joined(separator: " ")
             let required = [
-                "1–4 голоса", "Автоподсчёта нет", "34 МБ",
-                "Аудио и эмбеддинги остаются на этом Mac",
-                "голосовые отпечатки не сохраняются",
-                "только в локальной истории этого звонка на этом Mac",
-                "дольше часа", "проверьте метки перед отправкой",
+                "1–4 voices", "no automatic count", "34 MB",
+                "Audio and embeddings stay on this Mac",
+                "no voiceprints are stored",
+                "only in this call's local history on this Mac",
+                "longer than an hour", "check the labels before sending",
             ]
             let missing = required.filter { !text.contains($0) }
             #expect(missing.isEmpty, "нет текста: \(missing)")

@@ -45,23 +45,26 @@ struct ConnectorErrorTextTests {
         }
     }
 
-    @Test("каждое сообщение по-русски и достаточно длинное, чтобы объяснить",
+    @Test("every message is long enough to explain itself, in one language",
           arguments: all.map { $0.localizedDescription })
-    func everyMessageIsRussian(text: String) {
-        #expect(text.count >= 25, "слишком коротко: «\(text)»")
+    func everyMessageExplainsItself(text: String) {
+        #expect(text.count >= 25, "too short: «\(text)»")
+        // Vendor names stay in Cyrillic — «Пачка», «Яндекс Трекер» — so what is
+        // checked is that Russian is not most of the sentence, which is what a
+        // half-migrated message looks like.
         let cyrillic = text.filter { ("а"..."я").contains($0) || ("А"..."Я").contains($0) }
-        #expect(cyrillic.count > text.count / 3, "сообщение не по-русски: «\(text)»")
+        #expect(cyrillic.count < text.count / 3, "the message is still mostly Russian: «\(text)»")
     }
 
-    @Test("«не подключён» ведёт туда, где это чинится",
+    @Test("«not connected» points at the screen that fixes it",
           arguments: [WorkMessengers.ConnectorError.notConfigured as Error,
                       SelfHostedTrackers.ConnectorError.notConfigured,
                       TeamNotes.ConnectorError.notConfigured,
                       RussianTrackers.TrackerError.notConfigured(.kaiten),
                       GitHubConnector.ConnectorError.notConfigured])
     func notConfiguredNamesTheScreen(error: Error) {
-        #expect(error.localizedDescription.contains("Подключённые приложения"),
-                "не сказано, где подключать: «\(error.localizedDescription)»")
+        #expect(error.localizedDescription.contains("Connected apps"),
+                "it does not say where to connect: «\(error.localizedDescription)»")
     }
 
     @Test("ошибка трекера называет, какой именно трекер отказал")

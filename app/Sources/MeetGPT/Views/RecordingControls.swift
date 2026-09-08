@@ -73,13 +73,13 @@ struct RecordPill: View {
     private var label: String {
         switch state.status {
         case .idle:     return "Начать запись"
-        case .starting: return "Запускаю…"
+        case .starting: return "Starting…"
         case .recording: return "Стоп"
         // Stop still means finish-and-write-up from paused; resume is a
         // separate control, so this button never carries two meanings.
         case .paused:   return "Стоп"
         case .stopping: return "Останавливаю…"
-        case .error:    return "Ещё раз"
+        case .error:    return "Again"
         }
     }
 

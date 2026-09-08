@@ -13,25 +13,25 @@ struct LocalNotesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack(spacing: Space.s) {
-                Label(folder ?? "Папка не выбрана",
+                Label(folder ?? "No folder selected",
                       systemImage: folder == nil ? "folder" : "checkmark.seal.fill")
                     .labelStyle(ConnectedRowLabelStyle())
                     .lineLimit(1)
                     .accessibilityIdentifier("settings.notes-local.folder")
                 Spacer()
                 if folder != nil {
-                    Button("Убрать") { forget() }
+                    Button("Remove") { forget() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.notes-local.forget")
                 }
-                Button(folder == nil ? "Выбрать папку…" : "Изменить…") { choose() }
+                Button(folder == nil ? "Choose a folder…" : "Edit…") { choose() }
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.notes-local.choose")
             }
 
-            Text("Читаются файлы .md и .markdown, включая вложенные папки. "
-                 + "Служебные каталоги вроде .obsidian и .trash пропускаются. "
-                 + "Ничего никуда не отправляется: поиск идёт по вашему диску.")
+            Text("It reads .md and .markdown files, including nested folders. "
+                 + "Housekeeping directories such as .obsidian and .trash are skipped. "
+                 + "Nothing is sent anywhere: the search runs over your own disk.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
                 .fixedSize(horizontal: false, vertical: true)

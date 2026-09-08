@@ -72,9 +72,10 @@ function englishErrorMessages() {
       for (const literal of literals(blockAt(text, open))) {
         const core = literal.replace(/\\\(.*?\)/g, '').trim();
         if (core.length < 6) continue;
-        if (!/[A-Za-z]/.test(core)) continue;
-        if (CYRILLIC.test(core)) continue;
         if (VENDOR_PREFIX.test(literal)) continue;
+        // Reversed with the product: what is counted now is the Russian left in
+        // error messages. A message whose only Cyrillic is a vendor name is done.
+        if (!CYRILLIC.test(core.replace(/Пачка|Яндекс|Битрикс|Трекер|Вики/g, ''))) continue;
         found.push({ file, literal });
       }
     }
@@ -82,10 +83,14 @@ function englishErrorMessages() {
   return found;
 }
 
-test('сообщения об ошибках написаны по-русски', () => {
+// A ceiling that may only fall, like the one in §6.4.
+const RUSSIAN_ERRORS_LEFT = 67;
+
+test('the Russian left in error messages only ever shrinks', () => {
   const left = englishErrorMessages();
-  assert.deepEqual(left.map((x) => `${x.file}: ${x.literal.slice(0, 70)}`), [],
-    'английское сообщение об ошибке — человек читает его в самый неудачный момент');
+  assert.equal(left.length, RUSSIAN_ERRORS_LEFT,
+    `error messages still in Russian: ${left.length}, pinned at ${RUSSIAN_ERRORS_LEFT}. `
+    + left.slice(0, 4).map((x) => `${x.file}: ${x.literal.slice(0, 60)}`).join(' | '));
 });
 
 test('счёт действительно что-то считает', () => {

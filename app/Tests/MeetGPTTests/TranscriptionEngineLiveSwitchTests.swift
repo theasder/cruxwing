@@ -177,7 +177,7 @@ struct TranscriptionEngineLiveSwitchTests {
         #expect(state.selectedTranscriptionEngine == .local)
         #expect(Config.transcriptionEngineValue == .local)
         #expect(state.liveTranscriptionConfiguration().active?.engine == .local)
-        #expect(state.lastError?.contains("Возобновите") == true)
+        #expect(state.lastError?.contains("Resume the call") == true)
     }
 
     @Test("delayed startup cannot publish Private before the Instant route retires")
@@ -205,7 +205,7 @@ struct TranscriptionEngineLiveSwitchTests {
         #expect(Config.transcriptionEngineValue == configuredBeforeSelection)
         #expect(state.liveTranscriptionConfiguration().active?.engine == .deepgram)
         #expect(state.pendingEngineChange == nil)
-        #expect(state.lastError?.contains("Дождитесь начала") == true)
+        #expect(state.lastError?.contains("Wait for the recording to start") == true)
     }
 
     @Test("Local to cloud invalidates the old final-pass interval across a round trip")
@@ -255,7 +255,7 @@ struct TranscriptionEngineLiveSwitchTests {
         #expect(Config.transcriptionEngineValue == .local)
         // Сообщение собирается из названия движка: «Он продолжается на
         // «Приватно — считается на этом компьютере»».
-        #expect(state.lastError?.contains("продолжается на «Приватно") == true)
+        #expect(state.lastError?.contains("continues on «Private") == true)
     }
 
     @Test("rapid switches converge for streaming and every chunked engine")

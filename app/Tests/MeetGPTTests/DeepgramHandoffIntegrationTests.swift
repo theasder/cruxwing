@@ -775,7 +775,7 @@ struct DeepgramHandoffIntegrationTests {
 
         #expect(!state.selectTranscriptionEngine(.deepgram))
         #expect(state.selectedTranscriptionEngine == .local)
-        #expect(state.lastError?.contains("недоступно") == true)
+        #expect(state.lastError?.contains("is unavailable") == true)
     }
 
     @Test("delayed Local chunks and the partial accumulator survive a Local to Instant handoff once")
@@ -975,7 +975,7 @@ struct DeepgramHandoffIntegrationTests {
         // способ заметить, что сообщение стало наполовину английским.
         #expect(await waitFor {
             state.liveTranscriptionConfiguration().active?.engine == .local
-                && state.lastError?.contains("Продолжаем на «Приватно") == true
+                && state.lastError?.contains("Continuing on «Private") == true
         })
         #expect(state.selectedTranscriptionEngine == .local)
         #expect(state.pendingEngineChange == nil)

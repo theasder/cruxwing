@@ -147,7 +147,7 @@ struct ClarificationCard: View {
                 .buttonStyle(QuietButtonStyle())
                 .help("Пропустить вопросы и ответить на исходный запрос как есть.")
             Spacer(minLength: 0)
-            Button(anyAnswered ? "Продолжить" : "Продолжить без ответа", action: submit)
+            Button(anyAnswered ? "Continue" : "Продолжить без ответа", action: submit)
                 .buttonStyle(PrimaryButtonStyle())
                 .keyboardShortcut(.return, modifiers: [.command])
         }

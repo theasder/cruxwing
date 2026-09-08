@@ -103,7 +103,7 @@ struct AIStudioView: View {
                 }
                 .buttonStyle(IconButtonStyle())
                 .accessibilityLabel("Отправить задачи в трекер")
-                .help("Завести эти задачи в трекере")
+                .help("Create these tasks in the tracker")
             }
             // Refine the visible answer (item 20). User-invoked only; hidden
             // for structured answers (a DACI, a fact check) whose contract a
@@ -112,7 +112,7 @@ struct AIStudioView: View {
             if state.isRefining {
                 ProgressView().controlSize(.small).scaleEffect(0.7)
                     .frame(width: 16, height: 16)
-                    .help("Уточняю…")
+                    .help("Refining…")
             } else {
                 if state.canRevertRefine {
                     Button { state.revertRefine() } label: {
@@ -120,7 +120,7 @@ struct AIStudioView: View {
                     }
                     .buttonStyle(IconButtonStyle())
                     .accessibilityLabel("Вернуть исходный")
-                    .help("Вернуть ответ, каким он был до правки")
+                    .help("Restore the answer as it was before the edit")
                 }
                 if state.canRefineCurrentAnswer {
                     Menu {
@@ -138,7 +138,7 @@ struct AIStudioView: View {
                     .menuIndicator(.hidden)
                     .fixedSize()
                     .accessibilityLabel("Уточнить ответ")
-                    .help("Сжать или развернуть ответ — ещё один проход ИИ, его можно отменить")
+                    .help("Shorten or expand the answer — another AI pass, which can be cancelled")
                 }
             }
             // One share control rather than a separate Export menu and copy
@@ -224,7 +224,7 @@ struct AIStudioView: View {
                 .fixedSize()
                 .disabled(exportingDOCX || exportingElsewhere)
                 .accessibilityLabel("Поделиться ответом")
-                .help("Скопировать ответ или выгрузить весь разговор — все запросы и ответы этой сессии, вместе со слепыми зонами — в Word, Google Docs или Notion")
+                .help("Copy the answer, or export the whole conversation — every request and answer in this session, along with the blind spots — to Word, Google Docs or Notion")
             }
         }
     }
@@ -284,7 +284,7 @@ struct AIStudioView: View {
                 guard panel.runModal() == .OK, let url = panel.url else { return }
                 try data.write(to: url, options: .atomic)
             } catch {
-                state.lastError = "Выгрузка в Word не удалась: \(error.localizedDescription)"
+                state.lastError = "The export to Word failed: \(error.localizedDescription)"
             }
         }
     }
@@ -555,7 +555,7 @@ private struct AskComposer: View {
         .menuStyle(.button)   // .borderlessButton is deprecated; .button is the native style
         .menuIndicator(.hidden)
         .fixedSize()
-        .help("Приложить картинку, файл, папку, аудио, видео — или вставить подсказку")
+        .help("Attach an image, a file, a folder, audio or video — or paste a prompt")
     }
 
     // MARK: Dictation
@@ -732,7 +732,7 @@ struct ComposerAttachmentStatusChip: View {
             if item.kind == .audio || item.kind == .video { return "Расшифровываю…" }
             return item.kind == .folder ? "Строю индекс…" : "Загружаю…"
         case .ready:
-            return "Готово"
+            return "Done"
         case .failed:
             return "Импорт не удался"
         }
@@ -813,7 +813,7 @@ struct ComposerFolderChip: View {
             .strokeBorder(Theme.hairline, lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Папка \(folder.name), файлов в индексе: \(folder.files.count)")
-        .help("Под каждый запрос берутся подходящие куски; папка целиком не отправляется")
+        .help("Each request takes the fragments that fit it; a whole folder is never sent")
     }
 }
 

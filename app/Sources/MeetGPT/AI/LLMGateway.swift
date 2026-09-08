@@ -211,20 +211,20 @@ enum LLMError: LocalizedError {
             // намеренно. Прежний текст отправлял «войти в аккаунт, чтобы
             // пользоваться моделями» — совет для продукта с сервером, которого
             // у orakul нет. Здесь нужно назвать экран, а не диагноз.
-            return "Нет ключа \(provider). Вставьте свой: «Настройки → ИИ → Ключи провайдеров» — "
-                 + "там же написано, где его взять. Запись и поиск по звонкам работают и без ключа."
+            return "No \(provider) key. Paste your own: «Settings → AI → Provider keys» — "
+                 + "the same screen says where to get one. Recording and call search work without a key."
         case .http(let provider, let code, let body):
             // A gateway outage (the backend down or restarting) returns an nginx
             // ERROR PAGE, not a message — pasting "<html>…502 Bad Gateway…nginx"
             // at the user is leaky and useless. Say what they can actually do:
             // AI is down, recording and on-device transcription are not.
             if Self.isGatewayOutage(code: code, body: body) {
-                return "Возможности ИИ временно недоступны: сервис не отвечает или перезапускается. "
-                     + "Запись и расшифровка на этом компьютере работают; попробуйте ИИ через минуту."
+                return "AI features are temporarily unavailable: the service is not answering, or is restarting. "
+                     + "Recording and transcription on this computer still work; try AI again in a minute."
             }
-            return "\(provider) ответил ошибкой (\(code)): \(Self.strippedMessage(body))"
+            return "\(provider) answered with an error (\(code)): \(Self.strippedMessage(body))"
         case .badResponse(let provider):
-            return "\(provider) вернул неверный ответ."
+            return "\(provider) returned an invalid response."
         }
     }
 

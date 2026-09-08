@@ -36,18 +36,21 @@ function assignments(property) {
     .map(([, text]) => text);
 }
 
-test('свойства, которые вид печатает, написаны по-русски', () => {
-  const english = [];
+// A ceiling that may only fall, like the one in §6.4.
+const RUSSIAN_SHOWN_LEFT = 8;
+
+test('the Russian left in shown properties only ever shrinks', () => {
+  const russian = [];
   for (const property of SHOWN) {
     for (const text of assignments(property)) {
-      if (CYRILLIC.test(text)) continue;
       if (VENDOR_PREFIX.test(text)) continue;
-      english.push(`${property}: «${text}»`);
+      if (!CYRILLIC.test(text.replace(/Пачка|Яндекс|Битрикс|Трекер|Вики/g, ''))) continue;
+      russian.push(`${property}: «${text}»`);
     }
   }
-  assert.deepEqual(english, [],
-    `человек прочтёт это по-английски: ${english.join('; ')}. ` +
-    'Счётчик §6.4 сюда не смотрит — он считает Views и Onboarding.');
+  assert.equal(russian.length, RUSSIAN_SHOWN_LEFT,
+    `shown properties still in Russian: ${russian.length}, pinned at ${RUSSIAN_SHOWN_LEFT}. `
+    + russian.slice(0, 4).join('; '));
 });
 
 test('совокупность не пустая — иначе проверка сторожит пустоту', () => {

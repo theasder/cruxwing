@@ -14,18 +14,18 @@ struct RecordingConsentSheet: View {
                 Image(systemName: "waveform.badge.exclamationmark")
                     .font(.system(size: 26, weight: .medium))
                     .foregroundStyle(Theme.accent)
-                Text("Перед записью")
+                Text("Before recording")
                     .font(Typo.title)
                     .foregroundStyle(Theme.ink)
             }
 
             VStack(alignment: .leading, spacing: Space.m) {
                 bullet("person.2.wave.2",
-                       "Запись берёт всех участников: ваш микрофон и системный звук звонка.")
+                       "Recording captures everyone: your microphone and the call's system audio.")
                 bullet("checkmark.shield",
-                       "Во многих странах записывать разговор можно только с согласия всех участников. Предупредить их и получить согласие, где этого требует закон, — ваша ответственность.")
+                       "In many countries a conversation may be recorded only with everyone's consent. Warning them and obtaining that consent where the law requires it is your responsibility.")
                 bullet("lock.laptopcomputer",
-                       "Расшифровка по умолчанию идёт на этом компьютере. Куски транскрипта уходят наружу только когда вы сами запускаете действие ИИ.")
+                       "Transcription runs on this computer by default. Fragments of the transcript leave it only when you run an AI action yourself.")
             }
 
             HStack {
@@ -36,9 +36,9 @@ struct RecordingConsentSheet: View {
                 // ссылка в никуда на экране про согласие хуже её отсутствия.
                 // Существенное сказано выше, списком.
                 Spacer()
-                Button("Не сейчас") { dismiss() }
+                Button("Not now") { dismiss() }
                     .buttonStyle(QuietButtonStyle())
-                Button("Понятно — начать запись") {
+                Button("Understood — start recording") {
                     state.acceptRecordingConsent()
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))

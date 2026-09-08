@@ -42,19 +42,19 @@ struct SettingsView: View {
         VStack(spacing: 0) {
         TabView(selection: $state.selectedSettingsTab) {
             GeneralSettingsTab()
-                .tabItem { Label("Общее", systemImage: "gearshape") }
+                .tabItem { Label("General", systemImage: "gearshape") }
                 .tag(SettingsTab.general)
             TranscriptionSettingsTab()
-                .tabItem { Label("Расшифровка", systemImage: "waveform") }
+                .tabItem { Label("Transcription", systemImage: "waveform") }
                 .tag(SettingsTab.transcription)
             AISettingsTab()
-                .tabItem { Label("ИИ", systemImage: "sparkles") }
+                .tabItem { Label("AI", systemImage: "sparkles") }
                 .tag(SettingsTab.ai)
             ConnectedAppsTab()
-                .tabItem { Label("Рабочие приложения", systemImage: "app.connected.to.app.below.fill") }
+                .tabItem { Label("Work applications", systemImage: "app.connected.to.app.below.fill") }
                 .tag(SettingsTab.connectedApps)
             AccountPrivacyTab()
-                .tabItem { Label("Аккаунт и приватность", systemImage: "person.badge.key") }
+                .tabItem { Label("Account and privacy", systemImage: "person.badge.key") }
                 .tag(SettingsTab.accountPrivacy)
         }
         // Версия — под вкладками, чтобы её было видно с любой из них.
@@ -94,10 +94,10 @@ private struct GeneralSettingsTab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xl) {
-            SettingsSection(title: "Оформление",
-                            caption: "«Авто» следует за системой; «Светлое» и «Тёмное» переопределяют её.") {
+            SettingsSection(title: "Appearance",
+                            caption: "«Auto» follows the system; «Light» and «Dark» override it.") {
                 SettingsRow {
-                    Label("Оформление", systemImage: "circle.lefthalf.filled")
+                    Label("Appearance", systemImage: "circle.lefthalf.filled")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Picker("", selection: $appearance) {
@@ -105,11 +105,11 @@ private struct GeneralSettingsTab: View {
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
                     .onChange(of: appearance) { state.setAppearance($1) }
-                    .accessibilityLabel("Оформление")
+                    .accessibilityLabel("Appearance")
                     .accessibilityIdentifier("settings.general.theme")
                 }
                 SettingsRow {
-                    Label("Размер текста", systemImage: "textformat.size")
+                    Label("Text size", systemImage: "textformat.size")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     // Applies to the transcript and the assistant answer only.
@@ -123,7 +123,7 @@ private struct GeneralSettingsTab: View {
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
                     .onChange(of: readingScale) { state.readingTextScale = $1 }
-                    .accessibilityLabel("Размер текста")
+                    .accessibilityLabel("Text size")
                     .accessibilityIdentifier("settings.general.readingTextSize")
                 }
             }
@@ -134,40 +134,40 @@ private struct GeneralSettingsTab: View {
             // six-second test that proves both audio sources are audible, which
             // is the check that answers "why is the other side silent?" before a
             // real call does.
-            SettingsSection(title: "Первая настройка",
-                            caption: "Заново пройдёт проверку разрешений, проверку захвата звука и показ на примере. Ничего, кроме самой настройки, не сбрасывается.") {
+            SettingsSection(title: "First-run setup",
+                            caption: "Runs the permission check, the audio-capture check and the worked example again. Nothing but the setup itself is reset.") {
                 SettingsRow {
-                    Label("Показать настройку заново", systemImage: "arrow.counterclockwise")
+                    Label("Show the setup again", systemImage: "arrow.counterclockwise")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
-                    Button("Показать") { state.replayOnboarding() }
+                    Button("Show") { state.replayOnboarding() }
                         .accessibilityIdentifier("settings.general.replayOnboarding")
                 }
             }
 
-            SettingsSection(title: "Профиль",
-                            caption: "Роль меняет способ, которым ИИ разбирает звонок: у менеджера продукта и у основателя итог получается разный. Выберите из списка или напишите свою. Роль переключается и в боковой панели.") {
+            SettingsSection(title: "Profile",
+                            caption: "Your role changes how the AI reads a call: a product manager and a founder end up with different results. Choose one from the list or write your own. The role can also be switched in the sidebar.") {
                 SettingsRow {
-                    Label("Ваша роль", systemImage: "person.text.rectangle")
+                    Label("Your role", systemImage: "person.text.rectangle")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Picker("", selection: $state.userRoleID) {
-                        Text("Не задано").tag(String?.none)
+                        Text("Not set").tag(String?.none)
                         Divider()
                         ForEach(RoleSkillMatrix.positions) { position in
                             Text(position.label).tag(String?.some(position.id))
                         }
                         Divider()
-                        Text("Написать своё…").tag(String?.some(RoleSkillMatrix.customRoleID))
+                        Text("Write your own…").tag(String?.some(RoleSkillMatrix.customRoleID))
                     }
                     .labelsHidden().pickerStyle(.menu)
                     .frame(maxWidth: 240)
-                    .accessibilityLabel("Ваша роль")
+                    .accessibilityLabel("Your role")
                     .accessibilityIdentifier("settings.general.role")
                 }
                 if state.userRoleID == RoleSkillMatrix.customRoleID {
                     SettingsRow {
-                        TextField("например, руководитель роста в финтех-стартапе",
+                        TextField("for example, head of growth at a fintech startup",
                                   text: $customRole)
                             .textFieldStyle(.plain)
                             .font(Typo.callout)
@@ -178,80 +178,80 @@ private struct GeneralSettingsTab: View {
                             .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
                                 .strokeBorder(Theme.hairline, lineWidth: 1))
                             .onChange(of: customRole) { Config.userCustomRole = $1 }
-                            .accessibilityLabel("Своя роль")
+                            .accessibilityLabel("Your own role")
                             .accessibilityIdentifier("settings.general.custom-role")
                     }
                 }
             }
 
-            SettingsSection(title: "Во время звонка",
-                            caption: "orakul замечает, что открылось приложение для звонков, и предлагает начать запись.") {
+            SettingsSection(title: "During a call",
+                            caption: "orakul notices a call application opening and offers to start recording.") {
                 SettingsRow {
-                    Label("Сообщать о звонках", systemImage: "bell.badge")
+                    Label("Tell me about calls", systemImage: "bell.badge")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: $callDetection)
                         .labelsHidden().toggleStyle(.switch)
                         .onChange(of: callDetection) { Config.callDetectionEnabled = $1; state.applyCallDetectionSettings() }
-                        .accessibilityLabel("Сообщать о звонках")
+                        .accessibilityLabel("Tell me about calls")
                         .accessibilityIdentifier("settings.general.call-detection")
                 }
                 SettingsRow {
-                    Label("Игнорировать музыку и видео", systemImage: "music.note.tv")
+                    Label("Ignore music and video", systemImage: "music.note.tv")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: $ignoreMedia)
                         .labelsHidden().toggleStyle(.switch)
                         .disabled(!callDetection)
                         .onChange(of: ignoreMedia) { Config.ignoreMediaApps = $1 }
-                        .accessibilityLabel("Игнорировать музыку и видео")
+                        .accessibilityLabel("Ignore music and video")
                         .accessibilityIdentifier("settings.general.ignore-media")
                 }
             }
 
-            SettingsSection(title: "Во время звонка",
-                            caption: "Тихий баннер, когда найдена новая слепая зона, а orakul свёрнут — только текст, без звука.") {
+            SettingsSection(title: "During a call",
+                            caption: "A quiet banner when a new blind spot is found and orakul is minimised — text only, no sound.") {
                 SettingsRow {
-                    Label("Плашки слепых зон", systemImage: "bell.badge")
+                    Label("Blind-spot banners", systemImage: "bell.badge")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: $blindSpotBanners)
                         .labelsHidden().toggleStyle(.switch)
                         .onChange(of: blindSpotBanners) { Config.blindSpotTextNotificationsEnabled = $1 }
-                        .accessibilityLabel("Плашки слепых зон")
+                        .accessibilityLabel("Blind-spot banners")
                         .accessibilityIdentifier("settings.general.blindSpotBanners")
                 }
             }
 
-            SettingsSection(title: "Перед встречей",
+            SettingsSection(title: "Before the meeting",
                             caption: state.googleConnected
-                                ? "Напоминания приходят заранее — перед встречей в календаре."
-                                : "Напоминаниям нужен Google Календарь — подключите его во вкладке «Подключённые приложения».") {
+                                ? "Reminders arrive ahead of time, before a meeting in the calendar."
+                                : "Reminders need Google Calendar — connect it on the «Connected apps» tab.") {
                 SettingsRow {
-                    Label("Напоминать перед встречами", systemImage: "bell.and.waves.left.and.right")
+                    Label("Remind me before meetings", systemImage: "bell.and.waves.left.and.right")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: $reminders)
                         .labelsHidden().toggleStyle(.switch)
                         .onChange(of: reminders) { Config.meetingRemindersEnabled = $1; state.applyReminderSettings() }
-                        .accessibilityLabel("Напоминать перед встречами")
+                        .accessibilityLabel("Remind me before meetings")
                         .accessibilityIdentifier("settings.general.reminders")
                 }
                 SettingsRow {
-                    Label("Время до встречи", systemImage: "clock")
+                    Label("Time before the meeting", systemImage: "clock")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Picker("", selection: $reminderMinutes) {
-                        Text("за 1 минуту").tag(1)
-                        Text("за 5 минут").tag(5)
-                        Text("за 10 минут").tag(10)
-                        Text("1за 5 минут").tag(15)
-                        Text("за 30 минут").tag(30)
+                        Text("1 minute before").tag(1)
+                        Text("5 minutes before").tag(5)
+                        Text("10 minutes before").tag(10)
+                        Text("15 minutes before").tag(15)
+                        Text("30 minutes before").tag(30)
                     }
                     .labelsHidden().pickerStyle(.menu).fixedSize()
                     .disabled(!reminders)
                     .onChange(of: reminderMinutes) { Config.meetingReminderMinutes = $1; state.applyReminderSettings() }
-                    .accessibilityLabel("За сколько напоминать")
+                    .accessibilityLabel("How far ahead to remind")
                     .accessibilityIdentifier("settings.general.reminder-lead-time")
                 }
             }
@@ -290,8 +290,8 @@ private struct TranscriptionSettingsTab: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
                 SettingsSection(
-                    title: "Ключи облачной расшифровки",
-                    caption: "Необязательно. Ключ добавляете и удаляете вы; он хранится в Связке ключей и используется для прямого запроса к выбранному сервису. В сборке нет ключей orakul и нет серверной подстановки."
+                    title: "Cloud transcription keys",
+                    caption: "Optional. You add and delete the key yourself; it is kept in the Keychain and used for a direct request to the chosen service. The build carries no orakul keys and no server-side substitution."
                 ) {
                     TranscriptionProviderKeysSection(
                         store: state.transcriptionProviderKeys,
@@ -305,8 +305,8 @@ private struct TranscriptionSettingsTab: View {
                     }
                 }
 
-                SettingsSection(title: "Движок",
-                                caption: "«Локально» оставляет звук звонка на этом компьютере. Deepgram или Whisper — значит, звук уходит к этому облачному провайдеру. Смена движка по ходу звонка действует сразу.") {
+                SettingsSection(title: "Engine",
+                                caption: "«Local» keeps the call audio on this computer. Deepgram or Whisper means the audio goes to that cloud provider. Changing the engine mid-call takes effect immediately.") {
                     ForEach(TranscriptionEngine.selectableCases) { option in
                         EngineChoiceRow(engine: option,
                                         selected: state.selectedTranscriptionEngine == option,
@@ -321,10 +321,10 @@ private struct TranscriptionSettingsTab: View {
                     }
                 }
 
-                SettingsSection(title: "Язык",
-                                caption: "«Авто» переопределяет язык по ходу разговора. Если звонок целиком по-русски, выберите русский: на коротких и шумных кусках «Авто» ошибается. «Авто» нужен там, где в разговоре и правда два языка. Действует со следующей записи.") {
+                SettingsSection(title: "Language",
+                                caption: "«Auto» overrides the language as the conversation goes. If the whole call is in Russian, choose Russian: on short, noisy fragments «Auto» gets it wrong. «Auto» is for conversations that really do use two languages. Takes effect from the next recording.") {
                     SettingsRow {
-                        Label("Язык", systemImage: "globe")
+                        Label("Language", systemImage: "globe")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Picker("", selection: $transcriptionLanguage) {
@@ -335,42 +335,42 @@ private struct TranscriptionSettingsTab: View {
                         .labelsHidden().pickerStyle(.menu)
                         .frame(maxWidth: 220)
                         .onChange(of: transcriptionLanguage) { Config.transcriptionLanguage = $1 }
-                        .accessibilityLabel("Язык расшифровки")
+                        .accessibilityLabel("Transcription language")
                         .accessibilityIdentifier("settings.transcription.language")
                     }
                 }
 
-                SettingsSection(title: "Микрофон",
-                                caption: "Необязательная обработка Apple убирает эхо и фоновый шум, но при записи может приглушить звук из колонок. Оставьте выключенной, чтобы громкость не менялась; в наушниках этой платы нет. Действует со следующей записи.") {
+                SettingsSection(title: "Microphone",
+                                caption: "This optional Apple processing removes echo and background noise, but while recording it can dampen the sound from your speakers. Leave it off to keep the volume steady; with headphones there is no such cost. Takes effect from the next recording.") {
                     SettingsRow {
-                        Label("Шумоподавление Apple", systemImage: "waveform.badge.mic")
+                        Label("Apple noise suppression", systemImage: "waveform.badge.mic")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Toggle("", isOn: $micNoiseSuppression)
                             .labelsHidden().toggleStyle(.switch)
                             .onChange(of: micNoiseSuppression) { Config.micNoiseSuppressionEnabled = $1 }
-                            .accessibilityLabel("Шумоподавление Apple")
+                            .accessibilityLabel("Apple noise suppression")
                             .accessibilityIdentifier("settings.transcription.aec")
                     }
                 }
 
-                SettingsSection(title: "Дополнить из Fireflies",
-                                caption: "Выключено по умолчанию и работает только вместе с общим переключателем автоматических запросов во вкладке «ИИ». После звонка orakul сведёт расшифровку Fireflies с локальной через выбранного AI-провайдера; это отправит ему текст и создаст расход по вашему договору. Имена и термины могут уточняться по разрешённым подключённым приложениям.") {
+                SettingsSection(title: "Enrich from Fireflies",
+                                caption: "Off by default, and it works only together with the shared automatic-requests switch on the «AI» tab. After a call, orakul reconciles the Fireflies transcript with the local one through your chosen AI provider; that sends it the text and creates spend under your contract. Names and terms may be refined against the connected applications you allowed.") {
                     SettingsRow {
-                        Label("Дополнять транскрипт из Fireflies", systemImage: "flame")
+                        Label("Enrich the transcript from Fireflies", systemImage: "flame")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Toggle("", isOn: $firefliesEnhance)
                             .labelsHidden().toggleStyle(.switch)
                             .onChange(of: firefliesEnhance) { Config.firefliesTranscriptEnhanceEnabled = $1 }
-                            .accessibilityLabel("Дополнять транскрипт из Fireflies")
+                            .accessibilityLabel("Enrich the transcript from Fireflies")
                             .accessibilityIdentifier("settings.transcription.fireflies-enhance")
                     }
                 }
 
                 if state.selectedTranscriptionEngine == .local {
-                    SettingsSection(title: "Модель на устройстве",
-                                    caption: "Модель побольше обычно точнее, но дольше качается и тяжелее работает. Смена действует со следующей записи.") {
+                    SettingsSection(title: "On-device model",
+                                    caption: "A larger model is usually more accurate, but downloads longer and runs heavier. The change takes effect from the next recording.") {
                     Picker("", selection: $localModel) {
                         ForEach(LocalWhisperModel.options) { option in
                             Text("\(option.title) — \(option.id)").tag(option.id)
@@ -383,7 +383,7 @@ private struct TranscriptionSettingsTab: View {
                         Config.localModelChosenByUser = true
                         Config.localWhisperModel = $1
                     }
-                    .accessibilityLabel("Модель распознавания на устройстве")
+                    .accessibilityLabel("On-device recognition model")
                     .accessibilityIdentifier("settings.transcription.local-model")
                     if let picked = LocalWhisperModel.options.first(where: { $0.id == localModel }) {
                         Text(picked.caption)
@@ -391,25 +391,25 @@ private struct TranscriptionSettingsTab: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     SettingsRow {
-                        Label("Подстройка под машину", systemImage: "speedometer")
+                        Label("Tuning for this machine", systemImage: "speedometer")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Toggle("", isOn: $adaptiveLocal)
                             .labelsHidden().toggleStyle(.switch)
                             .onChange(of: adaptiveLocal) { Config.adaptiveLocalWhisperEnabled = $1 }
-                            .accessibilityLabel("Подстройка распознавания")
+                            .accessibilityLabel("Recognition tuning")
                             .accessibilityIdentifier("settings.transcription.adaptive")
                     }
-                    Text("Если расшифровка раз за разом отстаёт, orakul возьмёт для следующей записи модель полегче. На Base предложит Deepgram, но в облако сам не уйдёт.")
+                    Text("If transcription keeps falling behind, orakul picks a lighter model for the next recording. At Base it will suggest Deepgram, but it never goes to the cloud on its own.")
                         .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                     }
 
                     SettingsSection(
-                        title: "Уточнение после звонка",
-                        caption: "Выключено по умолчанию. Если включить, orakul повторно прочитает сохранённый звук на этом Mac после остановки. Живая расшифровка останется, если новый результат неполный или потерял содержание.") {
+                        title: "Post-call refinement",
+                        caption: "Off by default. Turned on, orakul re-reads the saved audio on this Mac after you stop. The live transcript is kept if the new result is incomplete or lost content.") {
                         SettingsRow {
-                            Label("Уточнять после остановки", systemImage: "waveform.badge.checkmark")
+                            Label("Refine after stopping", systemImage: "waveform.badge.checkmark")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
                             Toggle("", isOn: $postStopFinalPass)
@@ -417,17 +417,17 @@ private struct TranscriptionSettingsTab: View {
                                 .onChange(of: postStopFinalPass) {
                                     Config.transcriptionPostStopFinalPassEnabled = $1
                                 }
-                                .accessibilityLabel("Уточнять локальную расшифровку после остановки")
+                                .accessibilityLabel("Refine the local transcript after stopping")
                                 .accessibilityIdentifier("settings.transcription.post-stop-final-pass")
                         }
                     }
 
                     SettingsSection(
-                        title: "Приватные метки говорящих · Бета",
-                        caption: "Включите до следующей локальной записи: orakul сохранит дорожку собеседников в памяти. После остановки выберите 1–4 голоса и запустите определение; число можно изменить и повторить на том же звонке. Автоподсчёта нет — в измерении он завышал число голосов. При первом запуске скачается около 34 МБ моделей. Аудио и эмбеддинги остаются на этом Mac, голосовые отпечатки не сохраняются. Метки сохраняются только в локальной истории этого звонка на этом Mac. У звонков дольше часа подписывается только полностью сохранённая часть. Бета — проверьте метки перед отправкой."
+                        title: "Private speaker labels · Beta",
+                        caption: "Turn this on before the next local recording: orakul keeps the other party's track in memory. After stopping, choose 1–4 voices and run identification; the number can be changed and re-run on the same call. There is no automatic count — when measured, it overstated the number of voices. The first run downloads about 34 MB of models. Audio and embeddings stay on this Mac, and no voiceprints are stored. Labels are saved only in this call's local history on this Mac. For calls longer than an hour, only the fully saved part is labelled. Beta — check the labels before sending them anywhere."
                     ) {
                         SettingsRow {
-                            Label("Определять говорящих на этом Mac", systemImage: "person.2.wave.2")
+                            Label("Identify speakers on this Mac", systemImage: "person.2.wave.2")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
                             Toggle("", isOn: $localSpeakerLabels)
@@ -435,12 +435,12 @@ private struct TranscriptionSettingsTab: View {
                                 .onChange(of: localSpeakerLabels) {
                                     Config.localDiarizationEnabled = $1
                                 }
-                                .accessibilityLabel("Определять говорящих на этом Mac")
+                                .accessibilityLabel("Identify speakers on this Mac")
                                 .accessibilityIdentifier(
                                     "settings.transcription.local-diarization")
                         }
                         SettingsRow {
-                            Label("Голосов собеседников", systemImage: "person.3")
+                            Label("Other voices", systemImage: "person.3")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
                             Picker("", selection: $remoteSpeakerCount) {
@@ -454,7 +454,7 @@ private struct TranscriptionSettingsTab: View {
                             .onChange(of: remoteSpeakerCount) {
                                 Config.localDiarizationRemoteSpeakerCount = $1
                             }
-                            .accessibilityLabel("Число голосов собеседников")
+                            .accessibilityLabel("Number of other voices")
                             .accessibilityIdentifier(
                                 "settings.transcription.local-diarization-speakers")
                         }
@@ -462,23 +462,23 @@ private struct TranscriptionSettingsTab: View {
                 }
 
                 if state.hasAssemblyAI {
-                    SettingsSection(title: "Кто говорил — после звонка",
-                                    caption: "Необязательная обработка через AssemblyAI. Действует со следующей записи: orakul сохраняет дорожку собеседников и отправляет её только после нажатия «Определить говорящих» — никогда сам по ходу звонка.") {
+                    SettingsSection(title: "Who spoke — after the call",
+                                    caption: "Optional processing through AssemblyAI. Takes effect from the next recording: orakul keeps the other party's track and uploads it only after you press «Identify speakers» — never on its own during a call.") {
                         SettingsRow {
-                            Label("Разрешить облачное определение говорящих", systemImage: "person.2.wave.2")
+                            Label("Allow cloud speaker identification", systemImage: "person.2.wave.2")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
                             Toggle("", isOn: $assemblyDiarization)
                                 .labelsHidden().toggleStyle(.switch)
                                 .onChange(of: assemblyDiarization) { Config.assemblyAIDiarizationEnabled = $1 }
-                                .accessibilityLabel("Разрешить облачное определение говорящих")
+                                .accessibilityLabel("Allow cloud speaker identification")
                                 .accessibilityIdentifier("settings.transcription.assembly-diarization")
                         }
                     }
                 }
 
-                SettingsSection(title: "Свой словарь",
-                                caption: "Названия продуктов, сокращения, имена — по одному в строке или через запятую. Подсказывает любому движку правильное написание. Термины из подключённых приложений сначала показываются на проверку; принятые действуют со следующей записи, даже если вы приняли их посреди звонка.") {
+                SettingsSection(title: "Your own glossary",
+                                caption: "Product names, abbreviations, personal names — one per line or separated by commas. It tells any engine the correct spelling. Terms from connected applications are shown for review first; accepted ones take effect from the next recording, even if you accepted them mid-call.") {
                     TextEditor(text: $glossary)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(Theme.ink)
@@ -501,31 +501,31 @@ private struct TranscriptionSettingsTab: View {
                             Config.transcriptionGlossary = $1
                             state.noteConnectedGlossaryManualEdit($1)
                         }
-                        .accessibilityLabel("Свой словарь распознавания")
+                        .accessibilityLabel("Your own recognition glossary")
                         .accessibilityIdentifier("settings.transcription.glossary")
                     if !glossary.isEmpty {
                         // Русский счёт, а не «term/terms»: 1 термин, 2 термина,
                         // 5 терминов. Английское «-s» на числе — та мелочь, по
                         // которой сразу видно переведённый продукт.
-                        Text("Активно \(Config.glossaryTerms.count) \(DisplayFormatting.termsWord(Config.glossaryTerms.count))")
+                        Text("\(Config.glossaryTerms.count) \(DisplayFormatting.termsWord(Config.glossaryTerms.count)) active")
                             .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                     }
 
                     Divider().overlay(Theme.hairline)
 
                     SettingsRow {
-                        Label("Брать подсказки из рабочих приложений", systemImage: "app.connected.to.app.below.fill")
+                        Label("Take hints from work applications", systemImage: "app.connected.to.app.below.fill")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Toggle("", isOn: $state.useConnectedAppsInPrompts)
                             .labelsHidden().toggleStyle(.switch)
-                            .accessibilityLabel("Брать подсказки для расшифровки из рабочих приложений")
+                            .accessibilityLabel("Take transcription hints from work applications")
                             .accessibilityIdentifier("settings.transcription.glossary-suggestions.enabled")
                     }
 
                     SettingsRow {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Найти имена и термины")
+                            Text("Find names and terms")
                                 .font(Typo.callout).foregroundStyle(Theme.ink)
                             Text(connectedGlossaryCostCaption)
                                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
@@ -535,7 +535,7 @@ private struct TranscriptionSettingsTab: View {
                         if state.connectedGlossarySuggestionStatus == .loading {
                             ProgressView().controlSize(.small)
                         }
-                        Button("Найти термины") {
+                        Button("Find terms") {
                             Task { await state.generateConnectedGlossarySuggestions() }
                         }
                         .buttonStyle(.bordered)
@@ -545,10 +545,10 @@ private struct TranscriptionSettingsTab: View {
 
                     if state.connectedGlossarySourceCount == 0 {
                         HStack {
-                            Text("Сначала подключите приложение, которое можно читать.")
+                            Text("Connect an application that can be read first.")
                                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                             Spacer()
-                            Button("Рабочие приложения") { state.selectedSettingsTab = .connectedApps }
+                            Button("Work applications") { state.selectedSettingsTab = .connectedApps }
                                 .buttonStyle(.link)
                                 .accessibilityIdentifier("settings.transcription.glossary-suggestions.open-apps")
                         }
@@ -575,29 +575,29 @@ private struct TranscriptionSettingsTab: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                                 Spacer(minLength: Space.s)
-                                Button("Скрыть") {
+                                Button("Hide") {
                                     state.rejectConnectedGlossarySuggestion(id: suggestion.id)
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel("Скрыть \(suggestion.term)")
-                                Button("Добавить") {
+                                .accessibilityLabel("Hide \(suggestion.term)")
+                                Button("Add") {
                                     if state.acceptConnectedGlossarySuggestion(id: suggestion.id) {
                                         glossary = Config.transcriptionGlossary
                                     }
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .controlSize(.small)
-                                .accessibilityLabel("Добавить \(suggestion.term) в словарь расшифровки")
+                                .accessibilityLabel("Add \(suggestion.term) to the transcription glossary")
                             }
                             .padding(.vertical, 3)
                         }
                         HStack {
                             if let metrics = state.connectedGlossarySuggestionMetrics {
-                                Text("источников: \(metrics.sourceCount) · токенов на входе: \(metrics.estimatedInputTokens)\(metrics.cached ? " · из кэша" : "") · расход считает ваш AI-провайдер")
+                                Text("sources: \(metrics.sourceCount) · input tokens: \(metrics.estimatedInputTokens)\(metrics.cached ? " · cached" : "") · your AI provider meters the spend")
                                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                             }
                             Spacer()
-                            Button("Скрыть все") {
+                            Button("Hide all") {
                                 state.rejectAllConnectedGlossarySuggestions()
                             }
                             .buttonStyle(.link)
@@ -629,14 +629,14 @@ private struct TranscriptionSettingsTab: View {
         // печатать ноль. Строка вычислялась и выбрасывалась — предупреждение
         // компилятора про неё нашла scripts/proverka-preduprezhdenij.sh в тот
         // день, когда её научили ронять прогон.
-        return "Прочитает не больше \(ConnectedGlossarySuggestionService.maxSources) коротких выдержек из приложений и отранжирует найденные термины моделью \(model.label). Транскрипт звонка при этом никуда не уходит."
+        return "Reads no more than \(ConnectedGlossarySuggestionService.maxSources) short excerpts from the applications and ranks the terms it found with \(model.label). The call transcript goes nowhere in the process."
     }
 
     private var connectedGlossaryStatusMessage: String? {
         if let message = state.connectedGlossarySuggestionMessage { return message }
         switch state.connectedGlossarySuggestionStatus {
         case .idle, .loading, .ready: return nil
-        case .empty: return "Новых терминов из подключённых приложений нет."
+        case .empty: return "No new terms from the connected applications."
         case .unavailable(let message), .failed(let message): return message
         }
     }
@@ -667,88 +667,88 @@ private struct AISettingsTab: View {
 
             // Выше выбора модели: модель без ключа не отвечает, а в готовом
             // установщике ключей нет ни одного.
-            SettingsSection(title: "Ключи провайдеров",
-                            caption: "Ключ вводится один раз и лежит в Связке ключей. Расход идёт по вашему договору с провайдером — orakul не посредник и денег не берёт. Без ключа модель не ответит: в готовые установщики ключи не зашиваются намеренно.") {
+            SettingsSection(title: "Provider keys",
+                            caption: "The key is entered once and lives in the Keychain. Spend goes through your own contract with the provider — orakul is not a middleman and takes no money. Without a key the model will not answer: keys are deliberately not baked into the ready-made installers.") {
                 ProviderKeysSection()
             }
 
-            SettingsSection(title: "Модель",
-                            caption: "Выберите провайдера и версию — или оставьте «Авто», и orakul выберет под запрос. Доступны все модели: закрытых нет.") {
+            SettingsSection(title: "Model",
+                            caption: "Choose a provider and a version — or leave «Auto» and orakul picks one per request. Every model is available: none are withheld.") {
                 ModelSelectionRows()
             }
 
-            SettingsSection(title: "Ко-пилот",
+            SettingsSection(title: "Copilot",
                             caption: Config.managedUsageLimitsEnabled
-                                ? "По ходу записи ищет слепые зоны — по вашей цели и расшифровке. Наблюдения делят один часовой бюджет: выключите одно — остальные обновляются чаще."
-                                : "Выключено по умолчанию. Если включить, orakul может предлагать цель и название, обновлять сводку, дополнять транскрипт из Fireflies и выполнять выбранные проверки, а также делать дополнительные проходы для уточнений и следующих вопросов. Каждый проход — отдельный запрос по вашему договору с AI-провайдером. Когда переключатель выключен, фоновых и дополнительных проходов нет; явное действие всё равно может сделать несколько запросов для чтения подключённых источников, совета моделей или резервного провайдера.") {
+                                ? "Looks for blind spots as the recording goes, against your goal and the transcript. The observations share one hourly budget: switch one off and the rest refresh more often."
+                                : "Off by default. Turned on, orakul may propose a goal and a title, update the summary, enrich the transcript from Fireflies and run the checks you selected, as well as make extra passes for clarifications and follow-up questions. Every pass is a separate request under your contract with the AI provider. While the switch is off there are no background or extra passes; an explicit action may still make several requests to read connected sources, poll a council of models, or fall back to another provider.") {
                 SettingsRow {
-                    Label("Автоматические запросы к ИИ", systemImage: "bolt.horizontal.circle")
+                    Label("Automatic AI requests", systemImage: "bolt.horizontal.circle")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.automaticProviderRequestsEnabled },
                         set: { state.setAutomaticProviderRequestsEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Автоматические запросы к ИИ")
+                        .accessibilityLabel("Automatic AI requests")
                         .accessibilityIdentifier("settings.ai.automatic-provider-requests")
                 }
                 SettingsRow {
-                    Label("Мозговой штурм на звонке", systemImage: "lightbulb")
+                    Label("Brainstorming during a call", systemImage: "lightbulb")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.blindSpotsEnabled },
                         set: { state.setBlindSpotsEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Мозговой штурм на звонке")
+                        .accessibilityLabel("Brainstorming during a call")
                         .accessibilityIdentifier("settings.ai.brainstorm")
                         .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
-                    Label("Повестка и рамка", systemImage: "scope")
+                    Label("Agenda and framing", systemImage: "scope")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.agendaCheckingEnabled },
                         set: { state.setAgendaCheckingEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Повестка и рамка")
+                        .accessibilityLabel("Agenda and framing")
                         .accessibilityIdentifier("settings.ai.agenda")
                         .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
-                    Label("Проверка фактов на звонке", systemImage: "checkmark.seal")
+                    Label("Fact checking during a call", systemImage: "checkmark.seal")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.liveFactCheckingEnabled },
                         set: { state.setFactCheckDuringCallsEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Проверка фактов на звонке")
+                        .accessibilityLabel("Fact checking during a call")
                         .accessibilityIdentifier("settings.ai.fact-check")
                         .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
-                    Label("Слежу за риторикой", systemImage: "text.badge.xmark")
+                    Label("Watching the rhetoric", systemImage: "text.badge.xmark")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.rhetoricWatchEnabled },
                         set: { state.setRhetoricDuringCallsEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Слежу за риторикой")
+                        .accessibilityLabel("Watching the rhetoric")
                         .accessibilityIdentifier("settings.ai.rhetoric")
                         .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
-                    Label("Слежу за ходом звонка", systemImage: "location.north.line")
+                    Label("Watching how the call is going", systemImage: "location.north.line")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: Binding(
                         get: { state.facilitationWatchEnabled },
                         set: { state.setFacilitationDuringCallsEnabled($0) }))
                         .labelsHidden().toggleStyle(.switch)
-                        .accessibilityLabel("Слежу за ходом звонка")
+                        .accessibilityLabel("Watching how the call is going")
                         .accessibilityIdentifier("settings.ai.facilitation")
                         .disabled(!state.automaticProviderRequestsEnabled)
                 }
@@ -771,54 +771,54 @@ private struct ConnectedAppsTab: View {
                 // Первым блоком, а не по алфавиту: человек, у которого задачи
                 // в Яндекс Трекере, ищет здесь именно его. Список, начатый с
                 // Notion, читается как «нашего нет» — и дальше не листается.
-                SettingsSection(title: "Российские трекеры",
-                                caption: "MCP-серверов у этих сервисов нет, поэтому подключение по токену: создаёте его у себя в трекере и вставляете сюда. Токен лежит в Связке ключей, запросы уходят прямо в сервис.") {
+                SettingsSection(title: "Russian trackers",
+                                caption: "These services have no MCP server, so they connect by token: create one in your tracker and paste it here. The token lives in the Keychain, and requests go straight to the service.") {
                     RussianTrackersSection()
                 }
 
                 // Сразу за трекерами: вопрос соседний, но другой — не
                 // «заводили ли задачу», а «обсуждали ли это». Ответ на второй
                 // чаще лежит в переписке, чем в трекере.
-                SettingsSection(title: "Рабочие мессенджеры",
-                                caption: "Пачка, Mattermost и Rocket.Chat умеют искать по сообщениям. Telegram подключается отдельным ботом: старую историю Bot API не отдаёт, поэтому orakul локально архивирует и ищет только новые сообщения после подключения.") {
+                SettingsSection(title: "Work messengers",
+                                caption: "Пачка, Mattermost and Rocket.Chat can search messages. Telegram connects through a bot of its own: the Bot API does not hand over old history, so orakul archives locally and searches only messages that arrive after connecting.") {
                     WorkMessengersSection()
                 }
 
-                SettingsSection(title: "Открытые трекеры на своём сервере",
-                                caption: "GitLab, Gitea (а также Forgejo — это форк Gitea с тем же API), Redmine, Plane, GitFlic и Jira команда поднимает у себя, поэтому кроме токена нужен адрес сервера. Jira здесь только своя: облачная подключается через MCP выше. GitHub подключается выше: у него адрес один и тот же. У Plane и GitFlic поиска по слову нет — orakul просматривает последние задачи и пишет под ответом, сколько именно просмотрел.") {
+                SettingsSection(title: "Self-hosted open trackers",
+                                caption: "GitLab, Gitea (and Forgejo, a fork of Gitea with the same API), Redmine, Plane, GitFlic and Jira are hosted by the team itself, so besides a token they need a server address. Jira here is only the self-hosted one: the cloud version connects over MCP above. GitHub connects above: its address is always the same. Plane and GitFlic have no word search — orakul looks through the most recent issues and writes under the answer how many it looked through.") {
                     SelfHostedTrackersSection()
                 }
 
                 // Западные трекеры отдельно от предыдущей секции: там адрес
                 // сервера обязателен, здесь его нет вовсе.
-                SettingsSection(title: "Западные трекеры",
-                                caption: "Linear и Trello — облачные, адрес спрашивать не нужно. У Linear ключ вставляется как есть; у Trello кроме токена нужен ключ приложения — оба берутся на одной странице trello.com/power-ups/admin. Ключи лежат в Связке ключей, запросы уходят прямо в сервис.") {
+                SettingsSection(title: "Western trackers",
+                                caption: "Linear and Trello are cloud services, so no address is needed. Linear's key is pasted as is; Trello needs an application key besides the token — both come from the same page, trello.com/power-ups/admin. The keys live in the Keychain, and requests go straight to the service.") {
                     WesternTrackersSection()
                 }
 
-                SettingsSection(title: "База знаний",
-                                caption: "Outline, BookStack, Wiki.js и Nextcloud умеют искать по документам, и orakul спрашивает их по ходу звонка: решение, записанное в вики полгода назад, не найдётся ни в задачах, ни в переписке. Яндекс Вики и Teamly подключить нельзя — у первой в открытой документации нет поиска по тексту, у второй нет публичного описания API.") {
+                SettingsSection(title: "Knowledge base",
+                                caption: "Outline, BookStack, Wiki.js and Nextcloud can search documents, and orakul asks them during a call: a decision written into a wiki six months ago will not be found in issues or in chat. Яндекс Вики and Teamly cannot be connected — the first has no text search in its public documentation, and the second publishes no API description at all.") {
                     TeamNotesSection()
                 }
 
-                SettingsSection(title: "Заметки на этом компьютере",
-                                caption: "Папка Obsidian или любой каталог с файлами .md. Единственный источник, которому не нужен ни ключ, ни сеть: orakul читает ваш диск и ничего никуда не отправляет. Большое хранилище просматривается не целиком — сколько именно файлов прочитано, программа пишет под ответом.") {
+                SettingsSection(title: "Notes on this computer",
+                                caption: "An Obsidian vault, or any directory of .md files. The one source that needs neither a key nor a network: orakul reads your disk and sends nothing anywhere. A large vault is not read in full — the program writes under the answer how many files it actually read.") {
                     LocalNotesSection()
                 }
 
                 SettingsSection(title: "Google",  // имя сервиса, не переводится
-                                caption: "Календарь, Документы, Таблицы и Диск подключаются отдельными правами, которыми управляете вы. Поиск — только чтение; при экспорте orakul создаёт и меняет лишь те файлы, которые создал сам.") {
+                                caption: "Calendar, Docs, Sheets and Drive connect through separate permissions that you control. Search is read-only; when exporting, orakul creates and changes only the files it created itself.") {
                     GoogleSignInRow()
                 }
 
-                SettingsSection(title: "Рабочие приложения",
-                                caption: "MCP-серверы подключаются в одно нажатие: обычный OAuth в браузере, без ключей. Токены остаются в Связке ключей. Salesforce, Affinity и тысячи других — через Zapier.") {
+                SettingsSection(title: "Work applications",
+                                caption: "MCP servers connect in one click: ordinary OAuth in the browser, no keys. The tokens stay in the Keychain. Salesforce, Affinity and thousands of others go through Zapier.") {
                     MCPAppsSection()
                 }
 
                 if Config.llmViaBackend {
-                    SettingsSection(title: "Звонки — в ваш ИИ-инструмент",
-                                    caption: "Управляемая совместимость предоставляет MCP-адрес для звонков и журнала решений.") {
+                    SettingsSection(title: "Calls, in your own AI tool",
+                                    caption: "Managed compatibility provides an MCP address for calls and the decision log.") {
                         OwnMCPCard()
                     }
                 }
@@ -830,9 +830,9 @@ private struct ConnectedAppsTab: View {
                         .padding(.top, Space.s)
                 } label: {
                     HStack(spacing: Space.s) {
-                        SectionLabel("Источники команды")
+                        SectionLabel("Team sources")
                         if !TeamConnectors.configured.isEmpty {
-                            Text("настроено: \(TeamConnectors.configured.count)")
+                            Text("configured: \(TeamConnectors.configured.count)")
                                 .font(Typo.caption)
                                 .foregroundStyle(Theme.inkTertiary)
                         }
@@ -874,17 +874,17 @@ private struct OwnMCPCard: View {
                     copied = true
                     Task { try? await Task.sleep(nanoseconds: 1_500_000_000); copied = false }
                 } label: {
-                    Label(copied ? "Copied" : "Скопировать", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
                         .font(Typo.caption.weight(.medium))
                 }
                 .buttonStyle(QuietButtonStyle())
-                .accessibilityLabel("Скопировать адрес MCP")
+                .accessibilityLabel("Copy the MCP address")
             }
 
             VStack(alignment: .leading, spacing: Space.xs) {
-                setupStep(1, "В своём ИИ-инструменте добавьте orakul как коннектор по адресу выше.")
-                setupStep(2, "Подтвердите вход в браузере — той же почтой, что и в orakul.")
-                setupStep(3, "Переписка, поиск и работа с контекстом звонков в любом инструменте.")
+                setupStep(1, "In your own AI tool, add orakul as a connector at the address above.")
+                setupStep(2, "Confirm the sign-in in the browser, with the same email you use in orakul.")
+                setupStep(3, "Conversation, search and call context in any tool.")
             }
         }
     }
@@ -928,16 +928,16 @@ private struct AccountPrivacyTab: View {
             // Ключ провайдера вводится ниже, в разделе «ИИ», и вход для него не
             // нужен.
             if Config.llmViaBackend {
-                SettingsSection(title: "Аккаунт",
-                                caption: "Вход нужен, чтобы пользоваться моделями без своих ключей и синхронизировать журнал решений.") {
+                SettingsSection(title: "Account",
+                                caption: "Signing in is what lets you use models without your own keys and sync the decision log.") {
                     WheesprAccountRow(showSheet: $showSignIn)
 
                     if state.wheesprConnected {
                         SettingsRow {
-                            Label("Удалить аккаунт", systemImage: "trash")
+                            Label("Delete the account", systemImage: "trash")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
-                            Button(deleting ? "Удаление…" : "Удалить…", role: .destructive) {
+                            Button(deleting ? "Deleting…" : "Delete…", role: .destructive) {
                                 confirmDelete = true
                             }
                             .disabled(deleting)
@@ -947,38 +947,38 @@ private struct AccountPrivacyTab: View {
                 }
             }
 
-            SettingsSection(title: "Согласие на запись",
-                            caption: "Перед первой записью вы подтвердили, что отвечаете за согласие участников. Если отозвать, экран согласия покажется снова.") {
+            SettingsSection(title: "Recording consent",
+                            caption: "Before your first recording you confirmed that the participants' consent is your responsibility. Revoke it and the consent screen appears again.") {
                 SettingsRow {
-                    Label(Config.recordingConsentAccepted ? "Согласие подтверждено" : "Ещё не подтверждено",
+                    Label(Config.recordingConsentAccepted ? "Consent confirmed" : "Not confirmed yet",
                           systemImage: Config.recordingConsentAccepted ? "checkmark.shield" : "shield")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     if Config.recordingConsentAccepted {
-                        Button("Отозвать") { Config.recordingConsentAccepted = false }
+                        Button("Revoke") { Config.recordingConsentAccepted = false }
                             .buttonStyle(QuietButtonStyle())
                             .accessibilityIdentifier("settings.privacy.revoke-recording-consent")
                     }
                 }
             }
 
-            SettingsSection(title: "Убирать секреты перед отправкой",
-                            caption: "Номера карт, ключи API, номера документов и подписанные учётные данные вырезаются из всего, что уходит провайдеру ИИ. Распознаются по структуре: у карты сходится контрольная сумма, у ключа есть известный префикс — поэтому обычные числа со звонка (даты, цены, номер переговорки) остаются на месте. Запрос при этом не блокируется: секрет убирается, остальное уходит.") {
+            SettingsSection(title: "Strip secrets before sending",
+                            caption: "Card numbers, API keys, document numbers and signed credentials are stripped from everything that goes to the AI provider. They are recognised by structure: a card's checksum adds up, a key has a known prefix — so ordinary numbers from the call (dates, prices, a meeting-room number) stay where they are. The request is not blocked: the secret is removed and the rest goes on.") {
                 SettingsRow {
-                    Label("Фильтровать исходящие запросы", systemImage: "eye.slash")
+                    Label("Filter outgoing requests", systemImage: "eye.slash")
                         .labelStyle(SettingLabelStyle())
                     Spacer()
                     Toggle("", isOn: $outboundRedaction)
                         .labelsHidden()
                         .onChange(of: outboundRedaction) { Config.outboundRedactionEnabled = $1 }
-                        .accessibilityLabel("Фильтровать исходящие запросы")
+                        .accessibilityLabel("Filter outgoing requests")
                         .accessibilityIdentifier("settings.privacy.outbound-redaction")
                 }
                 SettingsRow {
                     VStack(alignment: .leading, spacing: 4) {
-                        Label("Убрать и эти термины", systemImage: "text.badge.minus")
+                        Label("Remove these terms too", systemImage: "text.badge.minus")
                             .labelStyle(SettingLabelStyle())
-                        Text("Кодовые названия проектов, имена клиентов — по одному в строке. Вырезаются везде, где встретятся.")
+                        Text("Project code names, customer names — one per line. They are stripped wherever they appear.")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                         TextEditor(text: $redactionTerms)
@@ -1000,20 +1000,20 @@ private struct AccountPrivacyTab: View {
                 }
             }
 
-            SettingsSection(title: "Куда уходят ваши данные",
-                            caption: "Расшифровка по умолчанию идёт на этом компьютере. Куски расшифровки уходят провайдеру выбранной модели, когда вы запускаете действие ИИ или явно включаете автоматические запросы — чей это провайдер, видно в списке моделей. Ничего не продаётся и не используется для рекламы.") {
+            SettingsSection(title: "Where your data goes",
+                            caption: "Transcription runs on this computer by default. Parts of the transcript go to the provider of the chosen model when you run an AI action or explicitly turn on automatic requests — the model list shows whose provider that is. Nothing is sold or used for advertising.") {
                 EmptyView()
             }
 
             if Config.isDevBuild {
-                SettingsSection(title: "Для разработчика",
-                                caption: "Только для сборок разработчика — в собранном приложении этого раздела нет. Превью переключает те же ограничения, что видит пользователь на этом плане. «Реальный доступ» возвращает как есть.") {
+                SettingsSection(title: "Developer",
+                                caption: "Developer builds only — a released application has no such section. The preview switches the same limits a user on that plan sees. «Real access» puts everything back as it was.") {
                     SettingsRow {
-                        Label("Посмотреть тариф", systemImage: "wrench.and.screwdriver")
+                        Label("View the plan", systemImage: "wrench.and.screwdriver")
                             .labelStyle(SettingLabelStyle())
                         Spacer()
                         Picker("", selection: $devTierPreview) {
-                            Text("Реальный доступ").tag("off")
+                            Text("Real access").tag("off")
                             ForEach(Tier.allCases) { tier in
                                 Text(tier.label).tag(tier.rawValue)
                             }
@@ -1021,12 +1021,12 @@ private struct AccountPrivacyTab: View {
                         .labelsHidden()
                         .frame(width: 170)
                         .onChange(of: devTierPreview) { state.setDevTierOverride(Tier(rawValue: $1)) }
-                        .accessibilityLabel("Посмотреть тариф")
+                        .accessibilityLabel("View the plan")
                         .accessibilityIdentifier("settings.developer.preview-plan")
                     }
                     if let preview = Tier(rawValue: devTierPreview) {
                         SettingsRow {
-                            Label("В этот тариф входит", systemImage: "checklist")
+                            Label("This plan includes", systemImage: "checklist")
                                 .labelStyle(SettingLabelStyle())
                             Spacer()
                             Text(Self.devTierSummary(preview))
@@ -1044,17 +1044,17 @@ private struct AccountPrivacyTab: View {
             devTierPreview = Config.devTierOverride?.rawValue ?? "off"
         }
         .sheet(isPresented: $showSignIn) { SignInSheet() }
-        .confirmationDialog("Удалить аккаунт?", isPresented: $confirmDelete) {
-            Button("Удалить аккаунт и все данные", role: .destructive) {
+        .confirmationDialog("Delete the account?", isPresented: $confirmDelete) {
+            Button("Delete the account and all data", role: .destructive) {
                 deleting = true
                 Task {
                     _ = await state.deleteAccount()
                     deleting = false
                 }
             }
-            Button("Отмена", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Учётная запись и сессии будут удалены с сервера навсегда. Звонков, сохранённых на этом компьютере, это не касается.")
+            Text("The account and its sessions will be deleted from the server permanently. Calls saved on this computer are untouched.")
         }
     }
 
@@ -1062,8 +1062,8 @@ private struct AccountPrivacyTab: View {
     private static func devTierSummary(_ tier: Tier) -> String {
         let allowance = TariffAllowance.forTier(tier)
         let models = LLMCatalog.all.filter { $0.isAvailable(for: tier) }.count
-        return "\(models) моделей · \(allowance.copilotHours) ч второго пилота · "
-            + "\(allowance.computeCredits) кредитов · \(allowance.groundedCycles) циклов с контекстом в месяц"
+        return "\(models) models · \(allowance.copilotHours)h of copilot · "
+            + "\(allowance.computeCredits) credits · \(allowance.groundedCycles) grounded cycles a month"
     }
 }
 
@@ -1128,7 +1128,7 @@ private struct EngineChoiceRow: View {
                 }
                 Spacer()
                 if !available {
-                    Text("Нет в этой сборке")
+                    Text("Not in this build")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                 }
@@ -1143,8 +1143,8 @@ private struct EngineChoiceRow: View {
         .buttonStyle(.plain)
         .disabled(!available)
         .opacity(available ? 1 : 0.55)
-        .accessibilityLabel("движок расшифровки: \(engine.advantageTitle)")
-        .accessibilityValue(selected ? "Selected" : "Не выбрано")
+        .accessibilityLabel("transcription engine: \(engine.advantageTitle)")
+        .accessibilityValue(selected ? "Selected" : "Not selected")
         .accessibilityIdentifier("settings.transcription.engine.\(engine.rawValue)")
     }
 }
@@ -1172,12 +1172,12 @@ private struct GoogleSignInRow: View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack(spacing: Space.s) {
                 VStack(alignment: .leading, spacing: Space.xxs) {
-                    Label(state.googleConnected ? "Google Workspace подключён" : "Google Workspace",
+                    Label(state.googleConnected ? "Google Workspace connected" : "Google Workspace",
                           systemImage: state.googleConnected ? "checkmark.seal.fill" : "square.grid.2x2")
                         .labelStyle(SettingLabelStyle())
                     if state.googleConnected {
                         let count = state.promptWorkflowCount(usingSourcePrefix: "google:")
-                        Text("готовых сценариев: \(count)")
+                        Text("ready-made scenarios: \(count)")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                     }
@@ -1185,14 +1185,14 @@ private struct GoogleSignInRow: View {
                 Spacer()
                 if state.googleConnecting {
                     ProgressView().controlSize(.small)
-                    Text("Подключаюсь…")
+                    Text("Connecting…")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
-                    Button("Отмена") { state.cancelGoogleConnection() }
+                    Button("Cancel") { state.cancelGoogleConnection() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.connected.google.cancel")
                 } else if state.googleConnected {
-                    Button("Отключить") { state.disconnectGoogle() }
+                    Button("Disconnect") { state.disconnectGoogle() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.connected.google.disconnect")
                 } else {
@@ -1210,10 +1210,10 @@ private struct GoogleSignInRow: View {
             GoogleServiceToggles()
 
             if !state.hasGoogleClientID {
-                Text("Добавьте GOOGLE_CLIENT_ID в app/.env и пересоберите orakul.")
+                Text("Add GOOGLE_CLIENT_ID to app/.env and rebuild orakul.")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
             } else if !state.hasGoogleClientSecret {
-                Text("Добавьте GOOGLE_CLIENT_SECRET для того же клиента Google Desktop OAuth и пересоберите orakul.")
+                Text("Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild orakul.")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
             } else if let error = state.googleConnectionError, !error.isEmpty {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -1224,9 +1224,9 @@ private struct GoogleSignInRow: View {
                       Config.googleScopeVersion < GoogleAuth.scopeVersion
                         || Config.googleGrantedServices != Config.googleEnabledServices {
                 HStack(spacing: Space.s) {
-                    Text("Доступ или поиск изменились — переподключите, чтобы применить.")
+                    Text("Access or search changed — reconnect to apply it.")
                         .font(Typo.caption).foregroundStyle(Theme.accentText)
-                    Button("Переподключить") { Task { await state.connectGoogle() } }
+                    Button("Reconnect") { Task { await state.connectGoogle() } }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(state.googleConnecting)
                         .accessibilityIdentifier("settings.connected.google.reconnect")
@@ -1274,7 +1274,7 @@ private struct GoogleSignInButton: View {
             HStack(spacing: Space.s) {
                 Text("G").font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundStyle(enabled ? Theme.accent : Theme.inkTertiary)
-                Text("Подключить Google Календарь")
+                Text("Connect Google Calendar")
                     .font(Typo.callout.weight(.semibold))
                     .foregroundStyle(enabled ? Theme.ink : Theme.inkTertiary)
             }
@@ -1285,7 +1285,7 @@ private struct GoogleSignInButton: View {
         .buttonStyle(.plain)
         .disabled(!enabled)
         .onHover { hovering = $0 }
-        .help(enabled ? "Подключить Google Календарь (и, если нужно, Документы и Таблицы)" : "Google Календарь в этой сборке недоступен")
+        .help(enabled ? "Connect Google Calendar (and Docs and Sheets if you need them)" : "Google Calendar is unavailable in this build")
         .accessibilityIdentifier("settings.connected.google.connect")
         .animation(Motion.quick, value: hovering)
     }
@@ -1298,9 +1298,9 @@ private struct WheesprAccountRow: View {
     @Binding var showSheet: Bool
 
     private var title: String {
-        guard state.wheesprConnected else { return "Аккаунт" }
-        if let email = state.wheesprEmail, !email.isEmpty { return "Вход выполнен · \(email)" }
-        return "Вход выполнен"
+        guard state.wheesprConnected else { return "Account" }
+        if let email = state.wheesprEmail, !email.isEmpty { return "Signed in · \(email)" }
+        return "Signed in"
     }
 
     var body: some View {
@@ -1311,14 +1311,14 @@ private struct WheesprAccountRow: View {
                 .truncationMode(.middle)
             Spacer()
             if !state.wheesprAvailable {
-                Text("Недоступно в этой сборке")
+                Text("Unavailable in this build")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
             } else if state.wheesprConnected {
-                Button("Выйти") { state.signOutWheespr() }
+                Button("Sign out") { state.signOutWheespr() }
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.account.sign-out")
             } else {
-                Button("Войти") { showSheet = true }
+                Button("Sign in") { showSheet = true }
                     .buttonStyle(QuietButtonStyle(prominent: true))
                     .accessibilityIdentifier("settings.account.sign-in")
             }
@@ -1358,7 +1358,7 @@ struct SignInSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Label("Войти", systemImage: "person.crop.circle").font(Typo.title).foregroundStyle(Theme.ink)
+            Label("Sign in", systemImage: "person.crop.circle").font(Typo.title).foregroundStyle(Theme.ink)
 
             if socialEnabled {
                 socialButtons
@@ -1370,9 +1370,9 @@ struct SignInSheet: View {
             }
 
             Picker("", selection: $method) {
-                Text("Код из письма").tag("code")
-                Text("Пароль").tag("password")
-                Text("Телефон").tag("phone")
+                Text("Code from the email").tag("code")
+                Text("Password").tag("password")
+                Text("Phone").tag("phone")
             }
             .pickerStyle(.segmented).labelsHidden()
 
@@ -1381,24 +1381,24 @@ struct SignInSheet: View {
             } else if method == "phone" {
                 phoneFlow
             } else if !codeStep {
-                Text("Пришлём код из шести цифр на почту — пароль не нужен.")
+                Text("We will send a six-digit code to your email — no password needed.")
                     .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 field($email, prompt: "you@company.com")
                 HStack {
                     Spacer()
-                    Button("Отмена") { dismiss() }.buttonStyle(QuietButtonStyle())
-                    Button(state.authWorking ? "Sending…" : "Отправить код") {
+                    Button("Cancel") { dismiss() }.buttonStyle(QuietButtonStyle())
+                    Button(state.authWorking ? "Sending…" : "Send the code") {
                         Task { await state.requestSignInCode(email: email) }
                     }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || state.authWorking)
                 }
             } else {
-                Text("Введите код, отправленный на \(state.pendingAuthEmail ?? "").")
+                Text("Enter the code sent to \(state.pendingAuthEmail ?? "").")
                     .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 field($code, prompt: "123456")
                 HStack {
-                    Button("Назад") { state.cancelSignIn(); code = "" }.buttonStyle(QuietButtonStyle())
+                    Button("Back") { state.cancelSignIn(); code = "" }.buttonStyle(QuietButtonStyle())
                     Spacer()
                     Button(state.authWorking ? "Verifying…" : "Verify") {
                         Task { await state.verifySignIn(code: code) }
@@ -1420,7 +1420,7 @@ struct SignInSheet: View {
                 Button {
                     Task { await state.signInWithApple() }
                 } label: {
-                    Label("Войти через Apple", systemImage: "apple.logo")
+                    Label("Sign in with Apple", systemImage: "apple.logo")
                         .font(Typo.callout.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -1435,7 +1435,7 @@ struct SignInSheet: View {
             } label: {
                 HStack(spacing: Space.s) {
                     Text("G").font(.system(size: 13, weight: .bold, design: .rounded))
-                    Text(state.authWorking ? "Начать вход через Google заново" : "Продолжить через Google")
+                    Text(state.authWorking ? "Start the Google sign-in again" : "Continue with Google")
                         .font(Typo.callout.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
@@ -1455,11 +1455,11 @@ struct SignInSheet: View {
             .buttonStyle(QuietButtonStyle(prominent: true))
             .disabled(!state.hasGoogleSignInClient)
             .help(state.authWorking
-                  ? "Окно входа уже открыто — нажмите, чтобы начать заново"
-                  : "Войти в orakul через Google")
+                  ? "The sign-in window is already open — click to start again"
+                  : "Sign in to orakul with Google")
             }
 
-            Text("Вход в аккаунт — не то же самое, что подключение Google Календаря в «Рабочих приложениях».")
+            Text("Signing in is not the same as connecting Google Calendar under «Work applications».")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1471,19 +1471,19 @@ struct SignInSheet: View {
     private var passwordFlow: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             field($email, prompt: "you@company.com")
-            SecureField("", text: $password, prompt: Text("пароль (минимум 8 символов)"))
+            SecureField("", text: $password, prompt: Text("password (at least 8 characters)"))
                 .textFieldStyle(.plain).padding(Space.m)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-            Toggle("Создать аккаунт", isOn: $registering)
+            Toggle("Create an account", isOn: $registering)
                 .toggleStyle(.checkbox).font(Typo.caption)
             if let providerError {
                 Text(providerError).font(Typo.caption).foregroundStyle(Theme.recordRed)
             }
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }.buttonStyle(QuietButtonStyle())
-                Button(working ? "Working…" : (registering ? "Создать аккаунт" : "Войти")) {
+                Button("Cancel") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button(working ? "Working…" : (registering ? "Create an account" : "Sign in")) {
                     Task { await runProvider {
                         registering
                             ? try await WheesprAuth.registerPassword(email: email, password: password)
@@ -1502,17 +1502,17 @@ struct SignInSheet: View {
         VStack(alignment: .leading, spacing: Space.m) {
             field($phone, prompt: "+15551234567")
                 .disabled(phoneCodeSent)
-            if phoneCodeSent { field($code, prompt: "Код из SMS") }
+            if phoneCodeSent { field($code, prompt: "Code from SMS") }
             if let providerError {
                 Text(providerError).font(Typo.caption).foregroundStyle(Theme.recordRed)
             }
             HStack {
                 if phoneCodeSent {
-                    Button("Назад") { phoneCodeSent = false; code = "" }.buttonStyle(QuietButtonStyle())
+                    Button("Back") { phoneCodeSent = false; code = "" }.buttonStyle(QuietButtonStyle())
                 }
                 Spacer()
-                Button("Отмена") { dismiss() }.buttonStyle(QuietButtonStyle())
-                Button(working ? "Отправляю…" : (phoneCodeSent ? "Проверить" : "Отправить код по SMS")) {
+                Button("Cancel") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button(working ? "Sending…" : (phoneCodeSent ? "Check" : "Send the code by SMS")) {
                     Task {
                         if phoneCodeSent {
                             await runProvider { try await WheesprAuth.verifyPhone(phone: phone, code: code) }

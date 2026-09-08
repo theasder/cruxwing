@@ -24,7 +24,7 @@ struct LocalTranscriptAttributionTests {
 
         let rendered = TranscriptTextRenderer.render(
             entries: entries, provisional: [], appearance: nil)
-        #expect(!rendered.attributed.string.contains("Вы"))
+        #expect(!rendered.attributed.string.contains("You"))
         #expect(!rendered.attributed.string.contains("Собеседник"))
         #expect(rendered.segments.allSatisfy { $0.speaker == nil })
 
@@ -103,7 +103,7 @@ struct LocalTranscriptAttributionTests {
         let entries = [
             TranscriptEntry(
                 source: .mic, text: "Я проверю договор.", timestamp: base,
-                speaker: "Вы", transcriptionEngine: .local),
+                speaker: "You", transcriptionEngine: .local),
             TranscriptEntry(
                 source: .system, text: "Я пришлю правки.",
                 timestamp: base.addingTimeInterval(2), speaker: "Спикер 2",
@@ -112,18 +112,18 @@ struct LocalTranscriptAttributionTests {
 
         let rendered = TranscriptTextRenderer.render(
             entries: entries, provisional: [], appearance: nil)
-        #expect(rendered.segments.map(\.speaker) == ["Вы", "Спикер 2"])
-        #expect(rendered.attributed.string.contains("Вы"))
+        #expect(rendered.segments.map(\.speaker) == ["You", "Спикер 2"])
+        #expect(rendered.attributed.string.contains("You"))
         #expect(rendered.attributed.string.contains("Спикер 2"))
 
         let prompt = SystemInstructions.formatEntries(entries)
-        #expect(prompt.contains("][audio] Вы: Я проверю договор."))
+        #expect(prompt.contains("][audio] You: Я проверю договор."))
         #expect(prompt.contains("][audio] Спикер 2: Я пришлю правки."))
 
         let exported = TranscriptExporter.plainText(
             title: "Локальный звонок", date: base, entries: entries,
             timeZone: TimeZone(secondsFromGMT: 0)!)
-        #expect(exported.contains("Вы: Я проверю договор."))
+        #expect(exported.contains("You: Я проверю договор."))
         #expect(exported.contains("Спикер 2: Я пришлю правки."))
 
         let saved = SavedSession(
@@ -132,7 +132,7 @@ struct LocalTranscriptAttributionTests {
             aiResponse: "", digest: "")
         let decoded = try JSONDecoder().decode(
             SavedSession.self, from: JSONEncoder().encode(saved))
-        #expect(decoded.entries.map(\.speaker) == ["Вы", "Спикер 2"])
+        #expect(decoded.entries.map(\.speaker) == ["You", "Спикер 2"])
     }
 }
 
@@ -217,7 +217,7 @@ struct LocalTranscriptCapturePipelineTests {
         #expect(state.transcript.allSatisfy { $0.source == .system })
         let rendered = TranscriptTextRenderer.render(
             entries: state.transcript, provisional: [], appearance: nil)
-        #expect(!rendered.attributed.string.contains("Вы"))
+        #expect(!rendered.attributed.string.contains("You"))
         #expect(rendered.attributed.string.contains("Speaker A"))
     }
 
@@ -247,7 +247,7 @@ struct LocalTranscriptCapturePipelineTests {
         #expect(state.transcript.count == 4)
         #expect(state.transcript.last?.text == "Но я хочу уточнить план отката.")
         #expect(state.transcript.last?.source == .mic)
-        #expect(state.transcript.last?.attributionLabel == "Вы")
+        #expect(state.transcript.last?.attributionLabel == "You")
     }
 
     @Test("restoring a saved Local session applies session provenance to legacy entries")

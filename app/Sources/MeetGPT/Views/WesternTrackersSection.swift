@@ -44,11 +44,11 @@ private struct WesternTrackerRow: View {
                     .lineLimit(1)
                 Spacer()
                 if isConfigured {
-                    Button("Отключить") { disconnect() }
+                    Button("Disconnect") { disconnect() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.western.\(service.rawValue).disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isConfigured ? "Изменить" : "Подключить")) {
+                Button(isExpanded ? "Collapse" : (isConfigured ? "Edit" : "Connect")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -62,7 +62,7 @@ private struct WesternTrackerRow: View {
             // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
             // стороны: доступ отзывают молча, и молчит тогда наш экран.
             if let refusal {
-                Text("Последний отказ: \(refusal.words)")
+                Text("Last refusal: \(refusal.words)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -74,14 +74,14 @@ private struct WesternTrackerRow: View {
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                SecureField("", text: $token, prompt: Text("ключ"))
+                SecureField("", text: $token, prompt: Text("key"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Ключ \(service.title)")
+                    .accessibilityLabel("\(service.title) key")
                     .accessibilityIdentifier("settings.western.\(service.rawValue).token")
 
                 // У Trello кроме токена нужен ключ приложения. Он не секрет, и
@@ -103,7 +103,7 @@ private struct WesternTrackerRow: View {
                 }
 
                 HStack {
-                    Button("Сохранить") { save() }
+                    Button("Save") { save() }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(!canSave)
                         .accessibilityIdentifier("settings.western.\(service.rawValue).save")

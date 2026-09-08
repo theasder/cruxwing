@@ -136,7 +136,7 @@ struct QuickPromptResponseRegressionTests {
             mode: .aggregateAndStream, answer: answer))
         let advice = try advicePrompt()
         #expect(advice.id == "advice")
-        #expect(advice.title == "Дать совет")
+        #expect(advice.title == "Give advice")
 
         // This is the exact state action invoked by the Give Advice PromptChip.
         state.runPrompt(advice)
@@ -190,7 +190,7 @@ struct QuickPromptResponseRegressionTests {
 
         #expect(state.aiStreaming == false)
         #expect(AnswerFailure.looksLikeFailure(state.aiResponse))
-        #expect(state.aiResponse.contains("вернул неверный ответ"))
+        #expect(state.aiResponse.contains("returned an invalid response"))
         #expect(state.hasContent)
         #expect(!state.canExportAssistantAnswer)
         #expect(state.dialogClipboardText.contains(state.aiResponse))
@@ -204,7 +204,7 @@ struct QuickPromptResponseRegressionTests {
         state.runPrompt(try advicePrompt())
         await settle(state)
 
-        #expect(state.aiResponse.contains("Test provider ответил ошибкой (503)"))
+        #expect(state.aiResponse.contains("Test provider answered with an error (503)"))
         #expect(state.hasContent)
         #expect(!state.canExportAssistantAnswer)
         #expect(state.workflowSteps.first { $0.label == "Compose the answer" }?.status == .failed)

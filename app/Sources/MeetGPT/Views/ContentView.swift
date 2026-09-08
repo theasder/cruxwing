@@ -142,7 +142,7 @@ struct ContentView: View {
             async let folders: Void = state.restoreContextFolders()
             _ = await (accounts, apps, folders)
         }
-        // Settings ▸ General ▸ "Показать настройку заново". Settings is its own
+        // Settings ▸ General ▸ "Show the setup again". Settings is its own
         // window, so the request arrives through the shared AppState rather than
         // a notification. The gate is re-run rather than forcing the first step:
         // a user who already granted both permissions should land on the sample
@@ -202,7 +202,7 @@ private struct MandatoryInformationOverlay: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack {
                     Spacer()
-                    Button("Понятно") {
+                    Button("Got it") {
                         state.debugClearMandatoryNotice(id: notice.id)
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -245,7 +245,7 @@ private struct MeetingColumn: View {
         VStack(alignment: .leading, spacing: 0) {
             header
             HStack(spacing: Space.s) {
-                SectionLabel("Транскрипт")
+                SectionLabel("Transcript")
                 Spacer()
                 downloadTranscriptButton
                 livePill
@@ -294,7 +294,7 @@ private struct MeetingColumn: View {
                         Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
                     }
                     .buttonStyle(IconButtonStyle(size: 16))
-                    .help("Скрыть")
+                    .help("Hide")
                 }
             }
             HStack(spacing: Space.s) {
@@ -340,7 +340,7 @@ private struct MeetingColumn: View {
             entries: state.transcript)
         let panel = NSSavePanel()
         panel.title = "Скачать транскрипт"
-        panel.prompt = "Сохранить"
+        panel.prompt = "Save"
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         if let txt = UTType(filenameExtension: "txt") {
@@ -380,7 +380,7 @@ private struct MeetingColumn: View {
                         .foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Button("Отмена") { state.cancelLocalSpeakerLabels() }
+                Button("Cancel") { state.cancelLocalSpeakerLabels() }
                     .buttonStyle(QuietButtonStyle(prominent: false))
                     .accessibilityIdentifier("postcall.localDiarization.cancel")
             }
@@ -395,7 +395,7 @@ private struct MeetingColumn: View {
             VStack(alignment: .leading, spacing: Space.xs) {
                 if state.canEnhanceWithFireflies {
                     Button { state.enhanceTranscriptWithFirefliesNow() } label: {
-                        Label("Дополнить из Fireflies", systemImage: "flame")
+                        Label("Enrich from Fireflies", systemImage: "flame")
                     }
                     .buttonStyle(QuietButtonStyle(prominent: true))
                     .help("Свести локальную расшифровку с транскриптом Fireflies и вычистить моделью")
@@ -419,7 +419,7 @@ private struct MeetingColumn: View {
                 }
                 if state.canLabelSpeakersLocally {
                     HStack(spacing: Space.s) {
-                        Text("Голосов собеседников")
+                        Text("Other voices")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkSecondary)
                         Picker("", selection: $postCallRemoteSpeakerCount) {
@@ -433,7 +433,7 @@ private struct MeetingColumn: View {
                         .onChange(of: postCallRemoteSpeakerCount) {
                             Config.localDiarizationRemoteSpeakerCount = $1
                         }
-                        .accessibilityLabel("Число голосов собеседников")
+                        .accessibilityLabel("Number of other voices")
                         .accessibilityIdentifier(
                             "postcall.localDiarization.speakers")
                     }

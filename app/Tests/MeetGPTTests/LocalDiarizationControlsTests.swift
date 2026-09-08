@@ -102,7 +102,7 @@ struct LocalDiarizationControlsTests {
                 try running.find(viewWithAccessibilityIdentifier:
                     "postcall.localDiarization.cancel")
             }
-            try running.find(button: "Отмена").tap()
+            try running.find(button: "Cancel").tap()
             #expect(!state.localDiarizationRunning)
             #expect(!state.diarizing)
         }

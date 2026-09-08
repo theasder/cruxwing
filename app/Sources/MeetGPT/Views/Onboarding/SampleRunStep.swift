@@ -41,7 +41,7 @@ struct SampleRunStep: View {
             banner
 
             VStack(alignment: .leading, spacing: Space.xxs) {
-                Text("Цель звонка").font(Typo.label)
+                Text("Call goal").font(Typo.label)
                     .foregroundStyle(Theme.inkTertiary)
                 Text(sample.goal).font(Typo.callout).foregroundStyle(Theme.ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -69,11 +69,11 @@ struct SampleRunStep: View {
 
     private var banner: some View {
         HStack(spacing: Space.s) {
-            Text("ПРИМЕР")
+            Text("EXAMPLE")
                 .font(Typo.label).foregroundStyle(Theme.speakerThem)
                 .padding(.horizontal, Space.s).padding(.vertical, 2)
                 .background(Theme.accentTint, in: Capsule())
-            Text("Вымышленный звонок — это не ваши данные, и они не сохраняются.")
+            Text("A fictional call — this is not your data, and none of it is saved.")
                 .font(Typo.caption).foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: Space.s)
@@ -85,7 +85,7 @@ struct SampleRunStep: View {
         .background(Theme.accentTint,
                     in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Пример звонка. Вымышленный и не сохраняется.")
+        .accessibilityLabel("An example call. Fictional, and not saved.")
     }
 
     private var clock: String {
@@ -98,7 +98,7 @@ struct SampleRunStep: View {
 
     private var transcript: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("Транскрипт").font(Typo.label).foregroundStyle(Theme.inkTertiary)
+            Text("Transcript").font(Typo.label).foregroundStyle(Theme.inkTertiary)
             // The rows scroll inside their own box: eleven lines of replay
             // must never decide the height of the whole onboarding window,
             // and a bounded box can never push its border through a row.
@@ -119,7 +119,7 @@ struct SampleRunStep: View {
                             .id(line.atSeconds)
                         }
                         if visibleLines.isEmpty {
-                            Text("Запускаю…").font(Typo.caption).foregroundStyle(Theme.inkTertiary)
+                            Text("Starting…").font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -147,7 +147,7 @@ struct SampleRunStep: View {
 
     private var copilot: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("Ко-пилот").font(Typo.label).foregroundStyle(Theme.inkTertiary)
+            Text("Copilot").font(Typo.label).foregroundStyle(Theme.inkTertiary)
 
             if suggestionVisible {
                 SampleCard(tint: Theme.speakerThem) {
@@ -175,17 +175,17 @@ struct SampleRunStep: View {
 
             if decisionVisible {
                 SampleCard(tint: Theme.accent) {
-                    Text("Кандидат в решения")
+                    Text("Candidate decision")
                         .font(Typo.callout.weight(.medium)).foregroundStyle(Theme.ink)
                     Text(sample.preparedDecision.text)
                         .font(Typo.caption).foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     if state.samplePinnedDecision == nil {
-                        Button("📌 Записать решение") { state.pinSampleDecision() }
+                        Button("📌 Record the decision") { state.pinSampleDecision() }
                             .buttonStyle(PrimaryButtonStyle())
-                            .accessibilityLabel("Записать пример решения")
+                            .accessibilityLabel("Record the example decision")
                     } else {
-                        Label("Записано — только пример. В ваш журнал ничего не попало.",
+                        Label("Recorded — as an example only. Nothing reached your log.",
                               systemImage: "checkmark.circle.fill")
                             .font(Typo.caption).foregroundStyle(Theme.speakerYou)
                             .fixedSize(horizontal: false, vertical: true)
@@ -194,7 +194,7 @@ struct SampleRunStep: View {
             }
 
             if !suggestionVisible {
-                Text("Слепые зоны приходят по ходу звонка — просить о них не нужно.")
+                Text("Blind spots arrive as the call goes — you do not have to ask for them.")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -206,18 +206,18 @@ struct SampleRunStep: View {
     private var footer: some View {
         HStack(spacing: Space.m) {
             if finished {
-                Text("Вот и весь круг. Теперь вы.")
+                Text("That is the whole loop. Now it is your turn.")
                     .font(Typo.callout.weight(.medium)).foregroundStyle(Theme.ink)
             }
             Spacer(minLength: Space.s)
             if finished {
-                Button("Настроить первый звонок", action: finish)
+                Button("Set up your first call", action: finish)
                     .buttonStyle(PrimaryButtonStyle())
-                    .accessibilityLabel("Настроить первый звонок")
+                    .accessibilityLabel("Set up your first call")
             } else {
-                Button("Пропустить", action: finish)
+                Button("Skip", action: finish)
                     .buttonStyle(QuietButtonStyle())
-                    .accessibilityLabel("Пропустить пример")
+                    .accessibilityLabel("Skip the example")
             }
         }
     }

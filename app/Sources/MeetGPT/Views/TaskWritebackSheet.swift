@@ -45,7 +45,7 @@ struct TaskWritebackSheet: View {
                 Label("Отправить задачи в трекер", systemImage: "arrow.up.forward.app")
                     .font(Typo.title).foregroundStyle(Theme.ink)
                 Spacer()
-                Button("Готово") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button("Done") { dismiss() }.buttonStyle(QuietButtonStyle())
             }
 
             if targets.isEmpty {

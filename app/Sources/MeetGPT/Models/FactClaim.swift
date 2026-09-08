@@ -25,11 +25,11 @@ struct FactClaim: Identifiable, Codable, Equatable {
             switch self {
             // Только подпись на экране. Статус хранится по `rawValue` выше,
             // поэтому перевод не трогает уже сохранённые звонки.
-            case .verified:     return "Подтверждено"
-            case .contradicted: return "Опровергнуто"
-            case .needsContext: return "Нужен источник"
-            case .unverifiable: return "Не проверяется"
-            case .inconsistent: return "Не сходится"
+            case .verified:     return "Confirmed"
+            case .contradicted: return "Refuted"
+            case .needsContext: return "Source needed"
+            case .unverifiable: return "Not checkable"
+            case .inconsistent: return "Does not add up"
             }
         }
     }
@@ -43,9 +43,9 @@ struct FactClaim: Identifiable, Codable, Equatable {
         /// в файле звонка лежит `rawValue`.
         var label: String {
             switch self {
-            case .high:   return "Высокая"
-            case .medium: return "Средняя"
-            case .low:    return "Низкая"
+            case .high:   return "High"
+            case .medium: return "Medium"
+            case .low:    return "Low"
             }
         }
     }

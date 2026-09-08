@@ -18,12 +18,12 @@ struct PaneLayout: Equatable, Codable {
     enum Pane: String, CaseIterable {
         case sidebar, transcript, assistant
 
-        /// Menu titles. "Транскрипт" not "Meeting column": named for what the
+        /// Menu titles. "Transcript" not "Meeting column": named for what the
         /// user reads, not for the type that renders it.
         var title: String {
             switch self {
             case .sidebar: return "Боковая панель"
-            case .transcript: return "Транскрипт"
+            case .transcript: return "Transcript"
             case .assistant: return "Ассистент"
             }
         }

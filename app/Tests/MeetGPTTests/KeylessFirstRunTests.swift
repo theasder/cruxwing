@@ -18,7 +18,7 @@ struct KeylessFirstRunTests {
     func missingKeyPointsAtTheScreen() throws {
         let message = try #require(LLMError.missingKey("DeepSeek").errorDescription)
 
-        #expect(message.contains("Ключи провайдеров"),
+        #expect(message.contains("Provider keys"),
                 "не назван экран, где вставляют ключ: \(message)")
         #expect(message.contains("DeepSeek"), "не сказано, какого провайдера ключ")
         // И не советует того, чего в продукте нет.
@@ -32,7 +32,7 @@ struct KeylessFirstRunTests {
         // Иначе «нет ключа» читается как «приложение не работает», хотя запись,
         // расшифровка и поиск по звонкам ключа не требуют вовсе.
         let message = try #require(LLMError.missingKey("OpenAI").errorDescription)
-        #expect(message.contains("без ключа"),
+        #expect(message.contains("without a key"),
                 "не сказано, что часть продукта работает и так: \(message)")
     }
 
@@ -47,7 +47,7 @@ struct KeylessFirstRunTests {
                 .appendingPathComponent("Sources/MeetGPT/Views/ModelSelectionRows.swift"),
             encoding: .utf8)) ?? ""
         #expect(!source.isEmpty, "не прочитался ModelSelectionRows — проверка фиктивна")
-        #expect(source.contains("Ключи провайдеров"),
+        #expect(source.contains("Provider keys"),
                 "пустой список моделей не ведёт к экрану с ключами")
         #expect(!source.contains("войдите, чтобы пользоваться моделями"),
                 "остался совет войти в несуществующий аккаунт")

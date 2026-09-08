@@ -138,8 +138,8 @@ private struct OverlaySuggestionRow: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
-            .accessibilityLabel("Скрыть подсказку")
-            .help("Скрыть")
+            .accessibilityLabel("Hide the tip")
+            .help("Hide")
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 5)

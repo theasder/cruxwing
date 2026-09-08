@@ -52,13 +52,17 @@ cleaning costs two minutes, and there is no reason to pay them on every edit.
 
 ## What gets into the project fastest
 
-1. **Russian strings on screen.** A task with a known number: of the 446 strings a
-   person reads in `app/Sources/MeetGPT/Views` and `Onboarding`, 23 contain no
-   Cyrillic letter at all. That is an upper bound, not a work list: the remainder
-   is names (`GitHub`, `orakul`), bare substitutions (`"\($0)"`) and the quotation
-   marks around a quote — there is nothing to translate there. Not a single
-   English sentence is left on those two surfaces, so a change here is about a new
-   screen, not the old ones.
+1. **Russian strings on screen.** A task with a known number, and the direction
+   reversed on 2026-09-09: the interface is moving to English. Of the 444 strings
+   a person reads in `app/Sources/MeetGPT/Views` and `Onboarding`, 236 still carry
+   a Cyrillic letter. That is a ceiling, not a work list: it may only fall, and
+   `test/russkie-stroki.test.mjs` holds it to equality, so a new Russian string
+   has to be explained exactly as much as a missed one. Vendor names stay as their
+   owners spell them — «Пачка», «Яндекс Трекер» — and so does the language engine
+   underneath (`RecallIndex`'s stopwords, `RussianLexicon`, the injection phrases
+   the guards match on): it reads Russian speech, and translating it would stop
+   the product working. Pick a screen, translate it, and lower the number in
+   §6.4 in the same commit.
 
    The number is held by `test/russkie-stroki.test.mjs`, and held in both
    directions: if it grows the suite is red, if it shrinks it is red too, because

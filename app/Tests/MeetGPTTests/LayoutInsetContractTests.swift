@@ -144,7 +144,7 @@ struct LayoutInsetContractTests {
         // копия разъедется с кнопкой, и проверка станет фиктивной.
         let labels = text.components(separatedBy: #"Label(""#).dropFirst()
             .compactMap { chunk in chunk.firstIndex(of: "\"").map { String(chunk[..<$0]) } }
-        guard let addTitle = labels.first(where: { $0.hasPrefix("Добавить") }),
+        guard let addTitle = labels.first(where: { $0.hasPrefix("Add") }),
               let setsTitle = labels.first(where: { $0 == "Наборы" }) else {
             Issue.record("подписи ряда не нашлись — проверка была бы фиктивной")
             return

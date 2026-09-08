@@ -37,7 +37,7 @@ struct FirefliesImportPicker: View {
                     .foregroundStyle(Theme.inkTertiary)
             }
             Spacer()
-            Button("Готово") { isPresented = false }
+            Button("Done") { isPresented = false }
                 .keyboardShortcut(.cancelAction)
         }
     }
@@ -59,7 +59,7 @@ struct FirefliesImportPicker: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Ещё раз") { state.loadFirefliesMeetings() }
+            Button("Again") { state.loadFirefliesMeetings() }
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }

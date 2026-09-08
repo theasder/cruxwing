@@ -202,7 +202,7 @@ test('direct BYOK makes no automatic provider requests until the user opts in', 
   assert.match(settings,
     /settings\.ai\.automatic-provider-requests[\s\S]{0,900}disabled\(!state\.automaticProviderRequestsEnabled\)/,
     'Settings no longer exposes and enforces the master automatic-request switch');
-  assert.match(settings, /Каждый проход — отдельный запрос/,
+  assert.match(settings, /Every pass is a separate request/,
     'Settings stopped disclosing that automatic passes are separate provider requests');
 
   const setter = appState.slice(

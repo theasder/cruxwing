@@ -22,7 +22,7 @@ import OrakulCore
     @Test("перечисление с границей говорит, что видело не всё")
     func aBoundedListSpeaks() throws {
         let text = try #require(MCPConnectionManager.emptyButBounded(.latest(scanned: 500, total: 40_000)))
-        #expect(text.contains("искали не везде"))
+        #expect(text.contains("not exhaustive"))
         #expect(text.contains("500"))
         #expect(text.contains("40000") || text.contains("40 000"))
     }
@@ -50,8 +50,8 @@ import OrakulCore
         // нет никакого сервиса.
         let text = try #require(MCPConnectionManager.emptyButBounded(
             .latest(scanned: 2000, total: 8000), subject: .folder))
-        #expect(text.contains("файлы"))
-        #expect(text.contains("этом компьютере"))
+        #expect(text.contains("files"))
+        #expect(text.contains("this computer"))
     }
 
     @Test("все три источника с границей зовут это правило")

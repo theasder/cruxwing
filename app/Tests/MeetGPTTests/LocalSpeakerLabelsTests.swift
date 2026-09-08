@@ -92,8 +92,8 @@ struct LocalSpeakerLabelsTests {
             ],
             sessionStart: start,
             firstRemoteSpeakerNumber: 2,
-            localSpeakerLabel: "Вы")
-        #expect(out.map(\.speaker) == ["Вы", "Спикер 2", "Спикер 3"])
+            localSpeakerLabel: "You")
+        #expect(out.map(\.speaker) == ["You", "Спикер 2", "Спикер 3"])
     }
 
     @Test("separate turns from one voice have their overlap summed")
@@ -147,7 +147,7 @@ struct LocalSpeakerLabelsTests {
             to: previous,
             sessionStart: start,
             firstRemoteSpeakerNumber: 2,
-            localSpeakerLabel: "Вы")
+            localSpeakerLabel: "You")
         #expect(out.map(\.speaker) == ["Спикер 2", nil, "Майя"])
     }
 

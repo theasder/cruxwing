@@ -32,7 +32,7 @@ test('человек видит отказ там, где решает судь�
     const code = stripComments(readFileSync(path, 'utf8'));
     assert.match(code, /ConnectorHealth\.shared\.refusal\(for:/,
       `${path} не читает запись об отказе`);
-    assert.match(code, /Последний отказ: \\\(refusal\.words\)/,
+    assert.match(code, /Last refusal: \\\(refusal\.words\)/,
       `${path} не показывает слова сервиса — пересказ вместо слов запрещён правилом §2.2`);
     assert.match(code, /accessibilityIdentifier\("settings\.[a-z]+\.\\\(service\.rawValue\)\.refusal"\)/,
       `${path}: у строки отказа нет опознавателя, её нельзя проверить прогоном`);

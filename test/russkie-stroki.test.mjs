@@ -53,23 +53,22 @@ function literals() {
 /// где написано число, — это второе место, где оно разойдётся с правдой.
 function stated() {
   const plan = readFileSync(PLAN, 'utf8');
-  const line = plan.match(/of (\d+) string literals in `Views\/` and `Onboarding\/`, (\d+)\s*\ncarry no Cyrillic letter/);
+  const line = plan.match(/of (\d+) string literals in `Views\/` and `Onboarding\/`, (\d+)\s*\nstill carry a Cyrillic letter/);
   assert.ok(line, '§6.4 больше не называет числа — проверке нечего держать');
   return { total: Number(line[1]), without: Number(line[2]) };
 }
 
-test('английских строк на экранах не становится больше', () => {
-  const without = literals().filter((s) => !CYRILLIC.test(s));
+test('the Russian left on these screens only ever shrinks', () => {
+  const without = literals().filter((s) => CYRILLIC.test(s));
   const { without: promised } = stated();
 
   assert.equal(without.length, promised,
     without.length > promised
-      ? `строк без кириллицы стало ${without.length} вместо ${promised}. ` +
-        `Новые: ${without.join(', ')}. Либо переведите, либо объясните в §6.4, ` +
-        'почему эта строка не переводится.'
-      : `строк без кириллицы осталось ${without.length}, а §6.4 обещает ${promised}. ` +
-        'Опустите число в плане: потолок, который никто не опускает, ' +
-        'перестаёт что-либо значить.');
+      ? `strings still carrying Cyrillic: ${without.length} instead of ${promised}. ` +
+        `New: ${without.slice(0, 5).join(', ')}. Either translate them, or explain in ` +
+        '§6.4 why they stay.'
+      : `${without.length} strings still carry Cyrillic, and §6.4 promises ${promised}. ` +
+        'Lower the number in the plan: a ceiling nobody lowers stops meaning anything.');
 });
 
 test('число строк на этих экранах — настоящее', () => {

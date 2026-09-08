@@ -838,31 +838,34 @@ talks are the first approximation — with the caveat above that a talk is not a
 call. Calls need participant consent, and the format makes recording that
 consent a condition of entry rather than a promise.
 
-### 6.4 Russian strings to the end
+### 6.4 The interface moves to English
 
-Measured through 2026-08-26: of 446 string literals in `Views/` and `Onboarding/`, 23
-carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
-not a work list**: what is left is names (`GitHub`, `orakul`), bare
-interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
-quote wrappers (`"“\(evidence)”"`) and an example placeholder
-(`https://mcp.example.com/mcp`). No English sentence remains on those two
-surfaces.
+The direction reversed on 2026-09-09: the product is being read by people who do
+not read Russian, so the interface moves to English and the counter moves with
+it. Measured that day: of 444 string literals in `Views/` and `Onboarding/`, 236
+still carry a Cyrillic letter. That is a **ceiling, not a work list**: it may
+only fall, and `test/russkie-stroki.test.mjs` holds it to equality so that a new
+Russian string has to be explained exactly as much as a missed one.
 
-The denominator returned from 445 to 446 when the explicit master switch for
-automatic AI requests was added. The 23-string non-Cyrillic ceiling did not
-change because the new control is Russian.
+The engine underneath does not move. `RecallIndex`'s stopwords, `RussianLexicon`,
+the transcript deduplicator's filler words, the prompt-injection phrases the
+guards match on and the ё/е normalisation pairs are Russian because the speech
+they read is Russian; translating them would stop the product working. Vendor
+names stay as their owners spell them — «Пачка», «Яндекс Трекер», «Битрикс24» —
+and a string whose only Cyrillic is a name like that counts as finished.
 
-The count went 22 → 23 on 2026-08-18, and the guard caught it: the Plane
-settings row labels its fields `"\(field.title) — \(service.title)"`, which
-reads as Russian on screen and carries no Cyrillic letter in source. The bound
-counts a class, not a defect — and a growth that needs an explanation is exactly
-what it is for.
+Four more counters track the same migration from different angles, each pinned
+in its own guard: phrases on screen (`test/frazy-v-vidah.test.mjs`), error
+messages (`test/oshibki-po-russki.test.mjs`), the properties a view prints
+(`test/vidimye-stroki-vne-vidov.test.mjs`) and the whole on-screen set
+(`RussianCopyTests.remainingRussianOnScreen`). Translate a screen, lower every
+number it moves in the same commit.
 
-Eighteen strings were translated across nine views — the ones a person actually
-reads: `Refining…`, `Detach`, `Settings (⌘,)`, `Remove all N meetings`,
-`N item(s) will be created`, `N fact(s) to review`, `N of N left`, and the
-accessibility labels beside them, which are the half that usually stays English
-because nobody sees it.
+What the previous direction achieved is kept here because it explains the shape
+of the code: the count of non-Cyrillic strings had been driven from 44 to 23,
+and the exercise is what separated the two audiences a label serves — the
+recording type keeps `displayLabel` for the screen and `label` for the model
+prompt, which is why translating the screen no longer breaks the prompt.
 
 Command to reproduce — useful at a terminal, and **not** what guards this:
 

@@ -145,14 +145,25 @@ struct RussianCopyTests {
         return result
     }
 
-    private func russianLiterals() -> [(file: String, text: String)] {
-        literals().filter {
-            $0.text.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil
+    /// Names their owners spell in Cyrillic. «Пачка» in a settings line is the
+    /// messenger's name, not copy somebody forgot to translate, and a string
+    /// whose only Cyrillic is a name like that is finished.
+    static let keptRussianNames = ["Пачка", "Яндекс", "Битрикс", "Трекер", "Вики"]
+
+    static func hasOwnRussian(_ text: String) -> Bool {
+        var rest = text
+        for name in keptRussianNames {
+            rest = rest.replacingOccurrences(of: name, with: "")
         }
+        return rest.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil
     }
 
-    @Test("в исключённых файлах видимые поля всё равно по-русски")
-    func excludedFilesStillHaveRussianVisibleFields() {
+    private func russianLiterals() -> [(file: String, text: String)] {
+        literals().filter { Self.hasOwnRussian($0.text) }
+    }
+
+    @Test("the visible fields in the excluded files are translated too")
+    func excludedFilesHaveTranslatedVisibleFields() {
         // Четыре файла выше исключены целиком, потому что в них лежат тела
         // промптов — модельный текст, английский намеренно. Но рядом с телом
         // лежат подписи для человека, и они выпали из счёта заодно: все
@@ -182,8 +193,8 @@ struct RussianCopyTests {
                 .filter { $0.count > 3 && !$0.contains("\\(") }
             #expect(!visible.isEmpty, "поле \(field) не нашлось — проверка была бы фиктивной")
             for value in visible {
-                #expect(value.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil,
-                        "\(field) по-английски: «\(value)»")
+                #expect(!Self.hasOwnRussian(value),
+                        "\(field) is still Russian: «\(value)»")
             }
         }
     }
@@ -298,26 +309,11 @@ struct RussianCopyTests {
     ///
     /// Поэтому число проверяется на равенство: и рост, и «улучшение»
     /// переводом требуют объяснения.
-    static let deliberateEnglish: Set<String> = [
-        "Google Workspace",
-        "orakul, RICE, ARR, Kubernetes…",
-    ]
+    /// On-screen literals that still carry Russian of their own.
+    ///
+    /// A migration counter, not a target: it may only fall.
+    static let remainingRussianOnScreen = 620
 
-    static let remainingEnglishPhrases = deliberateEnglish.count
-
-    /// Число прописью в комментарии выше — против размера набора.
-    @Test("список намеренно английских фраз совпадает со своим описанием")
-    func deliberateListMatchesItsDescription() throws {
-        let source = try String(contentsOfFile: #filePath, encoding: .utf8)
-        let words = ["одна": 1, "две": 2, "три": 3, "четыре": 4, "пять": 5,
-                     "шесть": 6, "семь": 7, "восемь": 8, "девять": 9, "десять": 10]
-        let line = try #require(
-            source.split(separator: "\n").first { $0.contains("/// Их ") },
-            "строка «Их …» пропала — число больше нечем сверить")
-        let stated = words.first { line.contains("Их \($0.key),") }?.value
-        #expect(stated == Self.deliberateEnglish.count,
-                "в описании «\(line.trimmingCharacters(in: .whitespaces))», а в наборе \(Self.deliberateEnglish.count)")
-    }
 
     /// Шаблон DateFormatter, а не текст для человека.
     ///
@@ -353,8 +349,8 @@ struct RussianCopyTests {
     /// the last five minutes», «Synthetic connected-app fixture ready for
     /// review». Первые три к тому же прятались от счётчика по другой причине:
     /// он пропускает литералы с подстановкой, а в них она была.
-    @Test("состояние, которое показывают на экране, задаётся по-русски")
-    func visibleStateIsRussian() throws {
+    @Test("the state shown on screen is set in the product's language")
+    func visibleStateIsTranslated() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/MeetGPT")
@@ -372,19 +368,12 @@ struct RussianCopyTests {
                 guard let end = rest.firstIndex(of: "\"") else { continue }
                 let text = String(rest[..<end])
                 checked += 1
-                guard text.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) == nil
-                else { continue }
-                let core = text.replacingOccurrences(
-                    of: "\\\\\\(.*?\\)", with: "", options: .regularExpression)
-                let words = core.components(separatedBy: CharacterSet.letters.inverted)
-                    .filter { $0.count > 2 }
-                guard words.count >= 2, core.rangeOfCharacter(from: .uppercaseLetters) != nil
-                else { continue }
+                guard Self.hasOwnRussian(text) else { continue }
                 english.append(text)
             }
         }
         #expect(checked > 10, "нашлось всего \(checked) присваиваний — проверка смотрит не туда")
-        #expect(english.isEmpty, "по-английски на экране: \(english.joined(separator: " | "))")
+        #expect(english.isEmpty, "still Russian on screen: \(english.joined(separator: " | "))")
     }
 
     /// Уведомления — самая заметная поверхность приложения: они появляются
@@ -540,8 +529,8 @@ struct RussianCopyTests {
         #expect(english.isEmpty, "\(english.joined(separator: " | "))")
     }
 
-    @Test("английских фраз на экране не становится больше")
-    func englishProseOnlyShrinks() {
+    @Test("the Russian left on screen only ever shrinks")
+    func russianOnScreenOnlyShrinks() {
         // Берутся все литералы без кириллицы, похожие на речь: есть пробел и
         // хотя бы два латинских слова длиннее двух букв. Идентификаторы,
         // имена SF Symbols и ключи пробелов не содержат и отсеиваются сами;
@@ -588,8 +577,17 @@ struct RussianCopyTests {
         // мутацией. Раз причины перечислены поимённо, пусть список и будет
         // тем, что проверяется: тогда любое движение — добавили, убрали,
         // подменили — придётся объяснить.
-        #expect(phrases == Self.deliberateEnglish,
-                "список английских фраз изменился: \(phrases.symmetricDifference(Self.deliberateEnglish).sorted().joined(separator: " | "))")
+        // The direction reversed: the product is moving to English, so what is
+        // worth pinning is no longer the handful of English exceptions but how
+        // much Russian is left on screen. Equality, not `<=`, for the reason
+        // the old list was pinned by name rather than counted: a check that
+        // cannot fail when the number moves the wrong way is not a check, and
+        // a ceiling nobody ever lowers stops meaning anything. Translate a
+        // screen, lower the number in the same commit.
+        let remaining = onScreenLiterals().filter { Self.hasOwnRussian($0.text) }
+        let sample = remaining.map(\.text).sorted().prefix(6).joined(separator: " | ")
+        #expect(remaining.count == Self.remainingRussianOnScreen,
+                "on-screen strings still in Russian: \(remaining.count), pinned at \(Self.remainingRussianOnScreen). \(sample)")
     }
 
     @Test("интерфейс говорит по-русски, а не наполовину")

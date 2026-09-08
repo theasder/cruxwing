@@ -51,15 +51,16 @@ function englishPhrases() {
         for (const match of line.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)) {
           const core = match[1].replace(/\\\(.*?\)/g, '').trim();
           if (core.length < 12 || !core.includes(' ')) return;
-          if (CYRILLIC.test(core) || NOT_FOR_A_PERSON.test(core)) return;
+          if (NOT_FOR_A_PERSON.test(core)) return;
           if (LOOKS_LIKE_A_PATH.test(core)) return;
-          // Три слова и больше — это фраза, а не подпись из двух слов и
-          // не название модели.
-          if ((core.match(/[A-Za-z]{2,}/g) ?? []).length < 3) return;
-          // Перечисление имён собственных — пример терминов для словаря
-          // («orakul, RICE, ARR, Kubernetes…»). Переводить названия значит
-          // выдумывать их за тех, кто их придумал.
-          if (/^[A-Za-z][A-Za-z0-9]*(, [A-Za-z][A-Za-z0-9]*)+…?$/.test(core)) return;
+          // The direction reversed: the product is moving to English, so what
+          // is counted is the Russian still on screen. Vendor names are how
+          // their owners spell them, and a phrase whose only Cyrillic is a
+          // name like that is finished.
+          const own = core.replace(/Пачка|Яндекс|Битрикс|Трекер|Вики/g, '');
+          if (!CYRILLIC.test(own)) return;
+          // Three words or more is a phrase, not a two-word caption.
+          if (own.split(/\s+/).filter((w) => w.length > 1).length < 3) return;
           found.push(`${file}:${index + 1}  ${core.slice(0, 70)}`);
         }
       });
@@ -68,18 +69,24 @@ function englishPhrases() {
   return found;
 }
 
-test('фраз по-английски на экранах не осталось', () => {
-  assert.deepEqual(englishPhrases(), [],
-    'английская фраза на русском экране — включая подписи для VoiceOver, ' +
-    'которые обычно и остаются английскими, потому что их никто не видит');
+// A ceiling, not a promise of zero: the migration to English runs screen by
+// screen. Equality on purpose — a ceiling nobody lowers stops meaning anything,
+// and a new Russian phrase has to be explained just as much as a missed one.
+const RUSSIAN_PHRASES_LEFT = 252;
+
+test('the Russian phrases left on screen only ever shrink', () => {
+  const left = englishPhrases();
+  assert.equal(left.length, RUSSIAN_PHRASES_LEFT,
+    `Russian phrases on screen: ${left.length}, pinned at ${RUSSIAN_PHRASES_LEFT}. `
+    + left.slice(0, 5).join(' | '));
 });
 
-test('счёт действительно что-то ловит', () => {
-  // Проверка, которая не может ничего найти, зелена всегда.
-  const line = '    Text("this prompt is estimated at about credits")';
-  const core = 'this prompt is estimated at about credits';
-  assert.ok(!CYRILLIC.test(core) && !NOT_FOR_A_PERSON.test(core));
-  assert.ok((core.match(/[A-Za-z]{2,}/g) ?? []).length >= 3);
+test('the count actually catches something', () => {
+  // A check that cannot find anything is green forever.
+  const line = '    Text("этот запрос стоит примерно столько кредитов")';
+  const core = 'этот запрос стоит примерно столько кредитов';
+  assert.ok(CYRILLIC.test(core) && !NOT_FOR_A_PERSON.test(core));
+  assert.ok(core.split(/\s+/).filter((w) => w.length > 1).length >= 3);
   assert.ok(line.includes(core));
 });
 

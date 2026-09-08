@@ -293,7 +293,7 @@ private struct AnswerActionsRow: View {
                             .font(.system(size: 9, weight: .bold))
                     }
                     .buttonStyle(IconButtonStyle(size: 18))
-                    .accessibilityLabel("Скрыть")
+                    .accessibilityLabel("Hide")
                 }
                 .padding(Space.s)
                 .background(Theme.accentTint, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
@@ -803,7 +803,7 @@ private struct AnswerFeedbackRow: View {
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 11))
                         .lineLimit(1...4)
-                    Button("Сохранить") { saveNote() }
+                    Button("Save") { saveNote() }
                         .font(.system(size: 10))
                 }
             }

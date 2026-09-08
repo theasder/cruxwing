@@ -36,12 +36,12 @@ enum RecordingContextKind: String, CaseIterable, Codable, Identifiable, Sendable
     /// экран в тесте и прочитать, что на нём написано.
     var displayLabel: String {
         switch self {
-        case .meeting: "Звонок"
-        case .tutorial: "Разбор"
-        case .lecture: "Лекция"
-        case .interview: "Интервью"
-        case .podcast: "Подкаст"
-        case .presentation: "Презентация или демо"
+        case .meeting: "Call"
+        case .tutorial: "Review"
+        case .lecture: "Lecture"
+        case .interview: "Interview"
+        case .podcast: "Podcast"
+        case .presentation: "Presentation or demo"
         }
     }
 
@@ -130,7 +130,7 @@ struct RecordingContextSelection: Codable, Equatable, Sendable {
     /// промпт.
     func resolvedDisplayLabel(detected: RecordingContextKind) -> String {
         if let kind = resolvedKind(detected: detected) { return kind.displayLabel }
-        return Self.sanitizeCustomLabel(customLabel) ?? "Другая запись"
+        return Self.sanitizeCustomLabel(customLabel) ?? "Other recording"
     }
 
     func resolvedSymbol(detected: RecordingContextKind) -> String {

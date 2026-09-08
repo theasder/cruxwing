@@ -44,11 +44,11 @@ private struct SelfHostedTrackerRow: View {
                     .lineLimit(1)
                 Spacer()
                 if isConfigured {
-                    Button("Отключить") { disconnect() }
+                    Button("Disconnect") { disconnect() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.selfhosted.\(service.rawValue).disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isConfigured ? "Изменить" : "Подключить")) {
+                Button(isExpanded ? "Collapse" : (isConfigured ? "Edit" : "Connect")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -63,7 +63,7 @@ private struct SelfHostedTrackerRow: View {
             // было негде, и отозванный токен выглядел как продукт, который стал
             // хуже отвечать.
             if let refusal {
-                Text("Последний отказ: \(refusal.words)")
+                Text("Last refusal: \(refusal.words)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -75,14 +75,14 @@ private struct SelfHostedTrackerRow: View {
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                SecureField("", text: $token, prompt: Text("токен"))
+                SecureField("", text: $token, prompt: Text("token"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Токен \(service.title)")
+                    .accessibilityLabel("\(service.title) token")
                     .accessibilityIdentifier("settings.selfhosted.\(service.rawValue).token")
 
                 TextField("", text: $host, prompt: Text(service.hostPrompt))
@@ -92,7 +92,7 @@ private struct SelfHostedTrackerRow: View {
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Адрес сервера — \(service.title)")
+                    .accessibilityLabel("Server address — \(service.title)")
                     .accessibilityIdentifier("settings.selfhosted.\(service.rawValue).host")
 
                 // Поля из манифеста: у Plane пространство и проект стоят
@@ -114,7 +114,7 @@ private struct SelfHostedTrackerRow: View {
                 }
 
                 HStack {
-                    Button("Сохранить") { save() }
+                    Button("Save") { save() }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(!canSave)
                         .accessibilityIdentifier("settings.selfhosted.\(service.rawValue).save")

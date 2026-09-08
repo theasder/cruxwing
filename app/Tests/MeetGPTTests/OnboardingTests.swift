@@ -36,15 +36,15 @@ struct OnboardingTests {
         let view = OnboardingView(startingAt: .capture)
             .environmentObject(AppState(llm: MockLLMGateway(response: "")))
         let sut = try view.inspect()
-        #expect(throws: Never.self) { try sut.find(text: "Микрофон") }
-        #expect(throws: Never.self) { try sut.find(text: "Запись экрана") }
+        #expect(throws: Never.self) { try sut.find(text: "Microphone") }
+        #expect(throws: Never.self) { try sut.find(text: "Screen recording") }
         // The check is the point of this screen: a granted permission and a
         // working capture are different things.
-        #expect(throws: Never.self) { try sut.find(text: "Проверка захвата") }
-        #expect(throws: Never.self) { try sut.find(button: "Продолжить") }
+        #expect(throws: Never.self) { try sut.find(text: "Capture check") }
+        #expect(throws: Never.self) { try sut.find(button: "Continue") }
         // Sign-in has MOVED to the sidebar's setup card, so the account
         // decision lands after the user has seen what the co-pilot produces.
-        #expect(throws: (any Error).self) { try sut.find(text: "Войти") }
+        #expect(throws: (any Error).self) { try sut.find(text: "Sign in") }
     }
 
     @Test("the relaunch fix is offered as a button, not described in prose")
@@ -73,7 +73,7 @@ struct OnboardingTests {
         let sut = try OnboardingView(startingAt: nil)
             .environmentObject(AppState(llm: MockLLMGateway(response: "")))
             .inspect()
-        #expect(throws: Never.self) { try sut.find(text: "Проверка захвата") }
+        #expect(throws: Never.self) { try sut.find(text: "Capture check") }
     }
 
     @Test("the sample step names itself fiction and offers a way out")
@@ -82,9 +82,9 @@ struct OnboardingTests {
             .environmentObject(AppState(llm: MockLLMGateway(response: "")))
         let sut = try view.inspect()
         #expect(throws: Never.self) {
-            try sut.find(textWhere: { s, _ in s.contains("Вымышленный звонок") })
+            try sut.find(textWhere: { s, _ in s.contains("A fictional call") })
         }
-        #expect(throws: Never.self) { try sut.find(button: "Пропустить") }
+        #expect(throws: Never.self) { try sut.find(button: "Skip") }
     }
 
     @Test("a tip retired elsewhere disappears without a relaunch")
@@ -122,7 +122,7 @@ struct OnboardingTests {
                 .environmentObject(state)
                 .environmentObject(MCPConnectionManager(tokenStore: keychain))
         }
-        let label = "Скрыть: Вставить ключ провайдера — иначе не будет ответов"
+        let label = "Hide: Paste a provider key — without one there are no answers"
 
         // Ключа нет — строка на месте, и крестик принадлежит ей, а не карточке:
         // шаг необязательный, но уносить с ним подключения нельзя.
@@ -182,8 +182,8 @@ struct OnboardingTests {
         let sut = try OnboardingView(startingAt: .capture)
             .environmentObject(state).inspect()
         // Mic granted → its accessibility label reflects that.
-        #expect(throws: Never.self) { try sut.find(viewWithAccessibilityLabel: "Разрешено: Микрофон") }
+        #expect(throws: Never.self) { try sut.find(viewWithAccessibilityLabel: "Granted: Microphone") }
         // Screen not granted → an Enable affordance is present.
-        #expect(throws: Never.self) { try sut.find(viewWithAccessibilityLabel: "Разрешить: Запись экрана") }
+        #expect(throws: Never.self) { try sut.find(viewWithAccessibilityLabel: "Allow: Screen recording") }
     }
 }

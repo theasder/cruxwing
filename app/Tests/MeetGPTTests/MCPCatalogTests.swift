@@ -138,19 +138,19 @@ struct MCPCatalogTests {
         // раздаваемой сборке нет.
         let id = MCPCatalog.preRegisteredIDs.first ?? "asana"
         #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "", clientSecret: "секрет") == nil)
-        #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "ключ", clientSecret: "") == nil)
+        #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "key", clientSecret: "") == nil)
         #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "", clientSecret: "") == nil)
 
         // С обеими половинами сервис появляется — иначе «ничего не показываем»
         // достигалось бы тем, что не работает ничего.
-        let ready = MCPCatalog.configuredDescriptor(id: id, clientID: "ключ", clientSecret: "секрет")
+        let ready = MCPCatalog.configuredDescriptor(id: id, clientID: "key", clientSecret: "секрет")
         #expect(ready != nil)
-        #expect(ready?.fixedClientID == "ключ")
+        #expect(ready?.fixedClientID == "key")
 
         // Незнакомый идентификатор не проходит даже с ключами: список
         // предварительно зарегистрированных — тоже часть гейта.
         #expect(MCPCatalog.configuredDescriptor(id: "выдуманный",
-                                                clientID: "ключ", clientSecret: "секрет") == nil)
+                                                clientID: "key", clientSecret: "секрет") == nil)
     }
 
     @Test("каждый предварительно зарегистрированный сервис проходит через гейт")

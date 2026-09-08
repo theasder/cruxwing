@@ -51,13 +51,13 @@ struct ExportPromiseTests {
     @Test("подсказка кнопки называет разговор, а не один ответ")
     func tooltipNamesTheDialog() {
         let studio = code("Views/AIStudioView.swift")
-        guard let line = studio.split(separator: "\n").first(where: { $0.contains(".help(\"Скопировать") }) else {
+        guard let line = studio.split(separator: "\n").first(where: { $0.contains(".help(\"Copy") }) else {
             Issue.record("подсказка выгрузки исчезла — проверять нечего")
             return
         }
-        #expect(line.contains("весь разговор"),
+        #expect(line.contains("the whole conversation"),
                 "подсказка обещает меньше, чем уезжает: «\(line.trimmingCharacters(in: .whitespaces))»")
-        #expect(line.contains("слепым") || line.contains("слепыми"))
+        #expect(line.contains("blind spots"))
     }
 
     // Обратная сторона: если однажды решат отправлять только последний ответ,
@@ -67,7 +67,7 @@ struct ExportPromiseTests {
         let state = code("AppState.swift")
         let sendsDialog = state.contains("earlierExchanges: doc.earlierExchanges")
         let studio = code("Views/AIStudioView.swift")
-        let promisesDialog = studio.contains("весь разговор")
+        let promisesDialog = studio.contains("the whole conversation")
         #expect(sendsDialog == promisesDialog,
                 sendsDialog
                 ? "разговор уезжает, а подсказка обещает меньше"

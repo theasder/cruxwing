@@ -41,7 +41,7 @@ private final class ControllableWriteKeychain: KeychainStore, @unchecked Sendabl
 /// ввода в настройках приложение не может ответить ни на один вопрос. Поэтому
 /// проверяется не «строка сохранилась», а то, что делает продукт рабочим —
 /// отсутствие резервного источника и мёртвых записей.
-@Suite("Ключи провайдеров")
+@Suite("Provider keys")
 struct ProviderKeyStoreTests {
 
     @Test("ключ переживает перезапуск и лежит в Связке ключей")

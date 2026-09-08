@@ -11,7 +11,7 @@ struct SpeakerSegment: Equatable, Sendable {
 enum SpeakerAssignment {
 
     static let defaultLineDuration: TimeInterval = 4
-    static let localSpeakerLabel = "Вы"
+    static let localSpeakerLabel = "You"
     static let remoteSpeakerLabelPrefix = "Спикер "
 
     private static func normalizedID(_ id: String) -> String? {

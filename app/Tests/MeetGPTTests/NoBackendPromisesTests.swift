@@ -83,7 +83,7 @@ struct NoBackendPromisesTests {
             .inspect()
 
         #expect(throws: (any Error).self, "раздел «Аккаунт» показан, а входить некуда") {
-            try rendered.find(text: "Вход нужен, чтобы пользоваться моделями без своих ключей и синхронизировать журнал решений.")
+            try rendered.find(text: "Signing in is what lets you use models without your own keys and sync the decision log.")
         }
         #expect(throws: (any Error).self, "предлагается удалить несуществующий аккаунт") {
             try rendered.find(viewWithAccessibilityIdentifier: "settings.account.delete")

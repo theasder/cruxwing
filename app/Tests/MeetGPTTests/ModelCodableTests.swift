@@ -155,13 +155,13 @@ struct FactClaimVerdictTests {
 
     @Test("Status label maps each verdict")
     func statusLabels() {
-        #expect(FactClaim.Status.verified.label == "Подтверждено")
-        #expect(FactClaim.Status.contradicted.label == "Опровергнуто")
-        #expect(FactClaim.Status.needsContext.label == "Нужен источник")
-        #expect(FactClaim.Status.unverifiable.label == "Не проверяется")
+        #expect(FactClaim.Status.verified.label == "Confirmed")
+        #expect(FactClaim.Status.contradicted.label == "Refuted")
+        #expect(FactClaim.Status.needsContext.label == "Source needed")
+        #expect(FactClaim.Status.unverifiable.label == "Not checkable")
         // Расхождение внутри самого звонка: звонок спорит сам с собой — это не
         // то же, что приложенный контекст, который спорит со звонком.
-        #expect(FactClaim.Status.inconsistent.label == "Не сходится")
+        #expect(FactClaim.Status.inconsistent.label == "Does not add up")
 
         // Хранение не должно поехать вслед за подписью: сохранённый звонок
         // читается по `rawValue`, и переводить его нельзя.
@@ -172,9 +172,9 @@ struct FactClaimVerdictTests {
     func confidenceLabels() {
         // Подпись была `rawValue.capitalized` — то есть «High» на экране.
         // Отсюда и правило: подпись отдельно, `rawValue` отдельно.
-        #expect(FactClaim.Confidence.high.label == "Высокая")
-        #expect(FactClaim.Confidence.medium.label == "Средняя")
-        #expect(FactClaim.Confidence.low.label == "Низкая")
+        #expect(FactClaim.Confidence.high.label == "High")
+        #expect(FactClaim.Confidence.medium.label == "Medium")
+        #expect(FactClaim.Confidence.low.label == "Low")
         #expect(FactClaim.Confidence.high.rawValue == "high")
     }
 }

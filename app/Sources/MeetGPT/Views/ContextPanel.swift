@@ -183,7 +183,7 @@ struct ContextSection: View {
                 .disabled(state.calendarImporting)
             }
         } label: {
-            Label("Добавить", systemImage: "plus")
+            Label("Add", systemImage: "plus")
         }
         .menuStyle(.button)
         .buttonStyle(QuietButtonStyle(prominent: true))
@@ -258,8 +258,8 @@ private struct SourcePromptSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }.buttonStyle(QuietButtonStyle())
-                Button("Добавить") {
+                Button("Cancel") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button("Add") {
                     let url = link
                     dismiss()
                     Task {
@@ -320,8 +320,8 @@ private struct SaveSetSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }.buttonStyle(QuietButtonStyle())
-                Button("Сохранить") { state.saveContextSet(name: name); dismiss() }
+                Button("Cancel") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button("Save") { state.saveContextSet(name: name); dismiss() }
                     .buttonStyle(PrimaryButtonStyle())
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -356,7 +356,7 @@ private struct FileChip: View {
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.4)
             .accessibilityLabel("Убрать \(file.name)")
-            .help("Убрать")
+            .help("Remove")
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)

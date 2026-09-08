@@ -486,8 +486,8 @@ struct ProviderKeysRefusalTests {
         // Иначе очистка поля, вставленная ПЕРЕД сохранением, оказывается вне
         // окна — мутация именно так и прошла мимо первой версии проверки.
         let code = try Self.code
-        let action = try #require(code.range(of: "Button(\"Сохранить\")"),
-                                  "кнопки «Сохранить» больше нет")
+        let action = try #require(code.range(of: "Button(\"Save\")"),
+                                  "the Save button is gone")
         let body = String(code[action.lowerBound...].prefix(700))
         let save = try #require(body.range(of: "store.setCredentials"))
         let clear = try #require(body.range(of: "key = \"\""))
@@ -502,9 +502,9 @@ struct ProviderKeysRefusalTests {
     func refusalHasAMessage() throws {
         let code = try Self.code
         #expect(code.contains("saveFailed = true"), "экран не отмечает отказ записи")
-        #expect(code.contains("Не удалось изменить ключ в Связке ключей"),
+        #expect(code.contains("Could not change the key in the Keychain"),
                 "при отказе человеку нечего показать")
         // Сообщение обязано назвать действие, иначе это просто «что-то не так».
-        #expect(code.contains("Разблокируйте"), "сообщение не подсказывает, что делать")
+        #expect(code.contains("Unlock it"), "the message does not say what to do")
     }
 }

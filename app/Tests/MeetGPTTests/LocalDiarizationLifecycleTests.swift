@@ -79,7 +79,7 @@ struct LocalDiarizationLifecycleTests {
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 2)
         try await waitUntilFinished(state)
 
-        #expect(state.transcript.map(\.speaker) == ["Вы", "Спикер 2", "Спикер 3"])
+        #expect(state.transcript.map(\.speaker) == ["You", "Спикер 2", "Спикер 3"])
         #expect(state.localDiarizationNote?.contains("Бета") == true)
         #expect(state.localDiarizationNote?.contains("проверьте") == true)
         #expect(state.retainedAudioSampleCountForTesting == 16_000 * 21,
@@ -105,7 +105,7 @@ struct LocalDiarizationLifecycleTests {
 
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 1)
         try await waitUntilFinished(state)
-        #expect(state.transcript.map(\.speaker) == ["Вы", "Спикер 2", nil])
+        #expect(state.transcript.map(\.speaker) == ["You", "Спикер 2", nil])
         #expect(state.retainedAudioSampleCountForTesting == 16_000 * 21)
     }
 

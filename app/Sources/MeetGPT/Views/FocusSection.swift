@@ -133,7 +133,7 @@ private struct HiddenMeetingsDisclosure: View {
                             .foregroundStyle(Theme.inkSecondary)
                             .lineLimit(1)
                         Spacer(minLength: Space.xs)
-                        Button("Показать") { onRestore(meeting.id) }
+                        Button("Show") { onRestore(meeting.id) }
                             .buttonStyle(.plain)
                             .font(Typo.caption.weight(.semibold))
                             .foregroundStyle(Theme.accentText)
@@ -240,7 +240,7 @@ private struct FocusRow: View {
 
     private var helpText: String {
         switch item.kind {
-        case .alert:    return "Скрыть"
+        case .alert:    return "Hide"
         case .reminder:
             return item.meetingID == nil
                 ? "Ближайший звонок"

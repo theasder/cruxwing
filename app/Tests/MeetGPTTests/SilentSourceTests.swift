@@ -19,7 +19,7 @@ import OrakulCore
         let health = ConnectorHealth()
         await health.recordTimeout(service: "linear", seconds: 8)
         let refusal = await health.refusal(for: "linear")
-        #expect(refusal?.words.contains("не ответил") == true, "молчание не записано")
+        #expect(refusal?.words.contains("did not answer within") == true, "молчание не записано")
         #expect(refusal?.words.contains("8") == true, "срок не назван: \(refusal?.words ?? "—")")
     }
 

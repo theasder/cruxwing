@@ -18,17 +18,17 @@ enum CallTheme: String, CaseIterable, Identifiable, Codable, Sendable {
     /// Menu label for a future theme picker.
     var label: String {
         switch self {
-        case .sales: return "Продажи / сделка"
-        case .hiring: return "Найм / собеседование"
-        case .product: return "Продукт / исследование"
-        case .engineering: return "Технический разбор"
-        case .fundraising: return "Инвестиции / инвестор"
-        case .customerSuccess: return "Работа с клиентом"
+        case .sales: return "Sales / deal"
+        case .hiring: return "Hiring / interview"
+        case .product: return "Product / research"
+        case .engineering: return "Technical review"
+        case .fundraising: return "Investment / investor"
+        case .customerSuccess: return "Customer work"
         case .leadership: return "1:1 / coaching"
-        case .legal: return "Юридическое / договор"
-        case .strategy: return "Стратегия / планирование"
-        case .standup: return "Планёрка / статус"
-        case .general: return "Общий"
+        case .legal: return "Legal / contract"
+        case .strategy: return "Strategy / planning"
+        case .standup: return "Standup / status"
+        case .general: return "General"
         }
     }
 

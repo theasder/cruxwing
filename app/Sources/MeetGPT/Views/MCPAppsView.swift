@@ -109,7 +109,7 @@ private struct MCPServerRow: View {
                     // because OAuth may rotate/save its token after this click.
                     // Name that destructive outcome honestly; a first-time
                     // attempt, which has no grant to lose, remains Cancel.
-                    let stopTitle = mcp.isAuthorized(server.id) ? "Отключить" : "Отмена"
+                    let stopTitle = mcp.isAuthorized(server.id) ? "Disconnect" : "Cancel"
                     Button(stopTitle) { Task { await mcp.disconnect(server) } }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier(
@@ -121,11 +121,11 @@ private struct MCPServerRow: View {
                         .accessibilityIdentifier(
                             "settings.connected.provider.\(server.id).disconnecting")
                 case .connected:
-                    Button("Отключить") { Task { await mcp.disconnect(server) } }
+                    Button("Disconnect") { Task { await mcp.disconnect(server) } }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.connected.provider.\(server.id).disconnect")
                 default:
-                    Button(mcp.isAuthorized(server.id) ? "Переподключить" : "Подключить") {
+                    Button(mcp.isAuthorized(server.id) ? "Reconnect" : "Connect") {
                         Task { await mcp.connect(server) }
                     }
                     .buttonStyle(QuietButtonStyle(prominent: true))
@@ -215,10 +215,10 @@ private struct MCPAddServerSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }
+                Button("Cancel") { dismiss() }
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.connected.custom.cancel")
-                Button("Добавить") {
+                Button("Add") {
                     if mcp.addCustomServer(name: name, urlString: urlString) {
                         dismiss()
                     } else {
@@ -315,7 +315,7 @@ struct MCPImportSheet: View {
 
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }
+                Button("Cancel") { dismiss() }
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("connected-import.cancel")
                 Button(running ? "Running…" : "Import") { run() }

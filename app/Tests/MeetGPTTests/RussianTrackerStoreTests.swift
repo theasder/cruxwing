@@ -185,7 +185,7 @@ struct EveryCredentialSetterClearsTests {
         // возвращает 404 — человек читает это как поломку Plane.
         let keychain = InMemoryKeychain()
         let store = RussianTrackerStore(store: keychain)
-        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedToken("key", for: .plane)
         store.setSelfHostedHost("api.plane.so", for: .plane)
         #expect(store.selfHostedClient(for: .plane, http: { _ in (Data(), HTTPURLResponse()) }) == nil)
 
@@ -201,7 +201,7 @@ struct EveryCredentialSetterClearsTests {
     func fieldsRoundTrip() {
         let keychain = InMemoryKeychain()
         let store = RussianTrackerStore(store: keychain)
-        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedToken("key", for: .plane)
         store.setSelfHostedHost("api.plane.so", for: .plane)
         store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
         store.setSelfHostedField("проект-1", name: "project", for: .plane)
@@ -218,7 +218,7 @@ struct EveryCredentialSetterClearsTests {
         // следующему токену — возможно, чужому.
         let keychain = InMemoryKeychain()
         let store = RussianTrackerStore(store: keychain)
-        store.setSelfHostedToken("ключ", for: .plane)
+        store.setSelfHostedToken("key", for: .plane)
         store.setSelfHostedHost("api.plane.so", for: .plane)
         store.setSelfHostedField("moya-komanda", name: "workspace", for: .plane)
         store.setSelfHostedField("проект-1", name: "project", for: .plane)
@@ -247,7 +247,7 @@ struct EveryCredentialSetterClearsTests {
         store.setWesternToken("lin_api_ключ", for: .linear)
         #expect(store.westernClient(for: .linear, http: http) != nil)
 
-        store.setWesternToken("токен", for: .trello)
+        store.setWesternToken("token", for: .trello)
         #expect(store.westernClient(for: .trello, http: http) == nil,
                 "у Trello без ключа приложения запрос не собрать")
         store.setWesternField("ключ-приложения", name: "key", for: .trello)
@@ -277,8 +277,8 @@ struct EveryCredentialSetterClearsTests {
     func disconnectClearsWesternFields() {
         let keychain = InMemoryKeychain()
         let store = RussianTrackerStore(store: keychain)
-        store.setWesternToken("токен", for: .trello)
-        store.setWesternField("ключ", name: "key", for: .trello)
+        store.setWesternToken("token", for: .trello)
+        store.setWesternField("key", name: "key", for: .trello)
 
         store.removeWestern(.trello)
         #expect(keychain.count == 0)

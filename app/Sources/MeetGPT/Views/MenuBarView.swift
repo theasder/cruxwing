@@ -124,7 +124,7 @@ struct MenuBarView: View {
             settingsButton
 
             Button { NSApp.terminate(nil) } label: {
-                menuRow(icon: "power", title: "Выйти")
+                menuRow(icon: "power", title: "Sign out")
             }
             .buttonStyle(QuietButtonStyle())
             .keyboardShortcut("q")
@@ -162,7 +162,7 @@ struct MenuBarView: View {
     private var recordLabel: String {
         switch state.status {
         case .idle, .error: return "Начать запись"
-        case .starting:     return "Запускаю…"
+        case .starting:     return "Starting…"
         case .recording:    return "Остановить запись"
         case .paused:       return "Остановить запись"
         case .stopping:     return "Останавливаю…"
@@ -172,7 +172,7 @@ struct MenuBarView: View {
     private var statusTitle: String {
         switch state.status {
         case .idle:          return "Не записывает"
-        case .starting:      return "Запускаю…"
+        case .starting:      return "Starting…"
         case .recording:     return "Идёт запись"
         case .paused:        return "Пауза"
         case .stopping:      return "Останавливаю…"

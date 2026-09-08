@@ -113,7 +113,7 @@ struct PromptChip: View {
     @ViewBuilder
     private var contextMenu: some View {
         if let onEdit {
-            Button { onEdit() } label: { Label("Изменить", systemImage: "pencil") }
+            Button { onEdit() } label: { Label("Edit", systemImage: "pencil") }
         }
         if let onDelete {
             Button(role: .destructive) { onDelete() } label: { Label("Удалить", systemImage: "trash") }
@@ -151,7 +151,7 @@ private struct NewPromptChip: View {
     }
 }
 
-/// Quiet capsule that folds/unfolds the prompt tail ("+3 more" / "Свернуть").
+/// Quiet capsule that folds/unfolds the prompt tail ("+3 more" / "Collapse").
 private struct FoldToggleChip: View {
     let expanded: Bool
     let hiddenCount: Int
@@ -163,7 +163,7 @@ private struct FoldToggleChip: View {
             HStack(spacing: 4) {
                 Image(systemName: expanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 9, weight: .semibold))
-                Text(expanded ? "Свернуть" : "+\(hiddenCount) more")
+                Text(expanded ? "Collapse" : "+\(hiddenCount) more")
                     .font(Typo.callout.weight(.medium))
             }
             .foregroundStyle(hovering ? Theme.ink : Theme.inkSecondary)
@@ -258,7 +258,7 @@ struct PromptEditorView: View {
 
             HStack {
                 Spacer()
-                Button("Отмена") { dismiss() }
+                Button("Cancel") { dismiss() }
                     .buttonStyle(QuietButtonStyle())
                 Button("Сохранить промпт") {
                     state.saveCustomPrompt(.custom(id: draft.id, icon: draft.icon, title: draft.title, prompt: draft.prompt))

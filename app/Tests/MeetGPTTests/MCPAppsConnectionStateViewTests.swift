@@ -111,10 +111,10 @@ struct MCPAppsConnectionStateViewTests {
         let state = appState(for: manager)
         let inspected = try row(manager: manager, state: state)
 
-        #expect(throws: Never.self) { try inspected.find(button: "Подключить") }
-        expectMissingButton("Переподключить", in: inspected)
-        expectMissingButton("Отключить", in: inspected)
-        expectMissingButton("Отмена", in: inspected)
+        #expect(throws: Never.self) { try inspected.find(button: "Connect") }
+        expectMissingButton("Reconnect", in: inspected)
+        expectMissingButton("Disconnect", in: inspected)
+        expectMissingButton("Cancel", in: inspected)
         #expect(throws: (any Error).self) {
             try inspected.find(viewWithAccessibilityIdentifier:
                 "settings.connected.provider.\(providerID).status")
@@ -142,17 +142,17 @@ struct MCPAppsConnectionStateViewTests {
         // в проверке слепых зон: ждали один признак, утверждали про другой.
         await waitUntil {
             guard let row = try? self.row(manager: manager, state: state) else { return false }
-            return (try? row.find(button: "Отмена")) != nil
-                && (try? row.find(button: "Подключить")) == nil
+            return (try? row.find(button: "Cancel")) != nil
+                && (try? row.find(button: "Connect")) == nil
         }
 
         let inspected = try row(manager: manager, state: state)
         #expect(throws: Never.self) {
             try inspected.find(viewWithAccessibilityLabel: "Подключаю Notion")
         }
-        #expect(throws: Never.self) { try inspected.find(button: "Отмена") }
-        expectMissingButton("Подключить", in: inspected)
-        expectMissingButton("Отключить", in: inspected)
+        #expect(throws: Never.self) { try inspected.find(button: "Cancel") }
+        expectMissingButton("Connect", in: inspected)
+        expectMissingButton("Disconnect", in: inspected)
 
         driver.release(with: tools())
         await task.value
@@ -172,20 +172,20 @@ struct MCPAppsConnectionStateViewTests {
         let target = try server()
 
         var inspected = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try inspected.find(button: "Переподключить") }
+        #expect(throws: Never.self) { try inspected.find(button: "Reconnect") }
         #expect(throws: Never.self) { try inspected.find(text: "authorized") }
 
         let task = Task { await manager.connect(target) }
         defer { driver.release(with: tools()) }
         await waitUntil { driver.started && manager.state(of: target.id) == .connecting }
         inspected = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try inspected.find(button: "Отключить") }
-        expectMissingButton("Отмена", in: inspected)
+        #expect(throws: Never.self) { try inspected.find(button: "Disconnect") }
+        expectMissingButton("Cancel", in: inspected)
         #expect(throws: Never.self) {
             try inspected.find(viewWithAccessibilityIdentifier:
                 "settings.connected.provider.\(providerID).progress")
         }
-        expectMissingButton("Переподключить", in: inspected)
+        expectMissingButton("Reconnect", in: inspected)
 
         driver.release(with: tools())
         await task.value
@@ -208,9 +208,9 @@ struct MCPAppsConnectionStateViewTests {
         await waitUntil { driver.started && manager.state(of: target.id) == .connecting }
 
         let connectingRow = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try connectingRow.find(button: "Отключить") }
-        expectMissingButton("Отмена", in: connectingRow)
-        try connectingRow.find(button: "Отключить").tap()
+        #expect(throws: Never.self) { try connectingRow.find(button: "Disconnect") }
+        expectMissingButton("Cancel", in: connectingRow)
+        try connectingRow.find(button: "Disconnect").tap()
         await waitUntil { manager.state(of: target.id) == .disconnecting }
 
         // Rapid non-linear navigation cannot expose a Connect button that only
@@ -220,7 +220,7 @@ struct MCPAppsConnectionStateViewTests {
         #expect(throws: Never.self) {
             try disconnectingRow.find(viewWithAccessibilityLabel: "Отключаю Notion")
         }
-        for title in ["Подключить", "Reconnect", "Отключить", "Отмена"] {
+        for title in ["Connect", "Reconnect", "Disconnect", "Cancel"] {
             expectMissingButton(title, in: disconnectingRow)
         }
 
@@ -233,7 +233,7 @@ struct MCPAppsConnectionStateViewTests {
         #expect(manager.tools(for: target.id).isEmpty)
         #expect(keychain.get("mcp.token.\(providerID)") == nil)
         let finalRow = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try finalRow.find(button: "Подключить") }
+        #expect(throws: Never.self) { try finalRow.find(button: "Connect") }
         expectMissingButton("Reconnect", in: finalRow)
     }
 
@@ -249,13 +249,13 @@ struct MCPAppsConnectionStateViewTests {
         let state = appState(for: manager)
         let inspected = try row(manager: manager, state: state)
 
-        #expect(throws: Never.self) { try inspected.find(button: "Отключить") }
+        #expect(throws: Never.self) { try inspected.find(button: "Disconnect") }
         #expect(throws: Never.self) {
             try inspected.find(textWhere: { text, _ in text.hasPrefix("2 инструментов ·") })
         }
-        expectMissingButton("Подключить", in: inspected)
-        expectMissingButton("Переподключить", in: inspected)
-        expectMissingButton("Отмена", in: inspected)
+        expectMissingButton("Connect", in: inspected)
+        expectMissingButton("Reconnect", in: inspected)
+        expectMissingButton("Cancel", in: inspected)
     }
 
     @Test("transient errors preserve authorized Reconnect but use Connect without a token")
@@ -273,8 +273,8 @@ struct MCPAppsConnectionStateViewTests {
         var state = appState(for: fresh)
         var inspected = try row(manager: fresh, state: state)
         #expect(throws: Never.self) { try inspected.find(text: message) }
-        #expect(throws: Never.self) { try inspected.find(button: "Подключить") }
-        expectMissingButton("Переподключить", in: inspected)
+        #expect(throws: Never.self) { try inspected.find(button: "Connect") }
+        expectMissingButton("Reconnect", in: inspected)
 
         let keychain = InMemoryKeychain()
         keychain.set(Data("cached-token".utf8), for: "mcp.token.\(providerID)")
@@ -289,8 +289,8 @@ struct MCPAppsConnectionStateViewTests {
         state = appState(for: authorized)
         inspected = try row(manager: authorized, state: state)
         #expect(throws: Never.self) { try inspected.find(text: message) }
-        #expect(throws: Never.self) { try inspected.find(button: "Переподключить") }
-        expectMissingButton("Подключить", in: inspected)
+        #expect(throws: Never.self) { try inspected.find(button: "Reconnect") }
+        expectMissingButton("Connect", in: inspected)
     }
 
     @Test("Disconnect action clears authorization and returns the row to Connect")
@@ -304,14 +304,14 @@ struct MCPAppsConnectionStateViewTests {
         let state = appState(for: manager)
 
         let connectedRow = try row(manager: manager, state: state)
-        try connectedRow.find(button: "Отключить").tap()
+        try connectedRow.find(button: "Disconnect").tap()
         await waitUntil { manager.state(of: target.id) == .disconnected }
 
         #expect(!manager.isAuthorized(target.id))
         #expect(manager.tools(for: target.id).isEmpty)
         let disconnectedRow = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try disconnectedRow.find(button: "Подключить") }
-        expectMissingButton("Отключить", in: disconnectedRow)
+        #expect(throws: Never.self) { try disconnectedRow.find(button: "Connect") }
+        expectMissingButton("Disconnect", in: disconnectedRow)
     }
 
     @Test("connected teardown hides Connect and rejects reconnect until asynchronous cleanup finishes")
@@ -327,7 +327,7 @@ struct MCPAppsConnectionStateViewTests {
         let state = appState(for: manager)
 
         let connectedRow = try row(manager: manager, state: state)
-        try connectedRow.find(button: "Отключить").tap()
+        try connectedRow.find(button: "Disconnect").tap()
         await waitUntil {
             disconnectDriver.started && manager.state(of: target.id) == .disconnecting
         }
@@ -336,7 +336,7 @@ struct MCPAppsConnectionStateViewTests {
         #expect(throws: Never.self) {
             try tearingDownRow.find(viewWithAccessibilityLabel: "Отключаю Notion")
         }
-        for title in ["Подключить", "Reconnect", "Отключить", "Отмена"] {
+        for title in ["Connect", "Reconnect", "Disconnect", "Cancel"] {
             expectMissingButton(title, in: tearingDownRow)
         }
         #expect(manager.tools(for: target.id).isEmpty)
@@ -353,7 +353,7 @@ struct MCPAppsConnectionStateViewTests {
         disconnectDriver.release()
         await waitUntil { manager.state(of: target.id) == .disconnected }
         let finalRow = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try finalRow.find(button: "Подключить") }
+        #expect(throws: Never.self) { try finalRow.find(button: "Connect") }
     }
 
     @Test("Cancel wins over a late successful connection completion")
@@ -370,14 +370,14 @@ struct MCPAppsConnectionStateViewTests {
         await waitUntil { driver.started && manager.state(of: target.id) == .connecting }
 
         let connectingRow = try row(manager: manager, state: state)
-        try connectingRow.find(button: "Отмена").tap()
+        try connectingRow.find(button: "Cancel").tap()
         await waitUntil { manager.state(of: target.id) == .disconnecting }
 
         let cancellingRow = try row(manager: manager, state: state)
         #expect(throws: Never.self) {
             try cancellingRow.find(viewWithAccessibilityLabel: "Отключаю Notion")
         }
-        for title in ["Подключить", "Reconnect", "Отключить", "Отмена"] {
+        for title in ["Connect", "Reconnect", "Disconnect", "Cancel"] {
             expectMissingButton(title, in: cancellingRow)
         }
 
@@ -390,8 +390,8 @@ struct MCPAppsConnectionStateViewTests {
         #expect(!manager.isAuthorized(target.id))
         #expect(manager.tools(for: target.id).isEmpty)
         let finalRow = try row(manager: manager, state: state)
-        #expect(throws: Never.self) { try finalRow.find(button: "Подключить") }
-        expectMissingButton("Отключить", in: finalRow)
+        #expect(throws: Never.self) { try finalRow.find(button: "Connect") }
+        expectMissingButton("Disconnect", in: finalRow)
         #expect(throws: (any Error).self) {
             try finalRow.find(viewWithAccessibilityIdentifier:
                 "settings.connected.provider.\(providerID).status")

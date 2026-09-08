@@ -919,17 +919,17 @@ final class AppState: ObservableObject {
     func noteMicrophoneLost() {
         guard isRecording else { return }
         microphoneLostDuringRecording = true
-        lastError = "Микрофон пропал — записываются только собеседники. "
-            + "Обычно это отключившиеся наушники или вынутый USB-микрофон; "
-            + "проверьте устройство ввода и начните запись заново."
+        lastError = "The microphone dropped — only the other party is being recorded. "
+            + "Usually that is headphones disconnecting or a USB microphone being unplugged; "
+            + "check the input device and start recording again."
     }
 
     /// Единственное место, где этот флаг поднимается.
     func noteSystemAudioLost() {
         guard isRecording else { return }   // после «Стоп» это не новость
         systemAudioLostDuringRecording = true
-        lastError = "Звук собеседников пропал — запись продолжается только с микрофона. "
-            + "Обычно это отозванное разрешение «Запись экрана» или отключённый дисплей."
+        lastError = "The other party's audio dropped — recording continues from the microphone alone. "
+            + "Usually that is a revoked «Screen recording» permission, or a display that was switched off."
     }
 
     /// Connected work-apps (MCP), attached by the app root so prompt-button
@@ -2248,7 +2248,7 @@ final class AppState: ObservableObject {
 
         let removed = providerKeys.removeTranscriptionKey(for: provider)
         if !removed {
-            lastError = "Не удалось удалить ключ \(provider.label) из Связки ключей. Облачный маршрут уже выключен; разблокируйте Связку ключей и повторите удаление."
+            lastError = "Could not delete the \(provider.label) key from the Keychain. The cloud route is already off; unlock the Keychain and delete it again."
         }
         return removed
     }
@@ -2290,7 +2290,7 @@ final class AppState: ObservableObject {
                 activeRecordingSettings = previousSettings.replacingEngine(with: .local)
                 noteSuccessfulEngineTransition(from: .deepgram, to: .local)
             } else {
-                lastError = "Ключ Deepgram удаляется; облачный поток остановлен, но локальную расшифровку не удалось подготовить."
+                lastError = "The Deepgram key is being deleted; the cloud stream stopped, but local transcription could not be prepared."
             }
             pendingEngineChange = nil
         case .recording, .paused, .idle, .error, .stopping:
@@ -2657,7 +2657,7 @@ final class AppState: ObservableObject {
             }
             connectedGlossarySuggestions = suggestions
             connectedGlossarySuggestionMetrics = cachedMetrics(cached.generation.metrics)
-            connectedGlossarySuggestionMessage = "Показаны подсказки из последних пяти минут."
+            connectedGlossarySuggestionMessage = "Showing hints from the last five minutes."
             connectedGlossarySuggestionStatus = suggestions.isEmpty ? .empty : .ready
             return
         }
@@ -2861,7 +2861,7 @@ final class AppState: ObservableObject {
             useFastModel: false) else { return false }
         connectedGlossarySuggestions = result.suggestions
         connectedGlossarySuggestionMetrics = result.metrics
-        connectedGlossarySuggestionMessage = "Готов образец из подключённых приложений — посмотрите."
+        connectedGlossarySuggestionMessage = "A sample from the connected applications is ready — take a look."
         connectedGlossarySuggestionStatus = result.suggestions.isEmpty ? .empty : .ready
         return !result.suggestions.isEmpty
     }
@@ -3992,7 +3992,7 @@ final class AppState: ObservableObject {
         callNotifier.configure()
         callNotifier.onStartRecording = { [weak self] in self?.startFromNotification() }
         callNotifier.onNotificationsDenied = { [weak self] in
-            self?.lastError = "Уведомления для orakul выключены. Включите их в «Системные настройки → Уведомления», чтобы получать напоминания о звонках."
+            self?.lastError = "Notifications for orakul are off. Turn them on in System Settings → Notifications to receive call reminders."
         }
         callDetector.onCallDetected = { [weak self] appName in
             guard let self, !self.isRecording, !self.isBusy else { return }
@@ -4473,7 +4473,7 @@ final class AppState: ObservableObject {
                     user: AnswerRefine.userPrompt(answer: original),
                     model: Config.selectedModel, onDelta: { _ in })
             }), !refined.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                lastError = "Не удалось уточнить ответ — исходный остался как был."
+                lastError = "Could not refine the answer — the original was left as it was."
                 return
             }
             // Recorded only on SUCCESS, and paired with the produced text so a
@@ -4560,7 +4560,7 @@ final class AppState: ObservableObject {
             try sessionStore.save(session)
             reloadSavedSessions()
         } catch {
-            lastError = "Не удалось сохранить звонок: \(error.localizedDescription)"
+            lastError = "Could not save the call: \(error.localizedDescription)"
         }
     }
 
@@ -4693,11 +4693,11 @@ final class AppState: ObservableObject {
             do {
                 firefliesMeetings = try await manager.firefliesRecentMeetings()
                 if firefliesMeetings.isEmpty {
-                    firefliesImportError = "Fireflies не отдал ни одной встречи для этого аккаунта."
+                    firefliesImportError = "Fireflies returned no meetings for this account."
                 }
             } catch {
                 firefliesMeetings = []
-                firefliesImportError = "Не достучались до Fireflies. \(Self.systemSaid(error))"
+                firefliesImportError = "Could not reach Fireflies. \(Self.systemSaid(error))"
             }
         }
     }
@@ -4726,7 +4726,7 @@ final class AppState: ObservableObject {
                 proposeGlossaryFromPastTranscript(session)
                 onFinished(true)
             } catch {
-                firefliesImportError = "Не смог перенести эту встречу. \(Self.systemSaid(error))"
+                firefliesImportError = "Could not move that meeting. \(Self.systemSaid(error))"
                 onFinished(false)
             }
         }
@@ -4829,7 +4829,7 @@ final class AppState: ObservableObject {
         do {
             _ = try sessionStore.delete(id: id)
         } catch {
-            lastError = "Не удалось удалить звонок: \(Self.systemSaid(error))"
+            lastError = "Could not delete the call: \(Self.systemSaid(error))"
         }
         reloadSavedSessions()
     }
@@ -4840,7 +4840,7 @@ final class AppState: ObservableObject {
         do {
             try sessionStore.deleteAll()
         } catch {
-            lastError = "Не удалось полностью очистить историю: \(Self.systemSaid(error))"
+            lastError = "Could not clear the history completely: \(Self.systemSaid(error))"
         }
         reloadSavedSessions()
     }
@@ -4925,7 +4925,7 @@ final class AppState: ObservableObject {
             || transcriptionEngineIsAvailable(engine)
         guard available else {
             pendingEngineChange = nil
-            lastError = "«\(engine.advantageTitle)» недоступно для этой учётной записи. Звонок продолжается на «\(previousEngine.advantageTitle)»."
+            lastError = "«\(engine.advantageTitle)» is unavailable for this account. The call continues on «\(previousEngine.advantageTitle)»."
             return false
         }
 
@@ -4935,7 +4935,7 @@ final class AppState: ObservableObject {
         if status == .paused {
             pendingEngineChange = nil
             guard engine == previousEngine else {
-                lastError = "Возобновите звонок перед сменой движка. Пауза продолжается на «\(previousEngine.advantageTitle)»."
+                lastError = "Resume the call before changing the engine. The pause continues on «\(previousEngine.advantageTitle)»."
                 return false
             }
             return true
@@ -4950,7 +4950,7 @@ final class AppState: ObservableObject {
             pendingEngineChange = nil
             let startupEngine = selectedTranscriptionEngine
             guard engine == startupEngine else {
-                lastError = "Дождитесь начала записи перед сменой движка. Запуск продолжается на «\(startupEngine.advantageTitle)»."
+                lastError = "Wait for the recording to start before changing the engine. Startup continues on «\(startupEngine.advantageTitle)»."
                 return false
             }
             return true
@@ -4975,7 +4975,7 @@ final class AppState: ObservableObject {
             Config.transcriptionEngineValue = previousConfigured
             selectedTranscriptionEngine = previousConfigured
             pendingEngineChange = nil
-            lastError = "Не удалось переключить звонок на «\(engine.advantageTitle)». Он продолжается на «\(previousEngine.advantageTitle)»."
+            lastError = "Could not switch the call to «\(engine.advantageTitle)». It continues on «\(previousEngine.advantageTitle)»."
             return false
         }
 
@@ -5189,14 +5189,14 @@ final class AppState: ObservableObject {
         defer { ledgerLoading = false }
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token = await wheesprAccessToken() else {
-            if !quiet { lastError = "Войдите, чтобы увидеть журнал решений." }
+            if !quiet { lastError = "Sign in to see the decision log." }
             return
         }
         do {
             ledgerDecisions = try await DecisionLogService.recentDecisions(base: base, token: token)
             lastError = nil
         } catch {
-            lastError = "Не удалось загрузить журнал: \(error.localizedDescription)"
+            lastError = "Could not load the log: \(error.localizedDescription)"
         }
     }
 
@@ -6649,13 +6649,13 @@ final class AppState: ObservableObject {
     /// pointing at a directory did something.
     func attachContextFolder(url: URL) async {
         guard !contextImporting else {
-            lastError = "Другой источник ещё индексируется. Дождитесь или отмените его."
+            lastError = "Another source is still indexing. Wait for it, or cancel it."
             return
         }
         let canonicalPath = url.resolvingSymlinksInPath().standardizedFileURL.path
         let replacesExisting = contextFolders.contains { $0.path == canonicalPath }
         guard replacesExisting || contextFolders.count < Self.maxAttachedContextFolders else {
-            lastError = "Можно подключить не больше \(Self.maxAttachedContextFolders) папок. Уберите одну, чтобы добавить новую."
+            lastError = "No more than \(Self.maxAttachedContextFolders) folders can be attached. Remove one to add another."
             return
         }
         contextImporting = true
@@ -6682,7 +6682,7 @@ final class AppState: ObservableObject {
             // not turn an intentional Cancel into a red global error banner.
         } catch {
             // Do not surface the raw path (or an NSError that may contain it).
-            lastError = "Не удалось подключить «\(url.lastPathComponent)». Проверьте, что папка читается, и попробуйте снова."
+            lastError = "Could not attach «\(url.lastPathComponent)». Check that the folder is readable and try again."
         }
     }
 
@@ -6696,7 +6696,7 @@ final class AppState: ObservableObject {
     /// a freshness nobody asked for mid-call.
     func rescanContextFolder(id: UUID) async {
         guard !contextImporting else {
-            lastError = "Другой источник ещё индексируется. Дождитесь или отмените его."
+            lastError = "Another source is still indexing. Wait for it, or cancel it."
             return
         }
         guard let folder = contextFolders.first(where: { $0.id == id }) else { return }
@@ -6724,7 +6724,7 @@ final class AppState: ObservableObject {
         } catch {
             // Scanner errors can carry the absolute path in NSError metadata;
             // the folder name is sufficient and safe for the UI.
-            lastError = "Не удалось обновить «\(displayName)». Подключите заново, если доступ изменился."
+            lastError = "Could not refresh «\(displayName)». Reconnect it if the access changed."
         }
     }
 
@@ -6732,7 +6732,7 @@ final class AppState: ObservableObject {
     /// folder. Say it once, at attach and refresh time.
     private func reportFolderSkips(_ folder: ContextFolder) {
         guard !folder.skipped.isEmpty else { return }
-        lastError = "«\(folder.name)»: подключено файлов — \(folder.files.count); "
+        lastError = "«\(folder.name)»: \(folder.files.count) files attached; "
             + "не вошло — \(folder.skipped.count) (не хватило места)."
     }
 
@@ -6771,7 +6771,7 @@ final class AppState: ObservableObject {
         }
         persistContextFolders()
         if !lost.isEmpty {
-            lastError = "Потерян доступ к \(lost.joined(separator: ", ")) — подключите заново, чтобы выдать его снова."
+            lastError = "Lost access to \(lost.joined(separator: ", ")) — подключите заново, чтобы выдать его снова."
         }
     }
 
@@ -6793,7 +6793,7 @@ final class AppState: ObservableObject {
             }
             pendingImages.append(Attachment(name: url.lastPathComponent, imageData: data))
         }
-        if !errors.isEmpty { lastError = "С картинками не вышло — " + errors.joined(separator: "; ") }
+        if !errors.isEmpty { lastError = "The images did not work — " + errors.joined(separator: "; ") }
     }
 
     func removeImage(id: UUID) {
@@ -6957,7 +6957,7 @@ final class AppState: ObservableObject {
         // lastError is transient; the notice persists until acknowledged, so a
         // sign-out cannot be missed by looking away for a moment.
         noteSignedOut(.expired)
-        lastError = "Сессия истекла — войдите снова"
+        lastError = "The session expired — sign in again"
         reconcileDisplayedTranscriptionEngineIfIdle()
     }
 
@@ -6986,7 +6986,7 @@ final class AppState: ObservableObject {
     /// Returns true on success; failures land in lastError.
     func deleteAccount() async -> Bool {
         guard let token = await wheesprAccessToken() else {
-            lastError = "Войдите, прежде чем удалять аккаунт."
+            lastError = "Sign in before deleting the account."
             return false
         }
         switch await AccountDeletion.perform(baseURL: Config.backendBaseURL, token: token) {
@@ -7057,7 +7057,7 @@ final class AppState: ObservableObject {
                 try? await Task.sleep(nanoseconds: 100_000_000)
             }
             guard !authWorking else {
-                lastError = "Вход ещё не завершён — проверьте окно браузера."
+                lastError = "The sign-in is not finished — check the browser window."
                 return
             }
         }
@@ -7201,7 +7201,7 @@ final class AppState: ObservableObject {
             applyCalendarAgenda(agenda)
             lastError = nil
         } catch {
-            lastError = "Не удалось загрузить \(title): \(error.localizedDescription)"
+            lastError = "Could not load \(title): \(error.localizedDescription)"
         }
     }
 
@@ -7235,11 +7235,11 @@ final class AppState: ObservableObject {
             return nil
         }
         guard Config.googleScopeVersion >= GoogleAuth.scopeVersion else {
-            lastError = "Переподключите Google Workspace в настройках, чтобы обновить доступ."
+            lastError = "Reconnect Google Workspace in settings to refresh the access."
             return nil
         }
         if let service, !Config.googleGrantedServices.contains(service.rawValue) {
-            lastError = "Переподключите Google Workspace в настройках с доступом к \(service.label)."
+            lastError = "Reconnect Google Workspace in settings with access to \(service.label)."
             return nil
         }
         do {
@@ -7260,12 +7260,12 @@ final class AppState: ObservableObject {
     /// error (connect / reconnect Google) — never silently.
     func exportAssistantAnswerToGoogleDocs() async {
         guard googleConnected else {
-            lastError = "Подключите Google в настройках, чтобы создать документ."
+            lastError = "Connect Google in settings to create a document."
             return
         }
         guard Config.googleScopeVersion >= GoogleAuth.scopeVersion,
               Config.googleGrantedServices.contains(GoogleService.docs.rawValue) else {
-            lastError = "Переподключите Google в настройках с доступом к Docs, чтобы создать документ."
+            lastError = "Reconnect Google in settings with access to Docs to create a document."
             return
         }
         do {
@@ -7281,7 +7281,7 @@ final class AppState: ObservableObject {
                 NSWorkspace.shared.open(url)
             }
         } catch {
-            lastError = "Выгрузка в Google Docs не удалась: \(error.localizedDescription)"
+            lastError = "The export to Google Docs failed: \(error.localizedDescription)"
         }
     }
 
@@ -7303,11 +7303,11 @@ final class AppState: ObservableObject {
             // Every other case belongs to a different executor. Silently doing
             // "something close" with a proposal the user confirmed is exactly
             // the failure this boundary exists to prevent.
-            lastError = "Это действие здесь недоступно."
+            lastError = "That action is not available here."
             return
         }
         guard googleConnected else {
-            lastError = "Подключите Google в настройках, чтобы создать таблицу."
+            lastError = "Connect Google in settings to create a spreadsheet."
             return
         }
         guard let token = await freshGoogleToken(for: .sheets) else { return }   // sets lastError
@@ -7318,7 +7318,7 @@ final class AppState: ObservableObject {
             lastCreatedSpreadsheetTitle = title
             if let url = URL(string: created.url) { NSWorkspace.shared.open(url) }
         } catch {
-            lastError = "Не удалось создать таблицу: \(error.localizedDescription)"
+            lastError = "Could not create the spreadsheet: \(error.localizedDescription)"
         }
     }
 
@@ -7337,7 +7337,7 @@ final class AppState: ObservableObject {
             lastCreatedSpreadsheet = nil
             lastCreatedSpreadsheetTitle = nil
         } catch {
-            lastError = "Не удалось отправить в корзину: \(error.localizedDescription)"
+            lastError = "Could not move it to the trash: \(error.localizedDescription)"
         }
     }
 
@@ -7352,7 +7352,7 @@ final class AppState: ObservableObject {
     /// а не по странице, которая откроется.
     func exportAssistantAnswerToNotion() async {
         guard let mcp, mcp.canExportToNotion else {
-            lastError = "Подключите Notion в настройках, чтобы создать страницу."
+            lastError = "Connect Notion in settings to create a page."
             return
         }
         do {
@@ -7367,7 +7367,7 @@ final class AppState: ObservableObject {
                 NSWorkspace.shared.open(url)
             }
         } catch {
-            lastError = "Выгрузка в Notion не удалась: \(error.localizedDescription)"
+            lastError = "The export to Notion failed: \(error.localizedDescription)"
         }
     }
 
@@ -7393,7 +7393,7 @@ final class AppState: ObservableObject {
 
     func importGoogleDoc(from urlString: String) async {
         guard let id = SourceURL.googleDocID(from: urlString) else {
-            lastError = "Это не похоже на ссылку Google Docs."
+            lastError = "That does not look like a Google Docs link."
             return
         }
         await withImporting {
@@ -7405,7 +7405,7 @@ final class AppState: ObservableObject {
 
     func importGoogleSheet(from urlString: String) async {
         guard let id = SourceURL.googleSheetID(from: urlString) else {
-            lastError = "Это не похоже на ссылку Google Sheets."
+            lastError = "That does not look like a Google Sheets link."
             return
         }
         await withImporting {
@@ -7417,7 +7417,7 @@ final class AppState: ObservableObject {
 
     func importGoogleSlides(from urlString: String) async {
         guard let id = SourceURL.googleSlidesID(from: urlString) else {
-            lastError = "Это не похоже на ссылку Google Slides."
+            lastError = "That does not look like a Google Slides link."
             return
         }
         await withImporting {
@@ -7430,7 +7430,7 @@ final class AppState: ObservableObject {
 
     func importGoogleForm(from urlString: String) async {
         guard let id = SourceURL.googleFormID(from: urlString) else {
-            lastError = "Нужна ссылка редактора Google Forms вида /forms/d/<id>/edit — публичная ссылка /d/e/ не содержит API ID формы."
+            lastError = "A Google Forms editor link of the form /forms/d/<id>/edit is required — a public /d/e/ link does not carry the form's API id."
             return
         }
         await withImporting {
@@ -7442,7 +7442,7 @@ final class AppState: ObservableObject {
     }
 
     private func appendContext(name: String, text: String) {
-        guard !text.isEmpty else { lastError = "В «\(name)» нет читаемого текста."; return }
+        guard !text.isEmpty else { lastError = "«\(name)» has no readable text in it."; return }
         contextFiles.append(ImportedContextFile(name: name, text: text))
     }
 
@@ -7979,7 +7979,7 @@ final class AppState: ObservableObject {
         var images = pendingImages.map { $0.imageData }
         pendingImages.removeAll()
         if !images.isEmpty, !Config.selectedModel.supportsVision {
-            lastError = "Выбранная модель не понимает картинки — отправляю только текст."
+            lastError = "The chosen model does not understand images — sending text only."
             images = []
         }
         let prompt = trimmed.isEmpty ? "Describe the attached image(s)." : trimmed
@@ -8125,7 +8125,7 @@ final class AppState: ObservableObject {
     func prepareAnswerAction(_ action: AnswerActionPlanner.Action) {
         guard let mcp,
               let tool = mcp.tools(for: action.serverID).first(where: { $0.name == action.toolName }) else {
-            lastError = "\(action.serverName) больше не подключён."
+            lastError = "\(action.serverName) is no longer connected."
             return
         }
         let items = action.isPerItem ? AnswerActionItems.parse(aiResponse) : []
@@ -8279,7 +8279,7 @@ final class AppState: ObservableObject {
                 }
             }
         } catch {
-            lastError = "\(pending.action.title): не удалось — \(error.localizedDescription)"
+            lastError = "\(pending.action.title): failed — \(error.localizedDescription)"
         }
     }
 
@@ -8496,7 +8496,7 @@ final class AppState: ObservableObject {
             try data.write(to: url, options: .atomic)
             answerActionResult = "Сохранено: \(url.lastPathComponent)."
         } catch {
-            lastError = "Выгрузка в Word не удалась: \(error.localizedDescription)"
+            lastError = "The export to Word failed: \(error.localizedDescription)"
         }
     }
 
@@ -8566,7 +8566,7 @@ final class AppState: ObservableObject {
         if dictation.isListening {
             guard let spoken = await dictation.stopAndTranscribe() else {
                 if case .failed(let reason) = dictation.state {
-                    lastError = "Диктовка не удалась — \(reason)"
+                    lastError = "Dictation failed — \(reason)"
                     dictation.clearError()
                 }
                 return
@@ -8577,7 +8577,7 @@ final class AppState: ObservableObject {
         do {
             try dictation.start()
         } catch {
-            lastError = "Не удалось начать диктовку — \(error.localizedDescription)"
+            lastError = "Could not start dictation — \(error.localizedDescription)"
         }
     }
 
@@ -8591,7 +8591,7 @@ final class AppState: ObservableObject {
         dictationWindowStart = nil
         let spoken = spokenSinceWindow(start: start)
         guard !spoken.isEmpty else {
-            lastError = "За это время ничего не расшифровано."
+            lastError = "Nothing was transcribed in that time."
             return
         }
         appendToComposer(spoken, into: text)
@@ -9806,7 +9806,7 @@ final class AppState: ObservableObject {
                     Config.transcriptionEngineValue = capturedEngine
                     selectedTranscriptionEngine = capturedEngine
                     pendingEngineChange = nil
-                    lastError = "Не удалось переключить звонок на «\(requested.advantageTitle)». Он продолжается на «\(capturedEngine.advantageTitle)»."
+                    lastError = "Could not switch the call to «\(requested.advantageTitle)». It continues on «\(capturedEngine.advantageTitle)»."
                 }
             } else {
                 pendingEngineChange = nil
@@ -10959,7 +10959,7 @@ final class AppState: ObservableObject {
                           }) {
         let text = WeeklyDigest.build(audience: audience, store: store ?? sessionStore)
         write(text)
-        digestCopyNotice = "\(audience.heading): скопировано — вставьте, куда нужно."
+        digestCopyNotice = "\(audience.heading): copied — paste it wherever you need it."
         devCallDiagnostics.record(event: "weekly_digest_copied",
                                   fields: ["audience": audience.rawValue,
                                            "chars": "\(text.count)"])
@@ -11075,7 +11075,7 @@ final class AppState: ObservableObject {
                 await MainActor.run {
                     guard ObjectIdentifier(self.transcriber) == preparationID else { return }
                     self.transcriptionState = .failed(error.localizedDescription)
-                    self.lastError = "Модель распознавания не загрузилась: \(error.localizedDescription) — проверьте сеть или смените движок в настройках."
+                    self.lastError = "The recognition model did not load: \(error.localizedDescription) — check the network, or change the engine in settings."
                 }
             }
         }
@@ -11471,7 +11471,7 @@ final class AppState: ObservableObject {
             }
         }
         Task { await failedInstantTranscriber.shutdown() }
-        lastError = "Мгновенная расшифровка не запустилась: \(message) Продолжаем на «\(settings.engine.advantageTitle)»."
+        lastError = "Instant transcription did not start: \(message) Continuing on «\(settings.engine.advantageTitle)»."
     }
 
     /// Prepare the snapshot selected for a fresh recording. Reuse a matching
@@ -11571,7 +11571,7 @@ final class AppState: ObservableObject {
         restoreRouteLeaseOnFailedHandoff: TranscriptionRouteLease? = nil
     ) {
         guard let apiKey = providerKeys.transcriptionKey(for: .deepgram) else {
-            lastError = "Добавьте свой ключ Deepgram в настройках расшифровки."
+            lastError = "Add your own Deepgram key in the transcription settings."
             return
         }
         let degrade = LiveStreamDegradeState()
@@ -11688,7 +11688,7 @@ final class AppState: ObservableObject {
                 guard let self,
                       self.recordingGenerationToken === generationToken,
                       self.status == .starting || self.status == .recording else { return }
-                self.lastError = "Deepgram, микрофон: \(message)"
+                self.lastError = "Deepgram, microphone: \(message)"
             }
         }
         mic.onInterim = { [weak self] text in
@@ -11823,7 +11823,7 @@ final class AppState: ObservableObject {
                 selectedTranscriptionEngine = .local
                 Config.transcriptionEngineValue = .local
             } else {
-                lastError = "Ключ Deepgram удалён и облачный поток остановлен, но локальную расшифровку не удалось подготовить."
+                lastError = "The Deepgram key was deleted and the cloud stream stopped, but local transcription could not be prepared."
             }
             pendingEngineChange = nil
             return

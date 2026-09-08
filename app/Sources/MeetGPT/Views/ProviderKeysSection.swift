@@ -83,7 +83,7 @@ private struct ProviderKeyRow: View {
                     .lineLimit(1)
                 Spacer()
                 if hasKey {
-                    Button("Убрать") {
+                    Button("Remove") {
                         guard store.remove(provider) else {
                             saveFailed = true
                             return
@@ -95,7 +95,7 @@ private struct ProviderKeyRow: View {
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.ai.key.\(provider.rawValue).remove")
                 }
-                Button(isExpanded ? "Свернуть" : (hasKey ? "Заменить" : "Добавить ключ")) {
+                Button(isExpanded ? "Collapse" : (hasKey ? "Replace" : "Add a key")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -103,9 +103,9 @@ private struct ProviderKeyRow: View {
             }
 
             if saveFailed {
-                Text("Не удалось изменить ключ в Связке ключей. Разблокируйте её "
-                     + "(«Связка ключей» → «Вход») и попробуйте ещё раз. "
-                     + "Набранное осталось в поле.")
+                Text("Could not change the key in the Keychain. Unlock it "
+                     + "(Keychain Access → login) and try again. "
+                     + "What you typed is still in the field.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -117,14 +117,14 @@ private struct ProviderKeyRow: View {
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
 
-                SecureField("", text: $key, prompt: Text("ключ"))
+                SecureField("", text: $key, prompt: Text("key"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Ключ \(provider.label)")
+                    .accessibilityLabel("\(provider.label) key")
                     .accessibilityIdentifier("settings.ai.key.\(provider.rawValue).field")
 
                 if provider.needsSecondary {
@@ -143,7 +143,7 @@ private struct ProviderKeyRow: View {
                 }
 
                 HStack {
-                    Button("Сохранить") {
+                    Button("Save") {
                         // Связка ключей умеет отказать: заблокирована, или
                         // строка осталась от прежней подписи бинарника. Раньше
                         // ответ отбрасывали — поле очищалось, раздел
@@ -243,7 +243,7 @@ private struct TranscriptionProviderKeyRow: View {
                     .lineLimit(1)
                 Spacer()
                 if hasKey {
-                    Button("Убрать") {
+                    Button("Remove") {
                         guard onRemove() else {
                             saveFailed = true
                             return
@@ -256,7 +256,7 @@ private struct TranscriptionProviderKeyRow: View {
                     .accessibilityIdentifier(
                         "settings.transcription.key.\(provider.rawValue).remove")
                 }
-                Button(isExpanded ? "Свернуть" : (hasKey ? "Заменить" : "Добавить ключ")) {
+                Button(isExpanded ? "Collapse" : (hasKey ? "Replace" : "Add a key")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -265,7 +265,7 @@ private struct TranscriptionProviderKeyRow: View {
             }
 
             if saveFailed {
-                Text("Не удалось изменить ключ в Связке ключей. Разблокируйте её и попробуйте снова — набранное осталось в поле.")
+                Text("Could not change the key in the Keychain. Unlock it and try again — what you typed is still in the field.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -278,7 +278,7 @@ private struct TranscriptionProviderKeyRow: View {
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
 
-                SecureField("", text: $key, prompt: Text("ключ"))
+                SecureField("", text: $key, prompt: Text("key"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
@@ -286,12 +286,12 @@ private struct TranscriptionProviderKeyRow: View {
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s,
                                                      style: .continuous))
-                    .accessibilityLabel("Ключ \(provider.label)")
+                    .accessibilityLabel("\(provider.label) key")
                     .accessibilityIdentifier(
                         "settings.transcription.key.\(provider.rawValue).field")
 
                 HStack {
-                    Button("Сохранить") {
+                    Button("Save") {
                         guard store.setTranscriptionKey(key, for: provider) else {
                             saveFailed = true
                             return

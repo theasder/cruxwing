@@ -30,60 +30,51 @@ struct RenderedRussianTests {
     }
 
     /// Марки, адреса и технические имена — не непереведённый текст.
-    private static let allowed: Set<String> = [
-        "github", "notion", "linear", "jira", "asana", "zapier", "sentry",
-        "fireflies", "zoom", "gmail", "google", "kaiten", "yougile", "slack",
-        "confluence", "hubspot", "attio", "posthog", "amplitude", "mixpanel",
-        "intercom", "atlassian", "openai", "anthropic", "claude", "gpt",
-        "gemini", "deepseek", "qwen", "kimi", "glm", "yandexgpt", "whisper",
-        "deepgram", "assemblyai", "parakeet", "docx", "word", "docs", "api",
-        "mcp", "oauth", "url", "macos", "screencapturekit", "calendar",
-        "workspace", "slides", "forms",
-        "orakul", "cruxwing", "wav", "png", "json", "rice", "arr", "kubernetes",
-        "tech", "debt", "term", "sheet", "cap", "table", "sla", "wer", "key",
-        "keys", "get", "com", "platform", "console", "aistudio", "dashscope",
-        "aliyun", "moonshot", "yandex", "cloud", "folder",
-        // Названия моделей — марки, а не непереведённый текст: «Zhipu GLM»,
-        // «GPT-5.6 Sol», «large-v3». Переводить их значит называть чужой
-        // продукт не тем именем, под которым он существует.
-        "zhipu", "sol", "mini", "flash", "pro", "opus", "sonnet", "haiku",
-        "large", "small", "base", "turbo", "lite", "max", "plus",
-        // Мессенджеры — тоже марки: «Rocket.Chat» переводить некуда.
-        "mattermost", "rocket", "chat", "telegram", "teams", "bot",
-        // Открытые трекеры: тоже марки.
-        "gitlab", "gitea", "forgejo", "zulip", "pachca",
-        "redmine", "outline", "matrix", "element",
+    /// The interface is migrating to English screen by screen (ROADMAP §6.4), so
+    /// each screen carries a number that may only fall. Equality, not `<=`: a
+    /// ceiling nobody lowers stops meaning anything, and a new Russian string
+    /// has to be explained exactly as much as a missed one.
+    static let settingsTabsRussian: [SettingsTab: Int] = [
+        .general: 3, .transcription: 4, .connectedApps: 18,
     ]
+    static let firstRunRussian = 0
+    static let mainWindowRussian = 341
+    static let keysAndTrackersRussian = 0
 
-    /// Латинская фраза: два и более слова длиннее двух букв, и хотя бы одно из
-    /// них — не марка. Одиночные слова и адреса так не ловятся, и не должны.
-    private func isEnglishSentence(_ text: String) -> Bool {
-        guard text.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) == nil
-        else { return false }
-        // Адрес — не непереведённая фраза. В отладочной сборке на вкладке
-        // подключений показывается адрес MCP из `.env`
-        // (`http://localhost:8787/mcp`), и переводить в нём нечего.
-        guard !text.contains("://") else { return false }
-        let words = text
-            .components(separatedBy: CharacterSet(charactersIn:
-                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").inverted)
-            .filter { $0.count > 2 }
-        guard words.count >= 2 else { return false }
-        return !words.allSatisfy { Self.allowed.contains($0.lowercased()) }
+    private func expectRussianCount(_ left: [String], _ pinned: Int, _ what: String) {
+        let sample = left.sorted().prefix(4).joined(separator: " | ")
+        #expect(left.count == pinned,
+                "\(what): \(left.count) strings still Russian, pinned at \(pinned). \(sample)")
     }
 
-    @Test("на вкладках настроек нет английских фраз",
+    /// Vendor names are how their owners spell them, not untranslated copy.
+    /// «Пачка» on a settings tab is the messenger's name; translating it would
+    /// name a product that does not exist.
+    private static let keptRussian = [
+        "Пачка", "Яндекс", "Битрикс", "Трекер", "Вики",
+    ]
+
+    /// A string rendered on screen that is still Russian.
+    private func isRussianSentence(_ text: String) -> Bool {
+        var rest = text
+        for name in Self.keptRussian {
+            rest = rest.replacingOccurrences(of: name, with: "")
+        }
+        return rest.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
+    @Test("no Russian phrases are left on the settings tabs",
           arguments: [SettingsTab.general, .transcription, .ai,
                       .connectedApps, .accountPrivacy])
     func settingsTabsAreRussian(tab: SettingsTab) throws {
         let strings = try settingsText(tab)
         #expect(!strings.isEmpty, "вкладка \(tab) не отрисовалась — проверка была бы фиктивной")
 
-        let english = strings.filter(isEnglishSentence)
-        #expect(english.isEmpty, "вкладка \(tab): \(english.joined(separator: " | "))")
+        expectRussianCount(strings.filter(isRussianSentence),
+                           Self.settingsTabsRussian[tab] ?? 0, "settings tab \(tab)")
     }
 
-    @Test("на экранах первого запуска нет английских фраз")
+    @Test("no Russian phrases are left on the first-run screens")
     func firstRunScreensAreRussian() throws {
         // Это первое, что видит человек, и на этих экранах уже находились
         // английские подписи, которые счётчик по исходникам не показывал: он
@@ -108,15 +99,16 @@ struct RenderedRussianTests {
                 .findAll(ViewType.Text.self).compactMap { try? $0.string() }),
         ]
 
+        var left: [String] = []
         for (name, strings) in screens {
             #expect(!strings.isEmpty, "\(name) не отрисовался — проверка была бы фиктивной")
-            let english = strings.filter(isEnglishSentence)
-            #expect(english.isEmpty, "\(name): \(english.joined(separator: " | "))")
+            left += strings.filter(isRussianSentence)
         }
+        expectRussianCount(left, Self.firstRunRussian, "first-run screens")
     }
 
 
-    @Test("в главном окне нет английских фраз")
+    @Test("no Russian phrases are left in the main window")
     func mainWindowIsRussian() throws {
         // Архив звонков берётся из временной папки, а не из настоящего.
         //
@@ -160,14 +152,15 @@ struct RenderedRussianTests {
                 .findAll(ViewType.Text.self).compactMap { try? $0.string() }),
         ]
 
+        var left: [String] = []
         for (name, strings) in screens {
             #expect(!strings.isEmpty, "\(name) не отрисовалась — проверка была бы фиктивной")
-            let english = strings.filter(isEnglishSentence)
-            #expect(english.isEmpty, "\(name): \(english.joined(separator: " | "))")
+            left += strings.filter(isRussianSentence)
         }
+        expectRussianCount(left, Self.mainWindowRussian, "main window")
     }
 
-    @Test("экраны ключей и трекеров по-русски")
+    @Test("the keys and trackers screens are in English")
     func keysAndTrackersAreRussian() throws {
         // Два экрана, ради которых orakul вообще открывают: куда вставить ключ
         // и как подключить трекер.
@@ -191,46 +184,48 @@ struct RenderedRussianTests {
                 .findAll(ViewType.Text.self).compactMap { try? $0.string() }),
         ]
 
+        var left: [String] = []
         for (name, minimum, strings) in screens {
             #expect(strings.count >= minimum,
                     "\(name): отрисовано \(strings.count) строк вместо \(minimum)+ — проверка пустая")
-            let english = strings.filter(isEnglishSentence)
-            #expect(english.isEmpty, "\(name): \(english.joined(separator: " | "))")
+            left += strings.filter(isRussianSentence)
         }
+        expectRussianCount(left, Self.keysAndTrackersRussian, "keys and trackers")
     }
 
-    @Test("тип записи на плашке по-русски, а в промпте остаётся английским")
+    @Test("the recording type keeps one label for the screen and one for the prompt")
     func recordingTypeLabelsSplitByAudience() {
         // Одно поле служило двум хозяевам: `label` показывался на плашке записи
         // И подставлялся в модельный промпт «Recording type: …». Пока они были
         // одним значением, перевести экран значило сломать промпт, и тип записи
         // так и оставался английским. Теперь их два, и проверяются оба.
         for kind in RecordingContextKind.allCases {
-            #expect(kind.displayLabel.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) != nil,
-                    "тип записи не по-русски: \(kind) → \(kind.displayLabel)")
+            #expect(kind.displayLabel.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "the recording type is still Russian: \(kind) → \(kind.displayLabel)")
             #expect(kind.label.range(of: "^[A-Za-z / ]+$", options: .regularExpression) != nil,
                     "промпт получит не то имя: \(kind) → \(kind.label)")
         }
 
         // И то, что видит человек, идёт из русского поля.
         let selection = RecordingContextSelection(mode: .lecture)
-        #expect(selection.resolvedDisplayLabel(detected: .meeting) == "Лекция")
+        #expect(selection.resolvedDisplayLabel(detected: .meeting) == "Lecture")
         #expect(selection.resolvedLabel(detected: .meeting) == "Lecture")
     }
 
 
-    @Test("проверка ловит английский, а не пропускает всё подряд")
-    func theCheckActuallyCatchesEnglish() {
-        // Без этого предыдущий тест зелёный и со сломанным фильтром. Такое тут
-        // уже было: проверка на подстроку проходила с удалённой защитой.
-        #expect(isEnglishSentence("Save the answer as a Word document"))
-        #expect(isEnglishSentence("Needs attention"))
-        #expect(isEnglishSentence("Hide this meeting"))
+    @Test("the check catches Russian rather than passing everything")
+    func theCheckActuallyCatchesRussian() {
+        // Without this the tests above stay green with a broken filter. That
+        // has happened here before: a substring check passed with the guard
+        // it was protecting deleted.
+        #expect(isRussianSentence("Сохранить ответ документом Word"))
+        #expect(isRussianSentence("Требует внимания"))
+        #expect(isRussianSentence("Скрыть эту встречу"))
 
-        // И не ругается на то, что переводить нельзя.
-        #expect(!isEnglishSentence("Яндекс Трекер"))
-        #expect(!isEnglishSentence("platform.openai.com"))
-        #expect(!isEnglishSentence("Google Calendar"))
-        #expect(!isEnglishSentence("Ключ для OpenAI"))
+        // And it does not complain about what must not be translated.
+        #expect(!isRussianSentence("Яндекс Трекер"))
+        #expect(!isRussianSentence("platform.openai.com"))
+        #expect(!isRussianSentence("Google Calendar"))
+        #expect(!isRussianSentence("A key for OpenAI"))
     }
 }

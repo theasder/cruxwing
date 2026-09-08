@@ -28,7 +28,7 @@ struct ModelSelectionRows: View {
         case LLMCatalog.councilUS:
             return "Совет моделей · США: параллельно спрашиваются настроенные американские провайдеры (OpenAI, Anthropic, Google), ответы сводятся в один. Данные остаются у американских компаний."
         case LLMCatalog.councilCN:
-            return "Совет моделей · Китай: параллельно спрашиваются настроенные китайские провайдеры (DeepSeek, Qwen, Zhipu, Moonshot). Содержимое звонка уходит к ним."
+            return "Council of models · China: the configured Chinese providers (DeepSeek, Qwen, Zhipu, Moonshot) are asked in parallel. The call's content goes to them."
         default:
             if provider == LLMCatalog.autoID, tier == .premium {
                 return "На самых сложных запросах «Авто» может собрать совет из моделей США и Китая. Выберите «Совет моделей · США», чтобы данные уходили только американским провайдерам."
@@ -40,7 +40,7 @@ struct ModelSelectionRows: View {
     var body: some View {
         row(label: "Provider", icon: "building.2") {
             Picker("", selection: $provider) {
-                Text("Автоматически · все поставщики (рекомендуем)").tag(LLMCatalog.autoID)
+                Text("Automatic · every provider (recommended)").tag(LLMCatalog.autoID)
 
                 // Price-tiered orchestration councils — multi-model panels the
                 // backend runs, gated by the caller's tariff (strongest first).
@@ -49,17 +49,17 @@ struct ModelSelectionRows: View {
                     if !levels.isEmpty {
                         Divider()
                         ForEach(levels.reversed()) { level in
-                            Text("Совет моделей · \(level.label) — \(level.blurb)")
+                            Text("Council of models · \(level.label) — \(level.blurb)")
                                 .tag(level.selectionID)
                         }
                     }
                 }
                 // Single-jurisdiction councils (direct-key builds only).
                 if LLMCatalog.councilAvailable(.us, for: tier) {
-                    Text("Совет · США 🇺🇸 (GPT + Claude + Gemini)").tag(LLMCatalog.councilUS)
+                    Text("Council · USA 🇺🇸 (GPT + Claude + Gemini)").tag(LLMCatalog.councilUS)
                 }
                 if LLMCatalog.councilAvailable(.china, for: tier) {
-                    Text("Совет · Китай 🇨🇳 (DeepSeek + Qwen и другие)").tag(LLMCatalog.councilCN)
+                    Text("Council · China 🇨🇳 (DeepSeek + Qwen and others)").tag(LLMCatalog.councilCN)
                 }
 
                 if !providers.isEmpty { Divider() }
@@ -74,7 +74,7 @@ struct ModelSelectionRows: View {
                 version = LLMCatalog.autoID          // provider change resets version
                 Config.selectedVersion = version
             }
-            .accessibilityLabel("Поставщик модели")
+            .accessibilityLabel("Model provider")
             .accessibilityIdentifier("settings.ai.provider")
         }
         .onAppear {
@@ -85,7 +85,7 @@ struct ModelSelectionRows: View {
         if let pinned {
             row(label: "Version", icon: "number") {
                 Picker("", selection: $version) {
-                    Text("Автоматически · самая стабильная").tag(LLMCatalog.autoID)
+                    Text("Automatic · the most stable").tag(LLMCatalog.autoID)
                     Divider()
                     ForEach(LLMCatalog.versions(of: pinned, for: tier)) { model in
                         Text(model.label).tag(model.id)
@@ -93,13 +93,13 @@ struct ModelSelectionRows: View {
                 }
                 .labelsHidden().pickerStyle(.menu).fixedSize()
                 .onChange(of: version) { Config.selectedVersion = $1 }
-                .accessibilityLabel("Версия модели")
+                .accessibilityLabel("Model version")
                 .accessibilityIdentifier("settings.ai.model-version")
             }
         }
 
         if providers.isEmpty {
-            Text("Пока не вставлен ни один ключ. Добавьте его выше — «Ключи провайдеров» — и модели этого провайдера появятся здесь.")
+            Text("No key has been pasted yet. Add one above — «Provider keys» — and that provider's models appear here.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.accentText)
         }

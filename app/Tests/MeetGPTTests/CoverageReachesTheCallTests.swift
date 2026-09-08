@@ -40,7 +40,7 @@ import OrakulCore
         let text = MCPConnectionManager.withCoverage("#1 Тарифы",
                                              note: SearchCoverage.cached(seconds: 60, under: .service).note(),
                                              limit: 4000)
-        #expect(text.contains("из памяти"), "про память не сказано: \(text)")
+        #expect(text.contains("from memory"), "про память не сказано: \(text)")
     }
 
     @Test("приписка не теряется, когда находок много")

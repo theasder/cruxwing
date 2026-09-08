@@ -282,7 +282,7 @@ private struct HistorySection: View {
             .confirmationDialog("Удалить всю историю?", isPresented: $confirmClear) {
                 Button("Удалить все звонки: \(state.savedSessions.count)",
                        role: .destructive) { state.clearAllHistory() }
-                Button("Отмена", role: .cancel) {}
+                Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Все сохранённые звонки на этом компьютере будут удалены навсегда. Отменить это нельзя.")
             }
@@ -410,7 +410,7 @@ struct SidebarFooter: View {
 
     var body: some View {
         HStack(spacing: Space.s) {
-            // Idle needs no chip ("Готово" was redundant with the pill), and
+            // Idle needs no chip ("Done" was redundant with the pill), and
             // .recording needs none either — the red record pill above already
             // says it (operator request: drop the bottom-left Recording label).
             if state.status != .idle, state.status != .recording { statusChip }
@@ -433,7 +433,7 @@ struct SidebarFooter: View {
                 Menu {
                     Text(state.wheesprEmail ?? "Signed in").font(Typo.caption)
                     Divider()
-                    Button("Выйти") { state.signOutWheespr() }
+                    Button("Sign out") { state.signOutWheespr() }
                 } label: {
                     Image(systemName: "person.crop.circle.badge.checkmark")
                 }
@@ -449,7 +449,7 @@ struct SidebarFooter: View {
                     Image(systemName: "person.crop.circle")
                 }
                 .buttonStyle(IconButtonStyle())
-                .accessibilityLabel("Войти")
+                .accessibilityLabel("Sign in")
                 .help("Войти в аккаунт")
             }
         }
@@ -506,8 +506,8 @@ struct SidebarFooter: View {
 
     private var statusLabel: String {
         switch state.status {
-        case .idle: return "Готово"
-        case .starting: return "Запускаю…"
+        case .idle: return "Done"
+        case .starting: return "Starting…"
         case .recording: return "Идёт запись"
         case .paused: return "Пауза"
         case .stopping: return "Останавливаю…"

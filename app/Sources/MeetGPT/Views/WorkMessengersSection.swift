@@ -38,13 +38,13 @@ private struct TelegramSupergroupRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack(spacing: Space.s) {
-                Label("Telegram — супергруппы",
+                Label("Telegram — supergroups",
                       systemImage: isConfigured ? "checkmark.seal.fill" : "paperplane")
                     .labelStyle(ConnectedRowLabelStyle())
                     .lineLimit(1)
                 Spacer()
                 if isConfigured {
-                    Button("Отключить") {
+                    Button("Disconnect") {
                         Task {
                             isSaving = true
                             defer { isSaving = false }
@@ -54,7 +54,7 @@ private struct TelegramSupergroupRow: View {
                                 load()
                             } catch {
                                 isExpanded = true
-                                errorText = "Не удалось удалить локальный архив Telegram. Подключение и токен оставлены; попробуйте ещё раз."
+                                errorText = "Could not delete the local Telegram archive. The connection and the token were kept; try again."
                             }
                         }
                     }
@@ -62,7 +62,7 @@ private struct TelegramSupergroupRow: View {
                     .disabled(isSaving)
                     .accessibilityIdentifier("settings.messenger.telegram.disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isConfigured ? "Изменить" : "Подключить")) {
+                Button(isExpanded ? "Collapse" : (isConfigured ? "Edit" : "Connect")) {
                     isExpanded.toggle()
                     errorText = nil
                 }
@@ -72,33 +72,33 @@ private struct TelegramSupergroupRow: View {
             }
 
             if isExpanded {
-                Text("Создайте отдельного бота через BotFather и добавьте его в выбранные супергруппы. Отключите режим приватности или сделайте бота администратором.")
+                Text("Create a separate bot through BotFather and add it to the supergroups you choose. Turn off privacy mode, or make the bot an administrator.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                SecureField("", text: $token, prompt: Text("токен бота"))
+                SecureField("", text: $token, prompt: Text("bot token"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Токен Telegram-бота")
+                    .accessibilityLabel("Telegram bot token")
                     .accessibilityIdentifier("settings.messenger.telegram.token")
 
                 TextField("", text: $chatIDs,
-                          prompt: Text("ID супергрупп через запятую, например -100123…"))
+                          prompt: Text("Supergroup ids separated by commas, for example -100123…"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Разрешённые ID супергрупп Telegram")
+                    .accessibilityLabel("Allowed Telegram supergroup ids")
                     .accessibilityIdentifier("settings.messenger.telegram.chatIDs")
 
-                Text("История начинается после подключения: Bot API не отдаёт старые сообщения. Orakul только получает и локально ищет новые сообщения из указанных супергрупп; сам ничего в Telegram не отправляет.")
+                Text("History starts at the moment you connect: the Bot API does not hand over old messages. Orakul only receives and locally searches new messages from the supergroups you named; it sends nothing to Telegram itself.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -112,7 +112,7 @@ private struct TelegramSupergroupRow: View {
                 }
 
                 HStack {
-                    Button(isSaving ? "Проверяем…" : "Проверить и сохранить") { save() }
+                    Button(isSaving ? "Checking…" : "Check and save") { save() }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(!canSave || isSaving)
                         .accessibilityIdentifier("settings.messenger.telegram.save")
@@ -140,7 +140,7 @@ private struct TelegramSupergroupRow: View {
 
     private func save() {
         guard let parsedChatIDs, !parsedChatIDs.isEmpty else {
-            errorText = "Укажите числовые ID супергрупп через запятую."
+            errorText = "Give numeric supergroup ids separated by commas."
             return
         }
         isSaving = true
@@ -156,7 +156,7 @@ private struct TelegramSupergroupRow: View {
             } catch {
                 isSaving = false
                 errorText = (error as? LocalizedError)?.errorDescription
-                    ?? "Не удалось проверить подключение Telegram."
+                    ?? "Could not verify the Telegram connection."
             }
         }
     }
@@ -186,11 +186,11 @@ private struct WorkMessengerRow: View {
                     .lineLimit(1)
                 Spacer()
                 if isConfigured {
-                    Button("Отключить") { disconnect() }
+                    Button("Disconnect") { disconnect() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.messenger.\(service.rawValue).disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isConfigured ? "Изменить" : "Подключить")) {
+                Button(isExpanded ? "Collapse" : (isConfigured ? "Edit" : "Connect")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -204,7 +204,7 @@ private struct WorkMessengerRow: View {
             // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
             // стороны: доступ отзывают молча, и молчит тогда наш экран.
             if let refusal {
-                Text("Последний отказ: \(refusal.words)")
+                Text("Last refusal: \(refusal.words)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -216,14 +216,14 @@ private struct WorkMessengerRow: View {
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                SecureField("", text: $token, prompt: Text("токен"))
+                SecureField("", text: $token, prompt: Text("token"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Токен \(service.title)")
+                    .accessibilityLabel("\(service.title) token")
                     .accessibilityIdentifier("settings.messenger.\(service.rawValue).token")
 
                 if service.needsSecondary {
@@ -252,19 +252,19 @@ private struct WorkMessengerRow: View {
                         .padding(.vertical, 6)
                         .background(Theme.surfaceSunken,
                                     in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                        .accessibilityLabel("Где искать — \(service.title)")
+                        .accessibilityLabel("Where to search — \(service.title)")
                         .accessibilityIdentifier("settings.messenger.\(service.rawValue).scope")
                 }
 
                 Text(service.needsScope
-                     ? "Поиск идёт только там, где указано."
-                     : "Поиск идёт по всем вашим чатам.")
+                     ? "The search runs only where you said."
+                     : "The search runs across all your chats.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack {
-                    Button("Сохранить") { save() }
+                    Button("Save") { save() }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(!canSave)
                         .accessibilityIdentifier("settings.messenger.\(service.rawValue).save")

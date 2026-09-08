@@ -57,7 +57,7 @@ private struct GitHubRow: View {
                     .lineLimit(1)
                 Spacer()
                 if isReady {
-                    Button("Отключить") {
+                    Button("Disconnect") {
                         store.removeGitHub()
                         token = ""; repositories = ""
                         load()
@@ -65,7 +65,7 @@ private struct GitHubRow: View {
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.github.disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isReady ? "Изменить" : "Подключить")) { toggle() }
+                Button(isExpanded ? "Collapse" : (isReady ? "Edit" : "Connect")) { toggle() }
                     .buttonStyle(QuietButtonStyle())
                     .accessibilityIdentifier("settings.github.connect")
             }
@@ -74,7 +74,7 @@ private struct GitHubRow: View {
             // отозванный токен выглядел как «ничего не нашлось» — то есть как
             // продукт, который стал хуже отвечать.
             if let refusal {
-                Text("Последний отказ: \(refusal.words)")
+                Text("Last refusal: \(refusal.words)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -84,12 +84,12 @@ private struct GitHubRow: View {
                 Text(GitHubConnector.credentialHint)
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
 
-                SecureField("", text: $token, prompt: Text("токен"))
+                SecureField("", text: $token, prompt: Text("token"))
                     .textFieldStyle(.plain).font(Typo.callout)
                     .padding(.horizontal, Space.s).padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Токен GitHub")
+                    .accessibilityLabel("GitHub token")
                     .accessibilityIdentifier("settings.github.token")
 
                 // Без репозиториев поиск ушёл бы по всему GitHub и принёс чужие
@@ -100,11 +100,11 @@ private struct GitHubRow: View {
                     .padding(.horizontal, Space.s).padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Репозитории GitHub")
+                    .accessibilityLabel("GitHub repositories")
                     .accessibilityIdentifier("settings.github.repos")
 
                 HStack {
-                    Button("Сохранить") {
+                    Button("Save") {
                         store.setGitHubToken(token)
                         store.setGitHubRepositories(repositories)
                         token = ""
@@ -160,11 +160,11 @@ private struct RussianTrackerRow: View {
                     .lineLimit(1)
                 Spacer()
                 if isConfigured {
-                    Button("Отключить") { disconnect() }
+                    Button("Disconnect") { disconnect() }
                         .buttonStyle(QuietButtonStyle())
                         .accessibilityIdentifier("settings.tracker.\(service.rawValue).disconnect")
                 }
-                Button(isExpanded ? "Свернуть" : (isConfigured ? "Изменить" : "Подключить")) {
+                Button(isExpanded ? "Collapse" : (isConfigured ? "Edit" : "Connect")) {
                     toggle()
                 }
                 .buttonStyle(QuietButtonStyle())
@@ -178,7 +178,7 @@ private struct RussianTrackerRow: View {
             // продукт, который стал хуже отвечать. Это ещё и рычаг чужой
             // стороны: доступ отзывают молча, и молчит тогда наш экран.
             if let refusal {
-                Text("Последний отказ: \(refusal.words)")
+                Text("Last refusal: \(refusal.words)")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.amber)
                     .fixedSize(horizontal: false, vertical: true)
@@ -189,14 +189,14 @@ private struct RussianTrackerRow: View {
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
 
-                SecureField("", text: $token, prompt: Text("токен"))
+                SecureField("", text: $token, prompt: Text("token"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
                     .padding(.horizontal, Space.s)
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Токен \(service.title)")
+                    .accessibilityLabel("\(service.title) token")
                     .accessibilityIdentifier("settings.tracker.\(service.rawValue).token")
 
                 if service.needsSecondary {
@@ -224,17 +224,17 @@ private struct RussianTrackerRow: View {
                     .padding(.vertical, 6)
                     .background(Theme.surfaceSunken,
                                 in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                    .accessibilityLabel("Куда заводить задачи — \(service.title)")
+                    .accessibilityLabel("Where to create tasks — \(service.title)")
                     .accessibilityIdentifier("settings.tracker.\(service.rawValue).destination")
 
                 Text(destination.trimmingCharacters(in: .whitespaces).isEmpty
-                     ? "Без этого поля трекер подключится только на чтение."
-                     : "Задачи со звонка будут заводиться сюда.")
+                     ? "Without this field the tracker connects read-only."
+                     : "Tasks from a call will be created here.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
 
                 HStack {
-                    Button("Сохранить") { save() }
+                    Button("Save") { save() }
                         .buttonStyle(QuietButtonStyle())
                         .disabled(!canSave)
                         .accessibilityIdentifier("settings.tracker.\(service.rawValue).save")

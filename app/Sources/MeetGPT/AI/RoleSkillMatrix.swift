@@ -13,22 +13,22 @@ enum RoleSkillMatrix {
     /// Explicit first-party UI choices. Keeping this small table in compiled
     /// source avoids a second, independently mutable prompt-data corpus.
     static let positions: [RolePosition] = [
-        .init(id: "founder-ceo", label: "Основатель / гендиректор", symbol: "star.circle"),
-        .init(id: "product-manager", label: "Продакт-менеджер", symbol: "shippingbox"),
-        .init(id: "sales-ae", label: "Продажи / аккаунт-менеджер", symbol: "dollarsign.circle"),
-        .init(id: "marketing-manager", label: "Маркетинг", symbol: "megaphone"),
-        .init(id: "ops-lead", label: "BizOps / операционный директор", symbol: "gearshape"),
+        .init(id: "founder-ceo", label: "Founder / CEO", symbol: "star.circle"),
+        .init(id: "product-manager", label: "Product manager", symbol: "shippingbox"),
+        .init(id: "sales-ae", label: "Sales / account manager", symbol: "dollarsign.circle"),
+        .init(id: "marketing-manager", label: "Marketing", symbol: "megaphone"),
+        .init(id: "ops-lead", label: "BizOps / COO", symbol: "gearshape"),
         .init(
-            id: "tech-lead", label: "Инженер / техлид",
+            id: "tech-lead", label: "Engineer / tech lead",
             symbol: "chevron.left.forwardslash.chevron.right"),
         .init(
-            id: "engineering-manager", label: "Руководитель разработки",
+            id: "engineering-manager", label: "Engineering manager",
             symbol: "wrench.and.screwdriver"),
         .init(
-            id: "customer-success", label: "Клиентский успех",
+            id: "customer-success", label: "Customer success",
             symbol: "heart.text.square"),
-        .init(id: "project-manager", label: "Проектный менеджер", symbol: "checklist"),
-        .init(id: "recruiter-hr", label: "Рекрутинг / HR", symbol: "person.badge.plus"),
+        .init(id: "project-manager", label: "Project manager", symbol: "checklist"),
+        .init(id: "recruiter-hr", label: "Recruiting / HR", symbol: "person.badge.plus"),
     ]
 
     static func position(id: String?) -> RolePosition? {

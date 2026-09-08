@@ -10,11 +10,11 @@ struct FactCheckSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             HStack(spacing: Space.s) {
-                Label("Проверка фактов", systemImage: "checkmark.seal")
+                Label("Fact check", systemImage: "checkmark.seal")
                     .font(Typo.title).foregroundStyle(Theme.ink)
                 if state.factChecking { BreathingDots(tint: Theme.accent) }
                 Spacer()
-                Button("Готово") { dismiss() }.buttonStyle(QuietButtonStyle())
+                Button("Done") { dismiss() }.buttonStyle(QuietButtonStyle())
             }
             Text("Утверждения со звонка, проверенные только по тому контексту, который вы приложили.")
                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)

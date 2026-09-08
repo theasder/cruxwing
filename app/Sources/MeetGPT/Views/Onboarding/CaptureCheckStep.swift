@@ -89,13 +89,13 @@ struct CaptureCheckStep: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Label("Проверим, что orakul слышит комнату.",
+            Label("Let us check that orakul can hear the room.",
                   systemImage: "waveform")
                 .font(Typo.title).foregroundStyle(Theme.ink)
             // Deliberately does NOT restate the duration. The capture-check row
             // says "Six seconds" right next to the button that spends them, and
             // saying it twice two lines apart reads as a mistake, not emphasis.
-            Text("Два разрешения и короткая проверка. Бот в звонок не заходит — orakul слушает на этом компьютере.")
+            Text("Two permissions and a short check. No bot joins the call — orakul listens on this computer.")
                 .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -105,8 +105,8 @@ struct CaptureCheckStep: View {
         VStack(spacing: Space.s) {
             PermissionRow(
                 icon: "mic.fill",
-                title: "Микрофон",
-                detail: "Ваша половина разговора.",
+                title: "Microphone",
+                detail: "Your half of the conversation.",
                 granted: state.micGranted,
                 kind: .microphone,
                 alreadyAsked: askedMicrophone,
@@ -117,8 +117,8 @@ struct CaptureCheckStep: View {
 
             PermissionRow(
                 icon: "rectangle.on.rectangle",
-                title: "Запись экрана",
-                detail: "Звук собеседников — через ScreenCaptureKit. Снимки экрана не делаются.",
+                title: "Screen recording",
+                detail: "The other party's audio comes through ScreenCaptureKit. No screenshots are taken.",
                 granted: state.screenRecordingGranted,
                 kind: .screenRecording,
                 alreadyAsked: askedScreenRecording,
@@ -155,13 +155,13 @@ struct CaptureCheckStep: View {
             // ограничений»: первая строка, которую видит новый человек, начиналась
             // с упоминания входа, которого в orakul нет. Отвечала на вопрос,
             // которого он не задавал, и подсказывала, что где-то есть аккаунт.
-            Text("Аккаунта нет и не нужно — расшифровка идёт на этом компьютере, без ограничений.")
+            Text("There is no account and none is needed — transcription runs on this computer, with no limits.")
                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: Space.s)
-            Button("Продолжить", action: onContinue)
+            Button("Continue", action: onContinue)
                 .buttonStyle(PrimaryButtonStyle())
-                .accessibilityLabel("Продолжить")
+                .accessibilityLabel("Continue")
         }
     }
 }
@@ -180,25 +180,25 @@ private struct PermissionRow: View {
         OnboardingRow(icon: icon, title: title, detail: detail) {
             switch PermissionPrompt.action(granted: granted, alreadyAsked: alreadyAsked) {
             case nil:
-                Label("Выдано", systemImage: "checkmark.circle.fill")
+                Label("Granted", systemImage: "checkmark.circle.fill")
                     .font(Typo.caption.weight(.medium))
                     .foregroundStyle(Theme.speakerYou)
                     .labelStyle(.titleAndIcon)
-                    .accessibilityLabel("Разрешено: \(title)")
+                    .accessibilityLabel("Granted: \(title)")
             case .request:
-                Button("Включить", action: action)
+                Button("Enable", action: action)
                     .buttonStyle(QuietButtonStyle())
-                    .accessibilityLabel("Разрешить: \(title)")
+                    .accessibilityLabel("Allow: \(title)")
             case .openSettings:
                 // macOS will not prompt a second time, so pressing Enable again
                 // would do nothing at all. Send them where the toggle lives.
-                Button("Открыть системные настройки") {
+                Button("Open System Settings") {
                     if let url = PermissionPrompt.settingsURL(for: kind) {
                         NSWorkspace.shared.open(url)
                     }
                 }
                 .buttonStyle(QuietButtonStyle())
-                .accessibilityLabel("Открыть системные настройки: \(title)")
+                .accessibilityLabel("Open System Settings: \(title)")
             }
         }
     }
@@ -213,11 +213,11 @@ private struct CaptureCheckRow: View {
 
     private var status: (text: String, tint: Color) {
         switch probe.verdict {
-        case .pass:       return ("Слышно оба источника", Theme.speakerYou)
-        case .micOnly:    return ("Нет звука собеседников", Theme.amber)
-        case .systemOnly: return ("Нет микрофона", Theme.amber)
-        case .silent:     return ("Ничего не слышно", Theme.amber)
-        case nil:         return (probe.isRunning ? "Слушаю…" : "Проверка не запускалась",
+        case .pass:       return ("Both sources are audible", Theme.speakerYou)
+        case .micOnly:    return ("No audio from the other party", Theme.amber)
+        case .systemOnly: return ("No microphone", Theme.amber)
+        case .silent:     return ("Nothing is audible", Theme.amber)
+        case nil:         return (probe.isRunning ? "Listening…" : "The check has not been run",
                                   Theme.inkTertiary)
         }
     }
@@ -225,29 +225,29 @@ private struct CaptureCheckRow: View {
     var body: some View {
         OnboardingRow(
             icon: "waveform.badge.magnifyingglass",
-            title: "Проверка захвата",
+            title: "Capture check",
             detail: probe.isRunning
-                ? "Скажите что-нибудь и включите любой звук — видео, песню."
-                : "Шесть секунд. Покажет, что оба источника слышны, ещё до первого звонка.",
+                ? "Say something and play any sound — a video, a song."
+                : "Six seconds. It shows both sources are audible before your first call.",
             trailing: {
                 if probe.isRunning {
                     ProgressView().controlSize(.small)
                 } else {
-                    Button(probe.verdict == nil ? "Проверить" : "Ещё раз", action: start)
+                    Button(probe.verdict == nil ? "Check" : "Again", action: start)
                         .buttonStyle(QuietButtonStyle())
-                        .accessibilityLabel("Проверить захват звука")
+                        .accessibilityLabel("Check audio capture")
                 }
             },
             footer: {
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    ProbeMeter(label: "Вы", level: probe.micLevel,
+                    ProbeMeter(label: "You", level: probe.micLevel,
                                peak: probe.micPeak, tint: Theme.speakerYou)
-                    ProbeMeter(label: "Собеседники", level: probe.systemLevel,
+                    ProbeMeter(label: "The other party", level: probe.systemLevel,
                                peak: probe.systemPeak, tint: Theme.speakerThem)
                     Text(status.text)
                         .font(Typo.caption.weight(.medium))
                         .foregroundStyle(status.tint)
-                        .accessibilityLabel("Проверка захвата: \(status.text)")
+                        .accessibilityLabel("Capture check: \(status.text)")
                     if let failure = probe.startFailure {
                         Text(failure)
                             .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
@@ -317,12 +317,12 @@ struct AdviceRow: View {
             OnboardingRow(
                 icon: "arrow.clockwise.circle",
                 iconTint: Theme.amber,
-                title: "macOS ещё не применила разрешение на запись экрана",
-                detail: "Особенность macOS, а не ошибка orakul: разрешение начинает действовать со следующего запуска. Ничего не потеряется."
+                title: "macOS has not applied the screen-recording permission yet",
+                detail: "This is how macOS behaves, not an orakul bug: the permission takes effect from the next launch. Nothing is lost."
             ) {
-                Button("Выйти и открыть заново") { relaunch() }
+                Button("Quit and open again") { relaunch() }
                     .buttonStyle(QuietButtonStyle(prominent: true))
-                    .accessibilityLabel("Выйти и открыть orakul заново")
+                    .accessibilityLabel("Quit and open orakul again")
             }
 
         case .regrant:
@@ -333,16 +333,16 @@ struct AdviceRow: View {
             OnboardingRow(
                 icon: "exclamationmark.triangle",
                 iconTint: Theme.amber,
-                title: "Перезапуск не помог — разрешение придётся выдать заново",
-                detail: "Так бывает, когда разрешение записано за прежнюю версию orakul: после обновления или когда рядом лежит вторая копия программы. Откройте настройки, снимите галочку у orakul, поставьте её снова — и запустите orakul заново."
+                title: "Restarting did not help — the permission has to be granted again",
+                detail: "This happens when the permission is recorded against an older version of orakul: after an update, or when a second copy of the program sits alongside it. Open Settings, clear the orakul checkbox, tick it again, and launch orakul once more."
             ) {
-                Button("Открыть системные настройки") {
+                Button("Open System Settings") {
                     if let url = PermissionPrompt.settingsURL(for: .screenRecording) {
                         NSWorkspace.shared.open(url)
                     }
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))
-                .accessibilityLabel("Открыть системные настройки: запись экрана")
+                .accessibilityLabel("Open System Settings: screen recording")
             }
 
         case .moveToApplications:
@@ -354,14 +354,14 @@ struct AdviceRow: View {
             OnboardingRow(
                 icon: "folder.badge.gearshape",
                 iconTint: Theme.amber,
-                title: "Перенесите orakul в «Программы»",
-                detail: "Сейчас orakul запущен из образа или из «Загрузок». macOS запускает такие программы из временной копии со случайным адресом, а разрешение помнит по адресу — поэтому оно и не сохраняется между запусками. Перетащите orakul в «Программы», запустите оттуда и выдайте разрешение заново."
+                title: "Move orakul to Applications",
+                detail: "orakul is running from a disk image or from Downloads. macOS launches such programs from a temporary copy at a random path, and remembers the permission by path — which is why it does not survive between launches. Drag orakul into Applications, launch it from there, and grant the permission again."
             ) {
-                Button("Показать в Finder") {
+                Button("Show in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))
-                .accessibilityLabel("Показать orakul в Finder")
+                .accessibilityLabel("Show orakul in Finder")
             }
 
         case .noSoundPlaying:
@@ -370,8 +370,8 @@ struct AdviceRow: View {
             OnboardingRow(
                 icon: "speaker.slash",
                 iconTint: Theme.inkTertiary,
-                title: "Звука собеседников не было слышно",
-                detail: "Запись экрана работает — orakul подключился к системному звуку без ошибок. Похоже, в эти шесть секунд ничего не играло. Включите видео или песню погромче и нажмите «Ещё раз»."
+                title: "No audio from the other party was heard",
+                detail: "Screen recording works — orakul attached to the system audio without error. It looks like nothing was playing during those six seconds. Play a video or a song a little louder and press «Again»."
             ) {
                 EmptyView()
             }
@@ -398,30 +398,30 @@ private struct ModelWarmupRow: View {
     var body: some View {
         OnboardingRow(
             icon: "cpu",
-            title: "Модель на устройстве",
+            title: "On-device model",
             // Size of the model THIS Mac will fetch, not a fixed number: the old
             // "~150 MB" was only true for `base`, while a 16 GB Apple Silicon
             // machine pulls ~480 MB and a Max/Ultra ~1.5 GB. Promising 150 MB and
             // downloading ten times that is how someone abandons onboarding on a
             // tethered connection.
-            detail: "Модель распознавания речи (\(LocalWhisperModel.approxDownloadForThisMac(selected: Config.localWhisperModel))) скачается один раз и дальше работает без сети."
+            detail: "The speech recognition model (\(LocalWhisperModel.approxDownloadForThisMac(selected: Config.localWhisperModel))) downloads once and then works with no network."
         ) {
             switch stateValue {
             case .preparing:
                 HStack(spacing: Space.xs) {
                     ProgressView().controlSize(.small)
-                    Text("Готовлю…").font(Typo.caption)
+                    Text("Preparing…").font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
                 }
             case .ready:
-                Label("Готово", systemImage: "checkmark.circle.fill")
+                Label("Done", systemImage: "checkmark.circle.fill")
                     .font(Typo.caption.weight(.medium))
                     .foregroundStyle(Theme.speakerYou)
                     .labelStyle(.titleAndIcon)
             case .failed:
-                Button("Повторить", action: retry).buttonStyle(QuietButtonStyle())
+                Button("Retry", action: retry).buttonStyle(QuietButtonStyle())
             case .idle:
-                Button("Скачать", action: retry).buttonStyle(QuietButtonStyle())
+                Button("Download", action: retry).buttonStyle(QuietButtonStyle())
             }
         }
     }

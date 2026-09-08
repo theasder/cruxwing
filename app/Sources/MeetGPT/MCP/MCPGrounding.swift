@@ -87,7 +87,7 @@ extension MCPConnectionManager {
     /// отдаёт `note`, а не сам `SearchCoverage`.
     nonisolated static func emptyButBounded(note: String) -> String? {
         guard !note.isEmpty else { return nil }
-        return "Ничего не нашлось, но искали не везде — \(note)."
+        return "Nothing matched, but the search was not exhaustive — \(note)."
     }
 
     /// Готовый кусок для пустой, но ограниченной выдачи — или ничего.

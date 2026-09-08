@@ -15,7 +15,7 @@ struct RoleSkillMatrixTests {
         let factcheck = RoleSkillMatrix.guidance(
             roleID: "product-manager", promptID: "factcheck")
         #expect(brainstorm == factcheck)
-        #expect(brainstorm?.contains("Продакт-менеджер") == true)
+        #expect(brainstorm?.contains("Product manager") == true)
         #expect(brainstorm?.contains("product-discovery") == false)
     }
 

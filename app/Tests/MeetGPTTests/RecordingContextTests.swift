@@ -238,7 +238,7 @@ struct RecordingContextLifecycleTests {
         #expect(state.detectedRecordingContext == .lecture)
         // Подпись на экране — русская; в промпт уходит английский `label`,
         // и его проверяют отдельные тесты ниже.
-        #expect(state.effectiveRecordingContextLabel == "Разбор")
+        #expect(state.effectiveRecordingContextLabel == "Review")
         let summary = state.promptForCurrentRecording(
             QuickPrompts.all.first { $0.id == "summary" }!)
         #expect(summary.title == "Summarize Tutorial")
@@ -300,7 +300,7 @@ struct RecordingContextLifecycleTests {
         #expect(state.recordingContextSelection.mode == .tutorial)
         // Подпись на экране — русская; в промпт уходит английский `label`,
         // и его проверяют отдельные тесты ниже.
-        #expect(state.effectiveRecordingContextLabel == "Разбор")
+        #expect(state.effectiveRecordingContextLabel == "Review")
     }
     // MARK: - The retired catch-all
 

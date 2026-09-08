@@ -43,11 +43,11 @@ struct SystemAudioCaptureTests {
         #expect(state.systemAudioLostDuringRecording,
                 "поток оборвался, а приложение об этом не знает")
         let shown = state.lastError
-        #expect(shown?.contains("Звук собеседников пропал") == true,
+        #expect(shown?.contains("The other party's audio dropped") == true,
                 "человеку не сказали, что пишется половина звонка")
         // Сказать «пропал» мало: нужно назвать обычную причину, иначе это
         // сообщение не превращается ни в какое действие.
-        #expect(shown?.contains("Запись экрана") == true,
+        #expect(shown?.contains("Screen recording") == true,
                 "предупреждение не подсказывает, где искать причину")
     }
 
@@ -172,8 +172,8 @@ struct MicrophoneLossTests {
 
         #expect(state.microphoneLostDuringRecording)
         let shown = state.lastError ?? ""
-        #expect(shown.contains("Микрофон пропал"), "не сказано, что пропала своя половина")
-        #expect(shown.contains("наушники"), "не названа обычная причина")
+        #expect(shown.contains("The microphone dropped"), "it does not say your own half went missing")
+        #expect(shown.contains("headphones"), "the usual cause is not named")
         // И это не должно выглядеть как потеря собеседников.
         #expect(!state.systemAudioLostDuringRecording,
                 "потеря микрофона выставила флаг потери собеседников")

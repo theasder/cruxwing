@@ -246,7 +246,7 @@ struct TranscriptTextSelectionTests {
             TranscriptEntry(source: .system, text: "theirs", timestamp: base.addingTimeInterval(5))
         ]
         let rendered = render(entries)
-        #expect(rendered.segments[0].speaker == "Вы")
+        #expect(rendered.segments[0].speaker == "You")
         #expect(rendered.segments[1].speaker == "Собеседник")
     }
 

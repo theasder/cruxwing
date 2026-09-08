@@ -714,13 +714,11 @@ describe('orakul landing (ru)', () => {
     // noticed. Written out in words, because that is how the sentence reads.
     const ratchet = readFileSync(
       resolve(here, '..', 'app', 'Tests', 'MeetGPTTests', 'RussianCopyTests.swift'), 'utf8');
-    // Считается по САМОМУ списку, а не по числу рядом с ним: храповик теперь
-    // пришпиливает набор фраз, и число выводится из него. Регулярка на
-    // `= (\d+)` после этого перестала совпадать — а страница молча осталась бы
-    // с прежней цифрой, если бы проверку не поправили.
-    const listed = /deliberateEnglish: Set<String> = \[([\s\S]*?)\n    \]/.exec(ratchet);
-    assert.ok(listed, 'the Swift ratchet no longer pins the list of phrases');
-    const inViews = listed[1].split('\n').filter((line) => line.trim().startsWith('"')).length;
+    // The direction reversed with the product: the ratchet now pins how much
+    // Russian is left on screen, not which English phrases are deliberate.
+    const listed = /remainingRussianOnScreen = (\d+)/.exec(ratchet);
+    assert.ok(listed, 'the Swift ratchet no longer pins the migration number');
+    const inViews = Number(listed[1]);
 
     // Плюс подсказки «где взять ключ»: они видны в настройках, но лежат у
     // провайдера рядом с адресом запроса, а не в папках интерфейса. Считать
@@ -1180,7 +1178,7 @@ describe('orakul landing (ru)', () => {
 
     const state = readFileSync(resolve(here, '..', 'app', 'Sources', 'MeetGPT',
                                        'AppState.swift'), 'utf8');
-    assert.match(state, /Звук собеседников пропал/,
+    assert.match(state, /The other party's audio dropped/,
       'the app has no message to show when system audio is lost');
 
     // Страница обещает обе половины и обещает их различать. Микрофон —
@@ -1192,7 +1190,7 @@ describe('orakul landing (ru)', () => {
                   'handleRestartFailure'),
       true,
       'a failed microphone restart leads nowhere — the mic half dies silently');
-    assert.match(state, /Микрофон пропал/,
+    assert.match(state, /The microphone dropped/,
       'the app cannot say which half of the call was lost');
   });
 
@@ -1216,7 +1214,7 @@ describe('orakul landing (ru)', () => {
     const code = stripComments(view);
     assert.match(code, /guard\s+store\.setCredentials\s*\(/,
       'the settings screen ignores the write result again');
-    assert.match(code, /Не удалось (?:записать ключ в Связку|изменить ключ в Связке) ключей/,
+    assert.match(code, /Could not (?:write|change) the key in the Keychain/,
       'nothing is shown to the user when the write fails');
   });
 

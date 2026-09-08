@@ -94,8 +94,8 @@ struct SampleCallTests {
         // Две вещи, которые подпись обязана сказать: что это заготовка и что
         // настоящие звонки разбираются вживую. Проверяются оба слова, а не
         // строка целиком, — иначе тест ломается от любой правки формулировки.
-        #expect(SampleCall.preparedLabel.lowercased().contains("подготовлено"))
-        #expect(SampleCall.preparedLabel.lowercased().contains("вживую"))
+        #expect(SampleCall.preparedLabel.lowercased().contains("prepared"))
+        #expect(SampleCall.preparedLabel.lowercased().contains("live"))
     }
 
     @Test("transcript entries carry the sample's own speakers")
@@ -1161,7 +1161,7 @@ struct CaptureCheckStepTests {
                       .moveToApplications])
     func onlyRelaunchAdviceOffersRelaunch(advice: CaptureProbe.Advice) throws {
         let rendered = try AdviceRow(advice: advice).inspect()
-        let offersRelaunch = (try? rendered.find(button: "Выйти и открыть заново")) != nil
+        let offersRelaunch = (try? rendered.find(button: "Quit and open again")) != nil
         #expect(offersRelaunch == (advice == .relaunch),
                 "«\(advice)» must \(advice == .relaunch ? "" : "not ")offer a relaunch")
     }
@@ -1184,7 +1184,7 @@ struct CaptureCheckStepTests {
         let noSound = texts[2]
         #expect(!noSound.contains("перезапуск") && !noSound.contains("Перезапуск"),
                 "a stream that started fine is not solved by restarting anything")
-        #expect(noSound.contains("Ещё раз"), "it must name the button that retries")
+        #expect(noSound.contains("Again"), "it must name the button that retries")
     }
 
     @Test("nothing is advised before the check has run")
@@ -1205,10 +1205,10 @@ struct CaptureCheckStepTests {
         let view = try inspected()
         let scroll = try view.find(ViewType.ScrollView.self)
         #expect(throws: (any Error).self, "Continue must NOT be inside the scroll") {
-            _ = try scroll.find(button: "Продолжить")
+            _ = try scroll.find(button: "Continue")
         }
         #expect(throws: Never.self, "Continue must still exist on the screen") {
-            _ = try view.find(button: "Продолжить")
+            _ = try view.find(button: "Continue")
         }
     }
 
@@ -1226,10 +1226,10 @@ struct CaptureCheckStepTests {
         // Текст переведён; правило прежнее — длительность названа один раз и
         // ровно там, где на неё нажимают.
         let mentions = text.filter {
-            $0.lowercased().contains("шесть секунд") || $0.lowercased().contains("шестисекунд")
+            $0.lowercased().contains("six seconds") || $0.lowercased().contains("six-second")
         }
         #expect(mentions.count == 1, "duration mentioned \(mentions.count)×: \(mentions)")
-        #expect(mentions.first?.hasPrefix("Шесть секунд") == true,
+        #expect(mentions.first?.hasPrefix("Six seconds") == true,
                 "the surviving mention should be the capture row's, beside «Проверить»")
     }
 }

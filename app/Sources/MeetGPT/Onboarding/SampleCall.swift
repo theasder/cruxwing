@@ -46,7 +46,7 @@ struct SampleCall {
     /// Shown on every prepared card. The sample never calls a model — that is
     /// what keeps it working offline, signed out, and free of Copilot hours — so
     /// the output has to say what it is.
-    static let preparedLabel = "Подготовлено для примера — ваши звонки разбираются вживую."
+    static let preparedLabel = "Prepared as an example — your own calls are analysed live."
 
     let title: String
     let goal: String
@@ -113,46 +113,46 @@ extension SampleCall {
     /// concrete, the blind spot is real rather than clever, and the shape is
     /// recognisable to the people this app is for.
     static let mobileBeta = SampleCall(
-        title: "Мобильная бета — выпускаем или нет",
-        goal: "Решить, выходит ли мобильная бета в этом месяце",
+        title: "The mobile beta — do we ship it or not",
+        goal: "Decide whether the mobile beta ships this month",
         lines: [
-            Line(atSeconds: 0, source: .system, speaker: "Дима",
-                 text: "Так, мобильная бета. Где мы?"),
-            Line(atSeconds: 5, source: .system, speaker: "Полина",
-                 text: "Тестирование всё приняло, кроме офлайн-синхронизации."),
-            Line(atSeconds: 12, source: .mic, speaker: "Вы",
-                 text: "Насколько там всё плохо, если честно?"),
-            Line(atSeconds: 17, source: .system, speaker: "Полина",
-                 text: "Процента четыре сессий её задевают. Пугает не чтение, а очередь записи."),
-            Line(atSeconds: 26, source: .system, speaker: "Марк",
-                 text: "Поддержка это почувствует, если сломается. В прошлый раз пришло тридцать обращений."),
-            Line(atSeconds: 34, source: .system, speaker: "Дима",
-                 text: "То есть держим всю бету из-за четырёх процентов сессий?"),
-            Line(atSeconds: 40, source: .system, speaker: "Полина",
-                 text: "Я бы выкатила под флагом двадцать второго и починила в патче."),
-            Line(atSeconds: 48, source: .mic, speaker: "Вы",
-                 text: "Марк, поддержка с этим проживёт?"),
-            Line(atSeconds: 52, source: .system, speaker: "Марк",
-                 text: "Если флаг по умолчанию выключен — да."),
-            Line(atSeconds: 57, source: .system, speaker: "Полина",
-                 text: "По умолчанию выключен, включён для внутренней группы."),
-            Line(atSeconds: 63, source: .system, speaker: "Дима",
-                 text: "Тогда решаем так — бета выходит под флагом двадцать второго, и патч на Полине."),
-            Line(atSeconds: 72, source: .system, speaker: "Марк",
-                 text: "Напишу письмо для поддержки, как только дата зафиксируется."),
-            Line(atSeconds: 78, source: .mic, speaker: "Вы",
-                 text: "Что-то ещё по этой теме?"),
-            Line(atSeconds: 83, source: .system, speaker: "Полина",
-                 text: "У меня всё."),
+            Line(atSeconds: 0, source: .system, speaker: "Dima",
+                 text: "Right, the mobile beta. Where are we?"),
+            Line(atSeconds: 5, source: .system, speaker: "Polina",
+                 text: "Testing accepted everything except offline sync."),
+            Line(atSeconds: 12, source: .mic, speaker: "You",
+                 text: "How bad is it, honestly?"),
+            Line(atSeconds: 17, source: .system, speaker: "Polina",
+                 text: "It touches about four per cent of sessions. Reading is not the scary part — the write queue is."),
+            Line(atSeconds: 26, source: .system, speaker: "Mark",
+                 text: "Support will feel it if it breaks. Last time thirty tickets came in."),
+            Line(atSeconds: 34, source: .system, speaker: "Dima",
+                 text: "So we hold the whole beta over four per cent of sessions?"),
+            Line(atSeconds: 40, source: .system, speaker: "Polina",
+                 text: "I would ship behind a flag on the twenty-second and fix it in a patch."),
+            Line(atSeconds: 48, source: .mic, speaker: "You",
+                 text: "Mark, can support live with that?"),
+            Line(atSeconds: 52, source: .system, speaker: "Mark",
+                 text: "If the flag is off by default, yes."),
+            Line(atSeconds: 57, source: .system, speaker: "Polina",
+                 text: "Off by default, on for the internal group."),
+            Line(atSeconds: 63, source: .system, speaker: "Dima",
+                 text: "Then we decide it this way — the beta ships behind a flag on the twenty-second, and the patch is on Polina."),
+            Line(atSeconds: 72, source: .system, speaker: "Mark",
+                 text: "I will write the note for support as soon as the date is fixed."),
+            Line(atSeconds: 78, source: .mic, speaker: "You",
+                 text: "Anything else on this?"),
+            Line(atSeconds: 83, source: .system, speaker: "Polina",
+                 text: "Nothing from me."),
         ],
         preparedSuggestion: Suggestion(
-            title: "Никто не спросил, что будет с записями, уже стоящими в очереди офлайн",
-            detail: "Флаг прячет возможность двадцать второго. Он не решает, что клиент сделает с записями, попавшими в очередь до того, как флаг выключили, — это и есть тот путь, по которому поддержка получила тридцать обращений.",
+            title: "Nobody asked what happens to the records already sitting in the offline queue",
+            detail: "The flag hides the feature on the twenty-second. It does not decide what the client does with records that entered the queue before the flag was turned off — and that is exactly the path by which support got thirty tickets.",
             kind: .question,
-            evidence: "выкатила под флагом двадцать второго и починила в патче"),
+            evidence: "ship behind a flag on the twenty-second and fix it in a patch"),
         preparedDecision: PreparedDecision(
-            text: "Мобильная бета выходит под флагом двадцать второго — по умолчанию выключен, включён для внутренней группы. Патч на Полине.",
-            owner: "Полина",
-            evidence: "бета выходит под флагом двадцать второго, и патч на Полине")
+            text: "The mobile beta ships behind a flag on the twenty-second — off by default, on for the internal group. The patch is on Polina.",
+            owner: "Polina",
+            evidence: "the beta ships behind a flag on the twenty-second, and the patch is on Polina")
     )
 }

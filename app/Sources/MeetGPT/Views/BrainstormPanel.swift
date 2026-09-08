@@ -74,7 +74,7 @@ struct BlindSpotPanelPresentation: Equatable {
     }
 }
 
-/// Sidebar "Ко-пилот" section: the call goal (the only thing the brainstormer
+/// Sidebar "Copilot" section: the call goal (the only thing the brainstormer
 /// needs) plus the proactive blind-spot suggestions it surfaces during a call.
 struct BrainstormSection: View {
     @EnvironmentObject var state: AppState
@@ -90,7 +90,7 @@ struct BrainstormSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("Ко-пилот")
+            SectionLabel("Copilot")
 
             GoalField(text: $state.callGoal)
 
@@ -217,7 +217,7 @@ struct BrainstormSection: View {
                             .foregroundStyle(Theme.inkTertiary)
                         Spacer(minLength: 0)
                         if blindSpotPanel.canResume {
-                            Button("Продолжить") { state.resumeSuggestionsThisCall() }
+                            Button("Continue") { state.resumeSuggestionsThisCall() }
                                 .buttonStyle(QuietButtonStyle(prominent: true))
                         } else if hoveringSuggestions, blindSpotPanel.canPause {
                             Button { state.snoozeSuggestionsForCall() } label: {
@@ -399,7 +399,7 @@ private struct RecordingContextChip: View {
             }
             .disabled(RecordingContextSelection.sanitizeCustomLabel(customDraft) == nil)
             .accessibilityIdentifier("recording.context.custom-save")
-            Button("Отмена", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
             Text("Эта пометка влияет на итоги и ответы только для этой записи.")
         }
@@ -605,7 +605,7 @@ private struct RoleChip: View {
             let active = RoleSkillMatrix.position(id: state.userRoleID)
             let isCustom = state.userRoleID == RoleSkillMatrix.customRoleID
             Menu {
-                Picker("Ваша роль", selection: $state.userRoleID) {
+                Picker("Your role", selection: $state.userRoleID) {
                     Label("Без роли", systemImage: "person.crop.circle.dashed")
                         .tag(String?.none)
                     Divider()
@@ -707,7 +707,7 @@ private struct RhetoricNoteCard: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
-            .help("Скрыть")
+            .help("Hide")
         }
         .padding(Space.s)
         .background(Theme.amber.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
@@ -733,7 +733,7 @@ private struct FacilitationNoteCard: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Theme.speakerThem)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Ведение звонка")
+                Text("Running the call")
                     .font(Typo.caption.weight(.semibold))
                     .foregroundStyle(Theme.speakerThem)
                 Text(note)
@@ -747,7 +747,7 @@ private struct FacilitationNoteCard: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
-            .help("Скрыть")
+            .help("Hide")
         }
         .padding(Space.s)
         .background(Theme.speakerThem.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
@@ -807,7 +807,7 @@ struct SuggestionCard: View {
                 }
                 .buttonStyle(IconButtonStyle(size: 18))
                 .opacity(hovering ? 1 : 0.35)
-                .help("Скрыть")
+                .help("Hide")
             }
             // The phrase this is about, shown BEFORE the comment on it. The
             // model already supplies it and it is verified against the

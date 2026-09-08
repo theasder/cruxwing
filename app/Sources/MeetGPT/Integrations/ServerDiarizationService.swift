@@ -22,13 +22,13 @@ enum ServerDiarizationService {
         var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Для определения говорящих нужен бэкенд: задайте BACKEND_URL или свой ключ AssemblyAI."
+                return "Speaker identification needs a backend: set BACKEND_URL, or your own AssemblyAI key."
             case .notSignedIn:
-                return "Войти, чтобы определять говорящих — проход тарифицируется кредитами."
+                return "Sign in to identify speakers — the pass is billed in credits."
             case .http(let code, let message):
-                return message.isEmpty ? "Не удалось определить говорящих (\(code))." : message
+                return message.isEmpty ? "Could not identify the speakers (\(code))." : message
             case .badResponse:
-                return "Ответ на запрос о говорящих не удалось прочитать."
+                return "The speaker-identification response could not be read."
             }
         }
     }

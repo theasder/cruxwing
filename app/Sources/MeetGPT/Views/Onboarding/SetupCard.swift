@@ -44,21 +44,21 @@ struct SetupCard: View {
         if !dismissed, remaining > 0 {
             VStack(alignment: .leading, spacing: Space.s) {
                 HStack(spacing: Space.xs) {
-                    SectionLabel("Настройка · осталось \(remaining)")
+                    SectionLabel("Setup · \(remaining) left")
                     Spacer(minLength: 0)
                     Button { dismissed = true } label: {
                         Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
                     }
                     .buttonStyle(IconButtonStyle(size: 16))
-                    .help("Скрыть настройку")
-                    .accessibilityLabel("Скрыть настройку")
+                    .help("Hide setup")
+                    .accessibilityLabel("Hide setup")
                 }
 
                 VStack(alignment: .leading, spacing: Space.xs) {
                     // "Verified" would be an overclaim: this row knows the two
                     // permissions are granted, which is exactly the thing the
                     // capture check exists to prove is not the same as working.
-                    SetupRow(done: captureVerified, title: "Разрешения на захват выданы")
+                    SetupRow(done: captureVerified, title: "Capture permissions granted")
                     if showsProviderKeyRow {
                         // Раньше здесь предлагался вход ради «моделей без своих
                         // ключей» — обещание сервера, которого у orakul нет.
@@ -66,16 +66,16 @@ struct SetupCard: View {
                         // сделать: она открывала SignInSheet. Настоящий шаг один
                         // — вставить свой ключ, а вводят его в настройках.
                         SetupRow(done: false,
-                                 title: "Вставить ключ провайдера — иначе не будет ответов",
+                                 title: "Paste a provider key — without one there are no answers",
                                  action: { openSettings() },
                                  // Шаг необязательный: запись, расшифровка и
                                  // поиск по звонкам работают и без ключа.
                                  onDismiss: { keyDismissed = true })
                     }
                     if !appsConnected {
-                        SetupRow(done: false, title: "Подключить Яндекс Трекер, Kaiten, Notion…")
+                        SetupRow(done: false, title: "Connect Яндекс Трекер, Kaiten, Notion…")
                     }
-                    Text("Запись работает и без того, и без другого.")
+                    Text("Recording works without either of them.")
                         .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         .padding(.top, Space.xxs)
                         .fixedSize(horizontal: false, vertical: true)
@@ -117,8 +117,8 @@ private struct SetupRow: View {
                     Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
                 }
                 .buttonStyle(IconButtonStyle(size: 16))
-                .help("Не сейчас — ключ можно вставить в настройках когда угодно")
-                .accessibilityLabel("Скрыть: \(title)")
+                .help("Not now — a key can be pasted in settings at any time")
+                .accessibilityLabel("Hide: \(title)")
             }
         }
         .accessibilityElement(children: .contain)
@@ -153,29 +153,29 @@ struct NoCallTodayCard: View {
                     // панель, и у КАЖДОЙ строки в ней пропадала первая буква.
                     // SectionLabel теперь такого не позволит, но обрезанный
                     // заголовок — тоже плохо, поэтому строка короче.
-                    SectionLabel("До понедельника пусто?")
+                    SectionLabel("Nothing until Monday?")
                     Spacer(minLength: 0)
                     Button { dismissed = true } label: {
                         Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
                     }
                     .buttonStyle(IconButtonStyle(size: 16))
-                    .help("Скрыть")
-                    .accessibilityLabel("Скрыть подсказку")
+                    .help("Hide")
+                    .accessibilityLabel("Hide the tip")
                 }
 
                 VStack(alignment: .leading, spacing: Space.s) {
-                    Text("Направьте orakul на то, что вы и так собирались послушать.")
+                    Text("Point orakul at something you were going to listen to anyway.")
                         .font(Typo.caption).foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     SuggestedSource(
                         icon: "graduationcap",
-                        title: "Доклад или лекция",
-                        detail: "Понятия, доводы и открытые вопросы — вместе с планом, что изучить.")
+                        title: "A talk or a lecture",
+                        detail: "Concepts, arguments and open questions — together with a plan of what to study.")
                     SuggestedSource(
                         icon: "mic",
-                        title: "Подкаст",
-                        detail: "Ведущие и гости разделены, доводы собраны, выдуманных задач нет.")
-                    Text("Выберите тип на плашке записи или оставьте автоопределение.")
+                        title: "Podcast",
+                        detail: "Hosts and guests are separated, the arguments are collected, and no tasks are invented.")
+                    Text("Choose the type on the recording banner, or leave it on auto-detect.")
                         .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

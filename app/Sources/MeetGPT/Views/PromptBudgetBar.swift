@@ -161,7 +161,7 @@ struct PromptBudgetBar: View {
                         .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
-                    Button("Войти") { showSignIn = true }
+                    Button("Sign in") { showSignIn = true }
                         .buttonStyle(QuietButtonStyle(prominent: true))
                     Button {
                         state.dismissSignedOutNotice()
@@ -183,7 +183,7 @@ struct PromptBudgetBar: View {
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
                     Spacer(minLength: 0)
-                    Button("Войти") { showSignIn = true }
+                    Button("Sign in") { showSignIn = true }
                         .buttonStyle(QuietButtonStyle(prominent: true))
                 }
                 .padding(.horizontal, 2)
@@ -950,7 +950,7 @@ struct PromptBudgetDetails: View {
                 .frame(height: 8)
 
             VStack(spacing: Space.s) {
-                BreakdownRow(label: "Транскрипт", tokens: estimate.transcriptTokens,
+                BreakdownRow(label: "Transcript", tokens: estimate.transcriptTokens,
                              detail: nil, color: Theme.accent)
                 BreakdownRow(label: "Приложенный контекст", tokens: estimate.contextTokens,
                              detail: nil, color: Theme.amber)

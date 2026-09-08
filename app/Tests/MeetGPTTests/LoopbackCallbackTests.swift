@@ -80,7 +80,7 @@ struct LoopbackCallbackTests {
 
     @Test("an error redirect is delivered too, not silently dropped")
     func deliversProviderErrors() throws {
-        // The user pressing "Отмена" comes back as ?error=access_denied. It has
+        // The user pressing "Cancel" comes back as ?error=access_denied. It has
         // to reach the flow so it can report a refusal rather than time out
         // after five minutes.
         let url = try #require(parse("GET /callback?error=access_denied&state=xyz HTTP/1.1"))

@@ -17,7 +17,7 @@ import Testing
 struct TokensStayOnThisMacTests {
 
     private func attributes() -> [String: Any] {
-        SystemKeychain().insertAttributes(data: Data("токен".utf8), account: "проба")
+        SystemKeychain().insertAttributes(data: Data("token".utf8), account: "проба")
     }
 
     @Test("токен кладётся с доступом только на этом устройстве")
