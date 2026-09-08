@@ -2,12 +2,45 @@ import Foundation
 import Testing
 @testable import MeetGPT
 
+private final class ControllableWriteKeychain: KeychainStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storage: [String: Data] = [:]
+    private var attempts = 0
+    private var rejecting = false
+
+    var writeAttempts: Int { lock.withLock { attempts } }
+
+    func rejectWrites(_ value: Bool) {
+        lock.withLock { rejecting = value }
+    }
+
+    @discardableResult
+    func set(_ data: Data, for account: String) -> Bool {
+        lock.withLock {
+            attempts += 1
+            guard !rejecting else { return false }
+            storage[account] = data
+            return true
+        }
+    }
+
+    func get(_ account: String) -> Data? {
+        lock.withLock { storage[account] }
+    }
+
+    @discardableResult
+    func delete(_ account: String) -> Bool {
+        lock.withLock { storage[account] = nil }
+        return true
+    }
+}
+
 /// Ключи провайдеров, введённые пользователем.
 ///
 /// Смысл всей этой части: в готовом установщике ключей нет ни одного, и без
 /// ввода в настройках приложение не может ответить ни на один вопрос. Поэтому
 /// проверяется не «строка сохранилась», а то, что делает продукт рабочим —
-/// правильный порядок источников и отсутствие мёртвых записей.
+/// отсутствие резервного источника и мёртвых записей.
 @Suite("Ключи провайдеров")
 struct ProviderKeyStoreTests {
 
@@ -21,25 +54,14 @@ struct ProviderKeyStoreTests {
         #expect(keychain.count == 1)
     }
 
-    @Test("ключ пользователя важнее зашитого при сборке")
-    func userKeyWinsOverBaked() {
-        // Обратный порядок означал бы, что чужой ключ, случайно попавший в
-        // сборку, молча переопределяет тот, который человек только что вписал
-        // и видит в настройках.
+    @Test("без пользовательского ключа провайдер не настроен")
+    func noBuildTimeFallback() {
         let store = ProviderKeyStore(store: InMemoryKeychain())
-        #expect(store.resolvedKey(for: .openAI, baked: "sk-baked") == "sk-baked")
+        #expect(store.key(for: .openAI) == nil)
+        #expect(!store.hasKey(.openAI))
 
         store.setKey("sk-user", for: .openAI)
-        #expect(store.resolvedKey(for: .openAI, baked: "sk-baked") == "sk-user")
-    }
-
-    @Test("без ключа остаётся зашитый, даже если он пустой")
-    func bakedRemainsTheFallback() {
-        // Пустой зашитый ключ — норма для готового установщика: так и
-        // задумано, ключи в него не кладут.
-        let store = ProviderKeyStore(store: InMemoryKeychain())
-        #expect(store.resolvedKey(for: .deepSeek, baked: "") == "")
-        #expect(!store.hasKey(.deepSeek))
+        #expect(store.key(for: .openAI) == "sk-user")
     }
 
     @Test("у каждого провайдера свой ключ")
@@ -100,5 +122,25 @@ struct ProviderKeyStoreTests {
         for provider in LLMProvider.allCases {
             #expect(store.key(for: provider) == "sk-\(provider.rawValue)")
         }
+    }
+
+    @Test("ключ и каталог Яндекса сохраняются одним откатываемым изменением")
+    func yandexCredentialIsAtomicAndRollbackSafe() {
+        let keychain = ControllableWriteKeychain()
+        let store = ProviderKeyStore(store: keychain)
+
+        #expect(store.setCredentials(
+            key: "AQVN-old", secondary: "folder-old", for: .yandexGPT))
+        #expect(keychain.writeAttempts == 1,
+                "сохранение пары снова разложили на две независимые записи")
+        #expect(store.key(for: .yandexGPT) == "AQVN-old")
+        #expect(store.secondary(for: .yandexGPT) == "folder-old")
+
+        keychain.rejectWrites(true)
+        #expect(!store.setCredentials(
+            key: "AQVN-new", secondary: "folder-new", for: .yandexGPT))
+        #expect(store.key(for: .yandexGPT) == "AQVN-old")
+        #expect(store.secondary(for: .yandexGPT) == "folder-old",
+                "отказ замены оставил смесь старого и нового credential")
     }
 }

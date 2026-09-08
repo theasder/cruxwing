@@ -8,12 +8,6 @@ struct FactCheckSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.factCheck)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             HStack(spacing: Space.s) {
                 Label("Проверка фактов", systemImage: "checkmark.seal")
@@ -35,7 +29,7 @@ struct FactCheckSheet: View {
             // а у orakul сервера нет: клик молча свёлся бы к обычной проверке по
             // приложенному контексту и вернул «источников: 0». Это худший вид
             // неработающей кнопки — та, которая отвечает.
-            if !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if Config.llmViaBackend {
                 HStack(spacing: Space.s) {
                     Button {
                         state.runFactCheck(searchWeb: true)

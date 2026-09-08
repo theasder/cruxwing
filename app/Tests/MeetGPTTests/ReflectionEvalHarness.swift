@@ -10,7 +10,7 @@ import Testing
 /// machine with no corpus (CI, a fresh checkout) stays green instead of
 /// reporting a perfect score over zero sessions.
 ///
-///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/MeetGPT/Sessions" \
+///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.orakul.desktop/Sessions" \
 ///       swift test --filter ReflectionEvalHarness
 ///
 /// Nothing here calls a model. The corpus is the user's own history: every
@@ -19,26 +19,29 @@ import Testing
 @Suite("Reflection eval harness")
 struct ReflectionEvalHarness {
 
-    private var corpusRoot: URL? {
+    private static var corpusRoot: URL? {
         guard let path = ProcessInfo.processInfo.environment["CRUXWING_EVAL_CORPUS"],
               !path.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
         return URL(fileURLWithPath: (path as NSString).expandingTildeInPath, isDirectory: true)
     }
 
-    @Test("judge the recorded corpus and report violation rates per rule")
+    private static var hasCorpus: Bool { corpusRoot != nil }
+
+    /// A checked-in default makes this a regression gate rather than a report
+    /// that can never fail. A corpus owner may tighten it for a particular run.
+    private static var maximumRuleViolationRate: Double {
+        let raw = ProcessInfo.processInfo.environment["ORAKUL_REFLECTION_MAX_RULE_RATE"]
+        guard let raw, let value = Double(raw), (0...1).contains(value) else { return 0.25 }
+        return value
+    }
+
+    @Test(
+        "judge the recorded corpus and enforce the per-rule violation ceiling",
+        .enabled(
+            if: Self.hasCorpus,
+            "Set CRUXWING_EVAL_CORPUS to an Orakul Sessions directory to run this private-corpus eval."))
     func evaluateCorpus() throws {
-        guard let corpusRoot else {
-            // Not a failure and not a pass to celebrate: there is nothing to
-            // measure. Say which variable turns it on and stop.
-            print("""
-
-            [reflection-eval] skipped — set CRUXWING_EVAL_CORPUS to a Sessions directory:
-              CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/MeetGPT/Sessions" \\
-                swift test --filter ReflectionEvalHarness
-
-            """)
-            return
-        }
+        let corpusRoot = try #require(Self.corpusRoot)
 
         let store = SessionStore(root: corpusRoot)
         let (summary, scores) = ReflectionEval.run(store: store)
@@ -58,10 +61,15 @@ struct ReflectionEvalHarness {
             print("")
         }
 
-        // The harness reports; it does not fail on the rate. A threshold here
-        // would have to be invented before anyone has seen a single number, and
-        // an arbitrary bar either fires constantly or never. Set one once the
-        // baseline is known — that is what this run produces.
-        #expect(summary.sessions >= 0)
+        #expect(summary.sessions > 0,
+                "the configured corpus contains no readable sessions")
+        #expect(summary.judged.values.reduce(0, +) > 0,
+                "sessions loaded, but the critics did not judge any persisted output")
+        for rule in summary.rules {
+            #expect(rule.rate <= Self.maximumRuleViolationRate,
+                    Comment(rawValue:
+                        "\(rule.rule) violated \(rule.hits)/\(rule.judged) items; "
+                        + "ceiling is \(Self.maximumRuleViolationRate)"))
+        }
     }
 }

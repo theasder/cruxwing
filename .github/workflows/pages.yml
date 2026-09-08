@@ -1,6 +1,5 @@
-# Страница живёт в `public/`, а отдаётся с ветки `gh-pages`. Без этого шага
-# ветка — снимок на день публикации: правки в `public/` уходили бы в main, а
-# люди читали бы прошлогоднюю страницу и не знали об этом.
+# Публикуем ровно содержимое `public/` через штатный GitHub Pages artifact.
+# Workflow не получает Git-учётные данные и не создаёт/перезаписывает ветки.
 name: Pages
 
 on:
@@ -9,84 +8,87 @@ on:
     paths: ['public/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
+# Сборка страницы по умолчанию только читает репозиторий. Право на deployment
+# добавлено ниже лишь одному job и ограничено Environment `github-pages`.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  publish:
+  deploy:
+    name: GitHub Pages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # fetch-depth: 0 обязателен: `subtree split` идёт по всей истории
-      # каталога, а по умолчанию checkout берёт один коммит — ветка вышла бы
-      # пустой, и шаг всё равно отчитался бы об успехе.
-      - uses: actions/checkout@v4
+      - name: Проверить публичную идентичность репозитория
+        env:
+          EXPECTED_REPOSITORY: theasder/orakul
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REPOSITORY" != "$EXPECTED_REPOSITORY" ]; then
+            echo "Отказ: Pages для orakul нельзя публиковать из $GITHUB_REPOSITORY." >&2
+            echo "Сначала владелец должен переименовать репозиторий в $EXPECTED_REPOSITORY." >&2
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Собрать ветку страницы из public/
+      - name: Проверить публикуемый корень
+        run: test -f public/index.html
+
+      - name: Настроить GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Загрузить неизменяемый artifact страницы
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: public
+
+      - name: Опубликовать artifact через GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Убедиться, что отдаётся тот же сайт
+        env:
+          EXPECTED_PAGE_URL: https://theasder.github.io/orakul/
+          DEPLOYED_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
-          test -f public/index.html
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$DEPLOYED_PAGE_URL" != "$EXPECTED_PAGE_URL" ]; then
+            echo "Отказ: Pages вернул неожиданный адрес $DEPLOYED_PAGE_URL" >&2
+            exit 1
+          fi
 
-          # Каталоги из public/, которые НЕ публикуются. Этот список читает
-          # test/publikaciya.test.mjs — он здесь единственный, потому что два
-          # списка исключений разойдутся, и разойдутся молча.
-          #
-          # `ru` — landing другого продукта (Cruxwing): 53 упоминания cruxwing,
-          # цены и canonical на cruxwing.ai. У orakul цен нет по устройству
-          # (план, §5), а тот canonical к тому же отвечает 404. Файлы оставлены
-          # на месте намеренно: перенести их обратно или переписать под orakul —
-          # решение владельца (план, §5.1), а публикация ждать его не должна.
-          EXCLUDE="ru"
-
-          for dir in $EXCLUDE; do
-            if [ -e "public/$dir" ]; then
-              git rm -r --quiet "public/$dir"
-              echo ">> не публикуем public/$dir"
-            fi
-          done
-          # Коммит живёт только в этой копии репозитория: ветка страницы
-          # собирается из истории, и в main отсюда ничего не уезжает.
-          git commit --quiet -m "публикуется не всё содержимое public/"
-
-          git subtree split --prefix=public -b gh-pages-build
-          git push --force origin gh-pages-build:gh-pages
-
-      - name: Убедиться, что отдаётся то же, что в public/
-        run: |
-          set -euo pipefail
-          # Страница обновляется не мгновенно; ждём до двух минут и сверяем
-          # обе точки входа. Проверка только `/` не заметит, если новый `/ru/`
-          # не попал в subtree или GitHub Pages продолжает отдавать старый билд.
-          # Утверждение про /ru/ перевёрнуто.
-          #
-          # Раньше шаг ЖДАЛ появления /ru/ и сверял его заголовок с
-          # public/ru/index.html — то есть не просто публиковал страницу чужого
-          # продукта, а дожидался подтверждения, что она отдаётся. Теперь она
-          # обязана отсутствовать, и её возвращение роняет выпуск.
+          # CDN обновляется не обязательно одновременно с ответом deployment.
+          # `/ru/` раньше содержал landing другого продукта и обязан остаться 404.
           want_root=$(grep -o '<title>[^<]*</title>' public/index.html)
           for i in $(seq 1 12); do
-            got_root=$(curl -s --max-time 10 https://theasder.github.io/orakul/ \
+            got_root=$(curl -fsS --max-time 10 "$DEPLOYED_PAGE_URL" \
                        | grep -o '<title>[^<]*</title>' || true)
             if [ "$got_root" = "$want_root" ]; then
               echo "отдаётся /: $got_root"
-              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 \
-                     https://theasder.github.io/orakul/ru/ || true)
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+                     "${DEPLOYED_PAGE_URL}ru/" || true)
               if [ "$code" = "404" ]; then
                 echo "/ru/ не отдаётся — так и задумано"
                 exit 0
               fi
-              echo "!! /ru/ отдаётся (код $code) — это страница другого продукта с ценами"
+              echo "!! /ru/ отдаётся (код $code) — это не часть сайта orakul" >&2
               exit 1
             fi
             sleep 10
           done
-          echo "страница так и не обновилась"
-          echo "последнее /: ${got_root:-пусто}"
+          echo "страница так и не обновилась" >&2
+          echo "последнее /: ${got_root:-пусто}" >&2
           exit 1

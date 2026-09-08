@@ -48,7 +48,7 @@ struct AssistantDialogHistoryTests {
         await settle(state)
 
         #expect(state.aiHistory.count == 1)
-        let archived = try? #require(state.aiHistory.first)
+        let archived = state.aiHistory.first
         #expect(archived?.prompt == "First question")
         #expect(archived?.answer.contains("First answer.") == true)
         // ...and the live turn is the new one, not the old.

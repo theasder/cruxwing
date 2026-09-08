@@ -85,14 +85,14 @@ enum VectorMath {
     }
 }
 
-/// Cached on-device embeddings for the vendored skill catalog.
+/// Cached on-device embeddings for the reviewed, vendored skill set.
 /// Built once (lazily / on warm), then cosine-ranked at prompt-button press.
 final class BundledSkillEmbeddingIndexStore: @unchecked Sendable {
     static let shared = BundledSkillEmbeddingIndexStore()
 
-    /// Also coordinates the one cold catalog build. Prompt clicks can race the
-    /// launch-time warmer; without a `building` state both callers embedded all
-    /// 1,188 skills independently before either could set `built`.
+    /// Also coordinates the one cold build. Prompt clicks can race the
+    /// launch-time warmer; without a `building` state both callers duplicate
+    /// the same embedding work before either can set `built`.
     private let lock = NSCondition()
     private var embedder: (any SkillTextEmbedder)?
     private var vectorsByID: [String: [Float]] = [:]
@@ -254,12 +254,12 @@ enum BundledSkillEmbeddingIndex {
     }
 
 
-    static func ensureBuilt(library: [BundledSkill] = BundledSkillLibrary.all) {
+    static func ensureBuilt(library: [BundledSkill] = BundledSkillLibrary.rankable) {
         BundledSkillEmbeddingIndexStore.shared.ensureBuilt(library: library)
     }
 
     static func similarity(query: String, skillID: String,
-                           library: [BundledSkill] = BundledSkillLibrary.all) -> Double? {
+                           library: [BundledSkill] = BundledSkillLibrary.rankable) -> Double? {
         BundledSkillEmbeddingIndexStore.shared.similarity(
             query: query, skillID: skillID, library: library)
     }

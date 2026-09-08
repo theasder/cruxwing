@@ -23,27 +23,22 @@ struct TranscriptionEngineTests {
 
     @Test("both Accurate rows are withheld, leaving Private and Instant")
     func withheldEngines() {
-        // .server has no Whisper box behind it yet and .whisper is BYO-key,
-        // which contradicts the app going keyless — and the two rendered as
-        // duplicate "Accurate" headings.
+        // Neither hidden route is runtime consent: a stored preference cannot
+        // send audio to an option the user cannot see or select.
         #expect(!TranscriptionEngine.selectableCases.contains(.server))
         #expect(!TranscriptionEngine.selectableCases.contains(.whisper))
         #expect(TranscriptionEngine.selectableCases == [.local, .deepgram])
-        // Withheld, not deleted: a saved preference still resolves, so nobody
-        // already on one of these engines is silently switched.
+        // Withheld, not deleted: inherited-development code can be audited, but
+        // a public build normalizes these preferences to Local.
         #expect(TranscriptionEngine.allCases.contains(.server))
         #expect(TranscriptionEngine(rawValue: TranscriptionEngine.server.rawValue) == .server)
     }
 
-    @Test("engineAvailable still gates .server on a backend and a session")
-    func serverAvailabilityUnchanged() {
-        // The backend/sign-in rule that used to drive the PICKER now lives only
-        // in engineAvailable, which still governs a saved preference. Withholding
-        // the row must not have loosened the runtime gate.
+    @Test("withheld engines fail closed even if inherited plumbing is configured")
+    func withheldEngineAvailability() {
         #expect(Config.engineAvailable(.local))
-        if Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            #expect(!Config.engineAvailable(.server))
-        }
+        #expect(!Config.engineAvailable(.server))
+        #expect(!Config.engineAvailable(.whisper))
     }
 
     @Test("в подписи движка видно и поставщика, и суть выбора")
@@ -99,25 +94,37 @@ struct TranscriptionEngineTests {
 // "transcription.engine"; Swift Testing runs tests in parallel by default.
 @Suite("Config engine availability + persistence", .serialized)
 struct ConfigEngineTests {
-    @Test("local always runs; server needs backend + session; cloud engines gate on keys")
+    @Test("only visible engines can run; Deepgram gates on its own key")
     func engineAvailability() {
         // On-device engine never depends on a secret.
         #expect(Config.engineAvailable(.local) == true)
-        // Cruxwing Whisper (managed large-v3) is live — but only with a
-        // backend AND a signed-in session: the gateway meters per user, and
-        // an anonymous first-run must keep transcribing on-device.
+        // Hidden inherited routes do not become upload consent through old
+        // settings, a backend session, or an unrelated OpenAI chat key.
         #expect(Config.serverWhisperEnabled == true)
-        let backendConfigured = !Config.backendBaseURL
-            .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        #expect(Config.engineAvailable(.server)
-            == (backendConfigured && Config.wheesprSession != nil))
-        // Deepgram: a baked/BYO key OR the backend's credit-metered token
-        // grant (signed-in only) — same session gate as the server engine.
-        #expect(Config.engineAvailable(.deepgram)
-            == (!Config.deepgramAPIKey.isEmpty
-                || (backendConfigured && Config.wheesprSession != nil)))
-        // Whisper API still mirrors whether its key is present in this build.
-        #expect(Config.engineAvailable(.whisper) == !Config.openAIAPIKey.isEmpty)
+        #expect(!Config.engineAvailable(.server))
+        // Deepgram is strict runtime BYOK. A backend/session must never make it
+        // available without the user's own Keychain credential.
+        #expect(Config.engineAvailable(.deepgram) == !Config.deepgramAPIKey.isEmpty)
+        #expect(!Config.engineAvailable(.whisper))
+    }
+
+    @Test("a hidden Whisper preference cannot reuse an OpenAI chat key")
+    func hiddenWhisperNormalizesToLocal() {
+        let key = "transcription.engine"
+        let defaults = UserDefaults.standard
+        let saved = defaults.object(forKey: key)
+        defer {
+            if let saved { defaults.set(saved, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+
+        let keychain = InMemoryKeychain()
+        let keys = ProviderKeyStore(store: keychain)
+        #expect(keys.setKey("unit-openai-chat-key", for: .openAI))
+        defaults.set(TranscriptionEngine.whisper.rawValue, forKey: key)
+
+        #expect(Config.transcriptionEngineValue(using: keys) == .local)
+        #expect(defaults.string(forKey: key) == TranscriptionEngine.local.rawValue)
     }
 
     @Test("transcriptionEngineValue round-trips an available engine through UserDefaults")

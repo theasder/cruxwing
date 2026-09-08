@@ -9,6 +9,7 @@ import SwiftUI
 /// `SampleCall.preparedLabel`. The isolation itself is enforced in `AppState`,
 /// not here — this view could not write a session, a ledger row, or a usage
 /// count even if it tried.
+@MainActor
 struct SampleRunStep: View {
     @EnvironmentObject var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -20,8 +21,12 @@ struct SampleRunStep: View {
     @StateObject private var playback: SamplePlayback
     @State private var ticker: Task<Void, Never>?
 
-    init(playback: SamplePlayback = SamplePlayback(),
-         onFinish: @escaping () -> Void) {
+    init(onFinish: @escaping () -> Void) {
+        _playback = StateObject(wrappedValue: SamplePlayback())
+        self.onFinish = onFinish
+    }
+
+    init(playback: SamplePlayback, onFinish: @escaping () -> Void) {
         _playback = StateObject(wrappedValue: playback)
         self.onFinish = onFinish
     }

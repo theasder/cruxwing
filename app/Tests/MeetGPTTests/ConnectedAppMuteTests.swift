@@ -115,30 +115,39 @@ struct MutedServerFilterTests {
 
     private let previous = Config.mutedConnectedApps
 
-    private func manager() -> MCPConnectionManager {
-        MCPConnectionManager(tokenStore: InMemoryKeychain(),
-                             notificationCenter: NotificationCenter())
+    private func manager(authorizedServerIDs: [String]) async -> MCPConnectionManager {
+        let keychain = InMemoryKeychain()
+        for id in authorizedServerIDs {
+            let storageID = MCPConnectionManager.tokenStorageID(for: id)
+            keychain.set(Data("test-oauth-token".utf8), for: "mcp.token.\(storageID)")
+        }
+        let manager = MCPConnectionManager(
+            tokenStore: keychain, notificationCenter: NotificationCenter())
+        await manager.loadPersistedAuthorization()
+        return manager
     }
 
     @Test("a muted server is withheld from researchableServers")
-    func mutedIsWithheld() {
+    func mutedIsWithheld() async {
         defer { Config.mutedConnectedApps = previous }
-        let mcp = manager()
+        let victim = "linear"
+        let mcp = await manager(authorizedServerIDs: [victim])
         Config.mutedConnectedApps = []
         let before = Set(mcp.researchableServers.map(\.id))
-        guard let victim = before.first else { return }   // no connected servers here
+        #expect(before == [victim], "the local authorization fixture was not exercised")
 
         Config.mutedConnectedApps = [Config.mutedAppID(mcpServer: victim)]
         #expect(!mcp.researchableServers.map(\.id).contains(victim))
     }
 
     @Test("a muted server STAYS in the display list")
-    func mutedStaysVisible() {
+    func mutedStaysVisible() async {
         defer { Config.mutedConnectedApps = previous }
-        let mcp = manager()
+        let victim = "linear"
+        let mcp = await manager(authorizedServerIDs: [victim])
         Config.mutedConnectedApps = []
         let all = Set(mcp.researchableServersIncludingMuted.map(\.id))
-        guard let victim = all.first else { return }
+        #expect(all == [victim], "the local authorization fixture was not exercised")
 
         Config.mutedConnectedApps = [Config.mutedAppID(mcpServer: victim)]
         // Vanishing from the strip would leave no way to unmute it.
@@ -146,12 +155,12 @@ struct MutedServerFilterTests {
     }
 
     @Test("muting one server never withholds another")
-    func mutingIsNarrow() {
+    func mutingIsNarrow() async {
         defer { Config.mutedConnectedApps = previous }
-        let mcp = manager()
-        Config.mutedConnectedApps = ["mcp:something-not-connected"]
-        #expect(Set(mcp.researchableServers.map(\.id))
-                == Set(mcp.researchableServersIncludingMuted.map(\.id)))
+        let mcp = await manager(authorizedServerIDs: ["linear", "notion"])
+        Config.mutedConnectedApps = ["mcp:linear"]
+        #expect(Set(mcp.researchableServersIncludingMuted.map(\.id)) == ["linear", "notion"])
+        #expect(Set(mcp.researchableServers.map(\.id)) == ["notion"])
     }
 }
 

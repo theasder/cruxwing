@@ -84,7 +84,10 @@ private struct ProviderKeyRow: View {
                 Spacer()
                 if hasKey {
                     Button("Убрать") {
-                        store.remove(provider)
+                        guard store.remove(provider) else {
+                            saveFailed = true
+                            return
+                        }
                         key = ""
                         secondary = ""
                         onChange()
@@ -99,16 +102,17 @@ private struct ProviderKeyRow: View {
                 .accessibilityIdentifier("settings.ai.key.\(provider.rawValue).add")
             }
 
+            if saveFailed {
+                Text("Не удалось изменить ключ в Связке ключей. Разблокируйте её "
+                     + "(«Связка ключей» → «Вход») и попробуйте ещё раз. "
+                     + "Набранное осталось в поле.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settings.ai.key.\(provider.rawValue).saveFailed")
+            }
+
             if isExpanded {
-                if saveFailed {
-                    Text("Не удалось записать ключ в Связку ключей. Разблокируйте её "
-                         + "(«Связка ключей» → «Вход») и нажмите «Сохранить» ещё раз. "
-                         + "Набранное осталось в поле.")
-                        .font(Typo.caption)
-                        .foregroundStyle(Theme.amber)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("settings.ai.key.\(provider.rawValue).saveFailed")
-                }
                 Text(hint)
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
@@ -147,9 +151,9 @@ private struct ProviderKeyRow: View {
                         // запрос падал с «нет ключа». Человек вставлял ключ
                         // снова и снова, потому что интерфейс говорил, что всё
                         // сохранено.
-                        let savedKey = store.setKey(key, for: provider)
-                        let savedSecondary = store.setSecondary(secondary, for: provider)
-                        guard savedKey && savedSecondary else {
+                        guard store.setCredentials(
+                            key: key, secondary: secondary, for: provider
+                        ) else {
                             saveFailed = true
                             return          // поле не чистим: набранное не теряем
                         }
@@ -168,5 +172,142 @@ private struct ProviderKeyRow: View {
             }
         }
         .onAppear { secondary = store.secondary(for: provider) ?? "" }
+    }
+}
+
+/// Runtime credentials for the two optional cloud-audio paths. This uses the
+/// same injected ProviderKeyStore as the LLM settings above; there is no .env,
+/// generated Secrets, account login, or project-server fallback.
+struct TranscriptionProviderKeysSection: View {
+    @State private var expanded: CloudTranscriptionProvider?
+    @State private var configured: Set<CloudTranscriptionProvider> = []
+
+    let store: ProviderKeyStore
+    let onRemove: (CloudTranscriptionProvider) -> Bool
+    let onChange: (CloudTranscriptionProvider, Bool) -> Void
+
+    init(store: ProviderKeyStore,
+         onRemove: @escaping (CloudTranscriptionProvider) -> Bool,
+         onChange: @escaping (CloudTranscriptionProvider, Bool) -> Void = { _, _ in }) {
+        self.store = store
+        self.onRemove = onRemove
+        self.onChange = onChange
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            ForEach(CloudTranscriptionProvider.allCases) { provider in
+                TranscriptionProviderKeyRow(
+                    store: store,
+                    provider: provider,
+                    hasKey: configured.contains(provider),
+                    isExpanded: expanded == provider,
+                    toggle: { expanded = expanded == provider ? nil : provider },
+                    onRemove: { onRemove(provider) },
+                    onChange: { isConfigured in
+                        reload()
+                        onChange(provider, isConfigured)
+                    })
+            }
+        }
+        .onAppear(perform: reload)
+    }
+
+    private func reload() {
+        configured = Set(store.configuredTranscriptionProviders)
+    }
+}
+
+private struct TranscriptionProviderKeyRow: View {
+    let store: ProviderKeyStore
+    let provider: CloudTranscriptionProvider
+    let hasKey: Bool
+    let isExpanded: Bool
+    let toggle: () -> Void
+    let onRemove: () -> Bool
+    let onChange: (Bool) -> Void
+
+    @State private var key = ""
+    @State private var saveFailed = false
+
+    private var canSave: Bool {
+        !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: Space.s) {
+                Label(provider.label,
+                      systemImage: hasKey ? "checkmark.seal.fill" : "key")
+                    .labelStyle(ConnectedRowLabelStyle())
+                    .lineLimit(1)
+                Spacer()
+                if hasKey {
+                    Button("Убрать") {
+                        guard onRemove() else {
+                            saveFailed = true
+                            return
+                        }
+                        key = ""
+                        saveFailed = false
+                        onChange(false)
+                    }
+                    .buttonStyle(QuietButtonStyle())
+                    .accessibilityIdentifier(
+                        "settings.transcription.key.\(provider.rawValue).remove")
+                }
+                Button(isExpanded ? "Свернуть" : (hasKey ? "Заменить" : "Добавить ключ")) {
+                    toggle()
+                }
+                .buttonStyle(QuietButtonStyle())
+                .accessibilityIdentifier(
+                    "settings.transcription.key.\(provider.rawValue).add")
+            }
+
+            if saveFailed {
+                Text("Не удалось изменить ключ в Связке ключей. Разблокируйте её и попробуйте снова — набранное осталось в поле.")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.amber)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(
+                        "settings.transcription.key.\(provider.rawValue).saveFailed")
+            }
+
+            if isExpanded {
+                Text(provider.keyConsoleHint)
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.inkTertiary)
+
+                SecureField("", text: $key, prompt: Text("ключ"))
+                    .textFieldStyle(.plain)
+                    .font(Typo.callout)
+                    .padding(.horizontal, Space.s)
+                    .padding(.vertical, 6)
+                    .background(Theme.surfaceSunken,
+                                in: RoundedRectangle(cornerRadius: Radius.s,
+                                                     style: .continuous))
+                    .accessibilityLabel("Ключ \(provider.label)")
+                    .accessibilityIdentifier(
+                        "settings.transcription.key.\(provider.rawValue).field")
+
+                HStack {
+                    Button("Сохранить") {
+                        guard store.setTranscriptionKey(key, for: provider) else {
+                            saveFailed = true
+                            return
+                        }
+                        key = ""
+                        saveFailed = false
+                        onChange(true)
+                        toggle()
+                    }
+                    .buttonStyle(QuietButtonStyle())
+                    .disabled(!canSave)
+                    .accessibilityIdentifier(
+                        "settings.transcription.key.\(provider.rawValue).save")
+                    Spacer()
+                }
+            }
+        }
     }
 }

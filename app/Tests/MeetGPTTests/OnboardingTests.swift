@@ -117,29 +117,31 @@ struct OnboardingTests {
         // единственная строка про ключ исчезла из установщика. Прошлый тест на
         // этом упал, но искал он крестик, а не причину.
         let state = AppState(llm: MockLLMGateway(response: ""))
-        let card = {
+        let card = { (keychain: InMemoryKeychain) in
             SetupCard()
                 .environmentObject(state)
-                .environmentObject(MCPConnectionManager(tokenStore: InMemoryKeychain()))
+                .environmentObject(MCPConnectionManager(tokenStore: keychain))
         }
         let label = "Скрыть: Вставить ключ провайдера — иначе не будет ответов"
 
         // Ключа нет — строка на месте, и крестик принадлежит ей, а не карточке:
         // шаг необязательный, но уносить с ним подключения нельзя.
-        ProviderKeyStore.$overrideForTesting.withValue(ProviderKeyStore(store: InMemoryKeychain())) {
-            #expect(throws: Never.self) {
-                try card().inspect().find(viewWithAccessibilityLabel: label)
-            }
+        #expect(throws: Never.self) {
+            try card(InMemoryKeychain()).inspect().find(viewWithAccessibilityLabel: label)
         }
 
-        // Ключ вставили — просить больше не о чем. Второе связывание, а не
-        // присваивание поверх первого: подмена живёт ровно в своей области.
-        let filled = ProviderKeyStore(store: InMemoryKeychain())
-        filled.setKey("sk-synthetic", for: .openAI)
-        ProviderKeyStore.$overrideForTesting.withValue(filled) {
-            #expect(throws: (any Error).self) {
-                try card().inspect().find(viewWithAccessibilityLabel: label)
-            }
+        // У Яндекса одна половина настройки ещё не делает провайдера рабочим.
+        let partialKeychain = InMemoryKeychain()
+        ProviderKeyStore(store: partialKeychain).setKey("user-key", for: .yandexGPT)
+        #expect(throws: Never.self) {
+            try card(partialKeychain).inspect().find(viewWithAccessibilityLabel: label)
+        }
+
+        // Полная настройка любого провайдера убирает просьбу.
+        let readyKeychain = InMemoryKeychain()
+        ProviderKeyStore(store: readyKeychain).setKey("sk-synthetic", for: .openAI)
+        #expect(throws: (any Error).self) {
+            try card(readyKeychain).inspect().find(viewWithAccessibilityLabel: label)
         }
     }
 

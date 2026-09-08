@@ -91,7 +91,7 @@ struct OrchestrateServiceTests {
     @Test("maps the server tier-gate 403 to an LLMError")
     func tierGate403() async throws {
         let body = Data(#"{"error":"The ultra council needs the ultra plan.","upgrade":true}"#.utf8)
-        try await withResponder(403, body) {
+        await withResponder(403, body) {
             await #expect(throws: (any Error).self) {
                 _ = try await OrchestrateService.stream(
                     level: "ultra", system: "S", user: "Q", baseURL: "https://api.example.com",
@@ -106,7 +106,7 @@ struct OrchestrateServiceTests {
             #"{"delta":"partial"}"#,
             #"{"error":"a member died"}"#,
         ])
-        try await withResponder(200, body) {
+        await withResponder(200, body) {
             await #expect(throws: (any Error).self) {
                 _ = try await OrchestrateService.stream(
                     level: "ultra", system: "S", user: "Q", baseURL: "https://api.example.com",

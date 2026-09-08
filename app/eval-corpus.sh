@@ -18,13 +18,12 @@
 #
 set -euo pipefail
 
-CORPUS="${CRUXWING_EVAL_CORPUS_DIR:-$HOME/cruxwing-eval-corpus}/Sessions"
+CORPUS="${ORAKUL_EVAL_CORPUS_DIR:-${CRUXWING_EVAL_CORPUS_DIR:-$HOME/orakul-eval-corpus}}/Sessions"
 APP_SUPPORT="$HOME/Library/Application Support"
 
 find_history() {
-  for candidate in "$APP_SUPPORT/Cruxwing/Sessions" "$APP_SUPPORT/MeetGPT/Sessions"; do
-    [ -d "$candidate" ] && { echo "$candidate"; return; }
-  done
+  local orakul_history="$APP_SUPPORT/ai.orakul.desktop/Sessions"
+  [ -d "$orakul_history" ] && { echo "$orakul_history"; return; }
   return 1
 }
 
@@ -199,8 +198,9 @@ Run the experiment (spends real tokens — two requests per window):
   CRUXWING_LEVER_WINDOWS=12 \\
   swift test --filter LeverExperimentHarness
 
-Requires provider keys: put them in mac/.env and run ./build.sh first —
-Secrets.swift is regenerated from there and ships empty in a clean tree.
+Requires provider keys: put them in app/.env and run ./build.sh first.
+The build creates ignored LocalSecrets.generated.swift; tracked Secrets.swift
+stays empty and distribution builds do not compile the local file.
 EOF
 }
 

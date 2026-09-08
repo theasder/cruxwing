@@ -79,8 +79,7 @@ final class AgenticReadGateway: LLMGateway {
 
             guard let request = AgenticToolRequest.parse(answer) else {
                 gate.flush()
-                onTurnComplete(turn)
-                return answer
+                return complete(answer: answer, turn: turn, onDelta: onDelta)
             }
 
             let outcome = await executor.perform(
@@ -100,8 +99,22 @@ final class AgenticReadGateway: LLMGateway {
         turn.record(.budgetSpent)
         let visible = AgenticToolRequest.stripped(from: answer)
         onDelta(visible)
+        return complete(answer: visible, turn: turn, onDelta: onDelta)
+    }
+
+    /// Make provenance part of the answer itself. A callback is still useful
+    /// for diagnostics, but production may legitimately have no observer; the
+    /// user must not lose the source/refusal note just because that sink is nil.
+    private func complete(answer: String, turn: AgenticReadStep.Turn,
+                          onDelta: (String) -> Void) -> String {
         onTurnComplete(turn)
-        return visible
+        let note = turn.sourceNote
+        guard !note.isEmpty else { return answer }
+        let separator = answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? "" : "\n\n"
+        let suffix = separator + note
+        onDelta(suffix)
+        return answer + suffix
     }
 }
 

@@ -17,18 +17,19 @@
     "volumeName": "orakul",
     "defaultsSuite": "ai.orakul.desktop.settings",
     "keychainService": "ai.orakul.desktop.credentials",
+    "developerTeamId": "WQ9JR8SW55",
     "locale": "ru-RU"
   },
   "artifacts": {
     "macos": {
-      "status": "built",
+      "status": "release-blocked",
       "minimumVersion": "14.0",
       "installers": [
         "orakul-AppleSilicon.dmg",
         "orakul-Intel.dmg"
       ],
-      "notarised": true,
-      "note": "Собраны и нотаризованы Apple, лежат в public/download. На сайт не выложены: страница не должна давать ссылку, которой нет на сервере."
+      "notarised": false,
+      "note": "Исторический v0.1.0 за перенаправлением на theasder/cruxwing старше текущей ветки и не проходит её аудит происхождения. Для публикации владелец должен переименовать репозиторий в theasder/orakul и из одного коммита выпустить оба новых DMG."
     },
     "windows": {
       "status": "planned",

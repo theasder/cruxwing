@@ -623,19 +623,15 @@ describe('ROADMAP', () => {
       `строк без кириллицы стало ${english.length}, а §6.4 обещает не больше ${promised}`);
   });
 
-  test('число проверок страницы и документов в §2.1 — настоящее', () => {
-    // Число устарело в ту же минуту, когда появился этот файл: добавление
-    // набора меняет ровно ту величину, которую §2.1 называет измеренной.
-    // Считается так же, как в readme.test.mjs, и по той же причине — иначе
-    // «посчитано 2026-08-17» значит «посчитано когда-то».
-    const suites = readdirSync(here).filter((n) => n.endsWith('.test.mjs'));
-    const counted = suites
-      .flatMap((name) => readFileSync(resolve(here, name), 'utf8').split('\n'))
-      .filter((line) => /^\s*test\(/.test(line)).length;
-
-    const stated = Number(/\| (\d{2,4}) tests?, all green \|/.exec(roadmap)?.[1] ?? NaN);
-    assert.equal(stated, counted,
-      `§2.1 называет ${stated} проверок, наборы объявляют ${counted}`);
+  test('§2.1 names the verification lanes without a volatile test counter', () => {
+    // Exact totals age on every contribution and say nothing about maturity.
+    // The commands are stable; their runners are the current source of truth.
+    const status = section('2.1');
+    assert.match(status, /npm test/);
+    assert.match(status, /cd app && swift test/);
+    assert.match(status, /cd mvp && swift test/);
+    assert.doesNotMatch(status, /\b\d{2,5}\s+(?:tests?|провер)/i,
+      '§2.1 advertises a test total that will drift on the next contribution');
   });
 
   test('закрытое с причиной не обещано как работа', () => {

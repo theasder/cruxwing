@@ -117,8 +117,9 @@ struct AgenticReadGatewayTests {
         let answer = try await gateway.streamChat(system: "s", user: "u", images: [],
                                                   model: model) { streamed += $0 }
         #expect(!streamed.contains(AgenticToolRequest.opening))
-        #expect(streamed == "They slipped to September 14.")
-        #expect(answer == "They slipped to September 14.")
+        #expect(streamed.hasPrefix("They slipped to September 14."))
+        #expect(streamed.contains("Consulted: Slack · search_messages"))
+        #expect(answer == streamed)
     }
 
     @Test("the lookup result is fed back to the model")
@@ -140,9 +141,10 @@ struct AgenticReadGatewayTests {
                                      "They slipped to September 14."])
         let gateway = AgenticReadGateway(wrapping: inner, executor: { self.executor() },
                                          onTurnComplete: { reported = $0 })
-        _ = try await gateway.streamChat(system: "s", user: "u", images: [],
-                                         model: model) { _ in }
+        let answer = try await gateway.streamChat(system: "s", user: "u", images: [],
+                                                  model: model) { _ in }
         #expect(reported?.sourceNote.contains("Slack · search_messages") == true)
+        #expect(answer.contains("Consulted: Slack · search_messages"))
     }
 
     // MARK: - Bounds
@@ -174,7 +176,8 @@ struct AgenticReadGatewayTests {
                                          onTurnComplete: { reported = $0 })
         let answer = try await gateway.streamChat(system: "s", user: "u", images: [],
                                                   model: model) { _ in }
-        #expect(answer == "I cannot send that, but here is the summary.")
+        #expect(answer.hasPrefix("I cannot send that, but here is the summary."))
+        #expect(answer.contains("Not consulted:"))
         #expect(reported?.refusals.contains(.notAReadTool) == true)
     }
 
@@ -209,7 +212,8 @@ struct AgenticReadGatewayTests {
         let gateway = AgenticReadGateway(wrapping: inner, executor: { self.executor() })
         let answer = try await gateway.streamChat(system: "s", user: "u", images: [],
                                                   model: model, maxOutputTokens: 500) { _ in }
-        #expect(answer == "Answered.")
+        #expect(answer.hasPrefix("Answered."))
+        #expect(answer.contains("Consulted: Slack · search_messages"))
         #expect(inner.calls == 2)
     }
 }

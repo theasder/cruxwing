@@ -1,8 +1,8 @@
 import Foundation
 
-/// Local usage signals. Meetings/request counts remain product analytics;
-/// monthly Copilot time and grounded cycles are client-side cost guards. The
-/// backend remains authoritative for tier access and compute credits.
+/// Legacy managed-gateway usage signals. Direct BYOK neither reads nor writes
+/// these counters: Orakul does not need local product analytics or a funded
+/// allowance when the user owns the provider account.
 struct UsageStats {
     let meetings: Int          // completed recordings
     let aiRequests: Int        // Quick Prompts + ask-box runs
@@ -31,8 +31,15 @@ enum UsageTracker {
     static var meetings: Int { d.integer(forKey: Key.meetings) }
     static var aiRequests: Int { d.integer(forKey: Key.aiRequests) }
 
-    static func recordMeeting() { d.set(meetings + 1, forKey: Key.meetings) }
-    static func recordAIRequest() { d.set(aiRequests + 1, forKey: Key.aiRequests) }
+    static func recordMeeting() {
+        guard Config.managedUsageLimitsEnabled else { return }
+        d.set(meetings + 1, forKey: Key.meetings)
+    }
+
+    static func recordAIRequest() {
+        guard Config.managedUsageLimitsEnabled else { return }
+        d.set(aiRequests + 1, forKey: Key.aiRequests)
+    }
 
     static var copilotSecondsThisMonth: Int {
         rollTariffMonthIfNeeded()
@@ -45,18 +52,24 @@ enum UsageTracker {
     }
 
     static func recordCopilot(seconds: Int) {
-        guard seconds > 0 else { return }
+        guard Config.managedUsageLimitsEnabled, seconds > 0 else { return }
         rollTariffMonthIfNeeded()
         d.set(copilotSecondsThisMonth + seconds, forKey: Key.copilotSeconds)
     }
 
     /// Reserve one bounded MCP-grounded research cycle. The UI calls this
-    /// before fan-out, so repeated clicks cannot exceed the monthly tariff.
+    /// before fan-out. Direct BYOK has no Orakul quota; the inherited managed
+    /// gateway keeps its monthly reservation semantics.
     static func consumeGroundedCycle(for tier: Tier) -> Bool {
+        guard Config.managedUsageLimitsEnabled else { return true }
         rollTariffMonthIfNeeded()
         let allowance = TariffAllowance.forTier(tier)
         let used = groundedCyclesThisMonth
-        guard allowance.canRunGroundedCycle(used: used) else { return false }
+        guard UsageLimitPolicy.permits(
+            managedLimitsEnabled: Config.managedUsageLimitsEnabled,
+            withinManagedLimit: allowance.canRunGroundedCycle(used: used)
+        ) else { return false }
+        guard Config.managedUsageLimitsEnabled else { return true }
         d.set(used + 1, forKey: Key.groundedCycles)
         return true
     }

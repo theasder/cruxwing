@@ -34,7 +34,7 @@ enum AssemblyAIService {
 
     static func diarize(wav: Data, apiKey: String, speakersExpected: Int? = nil,
                         language: String = Config.transcriptionLanguage,
-                        session: URLSession = .shared) async throws -> [DiarizedUtterance] {
+                        session: URLSession = OrakulNetworkIdentity.shared) async throws -> [DiarizedUtterance] {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { throw AssemblyAIError.missingKey }
 

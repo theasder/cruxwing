@@ -90,7 +90,7 @@ struct RESTClientTests {
 
     @Test("Docs: a non-2xx response throws")
     func docsError() async throws {
-        try await withResponder({ _ in (403, Data(#"{"error":"forbidden"}"#.utf8)) }) {
+        await withResponder({ _ in (403, Data(#"{"error":"forbidden"}"#.utf8)) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleDocsService.read(documentID: "abc", accessToken: "t",
                                                      session: RESTMockURLProtocol.session())
@@ -137,14 +137,14 @@ struct RESTClientTests {
 
     @Test("Docs export: provider errors and malformed success bodies never look created")
     func docsExportFailures() async throws {
-        try await withResponder({ _ in (403, Data(#"{"error":"scope"}"#.utf8)) }) {
+        await withResponder({ _ in (403, Data(#"{"error":"scope"}"#.utf8)) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleDocsWriter.create(
                     title: "Nope", html: "<p>Nope</p>", accessToken: "token",
                     session: RESTMockURLProtocol.session())
             }
         }
-        try await withResponder({ _ in (200, json(["webViewLink": "https://example.com"])) }) {
+        await withResponder({ _ in (200, json(["webViewLink": "https://example.com"])) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleDocsWriter.create(
                     title: "No id", html: "<p>No id</p>", accessToken: "token",
@@ -173,7 +173,7 @@ struct RESTClientTests {
 
     @Test("Sheets: an error on either request propagates")
     func sheetsError() async throws {
-        try await withResponder({ req in
+        await withResponder({ req in
             let path = req.url?.path ?? ""
             if path.contains("/values/") { return (401, Data("nope".utf8)) }
             return (200, json(["properties": ["title": "Budget"]]))
@@ -235,14 +235,14 @@ struct RESTClientTests {
 
     @Test("Slides: provider errors and malformed success envelopes throw")
     func slidesFailures() async throws {
-        try await withResponder({ _ in (403, Data(#"{"error":"scope"}"#.utf8)) }) {
+        await withResponder({ _ in (403, Data(#"{"error":"scope"}"#.utf8)) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleSlidesService.read(
                     presentationID: "deck", accessToken: "t",
                     session: RESTMockURLProtocol.session())
             }
         }
-        try await withResponder({ _ in (200, json(["title": "missing id"])) }) {
+        await withResponder({ _ in (200, json(["title": "missing id"])) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleSlidesService.read(
                     presentationID: "deck", accessToken: "t",
@@ -349,14 +349,14 @@ struct RESTClientTests {
 
     @Test("Forms: provider errors and malformed form envelopes throw")
     func formsFailures() async throws {
-        try await withResponder({ _ in (401, Data(#"{"error":"unauthorized"}"#.utf8)) }) {
+        await withResponder({ _ in (401, Data(#"{"error":"unauthorized"}"#.utf8)) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleFormsService.read(
                     formID: "form", accessToken: "t",
                     session: RESTMockURLProtocol.session())
             }
         }
-        try await withResponder({ _ in (200, json(["formId": "form", "items": []])) }) {
+        await withResponder({ _ in (200, json(["formId": "form", "items": []])) }) {
             await #expect(throws: (any Error).self) {
                 _ = try await GoogleFormsService.read(
                     formID: "form", accessToken: "t",
@@ -365,7 +365,7 @@ struct RESTClientTests {
         }
 
         let form: [String: Any] = ["formId": "form", "info": ["title": "Feedback"]]
-        try await withResponder({ request in
+        await withResponder({ request in
             request.url?.path.hasSuffix("/responses") == true
                 ? (200, json(["responses": "not-an-array"]))
                 : (200, json(form))
@@ -377,7 +377,7 @@ struct RESTClientTests {
             }
         }
 
-        try await withResponder({ request in
+        await withResponder({ request in
             request.url?.path.hasSuffix("/responses") == true
                 ? (200, json(["responses": [], "nextPageToken": 42]))
                 : (200, json(form))
@@ -480,12 +480,12 @@ struct RESTClientTests {
 
     @Test("Calendar: no events throws noEvent; a non-2xx throws http")
     func agendaFailures() async throws {
-        try await withResponder({ _ in (200, json(["items": []])) }) {
+        await withResponder({ _ in (200, json(["items": []])) }) {
             await #expect(throws: CalendarError.self) {
                 _ = try await CalendarService.currentAgenda(accessToken: "t", session: RESTMockURLProtocol.session())
             }
         }
-        try await withResponder({ _ in (500, Data("boom".utf8)) }) {
+        await withResponder({ _ in (500, Data("boom".utf8)) }) {
             await #expect(throws: CalendarError.self) {
                 _ = try await CalendarService.currentAgenda(accessToken: "t", session: RESTMockURLProtocol.session())
             }
@@ -553,7 +553,7 @@ struct RESTClientTests {
 
     @Test("AssemblyAI: a terminal error status throws")
     func diarizeErrorStatus() async throws {
-        try await withResponder({ req in
+        await withResponder({ req in
             let path = req.url?.path ?? ""
             if path.hasSuffix("/upload") { return (200, json(["upload_url": "https://x"])) }
             if path.hasSuffix("/transcript") { return (200, json(["id": "tid"])) }

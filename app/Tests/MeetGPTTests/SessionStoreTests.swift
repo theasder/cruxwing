@@ -86,7 +86,7 @@ struct SessionStoreTests {
 
         #expect(store.list().map(\.title) == ["newer", "older"])
 
-        store.delete(id: newer.id)
+        try store.delete(id: newer.id)
         #expect(store.list().map(\.title) == ["older"])
         #expect(store.load(id: newer.id) == nil)
     }
@@ -99,7 +99,7 @@ struct SessionStoreTests {
         try store.save(sampleSession(title: "c"))
         #expect(store.list().count == 3)
 
-        store.deleteAll()
+        try store.deleteAll()
         #expect(store.list().isEmpty)
     }
 
@@ -116,6 +116,200 @@ struct SessionStoreTests {
         #expect(listed.count == 1)
         #expect(listed[0].title == "v2")
         #expect(listed[0].aiResponse.contains("updated"))
+    }
+
+    @Test("overwrite keeps a restricted recovery copy and can read it")
+    func atomicOverwriteRecovery() throws {
+        let store = makeStore()
+        var session = sampleSession(title: "recoverable v1")
+        try store.save(session)
+        session.title = "current v2"
+        try store.save(session)
+
+        let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
+        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        #expect(FileManager.default.fileExists(atPath: recovery.path))
+
+        try Data("interrupted write".utf8).write(to: destination)
+        #expect(store.load(id: session.id)?.title == "recoverable v1")
+        let recoveredArchive = store.listWithUnreadable()
+        #expect(recoveredArchive.sessions.map(\.title) == ["recoverable v1"])
+        #expect(recoveredArchive.unreadable == [
+            "\(session.id.uuidString).json (opened recovery copy)"
+        ])
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: recovery.path)
+        #expect(attributes[.posixPermissions] as? Int == 0o600)
+        let directoryAttributes = try FileManager.default.attributesOfItem(
+            atPath: store.root.path)
+        #expect(directoryAttributes[.posixPermissions] as? Int == 0o700)
+        let names = try FileManager.default.contentsOfDirectory(atPath: store.root.path)
+        #expect(!names.contains { $0.hasSuffix(".tmp") })
+
+        try store.delete(id: session.id)
+        #expect(!FileManager.default.fileExists(atPath: destination.path))
+        #expect(!FileManager.default.fileExists(atPath: recovery.path))
+    }
+
+    @Test("a save after fallback keeps the known-good recovery")
+    func mutationAfterRecoveryDoesNotBackUpCorruption() throws {
+        let store = makeStore()
+        var session = sampleSession(title: "known good v1")
+        try store.save(session)
+        session.title = "current v2"
+        try store.save(session)
+
+        let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
+        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        try Data("damaged primary".utf8).write(to: destination)
+        #expect(store.load(id: session.id)?.title == "known good v1")
+
+        session.title = "committed v3"
+        try store.save(session)
+        #expect(store.load(id: session.id)?.title == "committed v3")
+
+        // A second damaged primary must still fall back to the last known-good
+        // copy, not to the corrupt primary that the v3 save replaced.
+        try Data("damaged again".utf8).write(to: destination)
+        #expect(store.load(id: session.id)?.title == "known good v1")
+        #expect(try Data(contentsOf: recovery) != Data("damaged primary".utf8))
+    }
+
+    @Test("clear all erases primaries, recovery copies, and crash staging files")
+    func clearAllErasesEveryOwnedArtifact() throws {
+        let store = makeStore()
+        var session = sampleSession(title: "private v1")
+        try store.save(session)
+        session.title = "private v2"
+        try store.save(session)
+
+        let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
+        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        let staging = OrakulAtomicFile.stagingURL(for: destination)
+        try Data("private crash remnant".utf8).write(to: staging)
+        let unrelated = store.root.appendingPathComponent("keep.txt")
+        try Data("not a session".utf8).write(to: unrelated)
+
+        try store.deleteAll()
+
+        #expect(!FileManager.default.fileExists(atPath: destination.path))
+        #expect(!FileManager.default.fileExists(atPath: recovery.path))
+        #expect(!FileManager.default.fileExists(atPath: staging.path))
+        #expect(FileManager.default.fileExists(atPath: unrelated.path))
+    }
+
+    @Test("failed recovery deletion is surfaced before the primary is removed")
+    func deletionFailurePreservesPrimary() throws {
+        enum RemovalFailure: Error, Equatable { case denied }
+        let healthy = makeStore()
+        var session = sampleSession(title: "v1")
+        try healthy.save(session)
+        session.title = "v2"
+        try healthy.save(session)
+        let destination = healthy.root.appendingPathComponent("\(session.id.uuidString).json")
+        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        let failing = SessionStore(root: healthy.root, removeItem: { candidate in
+            if candidate.standardizedFileURL == recovery.standardizedFileURL {
+                throw RemovalFailure.denied
+            }
+            try FileManager.default.removeItem(at: candidate)
+        })
+
+        #expect(throws: RemovalFailure.denied) {
+            try failing.delete(id: session.id)
+        }
+        #expect(FileManager.default.fileExists(atPath: destination.path))
+        #expect(FileManager.default.fileExists(atPath: recovery.path))
+    }
+
+    @Test("clear all surfaces directory enumeration failure")
+    func clearAllListingFailureIsVisible() throws {
+        enum ListingFailure: Error, Equatable { case denied }
+        let healthy = makeStore()
+        let session = sampleSession(title: "still here")
+        try healthy.save(session)
+        let failing = SessionStore(root: healthy.root, directoryContents: { _ in
+            throw ListingFailure.denied
+        })
+
+        #expect(throws: ListingFailure.denied) { try failing.deleteAll() }
+        #expect(healthy.load(id: session.id) != nil)
+    }
+
+    @Test("a committed replacement synchronizes its containing directory")
+    func replacementSynchronizesDirectory() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("atomic-sync-\(UUID().uuidString)", isDirectory: true)
+        let destination = root.appendingPathComponent("snapshot.json")
+        defer { try? FileManager.default.removeItem(at: root) }
+        var synchronized: [URL] = []
+
+        try OrakulAtomicFile.write(
+            Data("snapshot".utf8),
+            to: destination,
+            recoveryPolicy: .discardPreviousContent,
+            synchronizeDirectory: { synchronized.append($0) }
+        )
+
+        #expect(synchronized.contains(root))
+    }
+
+    @Test("History state exposes a directory listing failure")
+    @MainActor
+    func appStateShowsListingFailure() throws {
+        enum ListingFailure: Error { case denied }
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("history-warning-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SessionStore(root: root, directoryContents: { _ in
+            throw ListingFailure.denied
+        })
+
+        let state = AppState(llm: MockLLMGateway(response: ""), sessionStore: store)
+        #expect(state.savedSessions.isEmpty)
+        #expect(state.historyStorageWarning?.contains("не полностью") == true)
+    }
+
+    @Test("listing failure is not reported as a legitimately empty archive")
+    func listingFailureIsVisible() throws {
+        enum ListingFailure: Error { case denied }
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("session-store-listing-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SessionStore(root: root, directoryContents: { _ in
+            throw ListingFailure.denied
+        })
+
+        let result = store.listWithUnreadable()
+        #expect(result.sessions.isEmpty)
+        #expect(result.unreadable.count == 1)
+        #expect(result.unreadable[0].contains("could not be listed"))
+
+        let legitimatelyEmpty = makeStore().listWithUnreadable()
+        #expect(legitimatelyEmpty.sessions.isEmpty)
+        #expect(legitimatelyEmpty.unreadable.isEmpty)
+    }
+
+    @Test("production storage never falls back to a temporary directory")
+    func applicationSupportResolution() throws {
+        let temporary = URL(fileURLWithPath: "/private/tmp/orakul-explicit-test")
+        #expect(throws: OrakulApplicationSupport.ResolutionError.self) {
+            _ = try OrakulApplicationSupport.resolvedRoot(
+                applicationSupportDirectory: nil,
+                isUnderTest: false,
+                temporaryDirectory: temporary
+            )
+        }
+
+        let testRoot = try OrakulApplicationSupport.resolvedRoot(
+            applicationSupportDirectory: nil,
+            isUnderTest: true,
+            temporaryDirectory: temporary
+        )
+        #expect(testRoot.path.hasPrefix(temporary.path))
+        #expect(testRoot.lastPathComponent == OrakulApplicationSupport.directoryName)
     }
 
     @Test("displayTitle falls back to the date when the title is blank")

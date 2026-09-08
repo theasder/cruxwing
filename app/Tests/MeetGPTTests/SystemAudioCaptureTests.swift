@@ -42,7 +42,7 @@ struct SystemAudioCaptureTests {
 
         #expect(state.systemAudioLostDuringRecording,
                 "поток оборвался, а приложение об этом не знает")
-        let shown = try? #require(state.lastError)
+        let shown = state.lastError
         #expect(shown?.contains("Звук собеседников пропал") == true,
                 "человеку не сказали, что пишется половина звонка")
         // Сказать «пропал» мало: нужно назвать обычную причину, иначе это

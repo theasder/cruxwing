@@ -1,9 +1,13 @@
 #!/bin/bash
-# Regenerate every piece of deterministic evidence, then verify it.
+# Regenerate the legacy cross-repository app/API evidence, then verify it.
 #
 #   bash verify-evidence.sh
 #
-# Why a script and not a README paragraph: the verifier rejects any report that
+# This is an optional compatibility harness, not the standalone Orakul test
+# command. It requires an explicit checkout of the private/independently
+# versioned Cruxwing API; normal public verification is `swift test` here plus
+# `npm test` at the repository root. Why a script and not a README paragraph:
+# the verifier rejects any report that
 # predates the sources it claims to cover, and it says so in a way that is easy
 # to misread —
 #
@@ -43,14 +47,15 @@ run_step() {
 }
 
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-API_ROOT="${CRUXWING_API_ROOT:-$APP_ROOT/../cruxwing-api}"
+API_ROOT="${CRUXWING_API_ROOT:-}"
 export PATH="/opt/homebrew/bin:$PATH"
 
 cd "$APP_ROOT"
 mkdir -p coverage
 
-if [ ! -d "$API_ROOT" ]; then
-    echo "error: cruxwing-api not found at $API_ROOT (set CRUXWING_API_ROOT)" >&2
+if [ -z "$API_ROOT" ] || [ ! -d "$API_ROOT" ]; then
+    echo "error: this optional cross-repository verifier requires CRUXWING_API_ROOT" >&2
+    echo "normal Orakul checks are: (cd app && swift test), (cd mvp && swift test), npm test" >&2
     exit 1
 fi
 

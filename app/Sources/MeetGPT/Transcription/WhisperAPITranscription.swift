@@ -10,7 +10,7 @@ final class WhisperAPITranscription: TranscriptionService {
     private let language: String
     private let glossary: String
 
-    init(session: URLSession = .shared,
+    init(session: URLSession = OrakulNetworkIdentity.shared,
          apiKey: String = Config.openAIAPIKey,
          model: String = Config.transcriptionModel,
          language: String = Config.transcriptionLanguage,
@@ -36,7 +36,7 @@ final class WhisperAPITranscription: TranscriptionService {
                           userInfo: [NSLocalizedDescriptionKey: "Audio is too large to transcribe (max ~25 MB / ~13 min). Use a shorter clip."])
         }
 
-        let boundary = "meetgpt-\(UUID().uuidString)"
+        let boundary = "orakul-\(UUID().uuidString)"
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 60

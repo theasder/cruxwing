@@ -11,6 +11,7 @@ public/download/
 build/
 dist/
 exports/
+release-candidate/
 
 # Linked Git worktrees for parallel sessions. Create with
 # `git worktree add ./wt-<task>` from this clone — never commit the checkout.

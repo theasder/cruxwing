@@ -12,7 +12,7 @@ import ViewInspector
 //     a prepared blind spot whose quote is absent from the sample transcript is
 //     exactly the dishonesty the co-pilot refuses to commit;
 //   * a sample run writes nothing, anywhere: not history, not the ledger, not
-//     the usage counters that decide when the paywall may appear;
+//     the local usage counters;
 //   * the capture probe can tell "granted but silent" from "not granted",
 //     because only the first is the macOS relaunch quirk.
 
@@ -1129,9 +1129,8 @@ struct SampleRunIsolationTests {
         state.pinSampleDecision()
         state.endSampleRun()
 
-        // Config.shouldShowPaywall keys off exactly these two counters, so
-        // holding them still is what stops a fictional call triggering a real
-        // upsell.
+        // A sample must not mutate the real-meeting counters used by local
+        // limits and summaries. The inherited paywall itself is gone.
         #expect(UsageTracker.meetings == before.0)
         #expect(UsageTracker.aiRequests == before.1)
     }

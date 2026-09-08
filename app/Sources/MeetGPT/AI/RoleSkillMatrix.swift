@@ -1,42 +1,47 @@
 import Foundation
 
-/// The role-aware skill matrix: for each user job position (Founder/CEO, PM,
-/// Sales AE, …) and each quick-prompt button, the best-fit MIT skills and a
-/// distilled, role-specific method hint.
-///
-/// Produced by the role-skills assessment (10 positions × 12 buttons, ranked
-/// from a 306-skill MIT pool and adversarially verified — see
-/// `docs/role-skills-matrix.md`), bundled as `Resources/Skills/role-matrix.json`,
-/// and layered onto the system prompt as the third skill layer:
-/// base + call theme + **role** + button.
-struct RolePosition: Codable, Identifiable, Equatable, Sendable {
-    struct ButtonCell: Codable, Equatable, Sendable {
-        let skills: [String]  // MIT skill names backing this cell (for provenance/UI)
-        let hint: String      // role-specific method addition for this button
-    }
-
-    let id: String            // e.g. "product-manager"
-    let label: String         // e.g. "Product Manager"
-    let symbol: String        // SF Symbol for the picker row
-    let buttons: [String: ButtonCell]  // keyed by QuickPrompt id
+/// A small first-party role profile used by the picker and generic output frame.
+/// Prompt-specific methodology comes only from Orakul's built-in prompt layer
+/// and the separately reviewed nine-skill runtime bundle.
+struct RolePosition: Identifiable, Equatable, Sendable {
+    let id: String
+    let label: String
+    let symbol: String
 }
 
 enum RoleSkillMatrix {
-    /// All positions, in the matrix's curated order. Empty if the resource is
-    /// missing — every caller degrades to "no role layer", never crashes.
-    static let positions: [RolePosition] = load()
+    /// Explicit first-party UI choices. Keeping this small table in compiled
+    /// source avoids a second, independently mutable prompt-data corpus.
+    static let positions: [RolePosition] = [
+        .init(id: "founder-ceo", label: "Основатель / гендиректор", symbol: "star.circle"),
+        .init(id: "product-manager", label: "Продакт-менеджер", symbol: "shippingbox"),
+        .init(id: "sales-ae", label: "Продажи / аккаунт-менеджер", symbol: "dollarsign.circle"),
+        .init(id: "marketing-manager", label: "Маркетинг", symbol: "megaphone"),
+        .init(id: "ops-lead", label: "BizOps / операционный директор", symbol: "gearshape"),
+        .init(
+            id: "tech-lead", label: "Инженер / техлид",
+            symbol: "chevron.left.forwardslash.chevron.right"),
+        .init(
+            id: "engineering-manager", label: "Руководитель разработки",
+            symbol: "wrench.and.screwdriver"),
+        .init(
+            id: "customer-success", label: "Клиентский успех",
+            symbol: "heart.text.square"),
+        .init(id: "project-manager", label: "Проектный менеджер", symbol: "checklist"),
+        .init(id: "recruiter-hr", label: "Рекрутинг / HR", symbol: "person.badge.plus"),
+    ]
 
     static func position(id: String?) -> RolePosition? {
         guard let id else { return nil }
         return positions.first { $0.id == id }
     }
 
-    /// The guidance layer for a role (+ optionally the button being run):
-    /// a role-framing line plus the role×button method hint when one exists.
+    /// Generic role framing. The previous 120 role×button hints were distilled
+    /// from an untraceable bulk skill pool and are deliberately not shipped.
     /// Sentinel id for "the user wrote their own role" (Config.userCustomRole).
     static let customRoleID = "custom"
 
-    static func guidance(roleID: String?, promptID: String?) -> String? {
+    static func guidance(roleID: String?, promptID _: String?) -> String? {
         if roleID == customRoleID {
             let text = Config.userCustomRole.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { return nil }
@@ -45,25 +50,6 @@ enum RoleSkillMatrix {
             return "ROLE — The user describes their role as: \(text). Frame every output for that role's work."
         }
         guard let role = position(id: roleID) else { return nil }
-        var lines = ["ROLE — The user is a \(role.label). Frame every output for that role's work."]
-        if let promptID, let cell = role.buttons[promptID], !cell.hint.isEmpty {
-            lines.append(cell.hint)
-        }
-        return lines.joined(separator: " ")
-    }
-
-    // MARK: - Loading
-
-    private struct MatrixFile: Codable { let positions: [RolePosition] }
-
-    static func parse(_ data: Data) -> [RolePosition] {
-        (try? JSONDecoder().decode(MatrixFile.self, from: data))?.positions ?? []
-    }
-
-    private static func load() -> [RolePosition] {
-        guard let root = SkillResources.skillsDirectory else { return [] }
-        let url = root.appendingPathComponent("role-matrix.json")
-        guard let data = try? Data(contentsOf: url) else { return [] }
-        return parse(data)
+        return "ROLE — The user is a \(role.label). Frame every output for that role's work."
     }
 }

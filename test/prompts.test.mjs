@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -12,8 +12,11 @@ import { dirname, resolve } from 'node:path';
 // genuinely free.
 
 const here = dirname(fileURLToPath(import.meta.url));
+const canonicalCatalog = resolve(
+  here, '..', 'mvp', 'Sources', 'OrakulCore', 'Resources', 'prompts.ru.json',
+);
 const catalog = JSON.parse(
-  readFileSync(resolve(here, '..', 'config', 'prompts.ru.json'), 'utf8'),
+  readFileSync(canonicalCatalog, 'utf8'),
 );
 const { buttons } = catalog;
 
@@ -31,6 +34,24 @@ const needsFilm = existsSync(filmScene)
   : { skip: 'демо-фильм лежит в соседнем репозитории маркетинга — в клоне его нет' };
 
 describe('orakul quick-action buttons (ru)', () => {
+  test('the test reads the resource SwiftPM actually ships, with no config copy', () => {
+    assert.ok(existsSync(canonicalCatalog), 'the bundled OrakulCore prompt catalogue is missing');
+    const copies = [];
+    const walk = (directory) => {
+      if (!existsSync(directory)) return;
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const full = resolve(directory, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name === 'prompts.ru.json') copies.push(full.slice(resolve(here, '..').length + 1));
+      }
+    };
+    for (const root of ['app/Sources', 'mvp/Sources', 'config']) {
+      walk(resolve(here, '..', root));
+    }
+    assert.deepEqual(copies, ['mvp/Sources/OrakulCore/Resources/prompts.ru.json'],
+      `prompt catalogues can drift away from the resource users receive:\n${copies.join('\n')}`);
+  });
+
   test('the catalogue is well formed and every id is unique', () => {
     assert.equal(catalog.locale, 'ru-RU');
     assert.ok(buttons.length >= 6, 'a co-pilot with fewer than six actions is a demo');

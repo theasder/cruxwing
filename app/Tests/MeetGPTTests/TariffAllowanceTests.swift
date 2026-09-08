@@ -13,7 +13,7 @@ struct CreditExhaustionTests {
         let error = LLMError.http(
             "Brainstorm", 429,
             #"{"error":"You need 2 compute credits, but only 0 remain this period — upgrade or add credits to continue.","upgrade":true}"#)
-        let message = CreditExhaustion.quotaMessage(from: error)
+        let message = CreditExhaustion.quotaMessage(from: error, managed: true)
         #expect(message?.contains("upgrade or add credits") == true)
         // The JSON envelope is unwrapped — a banner must not show raw JSON.
         #expect(message?.contains("{") == false)
@@ -21,17 +21,32 @@ struct CreditExhaustionTests {
 
     @Test("other failures never latch the quota gate")
     func ignoresOtherErrors() {
-        #expect(CreditExhaustion.quotaMessage(from: LLMError.http("Backend", 503, "down")) == nil)
-        #expect(CreditExhaustion.quotaMessage(from: LLMError.http("Backend", 403, "tier gate")) == nil)
-        #expect(CreditExhaustion.quotaMessage(from: LLMError.badResponse("Backend")) == nil)
-        #expect(CreditExhaustion.quotaMessage(from: URLError(.timedOut)) == nil)
+        #expect(CreditExhaustion.quotaMessage(
+            from: LLMError.http("Backend", 503, "down"), managed: true) == nil)
+        #expect(CreditExhaustion.quotaMessage(
+            from: LLMError.http("Backend", 403, "tier gate"), managed: true) == nil)
+        #expect(CreditExhaustion.quotaMessage(
+            from: LLMError.badResponse("Backend"), managed: true) == nil)
+        #expect(CreditExhaustion.quotaMessage(
+            from: URLError(.timedOut), managed: true) == nil)
     }
 
     @Test("a 429 with no readable body still latches with a usable sentence")
     func fallbackMessage() {
-        let message = CreditExhaustion.quotaMessage(from: LLMError.http("Backend", 429, ""))
+        let message = CreditExhaustion.quotaMessage(
+            from: LLMError.http("Backend", 429, ""), managed: true)
         #expect(message?.isEmpty == false)
         #expect(message?.contains("credit") == true)
+    }
+
+    @Test("a direct provider 429 is never relabeled as Orakul credits")
+    func directProviderQuotaStaysProviderOwned() {
+        let error = LLMError.http(
+            "OpenAI", 429, #"{"code":"insufficient_quota"}"#)
+        #expect(CreditExhaustion.quotaMessage(from: error, managed: false) == nil)
+        #expect(CreditExhaustion.quotaMessage(
+            from: LLMError.http("Anthropic", 429, #"{"error":"credits exhausted"}"#),
+            managed: false) == nil)
     }
 }
 
@@ -62,6 +77,24 @@ struct TariffAllowanceTests {
         let free = TariffAllowance.forTier(.free)
         #expect(free.canRunGroundedCycle(used: 2))
         #expect(!free.canRunGroundedCycle(used: 3))
+    }
+
+    @Test("direct BYOK is never disabled by an inherited managed allowance")
+    func directBYOKBypassesManagedLimits() {
+        #expect(UsageLimitPolicy.permits(
+            managedLimitsEnabled: false, withinManagedLimit: false))
+        #expect(UsageLimitPolicy.remaining(
+            managedLimitsEnabled: false, managedRemaining: 0) == .max)
+    }
+
+    @Test("the optional managed gateway still enforces its own allowance")
+    func managedGatewayKeepsItsLimits() {
+        #expect(!UsageLimitPolicy.permits(
+            managedLimitsEnabled: true, withinManagedLimit: false))
+        #expect(UsageLimitPolicy.permits(
+            managedLimitsEnabled: true, withinManagedLimit: true))
+        #expect(UsageLimitPolicy.remaining(
+            managedLimitsEnabled: true, managedRemaining: -1) == 0)
     }
 
     @Test("paid usage windows follow the subscription activation anchor")
@@ -140,46 +173,4 @@ struct CopilotCadenceTests {
         #expect(zip(allOff, allOn).allSatisfy { $0 <= $1 })
     }
 
-    // MARK: - Agreement with the server
-
-    @Test("every tier's allowance matches the shared contract")
-    func allowancesMatchTheContract() {
-        // These numbers were correct, but nothing checked them. The app held its
-        // own copy and this suite asserted that copy against itself, so a server
-        // change would have drifted silently — the user is billed by the server
-        // and told what they have by the app, which is the worst pair to let
-        // disagree.
-        let contract = SharedContract.allowances
-        guard !contract.isEmpty else { return }
-
-        for (name, tier) in [("free", Tier.free), ("pro", .pro),
-                             ("premium", .premium), ("ultra", .ultra)] {
-            guard let expected = contract[name] else { continue }
-            let actual = TariffAllowance.forTier(tier)
-            #expect(actual.copilotHours == expected.copilotHours, "\(name) copilotHours")
-            #expect(actual.computeCredits == expected.computeCredits, "\(name) computeCredits")
-            #expect(actual.groundedCycles == expected.groundedCycles, "\(name) groundedCycles")
-        }
-    }
-
-    @Test("the contract carries an annual plan for every paid tier")
-    func annualPlansExist() {
-        // Backlog item 23: the annual plans are SOLD but never offered. This
-        // pins that they exist server-side, so the UI work is wiring rather
-        // than billing, and so nobody removes them believing them unused.
-        let plans = SharedContract.plans
-        guard !plans.isEmpty else { return }
-
-        for tier in ["pro", "premium", "ultra"] {
-            let monthly = plans.first { $0.tier == tier && $0.interval == "month" }
-            let annual = plans.first { $0.tier == tier && $0.interval == "year" }
-            #expect(monthly != nil, "\(tier) monthly")
-            #expect(annual != nil, "\(tier) annual")
-            guard let monthly, let annual else { continue }
-            // Ten monthly payments. If this ratio changes, item 24 decided the
-            // discount depth and the marketing footnote must change with it.
-            #expect(annual.priceCents == monthly.priceCents * 10,
-                    "\(tier) annual is not ten monthly payments")
-        }
-    }
 }

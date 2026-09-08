@@ -4,6 +4,14 @@ import OrakulCore
 /// Durable local search index for messages delivered by Telegram after setup.
 /// The bot token never enters this file; it remains in Keychain.
 actor TelegramMessageArchive {
+    private struct ArchiveLoadError: LocalizedError {
+        let fileURL: URL
+
+        var errorDescription: String? {
+            "Архив Telegram и его резервную копию не удалось прочитать: \(fileURL.path)"
+        }
+    }
+
     struct Hit: Equatable, Sendable {
         let message: TelegramSupergroups.Message
         let excerpt: String
@@ -21,50 +29,57 @@ actor TelegramMessageArchive {
     }
 
     static let shared: TelegramMessageArchive = {
-        let base: URL
-        if AppState.isUnderTest {
-            base = FileManager.default.temporaryDirectory
-                .appendingPathComponent("cruxwing-tests/Telegram", isDirectory: true)
-        } else {
-            base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                            in: .userDomainMask).first
-                ?? FileManager.default.temporaryDirectory
-        }
-        let root = AppState.isUnderTest ? base
-            : base.appendingPathComponent("MeetGPT/Telegram", isDirectory: true)
-        return TelegramMessageArchive(fileURL: root.appendingPathComponent("messages.json"))
+        TelegramMessageArchive(fileURL: OrakulApplicationSupport.telegramArchiveURL)
     }()
 
     private let fileURL: URL
+    private let directoryContents: @Sendable (URL) throws -> [URL]
     private let removeItem: @Sendable (URL) throws -> Void
+    private let synchronizeDirectory: @Sendable (URL) throws -> Void
     private var snapshot: Snapshot
+    private var loadError: Error?
 
     init(fileURL: URL,
+         directoryContents: @escaping @Sendable (URL) throws -> [URL] = {
+             try FileManager.default.contentsOfDirectory(
+                 at: $0, includingPropertiesForKeys: nil)
+         },
          removeItem: @escaping @Sendable (URL) throws -> Void = {
              try FileManager.default.removeItem(at: $0)
+         },
+         synchronizeDirectory: @escaping @Sendable (URL) throws -> Void = {
+             try OrakulAtomicFile.synchronizeDirectory($0)
          }) {
         self.fileURL = fileURL
+        self.directoryContents = directoryContents
         self.removeItem = removeItem
+        self.synchronizeDirectory = synchronizeDirectory
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        if let data = try? Data(contentsOf: fileURL),
-           let saved = try? decoder.decode(Snapshot.self, from: data) {
-            snapshot = saved
-        } else {
-            snapshot = Snapshot(
-                botID: nil, nextOffset: nil, offsetRecordedAt: nil, messages: [])
+        let candidates = OrakulAtomicFile.readableCandidates(for: fileURL)
+        for candidate in candidates {
+            if let data = try? Data(contentsOf: candidate),
+               let saved = try? decoder.decode(Snapshot.self, from: data) {
+                snapshot = saved
+                loadError = nil
+                return
+            }
         }
+        snapshot = Snapshot(
+            botID: nil, nextOffset: nil, offsetRecordedAt: nil, messages: [])
+        loadError = candidates.isEmpty ? nil : ArchiveLoadError(fileURL: fileURL)
     }
 
     /// Telegram offsets are scoped to a bot. Reusing one after a token change
     /// can jump past the new bot's first updates, so identity changes reset the
     /// archive before polling starts.
     func activate(botID: Int64, allowedChatIDs: Set<Int64>? = nil) throws {
+        try requireReadableArchive()
         if snapshot.botID != botID {
             let previous = snapshot
             snapshot = Snapshot(
                 botID: botID, nextOffset: nil, offsetRecordedAt: nil, messages: [])
-            do { try persist() } catch {
+            do { try persist(recoveryPolicy: .discardPreviousContent) } catch {
                 snapshot = previous
                 throw error
             }
@@ -75,7 +90,7 @@ actor TelegramMessageArchive {
             if retained.count != snapshot.messages.count {
                 let previous = snapshot
                 snapshot.messages = retained
-                do { try persist() } catch {
+                do { try persist(recoveryPolicy: .discardPreviousContent) } catch {
                     snapshot = previous
                     throw error
                 }
@@ -109,6 +124,7 @@ actor TelegramMessageArchive {
     /// archived text and topic metadata instead of producing a second hit.
     func ingest(_ batch: TelegramSupergroups.Batch,
                 allowedChatIDs: Set<Int64>, receivedAt: Date = Date()) throws {
+        try requireReadableArchive()
         let previous = snapshot
         var byID = Dictionary(uniqueKeysWithValues: snapshot.messages.map {
             (Self.key(for: $0), $0)
@@ -167,31 +183,52 @@ actor TelegramMessageArchive {
     }
 
     func reset() throws {
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            try removeItem(fileURL)
-        }
+        _ = try OrakulAtomicFile.erase(
+            fileURL,
+            directoryContents: directoryContents,
+            removeItem: removeItem,
+            synchronizeDirectory: synchronizeDirectory
+        )
         snapshot = Snapshot(
             botID: nil, nextOffset: nil, offsetRecordedAt: nil, messages: [])
+        loadError = nil
     }
 
-    private func persist() throws {
-        // Права как у ядра: 0700 на каталог, 0600 на файл. Здесь лежат
-        // расшифровки и чужие сообщения — то самое, про что продукт говорит
-        // «остаётся на вашем компьютере». Про сеть это правда; на самом
-        // компьютере файлы были открыты любому процессу пользователя.
-        try FileManager.default.createDirectory(
-            at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700])
+    private func persist(recoveryPolicy explicitPolicy: OrakulAtomicFile.RecoveryPolicy? = nil) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
-        if !FileManager.default.fileExists(atPath: fileURL.path) {
-            _ = FileManager.default.createFile(atPath: fileURL.path, contents: nil,
-                                               attributes: [.posixPermissions: 0o600])
+        // Revalidate the live disk state for every write. The primary can be
+        // damaged after this actor was initialized; backing it up at that point
+        // would destroy the only readable recovery copy.
+        let policy = explicitPolicy ?? recoveryPolicyForOrdinaryWrite()
+        try OrakulAtomicFile.write(
+            encoder.encode(snapshot),
+            to: fileURL,
+            recoveryPolicy: policy,
+            synchronizeDirectory: synchronizeDirectory
+        )
+        loadError = nil
+    }
+
+    private func recoveryPolicyForOrdinaryWrite() -> OrakulAtomicFile.RecoveryPolicy {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let recovery = OrakulAtomicFile.recoveryURL(for: fileURL).standardizedFileURL
+        for candidate in OrakulAtomicFile.readableCandidates(for: fileURL) {
+            guard let data = try? Data(contentsOf: candidate),
+                  (try? decoder.decode(Snapshot.self, from: data)) != nil else {
+                continue
+            }
+            return candidate.standardizedFileURL == recovery
+                ? .preserveExistingRecovery
+                : .replaceRecoveryWithPrimary
         }
-        try encoder.encode(snapshot).write(to: fileURL)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
-                                               ofItemAtPath: fileURL.path)
+        return .discardPreviousContent
+    }
+
+    private func requireReadableArchive() throws {
+        if let loadError { throw loadError }
     }
 
     private static func key(for message: TelegramSupergroups.Message) -> String {

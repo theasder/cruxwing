@@ -42,7 +42,7 @@ struct FirefliesImportPickerTests {
         let state = state()
         state.firefliesImportError = "Couldn't reach Fireflies: offline."
         let view = try inspect(state)
-        let text = try view.findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        let text = view.findAll(ViewType.Text.self).compactMap { try? $0.string() }
         #expect(text.contains { $0.contains("Couldn't reach Fireflies") })
         #expect(throws: Never.self) { _ = try view.find(button: "Ещё раз") }
     }

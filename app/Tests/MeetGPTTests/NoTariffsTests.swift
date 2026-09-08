@@ -30,25 +30,6 @@ struct NoTariffsTests {
             """)
     }
 
-    @Test("платный экран не показывается ни при каком состоянии")
-    func paywallNeverShows() {
-        // Перебираются состояния, в которых Cruxwing его показывал: до ответа
-        // на вопрос про подписку и после него.
-        let savedChoice = Config.paywallChoiceMade
-        let savedPurchase = Config.purchasedTier
-        defer {
-            Config.paywallChoiceMade = savedChoice
-            Config.purchasedTier = savedPurchase
-        }
-
-        for choiceMade in [false, true] {
-            Config.paywallChoiceMade = choiceMade
-            Config.purchasedTier = nil
-            #expect(!Config.shouldShowPaywall,
-                    "экран с ценами показался (выбор сделан: \(choiceMade))")
-        }
-    }
-
     @Test("план не зависит от того, что записано в покупках")
     func purchaseCannotChangeAnything() {
         // Строка «pro» в настройках — след старого кода или чужой машины.
@@ -60,7 +41,6 @@ struct NoTariffsTests {
         let withoutPurchase = Config.currentTier
         Config.purchasedTier = .pro
         #expect(Config.currentTier == withoutPurchase, "покупка сдвинула план")
-        #expect(!Config.shouldShowPaywall)
     }
 
     @Test("подсказка собирается по всем источникам, а не по двум")

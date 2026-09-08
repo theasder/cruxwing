@@ -234,7 +234,7 @@ The lifecycle states are defined precisely:
 | Transcription | The next recording snapshot exactly matches the selected engine, language, model, AEC, glossary, and diarization settings. | Each field belongs wholly to either the starting snapshot or the next recording; no mixed engine/configuration is allowed. | Snapshot fields remain unchanged and show honest pending state; no streamer is recreated mid-call. | Final chunks and optional uploads use the completed call's snapshot; late Settings writes cannot reinterpret it. | Controls remain editable but affect only a future recording, never the saved transcript. |
 | AI | Provider/version selection applies to the next request; co-pilot switches persist without starting tasks. | Live-watch switches reconcile after recording becomes active; no duplicate timer/task is created. | Five watch switches start/stop only their own task immediately; provider/version and role changes do not retarget an in-flight answer. | Disabling a watch prevents a new cycle and preserves already-accounted active intervals; a finishing response obeys its captured model. | No watch task starts; a new request from History may use the newly selected model without rewriting the saved answer. |
 | Connected Apps | Search, custom-server validation, connect/reconnect/disconnect, Google scopes, copy URL, and team-watch controls render their true states. | OAuth or disconnect can overlap startup without blocking capture; any connector result is admitted only under the current identity scope. | Connector changes affect the next grounding request, invalidate old caches, and never disturb audio/transcription; in-flight old-account results are discarded. | A connector completion cannot be appended to the call after its generation closes; disconnect remains effective. | Connecting is allowed for future work, but must not silently reground or rewrite the opened saved call. |
-| Account & Privacy | All sign-in methods, sign-out, consent, analytics, plan preview, and destructive confirmations show the correct availability. | Sign-in/out cannot strand startup; consent is evaluated at the recording boundary. | Sign-out leaves local recording alive, invalidates account-scoped evidence, and affects the next managed request; consent revocation applies next recording. | Account/session changes cannot corrupt persistence or late post-call callbacks. | Account changes never delete local meetings; delete-account requires explicit confirmation and reports server failure without closing History. |
+| Account & Privacy | Sign-in compatibility, sign-out, recording consent, user-managed provider keys, and destructive confirmations show the correct availability. | Sign-in/out cannot strand startup; consent is evaluated at the recording boundary. | Sign-out leaves local recording alive, invalidates account-scoped evidence, and affects the next managed request; consent revocation applies next recording. | Account/session changes cannot corrupt persistence or late post-call callbacks. | Account changes never delete local meetings; delete-account requires explicit confirmation and reports server failure without closing History. |
 
 For starting and stopping races, run both orderings around the commit barrier:
 `setting → transition` and `transition → setting`. Repeat with the transition
@@ -248,12 +248,12 @@ contract. Merely proving that a value reached `UserDefaults` is insufficient.
 
 | Application point | Controls and required behavior |
 | --- | --- |
-| Immediate/live | Theme; call detection, ignore-media dependency, reminders and lead time; five co-pilot watches; team watcher and keyword rules; analytics opt-in; connector availability and grounding after a completed connection transition. Repeated writes are idempotent. |
-| Next AI request | Role/custom role, provider, model version, account entitlement, connected-app source set, and developer plan preview. An already-started request and its audit/follow-up keep their captured model, role, tier, and source generation. |
+| Immediate/live | Theme; call detection, ignore-media dependency, reminders and lead time; five co-pilot watches; team watcher and keyword rules; connector availability and grounding after a completed connection transition. Repeated writes are idempotent. |
+| Next AI request | Role/custom role, provider, model version, user-key availability, and connected-app source set. An already-started request and its audit/follow-up keep their captured model, role, and source generation. |
 | Next recording | Transcription engine, language, local model, Apple noise/echo reduction, AssemblyAI diarization permission, and custom vocabulary. The active call exposes configured versus active values and pending/reverted state. |
 | Next post-call job | Fireflies enhancement and adaptive-local recommendations may affect the next eligible enhancement/model-selection job, but never replace active streamers or rewrite an already persisted transcript silently. |
 | Reconnect required | Changes to Google Calendar/Docs/Sheets/Drive scopes are staged and visibly request reconnect; the existing grant is not presented as containing the new scopes. Provider-account switching is disconnect/reconnect and rotates cache identity first. |
-| Confirmation/external authorization | Manage plan/checkout, OAuth browser consent, account deletion, and any connected-app write action. Cancellation is a first-class terminal state. Account deletion and writes are never issued by unattended live tests against real accounts. |
+| Confirmation/external authorization | OAuth browser consent, account deletion, and any connected-app write action. Cancellation is a first-class terminal state. Account deletion and writes are never issued by unattended live tests against real accounts. |
 | Next recording consent boundary | Revoking recording consent does not interrupt the active call; the next start must show and require the consent surface. |
 
 Every visible or conditional Settings control is inventoried below. Tests must
@@ -297,18 +297,16 @@ and evidence marker.
 
 ### AI
 
-- Manage plan sheet open/cancel/return; every plan entitlement presentation;
-  real scroll to the bottom-only promo form; exact `DEV-UNLIMITED-LOCAL`
-  submission through the production API into Founder/Ultra; and a fresh
-  nonce-correlated receipt proving developer preview was disabled;
-  provider Auto, every configured provider, every available council, unavailable
-  provider state, version Auto, and every version allowed by the selected tier.
-  Changing provider resets version exactly once.
+- Provider Auto, every configured provider, every available council, unavailable
+  provider state, version Auto, and every version supported by the selected
+  provider. Changing provider resets version exactly once. Live requests use
+  only keys the user has already saved in Keychain; the harness never injects a
+  shared credential or grants itself access.
 - Brainstorm, agenda/framing, fact-check, rhetoric, and facilitation switches:
   both values in all lifecycle states, all 5! rapid enable orders and reverse
   disable orders, repeated same-value writes, aligned timer wakes, and credit
   accounting over the union of enabled intervals.
-- Change provider/version, role, tier preview, and connector source set while a
+- Change provider/version, role, and connector source set while a
   response and its audit are blocked. The current chain stays on its captured
   contract; the next independent request uses the new one.
 
@@ -338,9 +336,9 @@ and evidence marker.
 - Delete button availability, confirmation cancel, confirmed success, 401, 5xx,
   timeout, and retry. Automated destructive success uses only an isolated test
   account/database; installed-app real-account runs stop at the confirmation.
-- Recording consent not-yet-affirmed/affirmed/revoked; anonymous analytics on/
-  off and next-event suppression; developer-only Real entitlement plus every
-  tier preview and exact model/hour/credit/grounded-cycle summary.
+- Recording consent not-yet-affirmed/affirmed/revoked; provider-key
+  missing/saved/removed/write-refused states, with secrets retained only in
+  Keychain and never exposed in state dumps or screenshots.
 
 ## Connected-app provider, account, tool, and error matrix
 
@@ -391,7 +389,7 @@ developer machine or CI worker:
   responses, timeouts, disconnect races, and every HTTP/error class;
 - seeded dev hooks mutate a strict allowlist of reversible settings and restore
   the captured baseline even after failure;
-- account deletion, checkout, messages, issue creation, and other writes target
+- account deletion, messages, issue creation, and other writes target
   an isolated test database/server only; and
 - no machine-wide network, microphone, appearance, account, or accessibility
   preference is changed by deterministic unit/integration tests.
@@ -440,7 +438,7 @@ The same explicit dev gate may also write one
 telemetry, this review artifact intentionally contains the assembled assistant
 request, workflow transitions/results, backend route terminal, Blind Spot
 request/terminal cost trace, and final user-facing answer. It is enabled only
-by a dev build plus `CRUXWING_DEV_CALL_LOGS=1`, the live-test nonce, and the
+by a dev build plus `ORAKUL_DEV_CALL_LOGS=1`, the live-test nonce, and the
 owner's existing `0700` artifact root. Every file is `0600`, is capped at 4 MiB,
 uses bounded strings/events/collections, rotates to at most eight calls, and
 recursively redacts credential keys and bearer/API-key/JWT/private-key shapes.
@@ -474,13 +472,6 @@ Settings runs add these artifacts to the general contract:
 - `events.jsonl` entries containing the seeded schedule, lifecycle state,
   setting identifier, requested application point, terminal latency, and
   pass/fail category, but never the setting's sensitive free-text value.
-- `promo-redemption.state.json`,
-  `screenshots/promo-redemption-{pricing-bottom,success}.png`, ordered
-  `promo-ui`/`promo-redemption` events, and a request-correlated
-  `promo_redeem_*` lifecycle in `network.log`. The state must say exact code,
-  Founder/Ultra, real entitlement, and no preview; the network log must never
-  contain the code or a request/response body.
-
 The broader lifecycle campaign uses the same naming with
 `settings.<lifecycle>.<tab>.before/after` prefixes. Each after-state records both
 configured and active snapshots, request/recording/account/cache generations,
@@ -551,10 +542,6 @@ written with owner-only permissions:
   live Local→Instant engine handoff, configured-versus-active semantics,
   restoration, capture continuity, and
   one-window behavior for all five tabs.
-- `promo-redemption.state.json` plus pricing-bottom/success screenshots and
-  sanitized network lifecycle: the Settings → AI → Manage → See plans → scroll
-  → Redeem path, exact Founder/Ultra result, and non-preview causal receipt.
-
 ## Quality gates
 
 - Clean system-track WER ≤ 0.35; noisy system-track WER ≤ 0.55. The
@@ -650,8 +637,7 @@ swift test --filter MCPCatalogTests
 swift test --filter AccountSessionTests
 swift test --filter ConnectedAppsBehaviorTests
 swift test --filter PromptWorkflowDesignTests
-swift test --filter PaywallViewTests
-swift test --filter PromoRedemptionReceiptTests
+swift test --filter ProviderKeyStoreTests
 
 # Screenshot-regression and dev-debugging safety suites
 swift test --filter LocalTranscriptAttributionTests
@@ -670,7 +656,7 @@ swift test --filter ComposerImmediateFeedback
 # Zoom-like installed-app playback: remote fixture through built-in speakers,
 # physical microphone on, and ScreenCaptureKit concurrent (requires ffmpeg/ffplay
 # plus Screen Recording + Microphone grants)
-VIDEOTEST_OUT=/tmp/cruxwing-live-all \
+VIDEOTEST_OUT=/tmp/orakul-live-all \
   CONDITIONS="clean noisy fast" bash videotest.sh
 
 # Final execution-backed requirements gate. Reports and live report.json must
@@ -679,14 +665,14 @@ python3 testlib/verify_e2e_coverage.py \
   --manifest Tests/E2E/coverage-manifest.json \
   --xunit /tmp/cruxwing-swift-tests.xml \
   --xunit /tmp/cruxwing-api-tests.xml \
-  --live-artifacts /tmp/cruxwing-live-all \
+  --live-artifacts /tmp/orakul-live-all \
   --coverage-summary ../cruxwing-api/coverage/critical/coverage-summary.json \
   --run-command-checks \
   --out /tmp/cruxwing-e2e-coverage.json
 
 # Reproduce one seeded mid-call Settings run and keep artifacts outside the repo
 VIDEOTEST_SEED=424242 CONDITIONS=clean \
-  VIDEOTEST_OUT=/tmp/cruxwing-settings-424242 bash videotest.sh
+  VIDEOTEST_OUT=/tmp/orakul-settings-424242 bash videotest.sh
 
 # Gate speaker attribution on a configured diarizing run
 REQUIRE_DIARIZATION=1 CONDITIONS=clean bash videotest.sh

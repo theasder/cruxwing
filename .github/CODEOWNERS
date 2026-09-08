@@ -1,0 +1,47 @@
+# One maintainer owns the whole public and signed boundary: any source, test,
+# script or document can affect what a tagged release executes or claims.
+# GitHub only enforces this file when the owner enables branch/ruleset
+# protection with required Code Owner review.
+* @theasder
+
+# Repeat the highest-risk roots explicitly so review policy remains readable.
+# These are documentation, not exceptions to the default owner above.
+/.github/CODEOWNERS @theasder
+/.github/dependabot.yml @theasder
+/.github/workflows/ @theasder
+/.nvmrc @theasder
+/LICENSE @theasder
+/SECURITY.md @theasder
+/package.json @theasder
+/config/app.json @theasder
+/config/history-secret-fixtures.json @theasder
+/docs/RELEASING.md @theasder
+/scripts/release-gate.sh @theasder
+/scripts/release-manifest.sh @theasder
+/scripts/refresh-cask.sh @theasder
+/scripts/audit-dmg.sh @theasder
+/scripts/app-source-hash.sh @theasder
+/scripts/source-hash.sh @theasder
+/scripts/generate-sbom.mjs @theasder
+/scripts/scan-history-secrets.mjs @theasder
+/scripts/verify-swiftpm-checkouts.sh @theasder
+/app/build.sh @theasder
+/app/notarize.sh @theasder
+/app/dmg.sh @theasder
+/app/dist-all.sh @theasder
+/app/assert-no-baked-secrets.sh @theasder
+/app/assert-no-env-values.sh @theasder
+/app/Package.swift @theasder
+/app/Package.resolved @theasder
+/app/Support/ @theasder
+/app/Sources/MeetGPT/AI/BundledSkillRuntimePolicy.swift @theasder
+/app/Sources/MeetGPT/Resources/Skills/ @theasder
+/packaging/ @theasder
+/test/dependency-maintenance.test.mjs @theasder
+/test/history-secrets.test.mjs @theasder
+/test/release-provenance.test.mjs @theasder
+/test/release-workflow.test.mjs @theasder
+/test/sbom.test.mjs @theasder
+/test/secrets.test.mjs @theasder
+/test/skills-provenance.test.mjs @theasder
+/test/swiftpm-checkout-provenance.test.mjs @theasder

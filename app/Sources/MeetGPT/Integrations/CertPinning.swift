@@ -65,10 +65,10 @@ enum BackendPinning {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty })
         guard !pins.isEmpty, let host = URL(string: Config.backendBaseURL)?.host else {
-            return .shared   // unconfigured → identical to today
+            return OrakulNetworkIdentity.shared
         }
-        return URLSession(configuration: .default,
-                          delegate: CertPinningDelegate(pins: pins, pinnedHost: host),
-                          delegateQueue: nil)
+        return OrakulNetworkIdentity.makeSession(
+            delegate: CertPinningDelegate(pins: pins, pinnedHost: host),
+            delegateQueue: nil)
     }
 }

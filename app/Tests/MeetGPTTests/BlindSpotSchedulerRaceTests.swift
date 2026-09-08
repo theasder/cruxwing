@@ -152,10 +152,12 @@ struct BlindSpotSchedulerRaceTests {
     }
 
     private struct SavedConfig {
+        let automaticRequests = Config.automaticProviderRequestsEnabled
         let brainstorm = Config.brainstormEnabled
         let connectedApps = Config.connectedAppsGroundingEnabled
 
         func restore() {
+            Config.automaticProviderRequestsEnabled = automaticRequests
             Config.brainstormEnabled = brainstorm
             Config.connectedAppsGroundingEnabled = connectedApps
         }
@@ -176,6 +178,9 @@ struct BlindSpotSchedulerRaceTests {
     }
 
     private func prepare(_ state: AppState, goal: String = "De-risk Project Falcon") {
+        // These are watcher-race tests, so the fixture models a user who opted
+        // into the master automatic-request boundary as well as this feature.
+        state.setAutomaticProviderRequestsEnabled(true)
         state.applyTestWorkspace(recording: true)
         state.callGoal = goal
         state.transcript = transcript()
@@ -208,6 +213,7 @@ struct BlindSpotSchedulerRaceTests {
                 credentialStore: InMemoryKeychain(),
                 blindSpotAccessTokenProvider: { nil },
                 blindSpotSkillGuidanceProvider: { _, _ in nil })
+            state.setAutomaticProviderRequestsEnabled(true)
             state.applyTestWorkspace(recording: true)
 
             state.setBlindSpotsEnabled(true)
@@ -276,7 +282,7 @@ struct BlindSpotSchedulerRaceTests {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и
         // от соседей не спасает: см. SharedDefaults.withConfigLock.
-        try await SharedDefaults.withConfigLock {
+        await SharedDefaults.withConfigLock {
             let saved = SavedConfig()
             defer { saved.restore() }
             Config.brainstormEnabled = false
@@ -327,7 +333,7 @@ struct BlindSpotSchedulerRaceTests {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и
         // от соседей не спасает: см. SharedDefaults.withConfigLock.
-        try await SharedDefaults.withConfigLock {
+        await SharedDefaults.withConfigLock {
             let saved = SavedConfig()
             defer { saved.restore() }
             Config.brainstormEnabled = false
@@ -341,6 +347,7 @@ struct BlindSpotSchedulerRaceTests {
                 blindSpotAccessTokenProvider: { nil },
                 blindSpotSkillGuidanceProvider: { _, _ in nil })
 
+            state.setAutomaticProviderRequestsEnabled(true)
             state.applyTestWorkspace(recording: true)
             state.callGoal = "De-risk Project Falcon"
             state.transcript = transcript()
@@ -367,7 +374,7 @@ struct BlindSpotSchedulerRaceTests {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и
         // от соседей не спасает: см. SharedDefaults.withConfigLock.
-        try await SharedDefaults.withConfigLock {
+        await SharedDefaults.withConfigLock {
             let saved = SavedConfig()
             defer { saved.restore() }
             Config.brainstormEnabled = false
@@ -393,12 +400,12 @@ struct BlindSpotSchedulerRaceTests {
         }
     }
 
-    @Test("a provider 429 latches quota and never promises an automatic retry")
-    func quotaDoesNotClaimRetry() async {
+    @Test("a direct-provider 429 stays provider-owned and does not latch Orakul credits")
+    func directQuotaStaysProviderOwned() async {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и
         // от соседей не спасает: см. SharedDefaults.withConfigLock.
-        try await SharedDefaults.withConfigLock {
+        await SharedDefaults.withConfigLock {
             let saved = SavedConfig()
             defer { saved.restore() }
             Config.brainstormEnabled = false
@@ -416,11 +423,10 @@ struct BlindSpotSchedulerRaceTests {
             prepare(state)
 
             #expect(await waitUntil { state.blindSpotActivity().failures == 1 })
-            #expect(state.copilotQuotaMessage == "Synthetic credit pool is empty.")
-            #expect(state.blindSpotFailureMessage == "Synthetic credit pool is empty.")
-            #expect(state.blindSpotFailureMessage?.localizedCaseInsensitiveContains("retry") == false)
+            #expect(state.copilotQuotaMessage == nil)
+            #expect(state.blindSpotFailureMessage?.contains("AI provider") == true)
+            #expect(state.blindSpotFailureMessage?.localizedCaseInsensitiveContains("retry") == true)
             #expect(state.blindSpotActivity().lastOutcome == "failed")
-            #expect(await waitUntil { !state.liveWatchActivity().brainstormTaskActive })
             state.setBlindSpotsEnabled(false)
         }
     }
@@ -497,7 +503,7 @@ struct BlindSpotSchedulerRaceTests {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и
         // от соседей не спасает: см. SharedDefaults.withConfigLock.
-        try await SharedDefaults.withConfigLock {
+        await SharedDefaults.withConfigLock {
             let saved = SavedConfig()
             defer { saved.restore() }
             Config.brainstormEnabled = false

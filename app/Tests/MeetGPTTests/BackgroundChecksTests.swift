@@ -2,11 +2,21 @@ import Testing
 import Foundation
 @testable import MeetGPT
 
-/// The two live background-check toggles (Fact-check / Rhetoric watch during
-/// calls). Both default OFF — background LLM work is opt-in for cost — and
-/// round-trip through UserDefaults. Serialized: they touch shared defaults.
+/// Automatic provider work and its individual live checks default OFF: direct
+/// BYOK requests are billable on the user's provider account. Serialized
+/// because these tests touch shared defaults.
 @Suite("Background-check toggles", .serialized)
 struct BackgroundCheckToggleTests {
+    private func withDefault(_ key: String, _ body: () -> Void) {
+        let saved = UserDefaults.standard.object(forKey: key)
+        defer {
+            if let saved { UserDefaults.standard.set(saved, forKey: key) }
+            else { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        UserDefaults.standard.removeObject(forKey: key)
+        body()
+    }
+
     private func withFactCheckDefault(_ body: () -> Void) {
         let key = "copilot.factcheck"
         let saved = UserDefaults.standard.object(forKey: key)
@@ -38,6 +48,40 @@ struct BackgroundCheckToggleTests {
         }
         UserDefaults.standard.removeObject(forKey: key)
         body()
+    }
+
+    @Test("automatic-provider master switch defaults off and round-trips")
+    func automaticProviderMasterDefaultsOff() {
+        withDefault("ai.automaticProviderRequests") {
+            #expect(Config.automaticProviderRequestsEnabled == false)
+            Config.automaticProviderRequestsEnabled = true
+            #expect(Config.automaticProviderRequestsEnabled == true)
+            Config.automaticProviderRequestsEnabled = false
+            #expect(Config.automaticProviderRequestsEnabled == false)
+        }
+    }
+
+    @Test("brainstorm and agenda checks default off and round-trip")
+    func legacyAutomaticDefaultsAreOff() {
+        withDefault("brainstorm.enabled") {
+            #expect(Config.brainstormEnabled == false)
+            Config.brainstormEnabled = true
+            #expect(Config.brainstormEnabled == true)
+        }
+        withDefault("agendacheck.enabled") {
+            #expect(Config.agendaCheckerEnabled == false)
+            Config.agendaCheckerEnabled = true
+            #expect(Config.agendaCheckerEnabled == true)
+        }
+    }
+
+    @Test("automatic Fireflies transcript enhancement defaults off")
+    func firefliesEnhancementDefaultsOff() {
+        withDefault("transcription.firefliesEnhance") {
+            #expect(Config.firefliesTranscriptEnhanceEnabled == false)
+            Config.firefliesTranscriptEnhanceEnabled = true
+            #expect(Config.firefliesTranscriptEnhanceEnabled == true)
+        }
     }
 
     @Test("fact-check-during-calls defaults off")

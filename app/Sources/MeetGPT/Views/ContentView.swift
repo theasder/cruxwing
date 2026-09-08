@@ -156,12 +156,6 @@ struct ContentView: View {
             showOnboarding = true
         }
         .sheet(isPresented: $state.showRecordingConsent) { RecordingConsentSheet() }
-        // Raised by stopRecording() when the first real meeting ends.
-        // FirstMeetingPrompt has already recorded that it was asked by the time
-        // this presents, so dismissing without answering closes it for good.
-        .sheet(isPresented: $state.showFirstMeetingFeedback) { FirstMeetingFeedbackSheet() }
-        // First-run pre-flight takes precedence — the paywall never fires
-        // before a value moment, so there is no sheet contention here.
         .sheet(isPresented: $showOnboarding) {
             OnboardingView(startingAt: onboardingStep)
         }

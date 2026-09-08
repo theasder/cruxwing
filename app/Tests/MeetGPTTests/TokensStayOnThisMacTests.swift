@@ -48,21 +48,22 @@ struct TokensStayOnThisMacTests {
     // из словаря с тем же выражением, которое его туда и положило. Набор идёт в
     // dev-сборке, где ответ false, — то есть про сборку, которая уезжает людям,
     // проверка не говорила ничего и оставалась зелёной при любом поведении.
-    @Test("в сборке для людей — современная связка ключей, в dev — нет")
-    func dataProtectionKeychainDependsOnTheBuild() {
-        // Классическая связка спрашивает пароль диалогом при доступе из другой
-        // сборки — на этом уже обжигались с ai.wheespr.meetgpt. Поэтому у людей
-        // она должна быть современной.
-        #expect(SystemKeychain.usesDataProtection(isDevBuild: false),
-                "в сборке для распространения токены лягут в классическую связку")
-        // А в dev-сборке — наоборот: там пересборка меняет подпись, и
-        // современная связка каждый раз считала бы это чужим приложением.
-        #expect(!SystemKeychain.usesDataProtection(isDevBuild: true))
+    @Test("современная связка требует и dist-сборку, и право в подписи")
+    func dataProtectionKeychainDependsOnBuildAndEntitlement() {
+        #expect(SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: false, hasApplicationIdentifier: true
+        ))
+        #expect(!SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: false, hasApplicationIdentifier: false
+        ), "Developer ID без профиля получит -34018 вместо сохранённого токена")
+        #expect(!SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: true, hasApplicationIdentifier: true
+        ))
     }
 
     @Test("словарь несёт ровно тот выбор, который сделало правило")
     func attributesCarryTheChoice() {
         let value = attributes()[kSecUseDataProtectionKeychain as String] as? Bool
-        #expect(value == SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild))
+        #expect(value == SystemKeychain.usesDataProtectionKeychain)
     }
 }

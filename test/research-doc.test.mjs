@@ -1,6 +1,8 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -125,24 +127,30 @@ describe('RESEARCH-AND-PLAN', () => {
     // stamped 04bf887 while 149 files were modified, so the stamp could not
     // tell last night's build from one with ten new connectors.
     //
-    // build.sh therefore also stamps a hash of Sources/MeetGPT, and
-    // scripts/audit-dmg.sh reads it back off the published DMG. Both halves
-    // are checked here: a stamp nobody reads, or a reader with nothing
-    // stamped, is the same as having neither.
+    // build.sh therefore also stamps a full SHA-256 of the shipped source and
+    // bundle inputs, and scripts/audit-dmg.sh reads it back from an explicitly
+    // named DMG. Both call one implementation: duplicate pipelines already
+    // produced a false mismatch when they spelled the same core path differently.
     const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
     const audit = readFileSync(resolve(repo, 'scripts', 'audit-dmg.sh'), 'utf8');
+    const appSourceHash = readFileSync(resolve(repo, 'scripts', 'app-source-hash.sh'), 'utf8');
+    const sourceHash = readFileSync(resolve(repo, 'scripts', 'source-hash.sh'), 'utf8');
 
     assert.match(build, /OrakulSourceHash/,
       'build.sh no longer stamps the source hash — the DMG becomes untraceable');
     assert.match(audit, /OrakulSourceHash/,
       'the audit no longer reads the stamp back');
+    assert.match(build, /scripts\/app-source-hash\.sh/,
+      'build.sh computes app provenance separately instead of using the shared input list');
+    assert.match(audit, /scripts\/app-source-hash\.sh/,
+      'audit-dmg.sh computes app provenance separately instead of using the shared input list');
 
-    // Both sides must exclude the generated Secrets.swift, or dev and dist
-    // builds of identical source hash differently and the audit cries wolf.
-    for (const [name, script] of [['build.sh', build], ['audit-dmg.sh', audit]]) {
-      assert.match(script, /! -name Secrets\.swift/,
-        `${name} includes the generated Secrets.swift in the hash`);
-    }
+    // Only the ignored local projection is excluded. Sources/MeetGPT/Secrets.swift
+    // is now the tracked safe fallback and affects the compiled artifact.
+    assert.match(sourceHash, /! -name LocalSecrets\.generated\.swift/,
+      'the local generated configuration changes dev and dist provenance');
+    assert.doesNotMatch(sourceHash, /! -name Secrets\.swift/,
+      'the tracked safe fallback is missing from provenance');
 
     // И приложение, И ядро. Приложение линкует OrakulCore — коннекторы,
     // словарь и поиск физически едут в том же бинарнике. Пока в хеш входило
@@ -150,11 +158,14 @@ describe('RESEARCH-AND-PLAN', () => {
     // прежним: аудит отвечал «совпадает» на сборку, собранную из другого
     // кода. Штамп, слепой к половине отгружаемого, хуже отсутствующего —
     // на него ссылается форма отчёта об ошибке.
-    for (const [name, script] of [['build.sh', build], ['audit-dmg.sh', audit]]) {
-      assert.match(script, /Sources\/MeetGPT/,
-        `${name} stopped hashing the app sources`);
-      assert.match(script, /Sources\/OrakulCore/,
-        `${name} does not hash the core — a connector change leaves the stamp unmoved`);
+    for (const input of [
+      'app/Package.swift', 'app/Package.resolved', 'app/build.sh',
+      'app/Support', 'app/Sources/MeetGPT', 'mvp/Package.swift',
+      'mvp/Sources/OrakulCore', 'scripts/app-source-hash.sh',
+      'scripts/source-hash.sh',
+    ]) {
+      assert.ok(appSourceHash.includes(input),
+        `the canonical app provenance list omits ${input}`);
     }
 
     // Сборка обязана заставлять SwiftPM перечитать состав ядра. Кеш
@@ -164,6 +175,42 @@ describe('RESEARCH-AND-PLAN', () => {
     assert.match(build, /swift package "\$\{SWIFT_BUILD_ARGS\[@\]\}" clean/,
       'the installer build reuses a stale scratch path — a new core file breaks it with "cannot find X in scope"');
 
+    // The source id is an actual full SHA-256, not a 12-character SHA-1 label.
+    // Recompute a small shipped tree independently so an unused `sha256sum`
+    // string cannot make this contract pass.
+    const sourceRoot = 'mvp/Sources/orakul';
+    const files = [];
+    const visit = (relative) => {
+      for (const entry of readdirSync(resolve(repo, relative), { withFileTypes: true })) {
+        const child = `${relative}/${entry.name}`;
+        if (entry.isDirectory()) visit(child);
+        else if (entry.isFile() && entry.name !== 'LocalSecrets.generated.swift') files.push(child);
+      }
+    };
+    visit(sourceRoot);
+    files.sort((a, b) => Buffer.from(a).compare(Buffer.from(b)));
+    const aggregate = createHash('sha256');
+    for (const file of files) {
+      const contentHash = createHash('sha256').update(readFileSync(resolve(repo, file))).digest('hex');
+      aggregate.update(file);
+      aggregate.update(Buffer.from([0]));
+      aggregate.update(contentHash);
+      aggregate.update(Buffer.from([0]));
+    }
+    const expected = aggregate.digest('hex');
+    const actual = execFileSync('bash', ['scripts/source-hash.sh', sourceRoot], {
+      cwd: repo, encoding: 'utf8',
+    }).trim();
+    assert.match(actual, /^[0-9a-f]{64}$/, 'source id is not a full SHA-256');
+    assert.equal(actual, expected, 'source-hash.sh does not hash path/content with SHA-256');
+
+    // The plist keeps the complete commit object id. A short prefix belongs in
+    // presentation, not in a machine-readable provenance field.
+    assert.match(build, /rev-parse --verify ['"]HEAD\^\{commit\}['"]/,
+      'build.sh does not stamp the full commit object id');
+    assert.doesNotMatch(build, /rev-parse --short/,
+      'build.sh still truncates the commit stamp');
+
     // Один выпуск — один коммит на обе архитектуры. Хеш исходников этого не
     // ловит: коммит, трогающий только страницу или тесты, оставляет хеш
     // прежним. Так и вышло — правка документации легла между сборкой arm64 и
@@ -172,24 +219,36 @@ describe('RESEARCH-AND-PLAN', () => {
     assert.match(audit, /РАСХОЖДЕНИЕ КОММИТОВ/,
       'the audit no longer notices two architectures built from different commits');
 
-    // Обе стороны обязаны считать ОДИНАКОВО, а не просто по одним папкам.
-    // `shasum` печатает путь рядом с хешем, поэтому один и тот же файл,
-    // записанный как `mvp/…` и как `app/../mvp/…`, даёт разный итог. Ровно на
-    // этом аудит и разошёлся со сборкой: обе включили ядро, обе назвали
-    // «расхождение», хотя код был один. Сравниваются сами конвейеры.
-    const pipeline = (script) => {
-      const match = /find (app\/[\s\S]*?)cut -c1-12/.exec(script);
-      assert.ok(match, 'the hash pipeline is no longer recognisable');
-      return match[1].replace(/\s+/g, ' ').trim();
-    };
-    assert.equal(pipeline(build), pipeline(audit),
-      'build.sh and audit-dmg.sh hash differently — the audit will cry wolf on identical source');
-
-    // Относительные пути от корня — то, что делает их сравнимыми.
-    for (const [name, script] of [['build.sh', build], ['audit-dmg.sh', audit]]) {
-      assert.match(script, /cd "[^"]+" && find app\/Sources/,
-        `${name} hashes with absolute paths again — the two sides stop agreeing`);
-    }
+    // The audit accepts artifacts, not a private sibling repository, and says
+    // what its self-reported hash can and cannot prove.
+    assert.match(audit, /for supplied in "\$@"/,
+      'audit-dmg.sh does not inspect the explicit DMG paths it receives');
+    assert.doesNotMatch(audit, /cruxwing-marketing/,
+      'audit-dmg.sh still depends on a private sibling checkout');
+    assert.match(audit, /self-report/,
+      'the audit presents an artifact-controlled stamp as independent provenance');
+    assert.match(audit, /reproducible[- ]build proof|не доказательство reproducible build/,
+      'the audit does not disclose that it is not reproducible-build proof');
+    assert.match(audit, /codesign --verify/,
+      'the audit stopped checking Apple signatures');
+    assert.match(audit, /stapler validate/,
+      'the audit stopped checking stapled notarization tickets');
+    assert.match(audit, /certificate leaf\[subject\.OU\]/,
+      'a valid signature from an unrelated Apple developer would pass');
+    assert.match(audit, /app\.developerTeamId/,
+      'the expected Apple publisher is not read from the app identity');
+    assert.match(audit, /identifier .*expected_bundle_id|expected_bundle_id.*identifier/,
+      'the signature requirement is not bound to Orakul’s bundle id');
+    assert.match(audit, /spctl --assess/,
+      'the audit no longer asks Gatekeeper to assess the artifact');
+    assert.match(audit, /lipo -archs/,
+      'Apple Silicon and Intel images can silently contain the same binary');
+    assert.match(audit, /orakul-AppleSilicon\.dmg[\s\S]*expected_arch="arm64"/,
+      'the Apple Silicon filename is not bound to arm64');
+    assert.match(audit, /orakul-Intel\.dmg[\s\S]*expected_arch="x86_64"/,
+      'the Intel filename is not bound to x86_64');
+    assert.doesNotMatch(audit, /can_codesign|can_stapler/,
+      'missing signature/notarization tools still fail open');
   });
 
   test('no stray non-Russian script crept into the Russian text', () => {

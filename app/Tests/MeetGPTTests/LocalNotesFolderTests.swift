@@ -44,7 +44,7 @@ import OrakulCore
         #expect(folder.defaults.data(forKey: LocalNotesFolder.defaultsKey) != nil,
                 "сохранена не закладка — после перезапуска доступа не будет")
 
-        let access = try? #require(folder.resolve())
+        let access = folder.resolve()
         #expect(access?.url.resolvingSymlinksInPath() == vault.root.resolvingSymlinksInPath())
         access?.release()
     }

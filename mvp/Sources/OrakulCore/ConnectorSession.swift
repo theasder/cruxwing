@@ -37,10 +37,11 @@ import FoundationNetworking
 /// Проверка «ловушка ловит» стоит в наборе рядом: сессия по умолчанию до
 /// сборщика доходит, наша — нет.
 ///
-/// Правило простое и намеренно грубое: переходим только туда, где и были.
-/// Смена хоста запрещена, понижение https → http запрещено. Перенаправление
-/// не молчит — оно доезжает до человека как ответ 3xx, то есть видимая
-/// странность вместо тихой отправки ключа.
+/// Правило простое и намеренно грубое: переходим только в тот же origin —
+/// схема, хост и эффективный порт должны совпасть. Другой порт означает другой
+/// процесс и другую границу доверия даже на том же имени. Перенаправление не
+/// молчит — оно доезжает до человека как ответ 3xx, то есть видимая странность
+/// вместо тихой отправки ключа.
 public enum RedirectPolicy {
 
     /// Разрешён ли переход. Чистая функция, чтобы это можно было проверить
@@ -51,10 +52,19 @@ public enum RedirectPolicy {
         guard fromHost == toHost else { return false }
         let fromScheme = original.scheme?.lowercased() ?? ""
         let toScheme = next.scheme?.lowercased() ?? ""
-        // http → https разрешён: это усиление. Обратное — нет: токен ушёл бы
-        // открытым текстом, и тому, кто это устроил, именно этого и надо.
-        if fromScheme == "https" && toScheme != "https" { return false }
-        return toScheme == "https" || toScheme == "http"
+        guard (fromScheme == "https" || fromScheme == "http"),
+              fromScheme == toScheme else { return false }
+        return effectivePort(of: original, scheme: fromScheme)
+            == effectivePort(of: next, scheme: toScheme)
+    }
+
+    private static func effectivePort(of url: URL, scheme: String) -> Int? {
+        if let port = url.port { return port }
+        switch scheme {
+        case "https": return 443
+        case "http": return 80
+        default: return nil
+        }
     }
 }
 

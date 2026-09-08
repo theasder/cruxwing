@@ -2,62 +2,6 @@ import AppKit
 import Darwin
 import Foundation
 
-/// Fresh, causal evidence for the one promo flow the installed-app suite is
-/// allowed to drive. The receipt is armed only by a nonce-authorized command;
-/// normal developer paywall use never creates one.
-struct LiveTestPromoRedemptionReceipt: Encodable, Equatable, Sendable {
-    enum Outcome: String, Encodable, Equatable, Sendable {
-        case armed, inProgress, success, failure
-    }
-
-    let commandID: String
-    let preparedAt: Double
-    private(set) var exactCodeMatch: Bool?
-    private(set) var startedAt: Double?
-    private(set) var completedAt: Double?
-    private(set) var outcome: Outcome
-    private(set) var planID: String?
-    private(set) var planName: String?
-    private(set) var tier: String?
-    private(set) var previewActive: Bool
-
-    static func armed(commandID: String, at: Double, previewActive: Bool)
-        -> LiveTestPromoRedemptionReceipt {
-        LiveTestPromoRedemptionReceipt(
-            commandID: commandID, preparedAt: at, exactCodeMatch: nil,
-            startedAt: nil, completedAt: nil, outcome: .armed,
-            planID: nil, planName: nil, tier: nil,
-            previewActive: previewActive)
-    }
-
-    mutating func begin(code: String, exactCode: String, at: Double,
-                        previewActive: Bool) {
-        guard outcome == .armed else { return }
-        exactCodeMatch = code == exactCode
-        startedAt = at
-        outcome = .inProgress
-        self.previewActive = previewActive
-    }
-
-    mutating func succeed(planID: String, planName: String, tier: String,
-                          at: Double, previewActive: Bool) {
-        guard outcome == .inProgress else { return }
-        completedAt = at
-        outcome = .success
-        self.planID = planID
-        self.planName = planName
-        self.tier = tier
-        self.previewActive = previewActive
-    }
-
-    mutating func fail(at: Double, previewActive: Bool) {
-        guard outcome == .inProgress else { return }
-        completedAt = at
-        outcome = .failure
-        self.previewActive = previewActive
-    }
-}
-
 /// Dev-build-only automation surface for the live-test driver
 /// (`mac/livetest.sh`): the script exercises the REAL app — record, scripted
 /// speech through the speakers, prompt buttons — and reads state snapshots
@@ -68,62 +12,50 @@ struct LiveTestPromoRedemptionReceipt: Encodable, Equatable, Sendable {
 /// normal developer launch has neither value, so the hooks remain disabled.
 ///
 /// Commands:
-///   ai.cruxwing.livetest.toggleRecording
-///   ai.cruxwing.livetest.runPrompt    userInfo["id"]   = QuickPrompt id
-///   ai.cruxwing.livetest.cancelPrompt userInfo["exchangeID"] = exact active id
-///   ai.cruxwing.livetest.dumpState    userInfo["path"] = output JSON path,
+///   ai.orakul.desktop.livetest.toggleRecording
+///   ai.orakul.desktop.livetest.runPrompt    userInfo["id"]   = QuickPrompt id
+///   ai.orakul.desktop.livetest.cancelPrompt userInfo["exchangeID"] = exact active id
+///   ai.orakul.desktop.livetest.dumpState    userInfo["path"] = output JSON path,
 ///                                     userInfo["requestID"] = acknowledgement id
-///   ai.cruxwing.livetest.ask          userInfo["text"] = free-form composer ask
-///   ai.cruxwing.livetest.injectLine   userInfo["text","source"("mic"|"system"),"speaker"?]
-///   ai.cruxwing.livetest.latchQuota   userInfo["message"]? — simulate the 429 latch
-///   ai.cruxwing.livetest.promptSurface userInfo["type"] = poll | mandatory | contextual
-///   ai.cruxwing.livetest.clearPromptSurface
-///   ai.cruxwing.livetest.newCall      — Start new call (resets per-call state)
-///   ai.cruxwing.livetest.redeem       userInfo["code"]? — device-redeem a promo
-///   ai.cruxwing.livetest.preparePromoRedemption userInfo["commandID"]
-///   ai.cruxwing.livetest.openSettings  userInfo["tab"] = SettingsTab raw value
-///   ai.cruxwing.livetest.closeSettings
-///   ai.cruxwing.livetest.applySetting  userInfo["id","value"] — whitelisted only
-///   ai.cruxwing.livetest.restoreSettings userInfo["finishRun"]? — restore
-///       launch-time preferences; true also releases real-entitlement mode
-///   ai.cruxwing.livetest.setSyntheticCallGoal userInfo["fixtureID","commandID"]
-///   ai.cruxwing.livetest.refreshBlindSpot userInfo["fixtureID","commandID"]
-///   ai.cruxwing.livetest.glossarySuggestions userInfo["action","commandID"]
+///   ai.orakul.desktop.livetest.ask          userInfo["text"] = free-form composer ask
+///   ai.orakul.desktop.livetest.injectLine   userInfo["text","source"("mic"|"system"),"speaker"?]
+///   ai.orakul.desktop.livetest.latchQuota   userInfo["message"]? — simulate the 429 latch
+///   ai.orakul.desktop.livetest.promptSurface userInfo["type"] = poll | mandatory | contextual
+///   ai.orakul.desktop.livetest.clearPromptSurface
+///   ai.orakul.desktop.livetest.newCall      — Start new call (resets per-call state)
+///   ai.orakul.desktop.livetest.openSettings  userInfo["tab"] = SettingsTab raw value
+///   ai.orakul.desktop.livetest.closeSettings
+///   ai.orakul.desktop.livetest.applySetting  userInfo["id","value"] — whitelisted only
+///   ai.orakul.desktop.livetest.restoreSettings — restore launch-time preferences
+///   ai.orakul.desktop.livetest.setSyntheticCallGoal userInfo["fixtureID","commandID"]
+///   ai.orakul.desktop.livetest.refreshBlindSpot userInfo["fixtureID","commandID"]
+///   ai.orakul.desktop.livetest.glossarySuggestions userInfo["action","commandID"]
 ///       action = generate | acceptFirst | rejectFirst (fixed synthetic data)
 @MainActor
 enum LiveTestHooks {
-    static let toggleRecording = Notification.Name("ai.cruxwing.livetest.toggleRecording")
-    static let runPrompt = Notification.Name("ai.cruxwing.livetest.runPrompt")
-    static let cancelPrompt = Notification.Name("ai.cruxwing.livetest.cancelPrompt")
+    static let toggleRecording = Notification.Name("ai.orakul.desktop.livetest.toggleRecording")
+    static let runPrompt = Notification.Name("ai.orakul.desktop.livetest.runPrompt")
+    static let cancelPrompt = Notification.Name("ai.orakul.desktop.livetest.cancelPrompt")
     /// Fixed, transcript-only prompt used to prove model snapshot semantics
     /// without spending connected-app grounding tokens in every live condition.
     nonisolated static let modelSnapshotPromptID = "livetest-model-snapshot"
-    static let dumpState = Notification.Name("ai.cruxwing.livetest.dumpState")
-    static let ask = Notification.Name("ai.cruxwing.livetest.ask")
-    static let injectLine = Notification.Name("ai.cruxwing.livetest.injectLine")
-    static let latchQuota = Notification.Name("ai.cruxwing.livetest.latchQuota")
-    static let promptSurface = Notification.Name("ai.cruxwing.livetest.promptSurface")
-    static let clearPromptSurface = Notification.Name("ai.cruxwing.livetest.clearPromptSurface")
-    static let newCall = Notification.Name("ai.cruxwing.livetest.newCall")
-    static let redeem = Notification.Name("ai.cruxwing.livetest.redeem")
-    static let preparePromoRedemption = Notification.Name(
-        "ai.cruxwing.livetest.preparePromoRedemption")
-    static let openSettings = Notification.Name("ai.cruxwing.livetest.openSettings")
-    static let closeSettings = Notification.Name("ai.cruxwing.livetest.closeSettings")
-    static let applySetting = Notification.Name("ai.cruxwing.livetest.applySetting")
-    static let restoreSettings = Notification.Name("ai.cruxwing.livetest.restoreSettings")
+    static let dumpState = Notification.Name("ai.orakul.desktop.livetest.dumpState")
+    static let ask = Notification.Name("ai.orakul.desktop.livetest.ask")
+    static let injectLine = Notification.Name("ai.orakul.desktop.livetest.injectLine")
+    static let latchQuota = Notification.Name("ai.orakul.desktop.livetest.latchQuota")
+    static let promptSurface = Notification.Name("ai.orakul.desktop.livetest.promptSurface")
+    static let clearPromptSurface = Notification.Name("ai.orakul.desktop.livetest.clearPromptSurface")
+    static let newCall = Notification.Name("ai.orakul.desktop.livetest.newCall")
+    static let openSettings = Notification.Name("ai.orakul.desktop.livetest.openSettings")
+    static let closeSettings = Notification.Name("ai.orakul.desktop.livetest.closeSettings")
+    static let applySetting = Notification.Name("ai.orakul.desktop.livetest.applySetting")
+    static let restoreSettings = Notification.Name("ai.orakul.desktop.livetest.restoreSettings")
     static let setSyntheticCallGoal = Notification.Name(
-        "ai.cruxwing.livetest.setSyntheticCallGoal")
+        "ai.orakul.desktop.livetest.setSyntheticCallGoal")
     static let refreshBlindSpot = Notification.Name(
-        "ai.cruxwing.livetest.refreshBlindSpot")
+        "ai.orakul.desktop.livetest.refreshBlindSpot")
     static let glossarySuggestions = Notification.Name(
-        "ai.cruxwing.livetest.glossarySuggestions")
-    /// The local-only code the backend seeds for automated suites. Redeeming
-    /// it entitles the APP's own session — a shell script holding a token does
-    /// not help, because the app authenticates its own LLM calls.
-    /// `nonisolated` so the notification handler's default-value autoclosure can
-    /// read it off the main actor.
-    nonisolated static let devPromoCode = "DEV-UNLIMITED-LOCAL"
+        "ai.orakul.desktop.livetest.glossarySuggestions")
     /// The notification accepts only this fixture identifier. The call goal is
     /// compiled into the dev hook rather than accepted as cross-process text,
     /// keeping this automation seam bounded and synthetic by construction.
@@ -133,14 +65,14 @@ enum LiveTestHooks {
     nonisolated static let maximumCommandIDBytes = 128
     private static var observers: [NSObjectProtocol] = []
     private static let expectedNonce =
-        ProcessInfo.processInfo.environment["CRUXWING_LIVETEST_NONCE"] ?? ""
+        ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_NONCE"] ?? ""
     private static let artifactRoot: URL? = {
-        guard let raw = ProcessInfo.processInfo.environment["CRUXWING_LIVETEST_ARTIFACT_ROOT"],
+        guard let raw = ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_ARTIFACT_ROOT"],
               !raw.isEmpty else { return nil }
         return URL(fileURLWithPath: raw, isDirectory: true).standardizedFileURL
     }()
     private static let runStartedAt: Double? = {
-        guard let raw = ProcessInfo.processInfo.environment["CRUXWING_LIVETEST_STARTED_AT"] else {
+        guard let raw = ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_STARTED_AT"] else {
             return nil
         }
         return Double(raw)
@@ -162,8 +94,6 @@ enum LiveTestHooks {
     private static var lastGlossarySuggestionCommandID: String?
     private static var lastGlossarySuggestionAction: String?
     private static var lastGlossarySuggestionAppliedAt: Double?
-    private static var promoRedemptionReceipt: LiveTestPromoRedemptionReceipt?
-
     private struct SettingsBaseline {
         let selectedTab: SettingsTab
         let appearance: AppAppearance
@@ -188,7 +118,6 @@ enum LiveTestHooks {
         let firefliesEnhance: Bool
         let connectedAppsGrounding: Bool
         let selectedModelID: String
-        let shareAnalytics: Bool
         let devTierOverride: Tier?
     }
     private static var settingsBaseline: SettingsBaseline?
@@ -264,41 +193,6 @@ enum LiveTestHooks {
             isDevBuild: Config.isDevBuild)
     }
 
-    private static var secureRunActive: Bool {
-        commandAuthorized(
-            suppliedNonce: expectedNonce, expectedNonce: expectedNonce,
-            artifactRoot: artifactRoot, isDevBuild: Config.isDevBuild)
-    }
-
-    /// Called by the production paywall action, but records only while an exact
-    /// nonce-gated live command is armed. This connects real AX interaction to
-    /// the state artifact without exposing a general promo automation seam.
-    static func recordPromoRedemptionStarted(code: String) {
-        guard secureRunActive, var receipt = promoRedemptionReceipt else { return }
-        receipt.begin(
-            code: code, exactCode: devPromoCode,
-            at: Date().timeIntervalSince1970,
-            previewActive: Config.devTierOverride != nil)
-        promoRedemptionReceipt = receipt
-    }
-
-    static func recordPromoRedemptionSucceeded(_ redemption: PaywallAPI.PromoRedemption) {
-        guard secureRunActive, var receipt = promoRedemptionReceipt else { return }
-        receipt.succeed(
-            planID: redemption.planID, planName: redemption.planName,
-            tier: redemption.tier.rawValue, at: Date().timeIntervalSince1970,
-            previewActive: Config.devTierOverride != nil)
-        promoRedemptionReceipt = receipt
-    }
-
-    static func recordPromoRedemptionFailed() {
-        guard secureRunActive, var receipt = promoRedemptionReceipt else { return }
-        receipt.fail(
-            at: Date().timeIntervalSince1970,
-            previewActive: Config.devTierOverride != nil)
-        promoRedemptionReceipt = receipt
-    }
-
     static func confinedDumpURL(_ rawPath: String) -> URL? {
         confinedDumpURL(rawPath, under: artifactRoot)
     }
@@ -356,7 +250,6 @@ enum LiveTestHooks {
             firefliesEnhance: Config.firefliesTranscriptEnhanceEnabled,
             connectedAppsGrounding: state.useConnectedAppsInPrompts,
             selectedModelID: state.selectedModelID,
-            shareAnalytics: !Config.funnelOptOut,
             devTierOverride: Config.devTierOverride)
     }
 
@@ -391,7 +284,6 @@ enum LiveTestHooks {
         Config.firefliesTranscriptEnhanceEnabled = baseline.firefliesEnhance
         state.useConnectedAppsInPrompts = baseline.connectedAppsGrounding
         state.selectedModelID = baseline.selectedModelID
-        Config.funnelOptOut = !baseline.shareAnalytics
         state.setDevTierOverride(baseline.devTierOverride)
         state.selectedSettingsTab = baseline.selectedTab
         settingMutationRevision &+= 1
@@ -486,8 +378,6 @@ enum LiveTestHooks {
         case "ai.model":
             guard LLMCatalog.model(id: value) != nil else { return false }
             state.selectedModelID = value
-        case "privacy.analytics":
-            guard let bool else { return false }; Config.funnelOptOut = !bool
         default:
             return false
         }
@@ -753,78 +643,6 @@ enum LiveTestHooks {
         })
 
         observers.append(center.addObserver(
-            forName: preparePromoRedemption, object: nil, queue: .main
-        ) { [weak state] note in
-            let commandID = validCommandID(note.userInfo?["commandID"] as? String)
-            MainActor.assumeIsolated {
-                guard authorized(note), let state, let commandID else { return }
-                // A saved developer preview must not satisfy the entitlement
-                // assertion. Suppress it process-locally before the real UI flow
-                // starts, while preserving the preference for final cleanup.
-                Config.setLiveTestRealEntitlementMode(true)
-                state.refreshEntitlementAfterRedeem()
-                promoRedemptionReceipt = .armed(
-                    commandID: commandID, at: Date().timeIntervalSince1970,
-                    previewActive: Config.devTierOverride != nil)
-                Log.general.notice(
-                    "livetest: promo redemption armed command=\(commandID, privacy: .public)")
-            }
-        })
-
-        observers.append(center.addObserver(
-            forName: redeem, object: nil, queue: .main
-        ) { [weak state] note in
-            let code = (note.userInfo?["code"] as? String) ?? devPromoCode
-            MainActor.assumeIsolated {
-                guard authorized(note), let state else { return }
-                Task { @MainActor in
-                    do {
-                        // Entitle the SIGNED-IN account when there is one.
-                        //
-                        // deviceRedeem mints an anonymous device-bound account
-                        // and adopts its session. For an unattended suite that
-                        // is right; for a developer it is actively wrong — the
-                        // entitlement lands on a throwaway account while the
-                        // real one, the one holding the Google/Notion/Asana
-                        // connections, stays on Free and reports no credits.
-                        // Redeeming against the current session keeps the plan
-                        // and the connected apps on the same account.
-                        if Config.wheesprSession != nil {
-                            do {
-                                _ = try await PaywallAPI.redeemPromo(code: code)
-                                Log.general.notice("livetest: redeemed \(code, privacy: .public) on the signed-in account")
-                            } catch LLMError.http(_, let status, _) where status == 401 {
-                                // Integration suites may reset the local DB while
-                                // Keychain still holds yesterday's now-revoked
-                                // session. Only a definitive 401 may replace it;
-                                // transient failures must never switch a real
-                                // developer account to a device account.
-                                Config.wheesprSession = nil
-                                _ = try await PaywallAPI.deviceRedeem(code: code)
-                                Log.general.notice("livetest: stale session replaced by device entitlement")
-                            }
-                        } else {
-                            _ = try await PaywallAPI.deviceRedeem(code: code)
-                            Log.general.notice("livetest: redeemed \(code, privacy: .public) as a device account")
-                        }
-                        // A developer may have a persisted plan preview. It is
-                        // intentionally stronger than the purchased tier, but
-                        // letting it mask this redemption would make the live
-                        // suite compare a real Ultra account with a simulated
-                        // Premium UI. Suppress it in memory only; the cleanup's
-                        // final restore releases the scope and no crash can
-                        // erase the saved preference.
-                        Config.setLiveTestRealEntitlementMode(true)
-                        state.refreshEntitlementAfterRedeem()
-                    } catch {
-                        state.lastError = "livetest redeem не прошёл: \(error.localizedDescription)"
-                        Log.general.error("livetest: redeem failed — \(error.localizedDescription, privacy: .public)")
-                    }
-                }
-            }
-        })
-
-        observers.append(center.addObserver(
             forName: openSettings, object: nil, queue: .main
         ) { [weak state] note in
             let tabName = (note.userInfo?["tab"] as? String) ?? SettingsTab.general.rawValue
@@ -884,14 +702,8 @@ enum LiveTestHooks {
         ) { [weak state] note in
             MainActor.assumeIsolated {
                 guard authorized(note), let state else { return }
-                let finishRun = parsedBool(note.userInfo?["finishRun"]) == true
                 restoreSettingsBaseline(on: state)
-                if finishRun {
-                    Config.setLiveTestRealEntitlementMode(false)
-                    state.refreshEntitlementAfterRedeem()
-                }
-                Log.general.notice(
-                    "livetest: restoreSettings final=\(finishRun, privacy: .public)")
+                Log.general.notice("livetest: restoreSettings")
             }
         })
 
@@ -1069,7 +881,6 @@ enum LiveTestHooks {
             let liveTestSyntheticGoalAppliedAt: Double?
             let liveTestBlindSpotRefreshCommandID: String?
             let liveTestBlindSpotRefreshRequestedAt: Double?
-            let liveTestPromoRedemptionReceipt: LiveTestPromoRedemptionReceipt?
             let devCallDiagnosticsEnabled: Bool
             let devCallDiagnosticsCallID: String?
             let devCallDiagnosticsSessionID: String?
@@ -1135,7 +946,6 @@ enum LiveTestHooks {
             let connectedGlossarySuggestionInputTokens: Int?
             let connectedGlossarySuggestionTranscriptCharsSent: Int?
             let connectedGlossarySuggestionModelID: String?
-            let connectedGlossarySuggestionEstimatedCredits: Int?
             let connectedGlossarySuggestionRanking: String?
             let connectedGlossarySuggestionCached: Bool?
             let connectedGlossarySuggestionAcceptedCount: Int
@@ -1158,7 +968,6 @@ enum LiveTestHooks {
             let configuredAIModelID: String
             let availableAIModelIDs: [String]
             let activeAnswerModelID: String?
-            let configuredShareAnalytics: Bool
             let brainstormConfigured: Bool
             let brainstormTaskActive: Bool
             let agendaConfigured: Bool
@@ -1455,7 +1264,6 @@ enum LiveTestHooks {
             liveTestSyntheticGoalAppliedAt: lastSyntheticGoalAppliedAt,
             liveTestBlindSpotRefreshCommandID: lastBlindSpotRefreshCommandID,
             liveTestBlindSpotRefreshRequestedAt: lastBlindSpotRefreshRequestedAt,
-            liveTestPromoRedemptionReceipt: promoRedemptionReceipt,
             devCallDiagnosticsEnabled: devDiagnostics.enabled,
             devCallDiagnosticsCallID: devDiagnostics.callID,
             devCallDiagnosticsSessionID: devDiagnostics.sessionID,
@@ -1533,8 +1341,6 @@ enum LiveTestHooks {
                 state.connectedGlossarySuggestionMetrics?.transcriptCharsSent,
             connectedGlossarySuggestionModelID:
                 state.connectedGlossarySuggestionMetrics?.modelID,
-            connectedGlossarySuggestionEstimatedCredits:
-                state.connectedGlossarySuggestionMetrics?.estimatedComputeCredits,
             connectedGlossarySuggestionRanking:
                 state.connectedGlossarySuggestionMetrics?.ranking.rawValue,
             connectedGlossarySuggestionCached:
@@ -1560,7 +1366,6 @@ enum LiveTestHooks {
             configuredAIModelID: state.selectedModelID,
             availableAIModelIDs: LLMCatalog.available(for: state.currentTier).map(\.id),
             activeAnswerModelID: state.aiResponseModelID,
-            configuredShareAnalytics: !Config.funnelOptOut,
             brainstormConfigured: watches.brainstormConfigured,
             brainstormTaskActive: watches.brainstormTaskActive,
             agendaConfigured: watches.agendaConfigured,

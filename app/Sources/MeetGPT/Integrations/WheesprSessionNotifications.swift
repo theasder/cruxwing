@@ -1,15 +1,15 @@
 import Foundation
 
 extension Notification.Name {
-    /// Posted when a Wheespr session is adopted outside `AppState` (e.g. paywall /
-    /// device-redeem). `userInfo["session"]` is a `WheesprSession`.
+    /// Posted when a legacy Wheespr-compatible session is adopted outside
+    /// `AppState`. `userInfo["session"]` is a `WheesprSession`.
     static let wheesprSessionAdopted = Notification.Name("meetgpt.wheesprSessionAdopted")
 
     /// Posted when a refresh returns 401 — the Keychain session is already cleared.
     static let wheesprSessionExpired = Notification.Name("meetgpt.wheesprSessionExpired")
 
     /// Posted for every process-local account-context replacement: sign-in,
-    /// sign-out, refresh rotation, device redemption, and startup restoration.
+    /// sign-out, refresh rotation, and startup restoration.
     /// Connected-app evidence observes this separately from the UI lifecycle so
     /// cached content can never cross from one Cruxwing account to another.
     static let wheesprAccountContextChanged = Notification.Name(

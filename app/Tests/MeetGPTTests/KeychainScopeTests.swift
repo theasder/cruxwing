@@ -31,15 +31,15 @@ struct KeychainScopeTests {
     // меняет их одинаково, и согласие сохраняется при неверном значении.
     // Проверено мутацией — так эта проверка и была однажды ослаблена.
     //
-    // И про саму мутацию: портить надо значением, ОТЛИЧНЫМ от правила. В
-    // текущем Secrets.swift devMode = "0", то есть в прогоне правило даёт true,
-    // и подстановка `true` ничего не меняет. «Не поймано» тогда говорит о
-    // мутации, а не о проверке.
+    // И про саму мутацию: портить надо значением, ОТЛИЧНЫМ от правила.
+    // Значение зависит не только от devMode, но и от entitlement текущей
+    // подписи, поэтому жёстко подставленные `true` или `false` могут случайно
+    // совпасть с машиной. Корректная мутация подставляет `!rule`.
     @Test("every query names the keychain the build actually writes to")
     func queriesShareOneKeychain() {
         let plain = store.query(account: "wheespr.session")
         let insert = store.insertAttributes(data: Data("т".utf8), account: "wheespr.session")
-        let rule = SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild)
+        let rule = SystemKeychain.usesDataProtectionKeychain
         #expect(scope(of: plain) == rule)
         #expect(scope(of: insert) == rule,
                 "запись и чтение идут в разные связки — токен «пропадёт» при первом же чтении")
@@ -53,7 +53,7 @@ struct KeychainScopeTests {
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ])
-        #expect(scope(of: read) == SystemKeychain.usesDataProtection(isDevBuild: Config.isDevBuild),
+        #expect(scope(of: read) == SystemKeychain.usesDataProtectionKeychain,
                 "дополнения увели запрос в другую связку")
         #expect(read[kSecReturnData as String] as? Bool == true)
     }
@@ -66,10 +66,88 @@ struct KeychainScopeTests {
         #expect(store.query(account: account)[kSecAttrAccount as String] as? String == account)
     }
 
-    @Test("a dev build uses the file keychain, a distribution build does not")
-    func devBuildsUseTheFileKeychain() {
-        // The reason the two stores diverge at all: a locally-signed build has
-        // no team identifier, so every data-protection write fails with -34018.
-        #expect(SystemKeychain.usesDataProtectionKeychain == !Config.isDevBuild)
+    @Test("data-protection keychain requires both a distribution build and its entitlement")
+    func dataProtectionSelectionRule() {
+        #expect(SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: false, hasApplicationIdentifier: true
+        ))
+        #expect(!SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: false, hasApplicationIdentifier: false
+        ))
+        #expect(!SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: true, hasApplicationIdentifier: true
+        ))
+        #expect(!SystemKeychain.dataProtectionKeychainSelected(
+            isDevBuild: true, hasApplicationIdentifier: false
+        ))
+    }
+
+    @Test("the runtime service belongs to Orakul, with the old service migration-only")
+    func serviceIdentity() {
+        #expect(store.serviceIdentifier == "ai.orakul.desktop.tests.credentials")
+        #expect(store.query(account: "probe")[kSecAttrService as String] as? String
+                == "ai.orakul.desktop.tests.credentials")
+        #expect(SystemKeychain.legacyServiceIdentifier == "com.cruxwing.credentials")
+        #expect(store.serviceIdentifier != SystemKeychain.legacyServiceIdentifier)
+    }
+}
+
+@Suite("Storage identity")
+struct StorageIdentityTests {
+    @Test("all live stores share one Orakul-owned Application Support root")
+    func liveStorePathsAreOrakulOwned() {
+        let base = URL(fileURLWithPath: "/Users/example/Library/Application Support",
+                       isDirectory: true)
+        let root = OrakulApplicationSupport.root(in: base)
+
+        #expect(root.lastPathComponent == "ai.orakul.desktop")
+        #expect(OrakulApplicationSupport.sessionsDirectory(under: root)
+            .deletingLastPathComponent() == root)
+        #expect(OrakulApplicationSupport.telegramArchiveURL(under: root)
+            .deletingLastPathComponent().deletingLastPathComponent() == root)
+        #expect(OrakulApplicationSupport.teamWatchAuditLogURL(under: root)
+            .deletingLastPathComponent() == root)
+    }
+
+    @Test("production sources cannot restore a shared legacy storage root")
+    func productionSourcesUseOnlyTheCentralRoot() throws {
+        let sourceRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/MeetGPT", isDirectory: true)
+        let helperName = "OrakulApplicationSupport.swift"
+        let forbiddenPathFragments = [
+            "appendingPathComponent(\"MeetGPT",
+            "appendingPathComponent(\"Cruxwing",
+            "appendingPathComponent(\"cruxwing",
+        ]
+        var offenders: [String] = []
+
+        let enumerator = try #require(
+            FileManager.default.enumerator(
+                at: sourceRoot,
+                includingPropertiesForKeys: [.isRegularFileKey]
+            )
+        )
+        for case let file as URL in enumerator where file.pathExtension == "swift" {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            let code = source.split(separator: "\n", omittingEmptySubsequences: false)
+                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+                .joined(separator: "\n")
+            let relative = file.path.replacingOccurrences(
+                of: sourceRoot.path + "/", with: "")
+
+            if file.lastPathComponent != helperName,
+               code.contains(".applicationSupportDirectory") {
+                offenders.append("\(relative): bypasses OrakulApplicationSupport")
+            }
+            for fragment in forbiddenPathFragments where code.contains(fragment) {
+                offenders.append("\(relative): contains \(fragment)")
+            }
+        }
+
+        #expect(offenders.isEmpty,
+                "shared legacy storage can mix Orakul and Cruxwing data: \(offenders)")
     }
 }

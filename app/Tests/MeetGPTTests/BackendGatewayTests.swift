@@ -308,7 +308,7 @@ struct BackendGatewayTests {
             #"{"error":"upstream model timed out"}"#,
             #"{"delta":"must not emit"}"#,
         ])
-        try await withOutcome(.response(status: 200, body: stream)) {
+        await withOutcome(.response(status: 200, body: stream)) {
             let deltas = BackendDeltaLog()
             let error = await expectHTTPError {
                 _ = try await gateway().streamChat(
@@ -389,7 +389,7 @@ struct BackendGatewayTests {
             (Data(#"{"message":"request refused"}"#.utf8), "request refused"),
         ]
         for (body, expected) in cases {
-            try await withOutcome(.response(status: 503, body: body)) {
+            await withOutcome(.response(status: 503, body: body)) {
                 let error = await expectHTTPError {
                     _ = try await gateway().streamChat(
                         system: "s", user: "u", images: [], model: model) { _ in }
@@ -404,7 +404,7 @@ struct BackendGatewayTests {
     @Test("plain error bodies are retained but capped before reaching the UI")
     func plainErrorIsCapped() async throws {
         let body = String(repeating: "x", count: 600)
-        try await withOutcome(.response(status: 500, body: Data(body.utf8))) {
+        await withOutcome(.response(status: 500, body: Data(body.utf8))) {
             let error = await expectHTTPError {
                 _ = try await gateway().streamChat(
                     system: "s", user: "u", images: [], model: model) { _ in }
@@ -423,7 +423,7 @@ struct BackendGatewayTests {
         // (see isBackendUnreachable) and land on the same friendly outage
         // message as a 502, so the app says "AI is down, local still works".
         for code in [URLError.Code.timedOut, .notConnectedToInternet] {
-            try await withOutcome(.failure(code)) {
+            await withOutcome(.failure(code)) {
                 do {
                     _ = try await gateway().streamChat(
                         system: "s", user: "u", images: [], model: model) { _ in }

@@ -25,32 +25,54 @@ struct ConnectorAddressTests {
         #expect(ConnectorAddress.normalise("https://git.company.ru") == "https://git.company.ru")
     }
 
-    // Своя машина в своей сети — законный http. Требовать от неё сертификат
-    // значит запретить половину самостоятельных установок GitLab и Gitea.
-    @Test("http до своей сети остаётся http", arguments: [
+    @Test("произвольная схема не обходит требование https")
+    func nonHTTPSProtocolsAreForcedToHTTPS() {
+        #expect(ConnectorAddress.normalise("ftp://git.company.ru/repository")
+                == "https://git.company.ru/repository")
+        #expect(ConnectorAddress.normalise("ws://chat.company.ru/socket")
+                == "https://chat.company.ru/socket")
+        #expect(ConnectorAddress.normalise("file://tracker.company.ru/issues")
+                == "https://tracker.company.ru/issues")
+        #expect(ConnectorAddress.normalise("company-tracker://tasks.company.ru/api")
+                == "https://tasks.company.ru/api")
+    }
+
+    // Только loopback не пересекает сеть и поэтому может не иметь TLS.
+    @Test("http внутри этой машины остаётся http", arguments: [
         "http://localhost:3000",
         "http://127.0.0.1:8080",
+        "http://127.42.0.9:8080",
+        "http://service.localhost:3000",
+        "http://[::1]:8080",
+    ])
+    func localHTTPKept(address: String) {
+        #expect(ConnectorAddress.normalise(address) == address)
+    }
+
+    @Test("частная сеть и mDNS — не loopback", arguments: [
         "http://gitea.local",
         "http://10.0.0.5",
         "http://192.168.1.10:8929",
         "http://172.16.4.4",
         "http://172.31.255.1",
     ])
-    func localHTTPKept(address: String) {
-        #expect(ConnectorAddress.normalise(address) == address)
+    func privateNetworkStillRequiresTLS(address: String) {
+        #expect(ConnectorAddress.normalise(address)?.hasPrefix("https://") == true)
     }
 
-    // 172.32 уже не частный диапазон: он маршрутизируется, и токен по нему
-    // уедет наружу. Граница проверяется с обеих сторон.
-    @Test("соседние с частным диапазоном адреса частными не считаются")
-    func rangeBordersHold() {
+    @Test("похожее на loopback имя не становится loopback")
+    func loopbackLookalikesAreForeign() {
         #expect(ConnectorAddress.normalise("http://172.32.0.1") == "https://172.32.0.1")
         #expect(ConnectorAddress.normalise("http://172.15.0.1") == "https://172.15.0.1")
-        #expect(ConnectorAddress.isLocal("172.32.0.1") == false)
-        #expect(ConnectorAddress.isLocal("172.16.0.1"))
+        #expect(!ConnectorAddress.isLoopback("172.16.0.1"))
+        #expect(!ConnectorAddress.isLoopback("gitea.local"))
         // «10.» в середине имени — не частная сеть, а чужой домен.
-        #expect(ConnectorAddress.isLocal("not10.example.com") == false)
-        #expect(ConnectorAddress.isLocal("localhost.attacker.com") == false)
+        #expect(!ConnectorAddress.isLoopback("not10.example.com"))
+        #expect(!ConnectorAddress.isLoopback("localhost.attacker.com"))
+        #expect(!ConnectorAddress.isLoopback("127.attacker.example"))
+        #expect(!ConnectorAddress.isLoopback("127.0.0.1.attacker.example"))
+        #expect(ConnectorAddress.normalise("http://127.attacker.example")
+                == "https://127.attacker.example")
     }
 
     // nil значит «ничего не вписано» и только это.
@@ -78,7 +100,7 @@ struct ConnectorAddressTests {
         #expect(SelfHostedTrackers.Service.gitlab.host("http://git.co") == "https://git.co")
         #expect(TeamNotes.Service.outline.host("http://wiki.co") == "https://wiki.co")
         #expect(WorkMessengers.Service.mattermost.host(secondary: "http://chat.co") == "https://chat.co")
-        // И своя сеть проходит через все три так же.
+        // И loopback проходит через все три так же.
         #expect(SelfHostedTrackers.Service.gitlab.host("http://localhost:3000") == "http://localhost:3000")
     }
 }

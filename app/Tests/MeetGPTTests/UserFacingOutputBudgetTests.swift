@@ -65,8 +65,11 @@ struct UserFacingOutputBudgetTests {
 
     @Test("ordinary visible answers use 8k while their follow-up epilogue stays small")
     func ordinaryAnswerAndFollowUp() async {
+        let savedAutomatic = Config.automaticProviderRequestsEnabled
+        defer { Config.automaticProviderRequestsEnabled = savedAutomatic }
         let gateway = UserFacingBudgetGateway(response: "A complete visible answer.")
         let state = AppState(llm: gateway)
+        state.setAutomaticProviderRequestsEnabled(true)
         state.transcript = [TranscriptEntry(source: .mic, text: "Контекст")]
         state.runPrompt(.custom(icon: "✨", title: "Test", prompt: "Answer fully"))
         await settle(state)
@@ -82,8 +85,11 @@ struct UserFacingOutputBudgetTests {
 
     @Test("a workflow audit keeps the full visible-answer ceiling")
     func refinedAnswer() async throws {
+        let savedAutomatic = Config.automaticProviderRequestsEnabled
+        defer { Config.automaticProviderRequestsEnabled = savedAutomatic }
         let gateway = UserFacingBudgetGateway(response: "A grounded final answer.")
         let state = AppState(llm: gateway)
+        state.setAutomaticProviderRequestsEnabled(true)
         state.transcript = [TranscriptEntry(
             source: .system, text: "We committed to ship the fix Friday.")]
         let prompt = try #require(QuickPrompts.all.first { $0.id == "commitments" })

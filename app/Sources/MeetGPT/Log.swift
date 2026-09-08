@@ -7,7 +7,7 @@ import os
 /// are known-safe config (model names, status codes) may be marked `.public`
 /// at the call site.
 enum Log {
-    private static let subsystem = "ai.wheespr.meetgpt"
+    private static let subsystem = "ai.orakul.desktop"
 
     static let general    = Logger(subsystem: subsystem, category: "general")
     static let audio      = Logger(subsystem: subsystem, category: "audio")

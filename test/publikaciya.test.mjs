@@ -5,39 +5,24 @@ import { join } from 'node:path';
 
 // Что уезжает на сайт.
 //
-// `pages.yml` собирает ветку страницы из всего public/, поэтому «лежит в
-// public/» и «опубликовано» — одно и то же, если каталог не исключён явно.
-// В public/ru/ лежит landing другого продукта: 53 упоминания cruxwing, цены и
-// canonical на cruxwing.ai, который сам отвечает 404. У orakul цен нет по
-// устройству, и первый же push выложил бы страницу с ценами на сайт продукта
-// без цен (план, §5.1).
-//
-// Список исключений читается из самого рабочего процесса. Второй список здесь
-// разошёлся бы с первым, и разошёлся бы молча — а молчание тут и есть отказ.
+// `pages.yml` загружает весь public/ как неизменяемый Pages artifact. Поэтому
+// чужая страница не должна лежать здесь «на всякий случай» и скрываться
+// специальным исключением: такой мусор виден каждому клонирующему.
 
 const PUBLIC = 'public';
 const FLOW = '.github/workflows/pages.yml';
 const OWN_DOMAIN = 'theasder.github.io';
 
-function excluded() {
-  const flow = readFileSync(FLOW, 'utf8');
-  const line = flow.match(/^\s*EXCLUDE="([^"]*)"/m);
-  assert.ok(line, `${FLOW} больше не объявляет EXCLUDE — публикуется всё подряд`);
-  return line[1].split(/\s+/).filter(Boolean);
-}
-
 function publishedPages() {
-  const skip = new Set(excluded());
   const pages = [];
-  const walk = (dir, top) => {
+  const walk = (dir) => {
     for (const name of readdirSync(dir)) {
-      if (top && skip.has(name)) continue;
       const path = join(dir, name);
-      if (statSync(path).isDirectory()) walk(path, false);
+      if (statSync(path).isDirectory()) walk(path);
       else if (path.endsWith('.html')) pages.push(path);
     }
   };
-  walk(PUBLIC, true);
+  walk(PUBLIC);
   return pages;
 }
 
@@ -64,21 +49,40 @@ test('canonical публикуемой страницы указывает на 
     'Поисковик отдаст чужую страницу вместо нашей, а если её там нет — 404.');
 });
 
-// Исключение обязано быть настоящим: каталог, которого нет, — это не защита, а
-// строка в файле.
-test('исключённые каталоги существуют, иначе исключение ничего не значит', () => {
-  for (const dir of excluded()) {
-    assert.ok(statSync(join(PUBLIC, dir)).isDirectory(),
-      `pages.yml исключает public/${dir}, а его нет — уберите строку или верните каталог`);
-  }
+test('публикация не держится на списке скрытых каталогов', () => {
+  const flow = readFileSync(FLOW, 'utf8');
+  assert.doesNotMatch(flow, /^\s*EXCLUDE=/m,
+    'pages.yml скрывает часть public/ вместо удаления или исправления файлов');
 });
 
-// Проверка обязана видеть ту самую страницу, ради которой написана: если снять
-// исключение, набор становится красным.
-test('без исключения чужая страница находится', () => {
-  const html = readFileSync(join(PUBLIC, 'ru', 'index.html'), 'utf8');
-  assert.match(title(html), /Cruxwing/i,
-    'public/ru больше не страница Cruxwing — проверка сторожит пустоту');
-  assert.ok(!canonical(html).includes(OWN_DOMAIN),
-    'canonical в public/ru стал своим — образец чужой страницы исчез');
+test('Pages отказывается публиковать orakul из репозитория другого продукта', () => {
+  const flow = readFileSync(FLOW, 'utf8');
+  assert.match(flow, /EXPECTED_REPOSITORY:\s*theasder\/orakul/,
+    'pages.yml не фиксирует каноническое имя репозитория');
+  assert.match(flow, /\$GITHUB_REPOSITORY[^\n]*\$EXPECTED_REPOSITORY/,
+    'pages.yml не сравнивает фактический репозиторий с ожидаемым');
+  const guard = flow.indexOf('EXPECTED_REPOSITORY:');
+  const publish = flow.indexOf('actions/upload-pages-artifact@');
+  assert.ok(guard > -1 && guard < publish,
+    'проверка идентичности должна остановить workflow до публикации');
+});
+
+test('Pages публикует artifact без Git credentials и записи в ветки', () => {
+  const flow = readFileSync(FLOW, 'utf8');
+  assert.match(flow, /^permissions:\n\s+contents:\s*read\s*$/m,
+    'workflow по умолчанию получает больше, чем read-only checkout');
+  assert.match(flow, /^\s+pages:\s*write\s*$/m,
+    'deploy job не имеет минимального права GitHub Pages');
+  assert.match(flow, /^\s+id-token:\s*write\s*$/m,
+    'deploy job не может получить OIDC-токен Pages');
+  assert.match(flow, /environment:\s*\n\s+name:\s*github-pages/,
+    'Pages deployment не защищён штатным Environment');
+  assert.match(flow, /persist-credentials:\s*false/,
+    'checkout оставляет Git credentials доступными последующим шагам');
+  assert.match(flow, /actions\/upload-pages-artifact@[0-9a-f]{40}/,
+    'Pages artifact action не закреплён на commit SHA');
+  assert.match(flow, /actions\/deploy-pages@[0-9a-f]{40}/,
+    'Pages deploy action не закреплён на commit SHA');
+  assert.doesNotMatch(flow, /\bgit\s+push\b|contents:\s*write/,
+    'Pages workflow всё ещё может записывать или force-push ветку');
 });

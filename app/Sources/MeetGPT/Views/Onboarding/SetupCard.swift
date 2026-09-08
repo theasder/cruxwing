@@ -18,12 +18,12 @@ struct SetupCard: View {
     @AppStorage("onboarding.providerKeyRowDismissed") private var keyDismissed = false
 
     private var captureVerified: Bool { state.micGranted && state.screenRecordingGranted }
-    /// Строка держалась на признаке входа, хотя текст в ней уже был про ключ.
-    /// Пока адрес сервера подставлялся сам, признак был ложным и строка
-    /// показывалась. Как только адрес перестал подставляться,
-    /// `wheesprAvailable` стал false, «вошёл» — true, и единственная строка про
-    /// ключ исчезла из установщика целиком.
-    private var hasProviderKey: Bool { !ProviderKeyStore.current.configured.isEmpty }
+    /// Готовность берётся из того же внедрённого хранилища, из которого
+    /// настройки и запросы читают ключи. Одной записи ключа недостаточно:
+    /// например, Яндексу нужен ещё идентификатор каталога.
+    private var hasProviderKey: Bool {
+        LLMProvider.allCases.contains { mcp.providerKeys.isReady($0) }
+    }
     private var appsConnected: Bool { !mcp.authorizedServerIDs.isEmpty }
 
     private var showsProviderKeyRow: Bool {

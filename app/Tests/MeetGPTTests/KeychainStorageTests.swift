@@ -20,8 +20,10 @@ final class InMemoryKeychain: KeychainStore, @unchecked Sendable {
         reads += 1
         return storage[account]
     }
-    func delete(_ account: String) {
+    @discardableResult
+    func delete(_ account: String) -> Bool {
         lock.lock(); deletes += 1; storage[account] = nil; lock.unlock()
+        return true
     }
     var count: Int { lock.lock(); defer { lock.unlock() }; return storage.count }
     var readCount: Int { lock.lock(); defer { lock.unlock() }; return reads }
@@ -49,7 +51,7 @@ final class BlockingReadKeychain: KeychainStore, @unchecked Sendable {
         lock.lock(); finished = true; lock.unlock()
         return nil
     }
-    func delete(_ account: String) {}
+    func delete(_ account: String) -> Bool { true }
     var hasStarted: Bool { lock.lock(); defer { lock.unlock() }; return started }
     var hasFinished: Bool { lock.lock(); defer { lock.unlock() }; return finished }
     func release() {
@@ -217,7 +219,7 @@ struct KeychainStorageTests {
     }
 
     @MainActor
-    @Test("AppState restores account badges after construction without a synchronous Keychain read")
+    @Test("direct BYOK restores Google after construction without reading a legacy account session")
     func appStateDefersCredentialReads() async throws {
         let kc = InMemoryKeychain()
         let google = GoogleTokens(
@@ -241,13 +243,13 @@ struct KeychainStorageTests {
         #expect(!state.wheesprConnected)
 
         await state.loadPersistedConnectionState()
-        #expect(kc.readCount == 2)
+        #expect(kc.readCount == 1)
         #expect(state.googleConnected)
-        #expect(state.wheesprConnected)
-        #expect(state.wheesprEmail == "qa@example.com")
+        #expect(!state.wheesprConnected)
+        #expect(state.wheesprEmail == nil)
 
         await state.loadPersistedConnectionState()
-        #expect(kc.readCount == 2)
+        #expect(kc.readCount == 1)
     }
 
     @MainActor
@@ -389,7 +391,7 @@ final class RefusingKeychain: KeychainStore, @unchecked Sendable {
         return false            // как заблокированная связка
     }
     func get(_ account: String) -> Data? { nil }
-    func delete(_ account: String) {}
+    func delete(_ account: String) -> Bool { true }
 }
 
 @Suite("Отказ Связки ключей")
@@ -467,11 +469,13 @@ struct ProviderKeysRefusalTests {
     @Test("экран проверяет результат записи, а не предполагает успех")
     func saveChecksTheResult() throws {
         let code = try Self.code
-        let save = try #require(code.range(of: "let savedKey = store.setKey"),
+        let save = try #require(code.range(of: "guard store.setCredentials("),
                                 "кнопка «Сохранить» больше не читает результат записи")
-        let body = String(code[save.lowerBound...].prefix(460))
-        #expect(body.contains("guard savedKey && savedSecondary"),
-                "результат записи снова не проверяется")
+        let body = String(code[save.lowerBound...].prefix(360))
+        #expect(body.contains(") else {")
+                    && body.contains("saveFailed = true")
+                    && body.contains("return"),
+                "результат атомарной записи снова не проверяется")
     }
 
     @Test("при отказе набранный ключ остаётся в поле")
@@ -485,7 +489,7 @@ struct ProviderKeysRefusalTests {
         let action = try #require(code.range(of: "Button(\"Сохранить\")"),
                                   "кнопки «Сохранить» больше нет")
         let body = String(code[action.lowerBound...].prefix(700))
-        let save = try #require(body.range(of: "store.setKey"))
+        let save = try #require(body.range(of: "store.setCredentials"))
         let clear = try #require(body.range(of: "key = \"\""))
         #expect(save.lowerBound < clear.lowerBound,
                 "поле очищается раньше попытки записи — сохранять будет нечего")
@@ -498,7 +502,7 @@ struct ProviderKeysRefusalTests {
     func refusalHasAMessage() throws {
         let code = try Self.code
         #expect(code.contains("saveFailed = true"), "экран не отмечает отказ записи")
-        #expect(code.contains("Не удалось записать ключ в Связку ключей"),
+        #expect(code.contains("Не удалось изменить ключ в Связке ключей"),
                 "при отказе человеку нечего показать")
         // Сообщение обязано назвать действие, иначе это просто «что-то не так».
         #expect(code.contains("Разблокируйте"), "сообщение не подсказывает, что делать")

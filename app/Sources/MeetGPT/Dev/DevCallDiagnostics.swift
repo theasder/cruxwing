@@ -7,7 +7,7 @@ import Foundation
 /// all of the following are true at process launch:
 ///
 /// - the binary is a dev build;
-/// - `CRUXWING_DEV_CALL_LOGS=1` was explicitly supplied;
+/// - `ORAKUL_DEV_CALL_LOGS=1` was explicitly supplied;
 /// - the normal live-test nonce is valid; and
 /// - the live-test artifact root is a real owner-only (0700) directory.
 ///
@@ -37,13 +37,13 @@ final class DevCallDiagnostics: @unchecked Sendable {
 
         static var process: Configuration {
             let environment = ProcessInfo.processInfo.environment
-            let root = environment["CRUXWING_LIVETEST_ARTIFACT_ROOT"].flatMap {
+            let root = environment["ORAKUL_LIVETEST_ARTIFACT_ROOT"].flatMap {
                 $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true)
             }
             return Configuration(
                 isDevBuild: Config.isDevBuild,
-                enabledValue: environment["CRUXWING_DEV_CALL_LOGS"],
-                nonce: environment["CRUXWING_LIVETEST_NONCE"],
+                enabledValue: environment["ORAKUL_DEV_CALL_LOGS"],
+                nonce: environment["ORAKUL_LIVETEST_NONCE"],
                 artifactRoot: root)
         }
     }
@@ -79,7 +79,7 @@ final class DevCallDiagnostics: @unchecked Sendable {
     }
 
     static let shared = DevCallDiagnostics(configuration: .process)
-    static let environmentOptIn = "CRUXWING_DEV_CALL_LOGS"
+    static let environmentOptIn = "ORAKUL_DEV_CALL_LOGS"
     static let directoryName = "dev-call-diagnostics"
 
     private let lock = NSLock()

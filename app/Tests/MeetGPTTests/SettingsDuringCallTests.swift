@@ -102,6 +102,7 @@ struct SettingsDuringCallTests {
     }
 
     private struct SavedFlags {
+        let automaticRequests = Config.automaticProviderRequestsEnabled
         let brainstorm = Config.brainstormEnabled
         let agenda = Config.agendaCheckerEnabled
         let factCheck = Config.factCheckDuringCallsEnabled
@@ -109,6 +110,7 @@ struct SettingsDuringCallTests {
         let facilitation = Config.facilitationDuringCallsEnabled
 
         func restore() {
+            Config.automaticProviderRequestsEnabled = automaticRequests
             Config.brainstormEnabled = brainstorm
             Config.agendaCheckerEnabled = agenda
             Config.factCheckDuringCallsEnabled = factCheck
@@ -154,6 +156,7 @@ struct SettingsDuringCallTests {
             for watch in Watch.allCases {
                 configureAll(false)
                 let state = AppState(credentialStore: InMemoryKeychain())
+                state.setAutomaticProviderRequestsEnabled(true)
                 state.applyTestWorkspace(recording: recording)
 
                 set(watch, true, on: state)
@@ -192,6 +195,7 @@ struct SettingsDuringCallTests {
         for order in permutations(Watch.allCases) {
             configureAll(false)
             let state = AppState(credentialStore: InMemoryKeychain())
+            state.setAutomaticProviderRequestsEnabled(true)
             state.applyTestWorkspace(recording: true)
             for watch in order { set(watch, true, on: state) }
             let allOn = state.liveWatchActivity()
@@ -254,7 +258,7 @@ struct SettingsDuringCallTests {
             TranscriptEntry(source: .system,
                             text: "We committed to ship Falcon on Friday after the SLA review.")
         ]
-        // A custom prompt deliberately skips the 1,188-skill relevance index;
+        // A custom prompt deliberately skips bundled-skill relevance ranking;
         // this test isolates Settings/model synchronization rather than catalog
         // warmup. Its silent follow-up is the second model call.
         let prompt = QuickPrompt.custom(

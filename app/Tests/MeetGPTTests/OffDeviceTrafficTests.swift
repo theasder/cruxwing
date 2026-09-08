@@ -5,10 +5,10 @@ import Foundation
 /// Граница «данные остаются на машине» — целиком, а не по одному пути.
 ///
 /// §3 роадмапа обещает, что каждая граница ломает сборку или запуск, когда её
-/// нарушают. Для этой границы существовала одна проверка на один вызов
-/// (`claimDeviceTrial`), а обращений к нашему серверу в коде девятнадцать
-/// файлов. Каждый следующий обязан помнить про пустой адрес сам — то есть
-/// граница держалась на памяти автора, а не на проверке.
+/// нарушают. Для этой границы когда-то существовала одна проверка на один
+/// вызов, хотя обращений к нашему серверу было много. Каждый следующий обязан
+/// был помнить про пустой адрес сам — то есть граница держалась на памяти
+/// автора, а не на проверке.
 ///
 /// Сегодня она держится ещё и на том, что адреса в сборке нет вовсе
 /// (`build.sh` останавливается на непустом `backendBaseURL`). Эта проверка —
@@ -50,7 +50,8 @@ import Foundation
 
         // Объявление и настройки к вызовам не относятся: они адрес хранят и
         // показывают, а не ходят по нему.
-        let declarations: Set<String> = ["Secrets.swift", "Config.swift", "SettingsView.swift",
+        let declarations: Set<String> = ["Secrets.swift", "LocalSecrets.generated.swift",
+                                         "Config.swift", "SettingsView.swift",
                                          "CertPinning.swift", "LLMModel.swift"]
         var unguarded: [String] = []
         for file in files where !declarations.contains(file.name) {
@@ -63,15 +64,6 @@ import Foundation
                 "эти файлы обращаются к серверу, не проверив, что адрес задан: \(unguarded)")
     }
 
-    @Test("телеметрия молчит, когда идти некуда")
-    func funnelStaysSilentWithoutAnAddress() async {
-        // Поведенчески, а не чтением: пустой адрес — и запрос не уходит.
-        // Сессия, которая упала бы при обращении, здесь не нужна: `send`
-        // возвращает false до её создания, и это то, что проверяется.
-        let sent = await FunnelTracker.send(stage: "app_open", baseURL: "")
-        #expect(!sent, "с пустым адресом воронка всё-таки куда-то постучалась")
-    }
-
     @Test("в сборке адреса нет — значит и обращаться некуда")
     func shippedBuildHasNoAddress() {
         // Первый слой, и он же самый надёжный: адреса нет в сгенерированном
@@ -79,14 +71,45 @@ import Foundation
         #expect(Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 
-    @Test("отзыв не уходит, когда адреса нет — и остаётся в очереди")
-    func feedbackStaysQueuedWithoutAnAddress() async {
-        // Поведенчески. Найдено проверкой выше: с пустым адресом
-        // `URL(string: "/api/feedback")` возвращает НЕ nil — это правильный
-        // относительный адрес, — поэтому запрос собирался и падал уже в
-        // URLSession. Отзыв не уходил по случайности, а не по решению, а в нём
-        // заметка и почта: слова человека о его собственной встрече.
-        let sent = await FeedbackUploader.flush(session: .shared)
-        #expect(!sent, "отзыв ушёл, хотя сервера у orakul нет")
+    @Test("в приложении нет first-party телеметрии и отправки отзывов")
+    func firstPartyCollectionCodeIsAbsent() throws {
+        let removedPaths = [
+            "Integrations/AnalyticsEvent.swift",
+            "Integrations/FunnelTracker.swift",
+            "Integrations/SurfaceTracking.swift",
+            "Integrations/StoreKitBridge.swift",
+            "Integrations/StoreKitPurchaser.swift",
+            "Views/Paywall/PaywallView.swift",
+            "Feedback/FeedbackUploader.swift",
+            "Feedback/FirstMeetingFeedbackSheet.swift",
+            "Feedback/FirstMeetingPrompt.swift",
+        ]
+        for path in removedPaths {
+            #expect(!FileManager.default.fileExists(atPath: Self.sources.appendingPathComponent(path).path),
+                    "унаследованный сбор данных снова компилируется: \(path)")
+        }
+
+        let production = try Self.allProductionSource()
+        for forbidden in ["/api/funnel", "/api/feedback", "/api/billing/storekit",
+                          "/api/billing/checkout", "/api/promo", "/api/subscribe",
+                          "/api/trial/device-claim",
+                          "FunnelTracker.", "FeedbackUploader.", "trackSurface(",
+                          "import StoreKit", "shouldShowPaywall", "paywallChoiceMade",
+                          "postTrialPromptShown", "LiveTestPromoRedemptionReceipt",
+                          "livetest.redeem"] {
+            #expect(!production.contains(forbidden),
+                    "унаследованный first-party сбор данных вернулся: \(forbidden)")
+        }
+    }
+
+    private static func allProductionSource() throws -> String {
+        guard let walker = FileManager.default.enumerator(
+            at: sources, includingPropertiesForKeys: nil
+        ) else { return "" }
+        var chunks: [String] = []
+        for case let url as URL in walker where url.pathExtension == "swift" {
+            chunks.append(try String(contentsOf: url, encoding: .utf8))
+        }
+        return chunks.joined(separator: "\n")
     }
 }

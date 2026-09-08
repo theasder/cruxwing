@@ -1,53 +1,68 @@
 # Skills security
 
-Third-party Agent Skills are untrusted methodology. Before they reach the model:
+Third-party Agent Skills are untrusted methodology data. Orakul ships only the
+nine files listed in `runtime-allowlist.json`; the former unreviewed catalog is
+not present in the application bundle.
 
-1. Quarantine denylist — `BundledSkillSanitizer.quarantineIDs`
-2. Risk gate — `BundledSkillLibrary.rankable` drops every `risk: critical` skill
-   from the set the relevance ranker may pick automatically
-3. Sanitize — strip invisible unicode; neutralize role / override lines
-4. Wrap — `<<<UNTRUSTED_THIRD_PARTY_SKILL>>>` … `<<<END_…>>>`
-5. Cap — `BundledSkillRouter.maxBodyChars` + script-fence stripping
+## Authorization and prompt use
 
-Do not map quarantined skills into `BundledSkillRouter.map`. Re-run a catalog
-scan after any bulk ingest (see `.context/skills-security-audit/`).
+A vendored skill must pass every boundary below before its text can reach a
+model prompt:
 
-## Reading `SECURITY-AUDIT.md`
+1. **Local exact-byte review.** `runtime-allowlist.json` defaults to deny and
+   pins an approved identifier, source repository, full commit SHA, file
+   SHA-256, license, rationale, and narrow built-in prompt scopes. If the whole
+   document is missing or malformed, all third-party guidance is disabled.
+2. **Runtime match.** The loader reads only reviewed identifiers and hashes the
+   actual bundled bytes. Unknown folders, changed files, duplicate reviews, and
+   requests outside a reviewed prompt scope are denied.
+3. **Explicit-risk veto.** Upstream `risk:` metadata is advisory because it is
+   incomplete and not controlled by Orakul. A local review may cover a missing
+   value, but an explicit `unknown`, `critical`, or unrecognized value still
+   vetoes runtime use.
+4. **Quarantine.** `BundledSkillSanitizer.quarantineIDs` remains a defense in
+   depth against identifiers previously associated with harmful or
+   action-taking behavior.
+5. **Transform and contain.** Script fences are removed; invisible Unicode,
+   role markers, and common override lines are neutralized; the body is capped;
+   and the result is wrapped between `UNTRUSTED_THIRD_PARTY_SKILL` delimiters.
+6. **Final authorization.** `BundledSkillRouter.format(_:for:)` repeats the
+   exact-byte and prompt-scope decision at the final formatting boundary.
 
-The audit is a pattern scan, so its severity column is not a verdict. Most
-`crit_*` hits are skills that *teach about* prompt injection (`skill-audit`,
-`skill-security-auditor`, `ai-security`, `effective-agent-skills`), and every
-`curl | bash` / `rm -rf` hit but one sits inside a fenced block that step 5
-deletes before the body reaches the model. Do not quarantine on a pattern hit
-alone — check whether the match survives steps 3–5 first.
+Every built-in quick prompt retains at least one reviewed method. Custom prompt
+identifiers do not route third-party skills.
 
-What the scan does *not* catch is the risk that matters here: a skill whose
-methodology is to take a real-world action (send mail, post to social, move
-funds, administer a server) being auto-injected into a live meeting prompt.
-That is what `risk: critical` marks and what step 2 gates — 74 of 1,188 skills.
-They stay in the bundle and resolvable by id; they are only barred from being
-chosen for the user. A skill needing an explicit action must be mapped
-deliberately, never surfaced by transcript similarity.
+## What this boundary does and does not prove
 
-## The `risk:` field is the gate, so treat a missing one as a bug
+The local review is the authority; an upstream label or a regex scan is not.
+The nine shipped skills were selected as analysis or note-organization methods,
+not account, file, network, publication, server-administration, or financial
+action workflows. Only their `SKILL.md` files are bundled—no upstream scripts,
+examples folders, plugins, or executable assets.
 
-An audit on 2026-07-26 found two action-taking skills rankable —
-`google-workspace-cli` (Gmail/Drive/Calendar administration, against an account
-this app already holds OAuth tokens for) and `baoyu-post-to-x` (publishes to a
-live X account via Chrome automation). Neither was malicious; neither carried a
-`risk:` field at all, and the gate only ever excluded an exact `critical`.
+Sanitization and delimiters reduce prompt-injection exposure but are not a
+formal model-isolation boundary. The small corpus, exact-byte authorization,
+prompt scoping, and final deny check are what make review tractable. A model can
+still produce a poor answer, so ordinary output review and least-privilege
+provider/connector design remain necessary.
 
-Since then:
+`SECURITY-AUDIT.md` records the earlier 1,193-candidate pattern scan. It is
+historical evidence, not permission to ship or execute a candidate. The current
+set is defined jointly by the live folders, `INGEST_MANIFEST.json`,
+`skill-metadata.json`, and `runtime-allowlist.json`; tests require exact equality.
 
-- an unrecognized value (`risk: high`, or a typo like `crit`) parses to
-  `SkillRisk.unrecognized` and is **gated**, not waved through;
-- `BundledSkillCatalogTests` fails the build if any shipped skill lands there, so
-  a new vocabulary is a deliberate mapping decision rather than a silent
-  exclusion.
+## Change policy
 
-Missing and explicitly-`unknown` verdicts stay rankable on purpose: 968 of 1,188
-skills carry one, so gating them would empty the catalog the ranker exists to
-search. That is the residual risk — the gate is only as good as the labels, and
-most of the corpus carries no positive safety assertion. When ingesting, label
-anything that acts on a real account, and re-run the action-verb sweep over
-`description:` lines rather than trusting the pattern scan's severity column.
+Treat every new or modified `SKILL.md` as a new review. Do not preserve an old
+approval across a byte change, broaden prompt scopes without reading the full
+method, or add a license notice without immutable source and digest evidence.
+Regenerate `Support/Legal/Orakul.cdx.json` after any accepted change and run:
+
+```sh
+node scripts/generate-sbom.mjs --check
+node --test test/skills-provenance.test.mjs test/sbom.test.mjs
+swift test --package-path app --filter BundledSkill
+```
+
+The repository tests are publication guards, not a substitute for human legal
+or security review.

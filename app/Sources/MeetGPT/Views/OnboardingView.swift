@@ -25,12 +25,6 @@ struct OnboardingView: View {
     }
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.onboarding)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         // Scrolls rather than clips. Without this, a short window
         // over-constrains the fixed-size VStack: SwiftUI centre-clips it (the
         // banner and column headers disappear under the top edge) and the

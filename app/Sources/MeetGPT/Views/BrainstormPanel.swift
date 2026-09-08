@@ -184,13 +184,9 @@ struct BrainstormSection: View {
                     if researching {
                         ProgressView().controlSize(.small).scaleEffect(0.7)
                     } else {
-                        // Счёт считается до строки: вложенные скобки внутри
-                        // интерполяции сбивают сторожа русского текста
-                        // (RussianCopyTests) — он вырезает \(...) до первой
-                        // закрывающей скобки и принимает хвост за латиницу.
-                        let researchLeft = max(0, TariffAllowance.forTier(state.currentTier).groundedCycles
-                                                  - UsageTracker.groundedCyclesThisMonth)
-                        Text("приложений: \(mcp.researchableServers.count) · осталось разборов: \(researchLeft)")
+                        Text(Config.managedUsageLimitsEnabled
+                             ? "приложений: \(mcp.researchableServers.count) · осталось разборов: \(state.groundedCyclesRemaining)"
+                             : "приложений: \(mcp.researchableServers.count) · лимита Orakul нет")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                     }
@@ -414,13 +410,10 @@ private struct RecordingContextChip: View {
 /// transcript, or pinned by the user). Tapping opens a picker to override or
 /// return to auto-detect. Every AI action in the call is primed with this
 /// theme's expertise on top of the base instructions and the button's skill.
-/// The price of sending everything, shown BEFORE the send.
+/// The estimated input from sending everything, shown before the send.
 ///
-/// The acceptance criterion was that cost is visible in credits before the
-/// request, not discovered after. So this is a chip in the composer row rather
-/// than a line in a receipt, and it names both the price and what gets sent —
-/// the decision is "is this worth N credits", and neither number alone answers
-/// it.
+/// The input size is visible before the request, not discovered after. Orakul
+/// cannot quote one synthetic price across providers the user pays directly.
 ///
 /// Hidden entirely when the current model cannot do it. An always-visible
 /// control that is usually disabled teaches people to stop looking at the row.
@@ -456,13 +449,12 @@ struct FullContextChip: View {
         }
     }
 
-    /// Names the price when armed. When not armed it says what is being LEFT
-    /// OUT, because that is the fact that makes turning it on a considered
-    /// choice rather than a guess.
+    /// Names the estimated provider input when armed. When not armed it says
+    /// what is being left out, so turning it on is a considered choice.
     private var label: String {
         let quote = state.fullContextQuote
         if state.fullContextRequested {
-            return "\(quote.credits) кредитов · весь контекст"
+            return "≈\(TokenEstimate.label(quote.estimatedInputTokens)) токенов · весь контекст"
         }
         return state.fullContextQuote.truncated ? "Транскрипт обрезается" : "Весь контекст"
     }
@@ -595,9 +587,9 @@ private struct ThemeChip: View {
     }
 }
 
-/// The user's job position — selects the role skill layer (role-specific method
-/// hints per prompt button, from the bundled RoleSkillMatrix). Hidden when the
-/// matrix resource isn't bundled.
+/// The user's job position — selects a generic, first-party role-framing layer.
+/// Prompt-specific methodology is governed by the built-in prompt and reviewed
+/// bundled-skill layers rather than a second role-hint corpus.
 private struct RoleChip: View {
     @EnvironmentObject var state: AppState
 

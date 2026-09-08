@@ -3,20 +3,18 @@ import Foundation
 /// Opt-in full-context mode: send the whole transcript and everything attached,
 /// to models whose window can hold it.
 ///
-/// **The default is untouched.** Per-tier ceilings stay exactly where they were,
-/// because this is a deliberate spend and not a better default. A user who never
-/// opts in sees no change in behaviour and no change in cost.
+/// **The default is untouched.** This is a deliberate, potentially more
+/// expensive provider request, not a better default. A user who never opts in
+/// sees no change in behaviour or provider spend.
 ///
 /// **Per request, never a setting.** A persistent switch would keep charging
 /// after the one long call that justified it, and the person who turned it on in
 /// March would not connect the bill in June to the toggle. It resets after every
 /// send.
 ///
-/// **Priced before the send.** The rules here mirror
-/// `cruxwing-api/functions/fullContext.js` exactly, and `FullContextRequestTests`
-/// checks the constants against the shared contract. A quoted price that differs
-/// from what is charged is worse than not offering the mode at all, so the two
-/// implementations are pinned to each other rather than merely written to match.
+/// **Bounded before the send.** Eligibility and the input ceiling come from the
+/// verified metadata in the local model catalogue. Missing metadata fails
+/// closed; there is no copied server pricing contract in public Orakul.
 enum FullContextRequest {
 
     /// Chars per token. Deliberately LOW so the estimate errs high — quoting
@@ -26,30 +24,8 @@ enum FullContextRequest {
     static let minimumContextTokens = 200_000
     /// Headroom for the system prompt, attached material and the answer.
     static let windowUtilisation = 0.75
-    /// The ordinary input envelope, and the unit cost is quoted in.
+    /// The ordinary input envelope.
     static let defaultEnvelopeChars = 8_000
-    /// No attachment can produce an unbounded bill.
-    static let maximumCreditMultiplier = 40
-
-    /// Compute credits one ordinary request costs, by model.
-    ///
-    /// Mirrors `COMPUTE_CREDITS.models` in cruxwing-api/functions/tariffs.js.
-    /// An unlisted model falls back to the server's own fallback rate rather
-    /// than to 1: quoting cheap and charging more is the failure this whole
-    /// module exists to avoid.
-    static let baseCreditsByModel: [String: Int] = [
-        "gpt-5.4-mini": 2, "gemini-3.5-flash": 2, "gpt-5.4": 4,
-        "claude-sonnet-5": 3, "kimi-k2.6": 2, "gpt-5.5": 7, "gpt-5.6-sol": 7,
-        "claude-opus-5": 7, "gemini-3.1-pro-preview": 3, "deepseek-v4-pro": 1,
-        "qwen3.7-max": 3, "glm-5.2": 2,
-    ]
-
-    /// The server's fallback rate for a model it has no entry for.
-    static let fallbackCredits = 3
-
-    static func baseCredits(for model: LLMModel) -> Int {
-        baseCreditsByModel[model.id] ?? fallbackCredits
-    }
 
     /// Whether the mode may be offered for this model at all.
     ///
@@ -73,15 +49,11 @@ enum FullContextRequest {
         return Int(Double(tokens) * windowUtilisation * charsPerToken)
     }
 
-    /// Credits for one request, in whole envelopes, rounded up.
-    ///
-    /// The provider bills for tokens sent. A mode that quietly undercharges gets
-    /// withdrawn later, which costs the user more than an honest price now.
-    static func credits(baseCredits: Int, inputChars: Int) -> Int {
-        let base = max(1, baseCredits)
-        let chars = max(0, inputChars)
-        let envelopes = max(1, Int(ceil(Double(chars) / Double(defaultEnvelopeChars))))
-        return base * min(envelopes, maximumCreditMultiplier)
+    /// Conservative input-token estimate for what will actually be sent. The
+    /// vendor—not Orakul—owns the price, so a made-up cross-provider credit
+    /// conversion would be less honest than this measurable quantity.
+    static func estimatedInputTokens(for inputChars: Int) -> Int {
+        Int(ceil(Double(max(0, inputChars)) / charsPerToken))
     }
 
     /// What the composer needs to show before sending.
@@ -93,30 +65,30 @@ enum FullContextRequest {
         /// falling back would leave the user believing the whole transcript went.
         let refusal: String?
         let limitChars: Int
-        let credits: Int
+        let estimatedInputTokens: Int
         /// True when even the larger envelope cannot hold everything.
         let truncated: Bool
 
-        /// One line for the composer. Names the price and the size, because the
-        /// decision is "is this worth N credits", and neither number alone
-        /// answers it.
+        /// One line for the composer. It names what is sent; actual billing is
+        /// governed by the provider and model the user configured.
         var summary: String {
             if let refusal { return refusal }
             guard active else { return "" }
             let thousands = limitChars / 1_000
             return truncated
-                ? "Full context · \(credits) credits · sending the last \(thousands)k characters"
-                : "Full context · \(credits) credits · sending everything"
+                ? "Весь контекст · примерно \(estimatedInputTokens) входных токенов · отправляю последние \(thousands) тыс. знаков"
+                : "Весь контекст · примерно \(estimatedInputTokens) входных токенов · отправляю всё"
         }
     }
 
     static func quote(model: LLMModel,
                       requested: Bool,
-                      inputChars: Int,
-                      baseCredits: Int) -> Quote {
+                      inputChars: Int) -> Quote {
+        let ordinarySent = min(max(0, inputChars), defaultEnvelopeChars)
         guard requested else {
             return Quote(active: false, refusal: nil,
-                         limitChars: defaultEnvelopeChars, credits: max(1, baseCredits),
+                         limitChars: defaultEnvelopeChars,
+                         estimatedInputTokens: estimatedInputTokens(for: ordinarySent),
                          truncated: inputChars > defaultEnvelopeChars)
         }
         guard isEligible(model) else {
@@ -126,15 +98,13 @@ enum FullContextRequest {
                     ? "\(model.label) has no verified context window, so full context isn’t offered for it."
                     : "\(model.label)’s context window is too small for full context.",
                 limitChars: defaultEnvelopeChars,
-                credits: max(1, baseCredits),
+                estimatedInputTokens: estimatedInputTokens(for: ordinarySent),
                 truncated: inputChars > defaultEnvelopeChars)
         }
         let limit = maximumInputChars(for: model)
-        // Price what will actually be SENT. Charging for material the window
-        // cannot hold bills for tokens the provider never sees.
-        let sent = min(inputChars, limit)
+        let sent = min(max(0, inputChars), limit)
         return Quote(active: true, refusal: nil, limitChars: limit,
-                     credits: credits(baseCredits: baseCredits, inputChars: sent),
+                     estimatedInputTokens: estimatedInputTokens(for: sent),
                      truncated: inputChars > limit)
     }
 }

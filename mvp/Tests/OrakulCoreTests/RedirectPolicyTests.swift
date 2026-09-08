@@ -43,13 +43,21 @@ import Foundation
                                       to: try Self.url("https://git.company.ru/api")))
     }
 
-    @Test("https → http запрещён, http → https разрешён")
-    func downgradeIsRefused() throws {
-        // Понижение — это токен открытым текстом, и тому, кто перенаправляет,
-        // ровно этого и надо.
+    @Test("смена схемы запрещена в обе стороны")
+    func schemeChangeIsRefused() throws {
         #expect(!RedirectPolicy.allows(from: try Self.url("https://git.company.ru/api"),
                                        to: try Self.url("http://git.company.ru/api")))
-        #expect(RedirectPolicy.allows(from: try Self.url("http://git.company.ru/api"),
+        #expect(!RedirectPolicy.allows(from: try Self.url("http://git.company.ru/api"),
+                                       to: try Self.url("https://git.company.ru/api")))
+    }
+
+    @Test("тот же хост на другом порту — другой origin")
+    func portChangeIsRefused() throws {
+        #expect(!RedirectPolicy.allows(from: try Self.url("https://git.company.ru/api"),
+                                       to: try Self.url("https://git.company.ru:8443/api")))
+        #expect(!RedirectPolicy.allows(from: try Self.url("http://localhost:3000/api"),
+                                       to: try Self.url("http://localhost:3001/api")))
+        #expect(RedirectPolicy.allows(from: try Self.url("https://git.company.ru:443/api"),
                                       to: try Self.url("https://git.company.ru/api")))
     }
 

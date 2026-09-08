@@ -9,8 +9,10 @@ import Foundation
 ///   Premium  light → GPT-5.4 mini · medium → Claude Opus 5
 ///            hard  → the Council (US+CN panel + chairman synthesis)
 ///
-/// When a concrete model is selected instead of "auto", it stays primary; in
-/// direct-key mode only, a pre-output provider failure may use another vendor.
+/// A concrete model selection is provider-pinned: failures never move meeting
+/// content to another vendor. Cross-vendor retry is reserved for global Auto,
+/// council, and orchestration selections in direct-key mode; provider-pinned
+/// Auto stays within its chosen provider.
 final class AutoOrchestrator: LLMGateway {
     typealias FallbackResolver = (_ primary: LLMModel, _ tier: Tier, _ hasImages: Bool) -> [LLMModel]
 
@@ -123,13 +125,17 @@ final class AutoOrchestrator: LLMGateway {
             let routed = Self.route(effort, tier: tier, hasImages: !images.isEmpty, within: provider)
             return try await streamWithProviderFallback(
                 system: system, user: user, images: images, model: routed, tier: tier,
+                allowsCrossVendorFallback: false,
                 maxOutputTokens: maxOutputTokens, onDelta: onDelta)
         }
         guard selection == LLMCatalog.autoID else {
-            // A concrete selection stays primary, but direct-client mode may
-            // recover on another configured vendor before output begins.
+            // Concrete picks fail closed on their selected provider. An explicit
+            // council/orchestration sentinel may reach this fallback only when
+            // too few panel members were configured, and still carries the
+            // user's multi-provider intent.
             return try await streamWithProviderFallback(
                 system: system, user: user, images: images, model: model, tier: tier,
+                allowsCrossVendorFallback: Self.selectionPermitsCrossVendorFailover(selection),
                 maxOutputTokens: maxOutputTokens, onDelta: onDelta)
         }
 
@@ -144,6 +150,7 @@ final class AutoOrchestrator: LLMGateway {
         let routed = Self.route(effort, tier: tier, hasImages: !images.isEmpty)
         return try await streamWithProviderFallback(
             system: system, user: user, images: images, model: routed, tier: tier,
+            allowsCrossVendorFallback: true,
             maxOutputTokens: maxOutputTokens, onDelta: onDelta)
     }
 
@@ -156,6 +163,7 @@ final class AutoOrchestrator: LLMGateway {
     /// Cruxwing session problem and their 429 is the user's compute-credit cap.
     private func streamWithProviderFallback(system: String, user: String, images: [Data],
                                             model: LLMModel, tier: Tier,
+                                            allowsCrossVendorFallback: Bool,
                                             maxOutputTokens: Int? = nil,
                                             onDelta: @escaping (String) -> Void) async throws -> String {
         let primaryOutput = OutputObservation()
@@ -182,6 +190,14 @@ final class AutoOrchestrator: LLMGateway {
                         category: Self.failureCategory(for: error, provider: model.provider))],
                     outputStarted: true)
             }
+            guard allowsCrossVendorFallback else {
+                guard Self.isProviderOwned(error, by: model.provider) else { throw error }
+                throw ProviderFailoverError(
+                    attempts: [.init(
+                        provider: model.provider,
+                        category: Self.failureCategory(for: error, provider: model.provider))],
+                    outputStarted: false)
+            }
             guard let category = Self.failoverCategory(
                 for: error, provider: model.provider)
             else {
@@ -196,23 +212,11 @@ final class AutoOrchestrator: LLMGateway {
             var failures = [ProviderAttemptFailure(provider: model.provider, category: category)]
             var attempted = Set([model.provider])
             let candidates = fallbackResolver(model, tier, !images.isEmpty)
-            let estimatedInputTokens = max(
-                1, (system.utf16.count + user.utf16.count + 3) / 4)
-            let primaryCreditCeiling = CreditCostEstimate.credits(
-                model: model.id,
-                inputTokens: estimatedInputTokens,
-                imageCount: images.count,
-                maxOutputTokens: maxOutputTokens)
 
             for fallback in candidates
             where !attempted.contains(fallback.provider)
                 && fallback.isAvailable(for: tier)
-                && (images.isEmpty || fallback.supportsVision)
-                && CreditCostEstimate.credits(
-                    model: fallback.id,
-                    inputTokens: estimatedInputTokens,
-                    imageCount: images.count,
-                    maxOutputTokens: maxOutputTokens) <= primaryCreditCeiling {
+                && (images.isEmpty || fallback.supportsVision) {
                 attempted.insert(fallback.provider)
                 let previous = failures[failures.count - 1]
                 Log.general.notice(
@@ -246,6 +250,18 @@ final class AutoOrchestrator: LLMGateway {
             // provider body is never an actionable or privacy-safe UI message.
             throw ProviderFailoverError(attempts: failures, outputStarted: false)
         }
+    }
+
+    /// Cross-vendor routing is an explicit selection property, never an ambient
+    /// recovery policy for a concrete model pick.
+    static func selectionPermitsCrossVendorFailover(_ selection: String) -> Bool {
+        if selection == LLMCatalog.autoID
+            || selection == LLMCatalog.councilUS
+            || selection == LLMCatalog.councilCN
+            || OrchestrationLevel.from(selection: selection) != nil {
+            return true
+        }
+        return false
     }
 
     enum ProviderFailureCategory: String, Equatable {

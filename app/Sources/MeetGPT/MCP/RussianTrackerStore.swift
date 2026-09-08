@@ -79,7 +79,8 @@ struct RussianTrackerStore: Sendable {
         guard service.needsSecondary else { return }
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return store.delete(secondaryAccount(service))
+            _ = store.delete(secondaryAccount(service))
+            return
         }
         store.set(Data(trimmed.utf8), for: secondaryAccount(service))
     }
@@ -97,7 +98,10 @@ struct RussianTrackerStore: Sendable {
 
     func setDestination(_ value: String, for service: RussianTrackers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(destinationAccount(service)) }
+        guard !trimmed.isEmpty else {
+            _ = store.delete(destinationAccount(service))
+            return
+        }
         store.set(Data(trimmed.utf8), for: destinationAccount(service))
     }
 
@@ -159,7 +163,7 @@ struct RussianTrackerStore: Sendable {
 
     func setGitHubToken(_ value: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(githubTokenAccount) }
+        guard !trimmed.isEmpty else { _ = store.delete(githubTokenAccount); return }
         store.set(Data(trimmed.utf8), for: githubTokenAccount)
     }
 
@@ -175,7 +179,7 @@ struct RussianTrackerStore: Sendable {
 
     func setGitHubRepositories(_ value: String) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(githubReposAccount) }
+        guard !trimmed.isEmpty else { _ = store.delete(githubReposAccount); return }
         store.set(Data(trimmed.utf8), for: githubReposAccount)
     }
 
@@ -222,7 +226,7 @@ struct RussianTrackerStore: Sendable {
 
     func setNotesHost(_ value: String, for service: TeamNotes.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(notesHostAccount(service)) }
+        guard !trimmed.isEmpty else { _ = store.delete(notesHostAccount(service)); return }
         store.set(Data(trimmed.utf8), for: notesHostAccount(service))
     }
 
@@ -240,7 +244,7 @@ struct RussianTrackerStore: Sendable {
 
     func setNotesField(_ value: String, name: String, for service: TeamNotes.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(notesFieldAccount(service, name)) }
+        guard !trimmed.isEmpty else { _ = store.delete(notesFieldAccount(service, name)); return }
         store.set(Data(trimmed.utf8), for: notesFieldAccount(service, name))
     }
 
@@ -307,7 +311,7 @@ struct RussianTrackerStore: Sendable {
 
     func setSelfHostedHost(_ value: String, for service: SelfHostedTrackers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(selfHostedHostAccount(service)) }
+        guard !trimmed.isEmpty else { _ = store.delete(selfHostedHostAccount(service)); return }
         store.set(Data(trimmed.utf8), for: selfHostedHostAccount(service))
     }
 
@@ -331,7 +335,7 @@ struct RussianTrackerStore: Sendable {
     func setSelfHostedField(_ value: String, name: String,
                             for service: SelfHostedTrackers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(selfHostedFieldAccount(service, name)) }
+        guard !trimmed.isEmpty else { _ = store.delete(selfHostedFieldAccount(service, name)); return }
         store.set(Data(trimmed.utf8), for: selfHostedFieldAccount(service, name))
     }
 
@@ -402,7 +406,7 @@ struct RussianTrackerStore: Sendable {
 
     func setWesternField(_ value: String, name: String, for service: WesternTrackers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return store.delete(westernFieldAccount(service, name)) }
+        guard !trimmed.isEmpty else { _ = store.delete(westernFieldAccount(service, name)); return }
         store.set(Data(trimmed.utf8), for: westernFieldAccount(service, name))
     }
 
@@ -477,7 +481,8 @@ struct RussianTrackerStore: Sendable {
     func setMessengerSecondary(_ value: String, for service: WorkMessengers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return store.delete(messengerSecondaryAccount(service))
+            _ = store.delete(messengerSecondaryAccount(service))
+            return
         }
         store.set(Data(trimmed.utf8), for: messengerSecondaryAccount(service))
     }
@@ -493,7 +498,8 @@ struct RussianTrackerStore: Sendable {
     func setMessengerScope(_ value: String, for service: WorkMessengers.Service) {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return store.delete(messengerScopeAccount(service))
+            _ = store.delete(messengerScopeAccount(service))
+            return
         }
         store.set(Data(trimmed.utf8), for: messengerScopeAccount(service))
     }

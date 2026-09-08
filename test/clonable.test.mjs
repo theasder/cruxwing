@@ -12,7 +12,11 @@
 // один вопрос), весь новый код ядра, CI и SECURITY.md. Локально — зелено,
 // у клонирующего — не собирается вовсе.
 //
-// Поэтому здесь спрашивается не рабочее дерево, а `git ls-files`.
+// Поэтому здесь спрашивается не рабочее дерево, а активный Git index через
+// `git ls-files`. Для проверки большой ещё не записанной публикации вызывающий
+// процесс передаёт отдельный `GIT_INDEX_FILE`; реальный index разработчика тест
+// не меняет. Самому делать `git add -A` здесь нельзя: тогда забытый новый файл
+// незаметно считался бы частью будущего клона, и исходный сторож исчез бы.
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
@@ -38,6 +42,15 @@ const onDisk = () =>
     .filter((f) => !/(^|\/)(\.build|build|dist|node_modules)\//.test(f));
 
 describe('то, что получает клонирующий', () => {
+  test('граница клона — активный index, включая prospective publication index', () => {
+    const selected = git('rev-parse', '--git-path', 'index').trim();
+    assert.ok(selected, 'git не назвал index, по которому строится будущий клон');
+    if (process.env.GIT_INDEX_FILE) {
+      assert.equal(resolve(selected), resolve(process.env.GIT_INDEX_FILE),
+        'git проигнорировал переданный prospective publication index');
+    }
+  });
+
   test('каждый исходник в рабочем дереве попадёт в клон', () => {
     // Именно этот разрыв и случился: файл написан, тесты по нему зелёные,
     // `git add` никто не сделал. Локально не отличить.
@@ -101,16 +114,15 @@ describe('то, что получает клонирующий', () => {
     // половину проекта, и предыдущие проверки этого бы не увидели —
     // `ls-files --others --exclude-standard` тоже уважает .gitignore.
     //
-    // Исключений нет. `Secrets.swift` раньше был спрятан — и ровно поэтому
-    // `cd app && swift test` у клонирующего не собирался: файл порождается
-    // сборкой, в клоне его нет, первая же ссылка на `Secrets.` роняет вывод
-    // типов. Теперь он под контролем версий и пуст, а за тем, чтобы в него не
-    // попали учётные данные, следит test/secrets.test.mjs.
+    // Единственное исключение — локальная конфигурация, которую build.sh
+    // генерирует из игнорируемого .env. Отслеживаемый Secrets.swift остаётся
+    // пустой конфигурацией клона; build.sh его никогда не переписывает.
     const swallowed = git('ls-files', '--others', '--ignored', '--exclude-standard')
       .split('\n')
       .filter(Boolean)
       .filter((f) => /\.(swift|mjs)$/.test(f))
-      .filter((f) => !/(^|\/)(\.build|build|dist|node_modules)\//.test(f));
+      .filter((f) => !/(^|\/)(\.build|build|dist|node_modules)\//.test(f))
+      .filter((f) => f !== 'app/Sources/MeetGPT/LocalSecrets.generated.swift');
     assert.deepEqual(swallowed, [],
       `.gitignore прячет исходники:\n  ${swallowed.join('\n  ')}`);
   });

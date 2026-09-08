@@ -96,16 +96,11 @@ final class DeepgramStreamer {
     /// An unrecoverable setup/auth failure. This is separate from `onError`,
     /// which also carries the non-terminal "reconnecting" notice.
     var onTerminalFailure: ((String) -> Void)?
-    /// Terminal credit/config failure in grant mode: the stream cannot
-    /// continue and the caller should degrade this session on-device. Fired
-    /// at most once; the streamer finishes itself right after.
-    var onFallback: ((String) -> Void)?
-    /// Metered (grant) mode only: called with elapsed 6-second chunks of audio
-    /// actually sent to Deepgram. Returns the server's verdict; `.capped`
-    /// stops the stream via `onFallback`.
-    var usageReporter: ((Int) async -> DeepgramUsageVerdict)?
 
-    private let auth: DeepgramAuth
+    /// The only supported auth material is the user's runtime BYOK key. There is
+    /// deliberately no token-grant variant or first-party usage reporter in the
+    /// production target.
+    private let apiKey: String
     private let diarize: Bool
     /// Deepgram language. "multi" = nova-3 multilingual auto (code-switching
     /// across 10 languages incl. Russian); or a fixed code like "ru"/"en".
@@ -113,7 +108,7 @@ final class DeepgramStreamer {
     /// Immutable across reconnects; a Settings edit is for the next recording.
     private let keyterms: [String]
     private let transportOverrides: DeepgramTransportOverrides
-    private let session = URLSession(configuration: .default)
+    private let session = OrakulNetworkIdentity.makeSession()
     private let lock = NSLock()
 
     private enum State { case idle, connecting, open, reconnecting, closed }
@@ -135,41 +130,21 @@ final class DeepgramStreamer {
     /// message — proving it works, not merely that `resume()` was called.
     private var healthySinceConnect = false
 
-    // Credit metering (grant mode): samples confirmed sent on the socket vs
-    // samples already reported to the backend. The delta converts to 6-second
-    // chunks on each heartbeat; a failed report keeps the delta and retries.
-    private var sentSamples = 0
-    private var reportedSamples = 0
-    /// Set after a `.capped` verdict so the finish-time flush can't re-report
-    /// (and re-trigger the fallback) against an exhausted ledger.
-    private var meteringStopped = false
-    private var usageHeartbeat: Task<Void, Never>?
-
     /// ~30 s of mono-16k PCM16 (16000 samples/s × 2 bytes × 30 s). Caps replay
     /// memory; a longer outage drops its oldest audio (a gap) rather than grow.
     private static let outboxByteCap = 16_000 * 2 * 30
     private static let maxReconnectDelay: Double = 15
     /// Surface a soft notice once after this many consecutive failed reconnects.
     private static let notifyAfterAttempts = 6
-    /// One credit-metering chunk = 6 s of mono-16k audio (matches the server).
-    private static let samplesPerChunk = 16_000 * 6
-    private static let usageReportInterval: UInt64 = 60_000_000_000
-
-    init(auth: DeepgramAuth, diarize: Bool, language: String = "multi",
+    init(apiKey: String, diarize: Bool, language: String = "multi",
          keyterms: [String] = Config.glossaryTerms,
          transportOverrides: DeepgramTransportOverrides = .init()) {
-        self.auth = auth
+        self.apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         self.diarize = diarize
         let lang = language.trimmingCharacters(in: .whitespacesAndNewlines)
         self.language = lang.isEmpty ? "multi" : lang
         self.keyterms = keyterms
         self.transportOverrides = transportOverrides
-    }
-
-    convenience init(apiKey: String, diarize: Bool, language: String = "multi",
-                     keyterms: [String] = Config.glossaryTerms) {
-        self.init(auth: .key(apiKey.trimmingCharacters(in: .whitespacesAndNewlines)),
-                  diarize: diarize, language: language, keyterms: keyterms)
     }
 
     /// Regression seam: reconnects must retain the recording's vocabulary.
@@ -183,7 +158,6 @@ final class DeepgramStreamer {
         lock.unlock()
         openSocket(isReconnect: false)
         startKeepAlive()
-        startUsageHeartbeat()
     }
 
     /// Enqueue mono-16k Int16 samples. Serialization to PCM16 bytes is deferred
@@ -208,19 +182,15 @@ final class DeepgramStreamer {
         let dyingTask = task
         let ka = keepAlive
         let rt = reconnectTask
-        let hb = usageHeartbeat
         lock.unlock()
         guard !already else { return }
 
         ka?.cancel()
         rt?.cancel()
-        hb?.cancel()
         sendControl(["type": "CloseStream"], on: dyingTask)
         // Hold a strong ref through the flush window so trailing final results
         // are still delivered after AppState drops its reference.
         Task {
-            // Bill the trailing partial chunk before the reference is dropped.
-            await self.reportUsageDelta(final: true)
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             dyingTask?.cancel(with: .normalClosure, reason: nil)
             withExtendedLifetime(self) {}
@@ -236,33 +206,7 @@ final class DeepgramStreamer {
         healthySinceConnect = false
         lock.unlock()
 
-        switch auth {
-        case .key(let key):
-            // Permanent key: no network hop — connect synchronously, exactly
-            // the pre-grant behavior.
-            finishOpen(authHeader: DeepgramAuth.header(key: key), isReconnect: isReconnect)
-        case .grant(let provider):
-            // Grant tokens have a ~60 s connect-time TTL, so every (re)connect
-            // mints a fresh one — which also re-checks the credit cap.
-            Task { [weak self] in
-                guard let self else { return }
-                do {
-                    let token = try await provider()
-                    self.finishOpen(authHeader: DeepgramAuth.header(grantToken: token),
-                                    isReconnect: isReconnect)
-                } catch let error as DeepgramGrantError where error.isTerminal {
-                    // Out of credits / not configured / signed out: reconnecting
-                    // cannot help — hand the session to the on-device fallback.
-                    self.onFallback?(error.fallbackMessage)
-                    self.finish()
-                } catch {
-                    // Transient grant failure — same path as a dropped socket:
-                    // exponential backoff, fresh token on the next attempt.
-                    guard !self.isClosed else { return }
-                    self.handleDrop()
-                }
-            }
-        }
+        finishOpen(authHeader: "Token \(apiKey)", isReconnect: isReconnect)
     }
 
     private func finishOpen(authHeader: String, isReconnect: Bool) {
@@ -363,7 +307,6 @@ final class DeepgramStreamer {
                 } else {
                     try await socket.send(message)
                 }
-                recordSent(sampleCount: frame.count)
             } catch {
                 // Re-buffer the unsent frame (single consumer → no reordering) and
                 // fold into a reconnect iff this socket is still the live one — a
@@ -400,77 +343,6 @@ final class DeepgramStreamer {
     /// platforms are little-endian, so the sample bytes are already correct.
     static func pcm16LE(_ samples: [Int16]) -> Data {
         samples.withUnsafeBytes { Data($0) }
-    }
-
-    // MARK: Credit metering (grant mode)
-
-    /// Unreported sent audio → whole 6-second chunks. Heartbeats floor (the
-    /// remainder carries to the next beat); the finish-time flush ceils so a
-    /// trailing partial chunk is still billed. Pure — unit-tested.
-    static func chunksToReport(sentSamples: Int, reportedSamples: Int, final: Bool = false) -> Int {
-        let delta = max(0, sentSamples - reportedSamples)
-        if final { return (delta + samplesPerChunk - 1) / samplesPerChunk }
-        return delta / samplesPerChunk
-    }
-
-    private func recordSent(sampleCount: Int) {
-        guard auth.isMetered else { return }
-        lock.lock()
-        sentSamples += sampleCount
-        lock.unlock()
-    }
-
-    private func startUsageHeartbeat() {
-        guard auth.isMetered, usageReporter != nil else { return }
-        let heartbeat = Task { [weak self] in
-            while !(self?.isClosed ?? true) {
-                try? await Task.sleep(nanoseconds: Self.usageReportInterval)
-                guard let self, !self.isClosed else { return }
-                await self.reportUsageDelta(final: false)
-            }
-        }
-        lock.lock()
-        usageHeartbeat = heartbeat
-        lock.unlock()
-    }
-
-    private func reportUsageDelta(final isFinal: Bool) async {
-        guard let reporter = usageReporter else { return }
-        guard let pending = pendingUsage(final: isFinal) else { return }
-        switch await reporter(pending) {
-        case .ok:
-            commitReported(chunks: pending)
-        case .capped(let message):
-            // The server refused the reservation — stop metering (a re-report
-            // would just 429 again) and hand the session to the fallback.
-            stopMetering()
-            onFallback?(message)
-            finish()
-        case .failed:
-            break   // keep the delta; the next heartbeat retries cumulatively
-        }
-    }
-
-    /// nil when there is nothing to report or metering has stopped.
-    private func pendingUsage(final isFinal: Bool) -> Int? {
-        lock.lock(); defer { lock.unlock() }
-        guard !meteringStopped else { return nil }
-        let chunks = Self.chunksToReport(sentSamples: sentSamples,
-                                         reportedSamples: reportedSamples,
-                                         final: isFinal)
-        return chunks > 0 ? chunks : nil
-    }
-
-    private func commitReported(chunks: Int) {
-        lock.lock()
-        reportedSamples += chunks * Self.samplesPerChunk
-        lock.unlock()
-    }
-
-    private func stopMetering() {
-        lock.lock()
-        meteringStopped = true
-        lock.unlock()
     }
 
     // MARK: Reconnect
@@ -584,18 +456,14 @@ final class DeepgramStreamer {
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled { return }
 
-        // A failed WebSocket upgrade exposes the HTTP status. Bad auth on a
-        // permanent key is terminal (reconnecting won't fix a wrong key); a
-        // rejected grant token is transient — it likely expired between mint
-        // and connect, and the reconnect path fetches a fresh one.
+        // A failed WebSocket upgrade exposes the HTTP status. Bad BYOK auth is
+        // terminal: reconnecting cannot repair the user's rejected key.
         if let http = socket.response as? HTTPURLResponse, http.statusCode == 401 || http.statusCode == 403 {
-            if case .key = auth {
-                let message = "Ключ не принят. Проверьте его в «Настройки → Подключённые приложения»."
-                onTerminalFailure?(message)
-                onError?(message)
-                finish()
-                return
-            }
+            let message = "Ключ не принят. Проверьте его в «Настройки → Подключённые приложения»."
+            onTerminalFailure?(message)
+            onError?(message)
+            finish()
+            return
         }
         handleDrop()
     }

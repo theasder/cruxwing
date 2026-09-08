@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build, MAS-sign, package (.pkg), and (optionally) upload Cruxwing for
+# Build, MAS-sign, package (.pkg), and (optionally) upload orakul for
 # the Mac App Store. This lane is SEPARATE from notarize.sh (Developer ID):
 #   - signs with "Apple Distribution" (NOT "Developer ID Application")
 #   - embeds a Mac App Store provisioning profile
@@ -7,11 +7,9 @@
 #   - does NOT use the hardened runtime (MAS relies on the App Sandbox instead)
 #
 # One-time setup (needs a paid Apple Developer account — HUMAN, M11b-4/M12b):
-#   1. App Store Connect → create the app record. ⚠ BUNDLE ID IS PERMANENT once
-#      submitted. Info.plist currently ships ai.orakul.desktop; the D14 decision
-#      flagged com.cruxwing.mac as a revisit BEFORE first submission — a human
-#      product call. Change Support/Info.plist FIRST if switching; do not submit
-#      ai.orakul.desktop unless that is the intended permanent id.
+#   1. App Store Connect → create the app record for ai.orakul.desktop.
+#      ⚠ BUNDLE ID IS PERMANENT once submitted, so the provisioning profile
+#      must be issued for that exact identifier.
 #   2. Install two certs: "Apple Distribution: …" (app) and "3rd Party Mac
 #      Developer Installer: …" (pkg). Xcode → Settings → Accounts → Manage
 #      Certificates, or developer.apple.com → Certificates.
@@ -20,7 +18,7 @@
 #   4. For upload: an app-specific password (appleid.apple.com) or Transporter.app.
 #
 # Usage:
-#   MAS_PROVISION_PROFILE=~/Cruxwing_MAS.provisionprofile ./appstore.sh
+#   MAS_PROVISION_PROFILE=~/orakul_MAS.provisionprofile ./appstore.sh
 #   MAS_DRY_RUN=1 ./appstore.sh        # build + secret gate only (no Apple creds)
 #
 # Env:
@@ -33,10 +31,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="$ROOT/build/Cruxwing.app"
+APP="$ROOT/build/orakul.app"
 SANDBOX_ENT="$ROOT/Support/MeetGPT.sandbox.entitlements"
 DIST="$ROOT/dist"
-PKG="$DIST/Cruxwing.pkg"
+PKG="$DIST/orakul.pkg"
 
 APP_IDENTITY="${MAS_APP_IDENTITY:-Apple Distribution}"
 INSTALLER_IDENTITY="${MAS_INSTALLER_IDENTITY:-3rd Party Mac Developer Installer}"
@@ -68,7 +66,24 @@ fi
 #     mandatory App Sandbox). build.sh signs the staging copy with a local
 #     identity; we re-sign below with the MAS identity + provisioning profile. ---
 echo ">> building keyless sandboxed app (MEETGPT_DIST=1)"
-MEETGPT_DIST=1 MEETGPT_NO_INSTALL=1 "$ROOT/build.sh"
+# Remove both outputs before invoking the builder. A failed build must not leave
+# a previous app or package available for a later signing/upload command.
+rm -rf "$APP"
+rm -f "$PKG"
+MEETGPT_APP_BASENAME=orakul MEETGPT_DIST=1 MEETGPT_NO_INSTALL=1 "$ROOT/build.sh"
+
+PLIST="$APP/Contents/Info.plist"
+if [ ! -f "$PLIST" ]; then
+    echo "!! fresh build did not produce $APP" >&2
+    exit 1
+fi
+BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" 2>/dev/null || true)"
+DISPLAY_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST" 2>/dev/null || true)"
+if [ "$BUNDLE_ID" != "ai.orakul.desktop" ] || [ "$DISPLAY_NAME" != "orakul" ]; then
+    echo "!! refusing to package an app with unexpected identity" >&2
+    echo "   expected ai.orakul.desktop / orakul, got $BUNDLE_ID / $DISPLAY_NAME" >&2
+    exit 1
+fi
 
 # --- FAIL-SAFE secret gate (M12): the store binary MUST be keyless. Aborts the
 #     whole lane if any provider/org key shape is present in the binary. ---
@@ -100,7 +115,6 @@ codesign --verify --deep --strict "$APP"
 
 # --- Build the App Store installer package ---
 mkdir -p "$DIST"
-rm -f "$PKG"
 echo ">> productbuild → $PKG"
 productbuild --component "$APP" /Applications --sign "$INSTALLER_IDENTITY" "$PKG"
 echo ">> packaged: $PKG"

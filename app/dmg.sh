@@ -55,15 +55,15 @@ if ! /usr/bin/xcrun stapler validate "$APP" >/dev/null 2>&1; then
     exit 1
 fi
 
-NOTARY_PROFILE="${NOTARY_PROFILE:-meetgpt-notary}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-orakul-notary}"
 SIGN_ID="${NOTARY_SIGN_ID:-$(security find-identity -v -p codesigning 2>/dev/null \
     | grep 'Developer ID Application' | head -1 | sed 's/.*"\(.*\)"/\1/')}"
 [ -n "$SIGN_ID" ] || { echo "!! no Developer ID Application identity found" >&2; exit 1; }
 
 mkdir -p "$DIST"
 
-# A stale mount of a previous run leaves a "/Volumes/Cruxwing" ghost, macOS
-# mounts the new image as "Cruxwing 1", and the AppleScript below — addressed
+# A stale mount of a previous run leaves a "/Volumes/orakul" ghost, macOS
+# mounts the new image as "orakul 1", and the AppleScript below — addressed
 # by VOLUME name — styles the wrong (old) disk: Finder error -10006, unstyled
 # image. Only image-backed volumes are detached; a real disk that happens to
 # share the name is not ours to eject.
@@ -75,7 +75,7 @@ while IFS= read -r VOL; do
     fi
 done < <(ls -d "/Volumes/$VOLNAME" "/Volumes/$VOLNAME "* 2>/dev/null)
 
-STAGE="$(mktemp -d /tmp/cruxwing-dmg.XXXXXX)"
+STAGE="$(mktemp -d /tmp/orakul-dmg.XXXXXX)"
 echo ">> staging $SHIP_NAME.app (из $APP_BASENAME.app)"
 /usr/bin/ditto "$APP" "$STAGE/$SHIP_NAME.app"
 # The other half of the gesture: without this symlink the window has nowhere to
@@ -147,7 +147,7 @@ func text(_ s: String, _ size: CGFloat, _ y: CGFloat, _ alpha: CGFloat, bold: Bo
     NSGraphicsContext.restoreGraphicsState()
 }
 // Это окно человек видит при каждой установке. До сих пор оно было на
-// английском и звало перенести Cruxwing — чужое имя в чужом языке.
+// английском и звало перенести родительский продукт — чужое имя в чужом языке.
 text("Перенесите orakul в «Программы»", 17, CGFloat(bh) - 92, 0.95, bold: true)
 text("Запуск из «Программ» сохраняет выданные разрешения", 12, 58, 0.6)
 text("на запись экрана и микрофон.", 12, 40, 0.6)
@@ -170,7 +170,7 @@ rm -f "$DMG"
 # Build read-WRITE first: Finder can only record window geometry, icon positions
 # and the background onto a mounted, writable volume. The compressed read-only
 # image is produced from it afterwards.
-RW="$STAGE/../cruxwing-rw-$$.dmg"
+RW="$STAGE/../orakul-rw-$$.dmg"
 rm -f "$RW"
 /usr/bin/hdiutil create -volname "$VOLNAME" -srcfolder "$STAGE" \
     -ov -format UDRW -quiet "$RW"

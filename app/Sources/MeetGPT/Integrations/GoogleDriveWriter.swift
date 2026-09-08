@@ -50,7 +50,7 @@ enum GoogleDriveWriter {
     static func createSpreadsheet(title: String,
                                   table: GoogleFileExport.Table,
                                   accessToken: String,
-                                  session: URLSession = .shared) async throws -> CreatedFile {
+                                  session: URLSession = OrakulNetworkIdentity.shared) async throws -> CreatedFile {
         let rows = table.values.map { row in
             ["values": row.map { ["userEnteredValue": ["stringValue": $0]] }]
         }
@@ -82,7 +82,7 @@ enum GoogleDriveWriter {
     static func trashFile(fileID: String,
                           createdByUs: Bool,
                           accessToken: String,
-                          session: URLSession = .shared) async throws {
+                          session: URLSession = OrakulNetworkIdentity.shared) async throws {
         guard createdByUs, !fileID.isEmpty else { throw WriteError.notOurFile }
         var request = URLRequest(url: URL(string:
             "https://www.googleapis.com/drive/v3/files/\(fileID)")!)

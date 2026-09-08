@@ -9,6 +9,12 @@ Status: v1, 2026-08-11. Research covers the Q&A gap, in-call pain, the tool
 landscape and the model choice. Not yet researched: Telegram chat structure at
 first hand, willingness to pay, GitHub-stars mechanics.
 
+Implementation note: this file preserves the v1 decision history. Current
+source boundaries, removals, and release blockers live in
+[`../app/PROJECT_STATUS.md`](../app/PROJECT_STATUS.md) and
+[`ARCHITECTURE.md`](ARCHITECTURE.md); later compatibility work means historical
+statements here are not release attestations.
+
 ---
 
 ## 1. The gap this product enters
@@ -473,8 +479,8 @@ uncomfortable for a "use a Russian model" instinct:
 
 A benchmark win and a practical loss in the same month is the clearest possible
 warning against picking a model from a leaderboard. It is the same mistake as
-choosing a diarization threshold from three files — one this codebase has already
-paid for (`cruxwing-app/docs/ROADMAP-RICE-2026H2.md`, findings 12 and 13).
+choosing a diarization threshold from a tiny fixture set: the result does not
+generalize to real calls.
 
 ### 3.0 GigaChat: не оценка модели, а хранилище доверенных корней (проверено 2026-08-13)
 
@@ -647,10 +653,10 @@ material is yours.
 | что написано | что выйдет у того, кто послушается |
 |---|---|
 | «platform.moonshot.cn → API keys» рядом с полем ключа | ключ оттуда отвечает 401: запрос идёт на `api.moonshot.ai`, а зарегистрироваться на китайской половине обычно нельзя без местного телефона |
-| README: «Сборка установщика: `MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh`» | собран один DMG из двух; второй остаётся вчерашним, и проверка сообщает о расхождении без объяснения причины |
+| README: «Сборка установщика: `MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh`» | собран один DMG из двух; второй остаётся вчерашним, а пример аудита требует явно передать оба |
 
-Обе половины одного факта — консоль и адрес запроса, команда сборки и список
-проверяемых образов — расходятся именно потому, что лежат порознь. Отсюда
+Обе половины одного факта — консоль и адрес запроса, команда сборки и явные
+аргументы проверки образов — расходятся именно потому, что лежат порознь. Отсюда
 второе правило: **держите половины рядом либо свяжите их проверкой**;
 `ProviderConsoleMatchTests` и проверка README против `audit-dmg.sh` сделаны
 ровно за этим.
@@ -736,8 +742,8 @@ explicitly called out as where that falls apart.[^asr-accuracy]
 An audiobook is the one input a meeting never is: one speaker, no interruption,
 studio audio, no jargon. This is the same fixture-versus-reality trap already
 paid for twice in this codebase — the diarization threshold chosen from three
-files, and the speaker-count metric that was uncorrelated with attribution
-(`cruxwing-app/docs/ROADMAP-RICE-2026H2.md`, findings 12–13). **No ASR model
+files, and the speaker-count metric that was uncorrelated with attribution.
+**No ASR model
 enters the default path on a published WER.**
 
 ### 6.2 Code-switching is the specific failure, and we already built for it

@@ -8,7 +8,7 @@ import Foundation
 /// available (tests, missing NL model, empty query encoding).
 ///
 /// Preferred ids from `BundledSkillRouter.map` get a small boost so curated
-/// meeting skills still win close calls, but a clearly better catalog match
+/// meeting skills still win close calls, but a clearly better reviewed match
 /// can take the slot.
 enum BundledSkillRelevance {
     /// Inputs used to rank skills for a prompt press.
@@ -19,7 +19,7 @@ enum BundledSkillRelevance {
     }
 
     /// Seed keywords per prompt button — used when the live query is thin and
-    /// to bias catalog search toward meeting-relevant methodology.
+    /// to bias reviewed-set search toward meeting-relevant methodology.
     static let promptKeywords: [String: [String]] = [
         "agenda":      ["agenda", "meeting", "facilitation", "standup", "board", "scrum", "roadmap"],
         "brainstorm":  ["brainstorm", "ideate", "ideation", "experiment", "discovery", "innovate", "creative"],
@@ -40,9 +40,9 @@ enum BundledSkillRelevance {
                         "accountability", "carry-over"],
     ]
 
-    /// Minimum free-text tokens before the token-fallback scans the full catalog.
+    /// Minimum free-text tokens before the token fallback scans the reviewed set.
     static let catalogScanMinQueryTokens = 4
-    /// Cap how many catalog hits join the final ranking shortlist.
+    /// Cap how many non-seed hits join the final ranking shortlist.
     static let catalogShortlistLimit = 24
 
     /// Head start for a curated `BundledSkillRouter.map` seed, decaying down the
@@ -55,7 +55,7 @@ enum BundledSkillRelevance {
     ///
     /// That looks alarming and was TESTED: lowering it to 0.04 let content decide,
     /// raised distinct winners 55→65, and made quality WORSE (routing hit rate
-    /// 51.9% → 43.9%) because the freed slots went to plausible-but-wrong catalog
+    /// 51.9% → 43.9%) because the freed slots went to plausible-but-wrong
     /// skills. The curated seeds are carrying real signal that cosine over vendor
     /// descriptions cannot reproduce. Left at 0.14 deliberately.
     ///
@@ -70,7 +70,7 @@ enum BundledSkillRelevance {
     static func pick(
         context: Context,
         preferredIDs: [String],
-        library: [BundledSkill] = BundledSkillLibrary.rankable
+        library: [BundledSkill]? = nil
     ) -> BundledSkill? {
         rank(context: context, preferredIDs: preferredIDs, library: library).first?.skill
     }
@@ -79,11 +79,25 @@ enum BundledSkillRelevance {
     static func rank(
         context: Context,
         preferredIDs: [String],
-        library: [BundledSkill] = BundledSkillLibrary.rankable
+        library: [BundledSkill]? = nil
     ) -> [(skill: BundledSkill, score: Double)] {
+        // Treat every caller-supplied library as untrusted input. Even a direct
+        // vendored or synthetic array must satisfy the exact-byte, prompt-scoped
+        // local review; upstream frontmatter alone never grants permission.
+        let library = (library ?? BundledSkillLibrary.rankable(for: context.promptID))
+            .filter { BundledSkillRuntimePolicy.allows($0, for: context.promptID) }
         guard !library.isEmpty else { return [] }
 
-        BundledSkillEmbeddingIndex.ensureBuilt(library: library)
+        // An excluded seed must not suppress the reviewed-set fallback. In
+        // particular, a prompt whose seed becomes ineligible should search the
+        // remaining reviewed set rather than either injecting it or returning
+        // no methodology at all.
+        let allowedIDs = Set(library.map(\.id))
+        let preferredIDs = preferredIDs.filter { allowedIDs.contains($0) }
+
+        // Build the union once. Building only the first prompt's subset would
+        // mark the shared cache complete and starve every later prompt of vectors.
+        BundledSkillEmbeddingIndex.ensureBuilt(library: BundledSkillLibrary.rankable)
         let embedQuery = embeddingQueryText(for: context)
         if BundledSkillEmbeddingIndex.isReady, !embedQuery.isEmpty {
             let embedded = rankWithEmbeddings(
@@ -119,7 +133,7 @@ enum BundledSkillRelevance {
             if preferredRank[id] == nil { preferredRank[id] = index }
         }
 
-        // Catalog shortlist by pure cosine, then always include preferred seeds.
+        // Reviewed-set shortlist by pure cosine, then always include preferred seeds.
         let catalog = BundledSkillEmbeddingIndex.rank(
             query: embedQuery,
             library: library,
@@ -142,7 +156,7 @@ enum BundledSkillRelevance {
                     query: embedQuery, skillID: skill.id, library: library) else { return nil }
             var total = sim
             if let rank = preferredRank[skill.id] {
-                // Small boost — beatable by a clearly better catalog match.
+                // Small boost — beatable by a clearly better reviewed match.
                 total += max(0, seedBoost - Double(rank) * seedBoostDecayPerRank)
             }
             return (skill, total)

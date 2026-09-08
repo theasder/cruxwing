@@ -1,5 +1,7 @@
 import Foundation
+import SwiftUI
 import Testing
+import ViewInspector
 @testable import MeetGPT
 
 /// Приложение не предлагает того, чего в этой сборке нет.
@@ -23,7 +25,7 @@ import Testing
 @Suite("Обещания без сервера")
 struct NoBackendPromisesTests {
 
-    private var hasBackend: Bool {
+    private static var hasBackend: Bool {
         !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -50,9 +52,10 @@ struct NoBackendPromisesTests {
     }
 
     @MainActor
-    @Test("вход нигде не предлагается, когда входить некуда")
+    @Test(
+        "вход нигде не предлагается, когда входить некуда",
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
     func noSignInOfferedWithoutABackend() {
-        guard !hasBackend else { return }  // сборка с сервером — не наш случай
         let state = AppState(credentialStore: InMemoryKeychain())
 
         // Оба признака, на которые смотрят экраны со входом.
@@ -61,15 +64,15 @@ struct NoBackendPromisesTests {
     }
 
     @MainActor
-    @Test("в настройках нет раздела «Аккаунт», когда входить некуда")
+    @Test(
+        "в настройках нет раздела «Аккаунт», когда входить некуда",
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
     func settingsHidesTheAccountSection() throws {
         // Проверяется отрисовка, а не исходник. Первая версия искала
         // «backendBaseURL» по файлу целиком — и проходила даже с убранной
         // защитой: это слово встречается в SettingsView ещё раз, в адресе
         // MCP (строка 686). Проверка была зелёной и не значила ничего — ровно
         // та же ошибка, что и во всех четырёх случаях выше.
-        guard !hasBackend else { return }  // сборка с сервером — не наш случай
-
         let state = AppState(credentialStore: InMemoryKeychain())
         state.selectedSettingsTab = .accountPrivacy
         let manager = MCPConnectionManager(
@@ -87,15 +90,23 @@ struct NoBackendPromisesTests {
         }
     }
 
-    @Test("кнопка веб-проверки закрыта тем же признаком")
-    func webFactCheckIsGuarded() throws {
-        // Поиск уходит на сервер (`FactCheckService.check`), и без него кнопка
-        // отвечает пустотой вместо отказа. Пустой ответ читается как «ничего не
-        // нашли», а не как «искать было нечем».
-        let sheet = viewSources().first { $0.name.hasSuffix("FactCheckSheet.swift") }
-        let text = try #require(sheet?.text, "FactCheckSheet.swift не прочитался")
-        #expect(text.contains("backendBaseURL"),
-                "«Проверить в вебе» снова показывается без сервера")
+    @MainActor
+    @Test(
+        "стартовый экран проверки не предлагает несуществующий веб-поиск",
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
+    func defaultFactCheckUIHidesWebSearch() throws {
+        // Проверяем то, что видит человек после обычного запуска. Поиск слова
+        // `backendBaseURL` по всему файлу проходил даже после удаления защиты.
+        let state = AppState(credentialStore: InMemoryKeychain())
+        #expect(state.factCheckSearch == nil)
+        let rendered = try FactCheckSheet()
+            .environmentObject(state)
+            .inspect()
+
+        #expect(throws: (any Error).self,
+                "кнопка обещает веб-поиск, хотя сервера нет") {
+            try rendered.find(button: "Проверить в вебе")
+        }
     }
 
     @MainActor
@@ -128,9 +139,9 @@ struct NoBackendPromisesTests {
 
     @Test("платных уровней нет ни в одном виде")
     func nothingChargesMoney() {
-        // Отдельно от NoTariffsTests: там проверяется флаг, здесь — что за ним
-        // не просочился текст про списание денег.
-        #expect(!Config.shouldShowPaywall)
+        // Отдельно от NoTariffsTests: здесь проверяется, что в живые экраны не
+        // просочился текст про списание денег. Отдельного paywall-флага больше
+        // нет: удалённый экран нельзя случайно оживить переключением Bool.
         for (name, text) in viewSources() {
             #expect(!text.contains("search credits"),
                     "\(name): осталось обещание списывать кредиты")
@@ -138,49 +149,117 @@ struct NoBackendPromisesTests {
     }
 }
 
-/// SECURITY.md обещает: наружу уходит ровно две вещи — запрос к модели и
-/// запрос к подключённому сервису. Ни телеметрии, ни счётчиков.
-///
-/// При запуске приложение вызывает `PaywallAPI.claimDeviceTrial()`, и тот
-/// собирается отправить POST с идентификатором устройства. Держится обещание
-/// на одном: адреса сервера в сборке нет, поэтому отправлять некуда. Стоит
-/// кому-нибудь вписать адрес по умолчанию — обещание станет ложью тихо, без
-/// единой падающей проверки. Здесь та самая связка и закреплена.
-@Suite("Обещание SECURITY.md про запуск")
+/// SECURITY.md обещает: по умолчанию запуск не обращается к серверу разработчика.
+/// Даже пустой адрес — не защита: случайно вернувшаяся настройка сразу оживила бы унаследованные
+/// first-party вызовы. При этом опрос раньше настроенных Telegram и Google Calendar может возобновиться и
+/// должен быть назван честно. Здесь проверяются и реальный путь запуска, и точная оговорка в документах.
+@Suite("Обещание SECURITY.md про сеть при запуске")
 struct LaunchSendsNothingTests {
-    @Test("адреса сервера в сборке нет — отправлять идентификатор устройства некуда")
-    func noAddressMeansNoLaunchRequest() async {
-        #expect(Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                "появился адрес сервера: запуск начнёт слать идентификатор устройства")
-
-        // Проверка выше и есть обещание: адреса нет — идти некуда. Ниже —
-        // следствие, и оно верно при любой ветке: с сессией `claimDeviceTrial`
-        // выходит на первой же строке, без сессии упирается в пустой адрес.
-        //
-        // Раньше здесь стояло `#expect(Config.wheesprSession == nil)` как
-        // предусловие. Сессия — общее состояние: её выставляют другие наборы,
-        // порядок в параллельном прогоне не фиксирован, и проверка падала
-        // примерно раз в пять прогонов, ничего не сообщая о продукте. Тест,
-        // падающий от соседа, обесценивает весь прогон: он приучает
-        // пересматривать красный как «наверное, опять оно».
-        let claimed = await PaywallAPI.claimDeviceTrial()
-        #expect(!claimed, "устройство заявлено — значит, запрос куда-то ушёл")
+    private var appRoot: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
     }
 
-    /// Отдельно от флага: `claimDeviceTrial` не спрятан за `llmViaBackend`,
-    /// в отличие от `refreshEntitlement`. Разница неочевидна, и проверка
-    /// существует, чтобы её не потеряли при чтении.
-    @Test("вызов при запуске не закрыт флагом серверного режима")
-    func launchCallIsNotGatedByTheBackendFlag() throws {
-        let source = try String(
-            contentsOf: URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent().deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("Sources/MeetGPT/Views/Paywall/PaywallAPI.swift"),
+    private func source(_ relativePath: String) throws -> String {
+        try String(
+            contentsOf: appRoot.appendingPathComponent(relativePath),
             encoding: .utf8)
-        let body = try #require(source.range(of: "static func claimDeviceTrial")
-            .map { String(source[$0.lowerBound...].prefix(400)) })
-        #expect(!body.contains("llmViaBackend"),
-                "ветка закрылась флагом — тогда обещание держит флаг, и проверка выше лишняя")
+    }
+
+    private func startupRestoreBody(in source: String) throws -> String {
+        let start = try #require(
+            source.range(of: "func loadPersistedConnectionState() async {")?.lowerBound,
+            "AppState startup restore function disappeared")
+        let tail = source[start...]
+        let end = try #require(
+            tail.range(of: "\n    deinit {")?.lowerBound,
+            "could not bound AppState startup restore function")
+        return String(tail[..<end])
+    }
+
+    private func contentViewStartupTask(in source: String) throws -> String {
+        let start = try #require(
+            source.range(of: "        .task {")?.lowerBound,
+            "ContentView startup task disappeared")
+        let tail = source[start...]
+        let end = try #require(
+            tail.range(of: "\n        .onChange(of: state.onboardingReplayToken)")?.lowerBound,
+            "could not bound ContentView startup task")
+        return String(tail[..<end])
+    }
+
+    @Test("точка входа и настоящий путь восстановления не зовут сервер разработчика")
+    func realStartupPathContainsNoInheritedFirstPartyCalls() throws {
+        let appEntry = try source("Sources/MeetGPT/MeetGPTApp.swift")
+        let contentView = try source("Sources/MeetGPT/Views/ContentView.swift")
+        let state = try source("Sources/MeetGPT/AppState.swift")
+        #expect(contentView.contains("state.loadPersistedConnectionState()"),
+                "ContentView больше не показывает, какой путь реально исполняется при запуске")
+
+        let surfaces = [
+            ("MeetGPTApp.swift", appEntry),
+            ("ContentView startup task", try contentViewStartupTask(in: contentView)),
+            ("AppState.loadPersistedConnectionState", try startupRestoreBody(in: state)),
+        ]
+        let forbidden = [
+            "PaywallAPI.",
+            "wheesprAccessToken(",
+            "WheesprAuth.",
+            "LLMCatalog.hydrate(",
+            "FunnelTracker.",
+            "FeedbackUploader.",
+            // Подготовка локальной модели может её скачать. Ей место в
+            // онбординге и при начале записи, а не в общем `onAppear`.
+            "prewarmLocalModelIfNeeded(",
+        ]
+        for (name, startupSource) in surfaces {
+            for call in forbidden {
+                #expect(!startupSource.contains(call),
+                        "\(name) снова делает first-party вызов при запуске: \(call)")
+            }
+        }
+        let restore = try startupRestoreBody(in: state)
+        #expect(restore.contains("managedAccountEnabled = Config.llmViaBackend"),
+                "direct BYOK no longer proves that legacy account hydration is disabled")
+        #expect(restore.contains("managedAccountEnabled\n                    ? Config.loadWheesprSession"),
+                "startup can read an inherited account session without the managed-build gate")
+    }
+
+    @Test("документы называют оба опроса, которые могут возобновиться")
+    func configuredPollingIsDisclosed() throws {
+        let repositoryRoot = appRoot.deletingLastPathComponent()
+        let security = try String(
+            contentsOf: repositoryRoot.appendingPathComponent("SECURITY.md"),
+            encoding: .utf8)
+        let readme = try String(
+            contentsOf: repositoryRoot.appendingPathComponent("README.md"),
+            encoding: .utf8)
+        let manager = try source("Sources/MeetGPT/MCP/MCPConnectionManager.swift")
+        let state = try source("Sources/MeetGPT/AppState.swift")
+
+        // Не даём документам перечислять мёртвые возможности: оба фоновых пути
+        // должны реально оставаться в коде, иначе оговорку надо сужать.
+        #expect(manager.contains("await telegramSource.start("))
+        #expect(state.contains("startReminderPolling()"))
+        #expect(security.contains("Telegram"))
+        #expect(security.contains("Google Calendar"))
+        #expect(security.contains("возобнов"))
+        #expect(readme.contains("возобновления ранее включённого опроса коннектора"))
+        #expect(security.contains("незапрошенных вызовов к серверу разработчика"))
+    }
+
+    @Test("манифест конфиденциальности не приписывает orakul сбор данных")
+    func privacyManifestDeclaresNoDeveloperCollection() throws {
+        let data = try Data(contentsOf: appRoot.appendingPathComponent("Support/PrivacyInfo.xcprivacy"))
+        let object = try PropertyListSerialization.propertyList(
+            from: data, options: [], format: nil)
+        let manifest = try #require(object as? [String: Any])
+        let collected = try #require(manifest["NSPrivacyCollectedDataTypes"] as? [Any])
+
+        #expect(manifest["NSPrivacyTracking"] as? Bool == false)
+        #expect(collected.isEmpty,
+                "манифест всё ещё объявляет сбор данных разработчиком")
     }
 }

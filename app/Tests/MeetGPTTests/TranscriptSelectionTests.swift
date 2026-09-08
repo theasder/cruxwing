@@ -353,15 +353,17 @@ struct PromptDictationTests {
         let binding = Binding(get: { text }, set: { text = $0 })
 
         await state.toggleDictation(into: binding)
-        let start = try? #require(state.dictationWindowStart)
+        let maybeStart = state.dictationWindowStart
+        #expect(maybeStart != nil)
+        guard let start = maybeStart else { return }
 
         // Something said before the window must not be picked up; the other
         // side's speech inside it must be.
         state.transcript = [
             TranscriptEntry(source: .mic, text: "earlier chatter",
-                            timestamp: (start ?? Date()).addingTimeInterval(-60)),
+                            timestamp: start.addingTimeInterval(-60)),
             TranscriptEntry(source: .system, text: "what is our refund policy",
-                            timestamp: (start ?? Date()).addingTimeInterval(1))
+                            timestamp: start.addingTimeInterval(1))
         ]
 
         await state.toggleDictation(into: binding)
@@ -391,10 +393,12 @@ struct PromptDictationTests {
         let binding = Binding(get: { text }, set: { text = $0 })
 
         await state.toggleDictation(into: binding)
-        let start = try? #require(state.dictationWindowStart)
+        let maybeStart = state.dictationWindowStart
+        #expect(maybeStart != nil)
+        guard let start = maybeStart else { return }
         state.transcript = [
             TranscriptEntry(source: .system, text: "their pricing objection",
-                            timestamp: (start ?? Date()).addingTimeInterval(1))
+                            timestamp: start.addingTimeInterval(1))
         ]
         await state.toggleDictation(into: binding)
 

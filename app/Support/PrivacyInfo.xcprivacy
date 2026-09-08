@@ -2,53 +2,18 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- App-level privacy manifest (App Review requirement). Mirrors reality:
-         audio + transcript content is processed for app functionality (sent to
-         the managed AI backend when the user runs AI actions); the account
-         email identifies the signed-in user. No tracking, no data broker. -->
+    <!-- Orakul has no first-party backend, account service, telemetry, or crash
+         collector. The Orakul developer therefore collects no data. When the
+         user explicitly asks a model or a connected work service to do
+         something, the requested content goes directly to the provider or
+         service the user selected; those user-directed transmissions are
+         documented separately and are not developer data collection. -->
     <key>NSPrivacyTracking</key>
     <false/>
     <key>NSPrivacyTrackingDomains</key>
     <array/>
     <key>NSPrivacyCollectedDataTypes</key>
-    <array>
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeAudioData</string>
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <true/>
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <true/>
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-        <dict>
-            <key>NSPrivacyCollectedDataType</key>
-            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
-            <key>NSPrivacyCollectedDataTypeLinked</key>
-            <true/>
-            <key>NSPrivacyCollectedDataTypeTracking</key>
-            <false/>
-            <key>NSPrivacyCollectedDataTypePurposes</key>
-            <array>
-                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-            </array>
-        </dict>
-    </array>
+    <array/>
     <key>NSPrivacyAccessedAPITypes</key>
     <array>
         <dict>
@@ -65,6 +30,15 @@
             <key>NSPrivacyAccessedAPITypeReasons</key>
             <array>
                 <string>C617.1</string>
+                <string>3B52.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>35F9.1</string>
             </array>
         </dict>
     </array>

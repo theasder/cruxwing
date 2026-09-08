@@ -10,7 +10,7 @@ import { bodyOf, callsInside, stripComments } from './swift-source.mjs';
 // The rule this file enforces is the one the Cruxwing landing already lives by:
 // no claim without something real behind it. A page for a tool that listens to
 // people's meetings earns trust by being checkable, and these numbers are
-// checkable — they come from cruxwing-app/docs/ROADMAP-RICE-2026H2.md and from
+// checkable — they come from the measurements recorded in docs/RESEARCH-AND-PLAN.md and from
 // the sources cited in orakul/docs/RESEARCH-AND-PLAN.md.
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -103,7 +103,7 @@ describe('orakul landing (ru)', () => {
 
   test('states the speaker-label figure that was actually measured', () => {
     // 88.3% as-read at the best threshold, against a 90% ship bar
-    // (ROADMAP-RICE-2026H2.md, finding 12). "Семь строк из восьми" is 87.5% —
+    // (docs/RESEARCH-AND-PLAN.md). "Семь строк из восьми" is 87.5% —
     // the honest neighbourhood. It must never round up into "почти всегда",
     // and the bar must appear beside it, or the sentence stops explaining why
     // the feature is switched off.
@@ -174,8 +174,9 @@ describe('orakul landing (ru)', () => {
   test('offers no download while no build is published', () => {
     // Checked against the world, not assumed: cruxwing.ai/download/orakul-*.dmg
     // returns 404, orakul.ai does not resolve, and the rsync host redirects to
-    // a login. The installers exist and are notarized, but nothing serves them
-    // publicly — so a download button here would 404 for every visitor.
+    // a login. Historical installers exist, but they do not pass this tree's
+    // provenance audit and nothing serves a current build publicly — so a
+    // download button here would misrepresent the release state.
     // When a real URL exists, this test is what says the page may promise one.
     assert.doesNotMatch(html, /href="[^"]*\.dmg"/i,
       'the page offers a download; verify the URL actually serves before allowing it');
@@ -562,25 +563,22 @@ describe('orakul landing (ru)', () => {
       'the check fails without telling anyone how to fix it');
   });
 
-  test('the documented build produces every disk image the audit checks', () => {
-    // Проверка сверяет два DMG, а README до 2026-08-13 описывал сборку одной
-    // архитектуры. Кто шёл по README, собирал arm64, оставлял Intel вчерашним
-    // и получал от проверки расхождение без объяснения причины.
+  test('the documented build and audit name both disk images explicitly', () => {
+    // The repository no longer guesses a private publication directory. The
+    // caller names the downloaded artifacts, and the public example must name
+    // both architectures so an old Intel image cannot hide beside fresh arm64.
     const audit = readFileSync(resolve(here, '..', 'scripts', 'audit-dmg.sh'), 'utf8');
-    const loop = /for arch in ([^;\n]+); do/.exec(audit);
-    assert.ok(loop, 'the audit no longer loops over architectures');
-    const distinct = [...new Set(loop[1].trim().split(/\s+/))];
-    assert.ok(distinct.length > 0, 'the audit no longer names any architecture');
+    assert.match(audit, /for supplied in "\$@"/,
+      'the audit does not consume explicit DMG paths');
 
     const readme = readFileSync(resolve(here, '..', 'README.md'), 'utf8');
     const build = /Сборка установщика: `([^`]+)`/.exec(readme);
     assert.ok(build, 'README no longer states how to build the installer');
-
-    if (distinct.length > 1) {
-      assert.ok(build[1].includes('dist-all.sh'),
-        `the audit checks ${distinct.length} architectures, but README documents `
-        + `"${build[1]}" — following it leaves the others stale`);
-    }
+    assert.ok(build[1].includes('dist-all.sh'),
+      `README documents "${build[1]}" — following it can leave one architecture stale`);
+    assert.match(readme,
+      /bash scripts\/audit-dmg\.sh app\/dist\/orakul-AppleSilicon\.dmg app\/dist\/orakul-Intel\.dmg/,
+      'README does not pass both built DMGs to the standalone audit');
   });
 
   test('every console the page sends you to is the one the app actually names', () => {
@@ -676,15 +674,9 @@ describe('orakul landing (ru)', () => {
     walk(views);
     assert.ok(files.length > 10, 'no view files found — the count would be fake');
 
-    // The paywall is excluded, but only because the build proves it can never
-    // open — Config hard-codes shouldShowPaywall to false, and NoTariffsTests
-    // holds that. Translating a screen no user reaches would be work spent on
-    // nothing; if the paywall ever comes back, this exclusion stops applying
-    // and its strings start counting again.
-    const config = readFileSync(
-      resolve(here, '..', 'app', 'Sources', 'MeetGPT', 'Config.swift'), 'utf8');
-    const paywallIsDead = /static var shouldShowPaywall: Bool \{ false \}/.test(config);
-    const counted = paywallIsDead ? files.filter((f) => !f.includes('/Paywall/')) : files;
+    // No exclusion for a disabled pricing view: the pricing view was removed.
+    // If one returns, its strings must count like every other visible surface.
+    const counted = files;
 
     const english = counted
       .flatMap((file) => readFileSync(file, 'utf8').split('\n'))
@@ -1152,14 +1144,14 @@ describe('orakul landing (ru)', () => {
     assert.match(open, /печатают «пройдено», ничего не выполнив/,
       'the page no longer claims silent skips are hunted');
     const oss = readFileSync(resolve(here, '..', 'test', 'opensource.test.mjs'), 'utf8');
-    assert.match(oss, /reports? PASS while silently doing nothing/,
+    assert.match(oss, /never report PASS while doing nothing/,
       'the silent-skip guard is gone; the page claim is unbacked');
-    // Обе формы пропуска: по флагу и по переменной окружения. Вторую первая
-    // версия сторожа не видела, и четыре замера продолжали молчать.
-    // Объявление, а не любое упоминание: переименуй `const envSkip` — и
-    // проверка на голое имя всё равно совпадёт с местом использования.
-    assert.match(oss, /const flagSkip\s*=/, 'the guard no longer catches flag-gated skips');
-    assert.match(oss, /const envSkip\s*=/, 'the guard no longer catches environment-gated skips');
+    // Сторож теперь разбирает тело каждого `@Test`, а его собственная
+    // отрицательная фикстура доказывает, что многострочный guard не прячется.
+    assert.match(oss, /swiftTestCredibilityOffenders\(broken\)/,
+      'the silent-skip detector no longer checks its own negative fixture');
+    assert.match(oss, /guard let path = environment/,
+      'the detector fixture no longer covers environment-gated skips');
 
     assert.match(text, /readdirSync\(here\)/,
       'the self-check no longer enumerates the other test files, so it checks nothing');
@@ -1220,9 +1212,9 @@ describe('orakul landing (ru)', () => {
     const view = readFileSync(resolve(here, '..', 'app', 'Sources', 'MeetGPT',
                                       'Views', 'ProviderKeysSection.swift'), 'utf8');
     const code = stripComments(view);
-    assert.match(code, /guard savedKey && savedSecondary/,
+    assert.match(code, /guard\s+store\.setCredentials\s*\(/,
       'the settings screen ignores the write result again');
-    assert.match(code, /Не удалось записать ключ в Связку ключей/,
+    assert.match(code, /Не удалось (?:записать ключ в Связку|изменить ключ в Связке) ключей/,
       'nothing is shown to the user when the write fails');
   });
 
@@ -2016,12 +2008,12 @@ describe('orakul landing (ru)', () => {
     }
   });
 
-  test('the clone command on the page is the one README was verified with', () => {
-    // Страница показывает три строки как рабочие. Если README поправят, а
-    // страницу забудут — человек скопирует то, что уже не работает, и узнает
-    // об этом на своей машине.
+  test('the conditional clone command on the page is the one README names', () => {
+    // Until the owner restores the canonical repository name this command is
+    // explicitly conditional in both places. The intended URL must still be
+    // identical, so the publication-unblock edit has one target.
     const onPage = /git clone (\S+) orakul/.exec(text);
-    assert.ok(onPage, 'the page stopped showing how to get the source');
+    assert.ok(onPage, 'the page stopped naming the post-rename clone URL');
     const readme = readFileSync(resolve(here, '..', 'README.md'), 'utf8');
     const inReadme = /git clone (\S+) orakul/.exec(readme);
     assert.ok(inReadme, 'README stopped showing the clone command');
@@ -2037,39 +2029,43 @@ describe('orakul landing (ru)', () => {
       `the button goes to ${button[1]}, the command clones ${onPage[1]}`);
   });
 
-  test('the version the page advertises is the version the app is built with', () => {
-    // Страница обещает конкретный выпуск. Версию поднимут в Info.plist, а
-    // страницу забудут — и человек скачает не то, что ему обещали.
-    const onPage = /·\s*(\d+\.\d+\.\d+)\s*</.exec(html);
-    assert.ok(onPage, 'the page no longer names a version');
-    const plist = readFileSync(resolve(here, '..', 'app', 'Support', 'Info.plist'), 'utf8');
-    const built = /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/.exec(plist);
-    assert.ok(built, 'the app version is gone from Info.plist');
-    assert.equal(onPage[1], built[1],
-      `the page offers ${onPage[1]}, the app is built as ${built[1]}`);
+  test('the source-only page does not advertise the stale binary version', () => {
+    const identity = JSON.parse(readFileSync(resolve(here, '..', 'config', 'app.json'), 'utf8'));
+    assert.equal(identity.artifacts.macos.status, 'release-blocked');
+    assert.doesNotMatch(html, /·\s*0\.1\.0\s*</,
+      'the page still presents the historical binary as this branch');
+    assert.match(text, /Публичный выпуск заблокирован/,
+      'the page hides why no current installer is offered');
   });
 
-  test('the download button points at releases of the same repository', () => {
-    const download = /<a class="btn" href="(https:\/\/[^"]+)"/.exec(html);
-    assert.ok(download, 'the page stopped offering a download');
-    assert.match(download[1], /\/releases\/latest$/,
-      'the download link does not point at a release');
-    const clone = /git clone (\S+?)(?:\.git)? orakul/.exec(text);
-    assert.ok(download[1].startsWith(clone[1]),
-      `download from ${download[1]}, sources from ${clone[1]}`);
+  test('the primary action builds source instead of offering a stale release', () => {
+    const primary = /<a class="btn" href="([^"]+)"[^>]*>([^<]+)<\/a>/.exec(html);
+    assert.ok(primary, 'the page lost its primary action');
+    assert.equal(primary[1], '#start');
+    assert.match(primary[2], /Собрать из исходников/);
+    assert.doesNotMatch(html, /releases\/latest/,
+      'the page still links the historical release behind the redirect');
   });
 
-  test('nothing on the page still promises the publication that already happened', () => {
-    // Страница писалась, когда репозитория ещё не было, и обещала будущее:
-    // «репозиторий уйдёт в открытый доступ». Он ушёл. Обещание, сбывшееся
-    // и оставшееся обещанием, читается как «до сих пор не сделали».
-    for (const promise of ['уйдёт в открытый доступ', 'будет опубликован',
-                           'ещё не опубликован', 'пока не опубликован',
-                           'когда репозиторий появится']) {
-      assert.ok(!text.includes(promise),
-        `страница всё ещё обещает то, что сделано: «${promise}»`);
+  test('the page neither claims publication happened nor freezes audit totals', () => {
+    // Канонический адрес сейчас перенаправляет в другой продукт. Старый рассказ
+    // о состоявшейся публикации и однажды измеренные счётчики уже не являются
+    // доказательством текущего дерева.
+    for (const stale of ['ушёл в открытый доступ', 'уже из опубликованного репозитория',
+                         'по всем 101 коммиту']) {
+      assert.ok(!text.includes(stale),
+        `страница повторяет устаревшее утверждение: «${stale}»`);
     }
-    // И наоборот: раз обещание сбылось, адрес обязан быть на странице.
+    assert.doesNotMatch(html, /\b\d{3,5}\s+(?:проверок|тестов)\s+(?:приложения|ядра|страницы)/,
+      'страница заморозила счётчик тестов, который дрейфует при каждой правке');
+    assert.doesNotMatch(text, /по всем \d+ коммит/u,
+      'страница заморозила размер истории вместо полного reachable scan');
+    assert.match(text, /каждый достижимый Git-объект/,
+      'страница не объясняет нынешнюю границу проверки истории');
+    assert.match(text, /Публичный выпуск заблокирован/,
+      'страница скрывает текущий блокер публикации');
+
+    // Предполагаемый адрес всё равно нужен, чтобы у owner action была одна цель.
     assert.match(html, /https:\/\/github\.com\/[\w-]+\/[\w-]+/,
       'на странице нет адреса репозитория');
   });

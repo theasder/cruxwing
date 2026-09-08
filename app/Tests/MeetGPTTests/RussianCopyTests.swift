@@ -64,7 +64,7 @@ struct RussianCopyTests {
         let walkers = sourceRoots.compactMap {
             FileManager.default.enumerator(at: $0, includingPropertiesForKeys: nil)
         }
-        for case let url as URL in walkers.flatMap({ $0.compactMap { $0 as? URL } })
+        for url in walkers.flatMap({ $0.compactMap { $0 as? URL } })
         where url.pathExtension == "swift" {
             guard !url.path.contains("/Paywall/"),
                   let text = try? String(contentsOf: url, encoding: .utf8) else { continue }

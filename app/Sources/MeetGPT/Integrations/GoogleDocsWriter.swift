@@ -10,12 +10,12 @@ enum GoogleDocsWriter {
         let webViewLink: String
     }
 
-    private static let boundary = "cruxwing-doc-boundary-8f3a1c"
+    private static let boundary = "orakul-doc-boundary-8f3a1c"
 
     static func create(title: String,
                        html: String,
                        accessToken: String,
-                       session: URLSession = .shared) async throws -> CreatedDoc {
+                       session: URLSession = OrakulNetworkIdentity.shared) async throws -> CreatedDoc {
         guard let url = URL(string:
             "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink")
         else { throw LLMError.badResponse("Google Docs") }

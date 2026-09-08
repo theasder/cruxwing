@@ -64,7 +64,7 @@ enum FactCheckService {
         guard !clip.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return ([], nil) }
         let ctx = String(context.prefix(maxContextChars))
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !base.isEmpty {
+        if Config.llmViaBackend && !base.isEmpty {
             return try await fromBackend(base: base, transcript: clip, context: ctx,
                                          accessToken: accessToken, extraGuidance: extraGuidance,
                                          searchWeb: searchWeb)

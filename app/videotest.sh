@@ -6,6 +6,7 @@
 #   CONDITIONS="clean noisy" bash videotest.sh
 #   MEDIA_CONDITIONS="tutorial" bash videotest.sh
 #   MEDIA_CONDITIONS="" bash videotest.sh  # legacy meeting matrix only
+#   ORAKUL_LIVETEST_AI_ASSERTIONS=0 bash videotest.sh  # transcript/media iteration
 #
 # What it does, per condition:
 #   1. renders a scripted two-speaker meeting to .mp4 with KNOWN ground truth
@@ -45,11 +46,11 @@ set -u
 umask 077
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="/Applications/Cruxwing.app"
+APP="/Applications/orakul.app"
 LIB="$ROOT/testlib"
 RUN_ID="$(date +%Y%m%d-%H%M%S)"
 RUN_STARTED_EPOCH="$(python3 -c 'import time;print(int(time.time()))')"
-OUTDIR="${VIDEOTEST_OUT:-/tmp/cruxwing-videotest-$RUN_ID}"
+OUTDIR="${VIDEOTEST_OUT:-/tmp/orakul-videotest-$RUN_ID}"
 case "$OUTDIR" in
     /*) ;;
     *) OUTDIR="$ROOT/$OUTDIR" ;;
@@ -87,6 +88,11 @@ BLIND_SPOT_TIMEOUT="${BLIND_SPOT_TIMEOUT:-75}"
 BLIND_SPOT_MATERIAL_TIMEOUT="${BLIND_SPOT_MATERIAL_TIMEOUT:-30}"
 INSTANT_CAPTION_TIMEOUT="${INSTANT_CAPTION_TIMEOUT:-30}"
 REQUIRE_DIARIZATION="${REQUIRE_DIARIZATION:-0}"
+AI_ASSERTIONS_ENABLED="${ORAKUL_LIVETEST_AI_ASSERTIONS:-1}"
+case "$AI_ASSERTIONS_ENABLED" in
+    0|1) ;;
+    *) echo "!! ORAKUL_LIVETEST_AI_ASSERTIONS must be 0 or 1"; exit 2 ;;
+esac
 EVENTS_JSONL="$OUTDIR/events.jsonl"
 SYNTHETIC_EVIDENCE_JSONL="$OUTDIR/synthetic-evidence.jsonl"
 NETWORK_LOG="$OUTDIR/network.log"
@@ -216,17 +222,16 @@ cleanup() {
     [ -n "$LOG_PID" ] && kill "$LOG_PID" >/dev/null 2>&1 || true
     [ -n "$PLAY_PID" ] && kill "$PLAY_PID" >/dev/null 2>&1 || true
     if [ -n "$APP_PID" ]; then
-        send ai.cruxwing.livetest.restoreSettings finishRun true >/dev/null 2>&1 || true
-        send ai.cruxwing.livetest.closeSettings >/dev/null 2>&1 || true
+        send ai.orakul.desktop.livetest.restoreSettings finishRun true >/dev/null 2>&1 || true
+        send ai.orakul.desktop.livetest.closeSettings >/dev/null 2>&1 || true
     fi
     if [ "$RECORDING_ACTIVE" = "1" ] && [ "$RECORDING_STOP_REQUESTED" != "1" ] && [ -n "$APP_PID" ]; then
-        send ai.cruxwing.livetest.toggleRecording >/dev/null 2>&1 || true
+        send ai.orakul.desktop.livetest.toggleRecording >/dev/null 2>&1 || true
         RECORDING_STOP_REQUESTED=1
     fi
     if [ -n "$APP_PID" ]; then
-        # Distributed notifications are asynchronous. Give restoreSettings
-        # (including finishRun's process-local entitlement release) and the
-        # recording stop request a short, bounded chance to run. A wedged main
+        # Distributed notifications are asynchronous. Give restoreSettings and
+        # the recording stop request a short, bounded chance to run. A wedged main
         # thread cannot acknowledge either request, so cleanup then terminates
         # only the exact process launched above. Never use killall/pkill here:
         # an unrelated developer app must remain outside this harness's scope.
@@ -249,10 +254,10 @@ cleanup() {
         RECORDING_ACTIVE=0
         RECORDING_START_UNCERTAIN=0
     fi
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_NONCE >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv CRUXWING_DEV_CALL_LOGS >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_NONCE >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_DEV_CALL_LOGS >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 trap 'exit 130' INT TERM
@@ -264,7 +269,7 @@ play_video() { # play_video <absolute mp4 path> <player log path>
     # still renders the MP4 and sends its audio through CoreAudio, so the app's
     # real ScreenCaptureKit path is exercised.
     "$FFPLAY" -autoexit -loglevel warning -window_title \
-        "Cruxwing Video Test · $(basename "$video_path")" "$video_path" \
+        "Orakul Video Test · $(basename "$video_path")" "$video_path" \
         >"$player_log" 2>&1 &
     PLAY_PID=$!
 }
@@ -277,7 +282,7 @@ start_network_log() { # start_network_log <app pid>
     # NDJSON stays valid when the stream is terminated. Logger diagnostics go
     # to a separate file instead of corrupting the machine-readable artifact.
     /usr/bin/log stream --style ndjson --level info --process "$app_pid" \
-        --predicate 'subsystem == "ai.wheespr.meetgpt" && (category == "network" || category == "transcription")' \
+        --predicate 'subsystem == "ai.orakul.desktop" && (category == "network" || category == "transcription")' \
         >"$NETWORK_RAW_LOG" 2>"$NETWORK_LOG_ERRORS" &
     LOG_PID=$!
     sleep 0.25
@@ -314,8 +319,8 @@ function run(argv) {
     const identifier = argv[1]
     const expectedValue = argv[2] || ""
     const systemEvents = Application("System Events")
-    const process = systemEvents.processes.byName("Cruxwing")
-    if (!process.exists()) throw new Error("Cruxwing accessibility process missing")
+    const process = systemEvents.processes.byName("orakul")
+    if (!process.exists()) throw new Error("Orakul accessibility process missing")
     process.frontmost = true
 
     const queue = process.windows().slice()
@@ -381,28 +386,10 @@ ax_wait() { # ax_wait <press|exists> <identifier> [attempts]
     return 1
 }
 
-ax_scroll_to_bottom() {
-    # The paywall is a real ScrollView sheet. Command-Down is an accessibility
-    # visible user action and deliberately proves the bottom-only promo control
-    # remains reachable without relying on window coordinates.
-    osascript >/dev/null <<'APPLESCRIPT'
-tell application "System Events"
-    tell process "Cruxwing"
-        set frontmost to true
-        key code 125 using command down
-    end tell
-end tell
-APPLESCRIPT
-    # Also ask Accessibility to expose the bottom-only control itself. This is
-    # still a real scroll action, and makes the result deterministic when focus
-    # was retained by the preceding See plans button.
-    ax_element scroll paywall.promo-code
-}
-
 stop_recording_if_active() {
     [ "$RECORDING_ACTIVE" = "1" ] || return 0
     if [ "$RECORDING_STOP_REQUESTED" != "1" ]; then
-        send ai.cruxwing.livetest.toggleRecording >/dev/null 2>&1 || return 1
+        send ai.orakul.desktop.livetest.toggleRecording >/dev/null 2>&1 || return 1
         RECORDING_STOP_REQUESTED=1
     fi
 
@@ -446,7 +433,7 @@ PY
 start_recording_and_wait() {
     RECORDING_START_UNCERTAIN=1
     RECORDING_STOP_REQUESTED=0
-    send ai.cruxwing.livetest.toggleRecording >/dev/null 2>&1 || return 1
+    send ai.orakul.desktop.livetest.toggleRecording >/dev/null 2>&1 || return 1
     local start_poll_deadline
     start_poll_deadline="$(python3 -c 'import time; print(time.time() + 20)')"
     while python3 -c \
@@ -494,7 +481,7 @@ dump_to() { # dump_to <unique destination> [max 250ms polls; default 60]
     local destination="$1" max_polls="${2:-60}"
     local request_id="$RUN_ID:$(basename "$destination")"
     rm -f "$destination"
-    send ai.cruxwing.livetest.dumpState \
+    send ai.orakul.desktop.livetest.dumpState \
         path "$destination" requestID "$request_id"
     # The request id is the acknowledgement. A delayed older dump can write a
     # file, but it cannot be mistaken for this checkpoint.
@@ -586,7 +573,7 @@ PY
 
 glossary_suggestion_action_capture() { # <condition> <action> <command id> <state json>
     local cond="$1" action="$2" command_id="$3" destination="$4" attempt
-    send ai.cruxwing.livetest.glossarySuggestions \
+    send ai.orakul.desktop.livetest.glossarySuggestions \
         action "$action" commandID "$command_id"
     for attempt in $(seq 1 30); do
         if dump_to "$destination.attempt-$attempt" 4 && python3 - \
@@ -623,7 +610,7 @@ model_selection_during_call_capture() { # <condition>
     local surface="$RUN_ID:$cond:settings-model-snapshot"
     local alternate attempt candidate exchange_id
 
-    send ai.cruxwing.livetest.openSettings tab ai
+    send ai.orakul.desktop.livetest.openSettings tab ai
     sleep 0.45
     dump_to "$before" || return 1
     alternate="$(python3 - "$before" <<'PY'
@@ -639,7 +626,7 @@ PY
     # This fixed transcript-only prompt uses the ordinary run() path, which
     # snapshots the real gateway model synchronously. It deliberately has no
     # connected-app workflow, keeping this three-condition proof inexpensive.
-    send ai.cruxwing.livetest.runPrompt id livetest-model-snapshot surfaceID "$surface"
+    send ai.orakul.desktop.livetest.runPrompt id livetest-model-snapshot surfaceID "$surface"
     for attempt in $(seq 1 20); do
         candidate="$started.attempt-$attempt"
         if dump_to "$candidate" 4 && python3 - \
@@ -721,7 +708,7 @@ PY
     if [ -n "$exchange_id" ] && [ -s "$request" ]; then
         # The dev hook applies the whitelisted production setter and cancels the
         # exact active exchange in one main-actor transaction.
-        send ai.cruxwing.livetest.cancelPrompt \
+        send ai.orakul.desktop.livetest.cancelPrompt \
             exchangeID "$exchange_id" modelID "$alternate"
         for attempt in $(seq 1 20); do
             candidate="$after.attempt-$attempt"
@@ -761,7 +748,7 @@ PY
         done
     elif [ -n "$exchange_id" ]; then
         # Keep a failed probe from colliding with later scheduled prompts.
-        send ai.cruxwing.livetest.cancelPrompt exchangeID "$exchange_id"
+        send ai.orakul.desktop.livetest.cancelPrompt exchangeID "$exchange_id"
     fi
 
     if [ "$result" = "0" ]; then
@@ -772,10 +759,10 @@ PY
     # Restore the launch model before any independently scheduled prompt is
     # armed. Re-enable the fixed glossary fixture: restore intentionally resets
     # every configured field, while the active recording keeps its snapshot.
-    send ai.cruxwing.livetest.restoreSettings
+    send ai.orakul.desktop.livetest.restoreSettings
     sleep 0.2
-    send ai.cruxwing.livetest.applySetting id transcription.glossary-fixture value enabled
-    send ai.cruxwing.livetest.closeSettings
+    send ai.orakul.desktop.livetest.applySetting id transcription.glossary-fixture value enabled
+    send ai.orakul.desktop.livetest.closeSettings
     for attempt in $(seq 1 20); do
         candidate="$restored.attempt-$attempt"
         if dump_to "$candidate" 4 && python3 - \
@@ -850,15 +837,15 @@ PY
     event prompt "$cond" "scheduled=$at type=$kind index=$prompt_index"
     case "$kind" in
         poll|mandatory|contextual)
-            send ai.cruxwing.livetest.promptSurface \
+            send ai.orakul.desktop.livetest.promptSurface \
                 type "$kind" surfaceID "$surface_id"
             ;;
         freeform)
-            send ai.cruxwing.livetest.ask \
+            send ai.orakul.desktop.livetest.ask \
                 text "$value" surfaceID "$surface_id"
             ;;
         quick)
-            send ai.cruxwing.livetest.runPrompt \
+            send ai.orakul.desktop.livetest.runPrompt \
                 id "$value" surfaceID "$surface_id"
             ;;
     esac
@@ -920,7 +907,7 @@ PY
     # versa).
     case "$kind" in
         poll|mandatory)
-            send ai.cruxwing.livetest.clearPromptSurface \
+            send ai.orakul.desktop.livetest.clearPromptSurface \
                 type "$kind" surfaceID "$surface_id"
             ;;
     esac
@@ -968,11 +955,11 @@ PY
     local closed_state="$prefix.closed.state.json"
     local result="$prefix.result.json"
 
-    send ai.cruxwing.livetest.openSettings tab general
+    send ai.orakul.desktop.livetest.openSettings tab general
     sleep 0.65
     dump_to "$general_state" || return 1
     while IFS=: read -r setting value; do
-        send ai.cruxwing.livetest.applySetting id "$setting" value "$value"
+        send ai.orakul.desktop.livetest.applySetting id "$setting" value "$value"
     done < <(python3 - "$general_state" <<'PY'
 import json, sys
 d=json.load(open(sys.argv[1]))
@@ -992,7 +979,7 @@ PY
     capture_window_field "$general_mutated_state" settingsWindowNumber \
         "$SCREENSHOT_DIR/$cond.settings-general-mutated.png" || true
 
-    send ai.cruxwing.livetest.openSettings tab ai
+    send ai.orakul.desktop.livetest.openSettings tab ai
     sleep 0.8
     dump_to "$open_state" || return 1
     capture_window_field "$open_state" settingsWindowNumber \
@@ -1001,7 +988,7 @@ PY
     # Flip every live watch from its actual baseline. Five back-to-back writes
     # exercise rapid Settings changes without waiting between switches.
     while IFS=: read -r setting value; do
-        send ai.cruxwing.livetest.applySetting id "$setting" value "$value"
+        send ai.orakul.desktop.livetest.applySetting id "$setting" value "$value"
     done < <(python3 - "$open_state" <<'PY'
 import json, sys
 d=json.load(open(sys.argv[1]))
@@ -1027,7 +1014,7 @@ PY
     # the Deepgram callback, then keeps Instant selected through the complete
     # pre-ready rollback deadline. A transient Settings row is not evidence.
     # A launch already on Instant still exercises both directions.
-    send ai.cruxwing.livetest.applySetting id transcription.engine value local
+    send ai.orakul.desktop.livetest.applySetting id transcription.engine value local
     sleep 0.45
     dump_to "$local_engine_state" || return 1
     capture_window_field "$local_engine_state" mainWindowNumber \
@@ -1041,7 +1028,7 @@ import sys
 print(float(sys.argv[1]) + float(sys.argv[2]))
 PY
 )"
-    send ai.cruxwing.livetest.applySetting id transcription.engine value deepgram
+    send ai.orakul.desktop.livetest.applySetting id transcription.engine value deepgram
     attempt=0
     while python3 -c \
         'import sys,time; raise SystemExit(0 if time.time() < float(sys.argv[1]) else 1)' \
@@ -1141,7 +1128,7 @@ PY
     # adaptive behavior and Fireflies enhancement are preferences for future or
     # post-call work. Pick values from the real state so every write is a change.
     while IFS=: read -r setting value; do
-        send ai.cruxwing.livetest.applySetting id "$setting" value "$value"
+        send ai.orakul.desktop.livetest.applySetting id "$setting" value "$value"
     done < <(python3 - "$open_state" <<'PY'
 import json, sys
 d=json.load(open(sys.argv[1]))
@@ -1156,7 +1143,7 @@ print("transcription.glossary-fixture:disabled" if d.get("configuredGlossaryTerm
 print(f"transcription.fireflies-enhance:{str(not bool(d.get('configuredFirefliesEnhance'))).lower()}")
 PY
 )
-    send ai.cruxwing.livetest.openSettings tab transcription
+    send ai.orakul.desktop.livetest.openSettings tab transcription
     sleep 0.55
     dump_to "$deferred_state" || return 1
     capture_window_field "$deferred_state" settingsWindowNumber \
@@ -1187,9 +1174,9 @@ d=json.load(open(sys.argv[1]))
 print(str(not bool(d.get("connectedAppsGroundingEnabled"))).lower())
 PY
 )"
-    send ai.cruxwing.livetest.applySetting id connected-apps.grounding \
+    send ai.orakul.desktop.livetest.applySetting id connected-apps.grounding \
         value "$next_connected_grounding"
-    send ai.cruxwing.livetest.openSettings tab connectedApps
+    send ai.orakul.desktop.livetest.openSettings tab connectedApps
     sleep 0.55
     dump_to "$connected_state" || return 1
     capture_window_field "$connected_state" settingsWindowNumber \
@@ -1198,7 +1185,7 @@ PY
     # Account/Privacy contains destructive account actions that an unattended
     # test must never trigger. Exercise the reversible analytics preference and
     # prove the tab can be opened/closed without disturbing the call.
-    send ai.cruxwing.livetest.openSettings tab accountPrivacy
+    send ai.orakul.desktop.livetest.openSettings tab accountPrivacy
     sleep 0.5
     dump_to "$privacy_state" || return 1
     local next_share_analytics
@@ -1207,7 +1194,7 @@ import json, sys
 print(str(not bool(json.load(open(sys.argv[1])).get("configuredShareAnalytics"))).lower())
 PY
 )"
-    send ai.cruxwing.livetest.applySetting id privacy.analytics value "$next_share_analytics"
+    send ai.orakul.desktop.livetest.applySetting id privacy.analytics value "$next_share_analytics"
     sleep 0.35
     dump_to "$privacy_mutated_state" || return 1
     capture_window_field "$privacy_mutated_state" settingsWindowNumber \
@@ -1215,12 +1202,12 @@ PY
 
     # Restore through production setters before this condition ends. The suite
     # never leaves a developer's preferences or background spend gates changed.
-    send ai.cruxwing.livetest.restoreSettings
+    send ai.orakul.desktop.livetest.restoreSettings
     sleep 0.45
     dump_to "$restored_state" || return 1
     capture_window_field "$restored_state" settingsWindowNumber \
         "$SCREENSHOT_DIR/$cond.settings-restored.png" || true
-    send ai.cruxwing.livetest.closeSettings
+    send ai.orakul.desktop.livetest.closeSettings
     sleep 0.4
     dump_to "$closed_state" || return 1
 
@@ -1450,7 +1437,6 @@ raise SystemExit(0 if report["passed"] else 1)
 PY
 }
 
-# ── entitlement ─────────────────────────────────────────────────────────────
 # One-shot Blind Spot live evidence.
 blind_spot_capture() { # <condition> <artifact-base>
     local cond="$1" base="$2"
@@ -1484,12 +1470,12 @@ PY
 
     # The developer may normally keep Blind Spot off. Use the production
     # Settings setter and restore the launch-time preference before returning.
-    send ai.cruxwing.livetest.applySetting id ai.brainstorm value true
+    send ai.orakul.desktop.livetest.applySetting id ai.brainstorm value true
     sleep 0.35
     local baseline="$OUTDIR/$cond.blind-spot-baseline.state.json"
     dump_to "$baseline" || {
         check "$cond Blind Spot baseline" 1 "state dump failed"
-        send ai.cruxwing.livetest.restoreSettings
+        send ai.orakul.desktop.livetest.restoreSettings
         return 1
     }
     python3 - "$baseline" <<'PY' >/dev/null 2>&1
@@ -1502,18 +1488,18 @@ PY
     check "$cond Blind Spot task active" "$task_active" \
         "production Settings setter reconciled the in-call task"
     if [ "$task_active" != "0" ]; then
-        send ai.cruxwing.livetest.restoreSettings
+        send ai.orakul.desktop.livetest.restoreSettings
         return 1
     fi
 
     local goal_command="$RUN_ID:$cond:blind-spot-goal"
     local refresh_command="$RUN_ID:$cond:blind-spot-refresh"
-    send ai.cruxwing.livetest.setSyntheticCallGoal \
+    send ai.orakul.desktop.livetest.setSyntheticCallGoal \
         fixtureID project-falcon commandID "$goal_command"
     # Keep the explicit refresh inside callGoal's debounce: it replaces that
     # pending wake, so this remains one bounded scan rather than a second scan.
     sleep 0.1
-    send ai.cruxwing.livetest.refreshBlindSpot \
+    send ai.orakul.desktop.livetest.refreshBlindSpot \
         fixtureID project-falcon commandID "$refresh_command"
 
     local command_state="$OUTDIR/$cond.blind-spot-command.state.json"
@@ -1545,7 +1531,7 @@ PY
     check "$cond Blind Spot synthetic prompt acknowledged" "$commands_applied" \
         "fixed fixture goal plus one correlated refresh command"
     if [ "$commands_applied" != "0" ]; then
-        send ai.cruxwing.livetest.restoreSettings
+        send ai.orakul.desktop.livetest.restoreSettings
         return 1
     fi
     local baseline_attempts
@@ -1591,7 +1577,7 @@ PY
         "bounded wait=${BLIND_SPOT_TIMEOUT}s with attempt ID/outcome/timestamps"
     if [ "$terminal_ready" != "0" ]; then
         record_synthetic_evidence "$cond" blind-spot-timeout "$terminal_poll" || true
-        send ai.cruxwing.livetest.restoreSettings
+        send ai.orakul.desktop.livetest.restoreSettings
         return 1
     fi
 
@@ -1878,174 +1864,9 @@ PY
         event blind-spot-terminal "$cond" \
             "attempt=$event_attempt outcome=$event_outcome provider=$event_provider model=$event_model"
     fi
-    send ai.cruxwing.livetest.restoreSettings
+    send ai.orakul.desktop.livetest.restoreSettings
     return "$metrics_rc"
 }
-
-# Whether this process may actually inspect UI, which is what the AX-driven
-# steps need. Deliberately NOT `tell System Events to get name of first
-# process`: that answers without Accessibility, so it reports success on a
-# machine where every AX step will fail. Inspecting windows is the real test.
-accessibility_available() {
-    osascript -l JavaScript \
-        -e 'Application("System Events").processes.byName("Finder").windows().length' \
-        >/dev/null 2>&1
-}
-
-# Entitlement without the UI. The app exposes ai.cruxwing.livetest.redeem, which
-# redeems against the APP's own session — the same end state the Settings flow
-# reaches, minus the clicks. Used only when Accessibility is unavailable, so the
-# transcription and response conditions can still run.
-promo_redemption_via_hook() {
-    send ai.cruxwing.livetest.redeem code "$DEV_PROMO_CODE"
-    for _ in $(seq 1 20); do
-        sleep 1
-        dump >/dev/null 2>&1 || continue
-        [ "$(jqv currentTier)" = "ultra" ] && return 0
-    done
-    return 1
-}
-
-promo_redemption_ui_capture() {
-    local command_id="$RUN_ID:settings-ai-promo"
-    local armed_state="$OUTDIR/promo-redemption.armed.state.json"
-    local settings_state="$OUTDIR/promo-redemption.settings.state.json"
-    local pricing_state="$OUTDIR/promo-redemption.pricing.state.json"
-    local final_state="$OUTDIR/promo-redemption.state.json"
-    local candidate receipt_outcome attempt
-
-    send ai.cruxwing.livetest.preparePromoRedemption commandID "$command_id"
-    for attempt in $(seq 1 40); do
-        candidate="$armed_state.poll-$attempt"
-        if dump_to "$candidate" 4 && python3 - "$candidate" "$command_id" <<'PY' >/dev/null 2>&1
-import json, sys
-state = json.load(open(sys.argv[1]))
-receipt = state.get("liveTestPromoRedemptionReceipt") or {}
-ok = (receipt.get("commandID") == sys.argv[2]
-      and receipt.get("outcome") == "armed"
-      and receipt.get("previewActive") is False
-      and isinstance(receipt.get("preparedAt"), (int, float)))
-raise SystemExit(0 if ok else 1)
-PY
-        then
-            cp "$candidate" "$armed_state"
-            break
-        fi
-        sleep 0.25
-    done
-    [ -s "$armed_state" ] || return 1
-
-    send ai.cruxwing.livetest.openSettings tab ai
-    for attempt in $(seq 1 40); do
-        candidate="$settings_state.poll-$attempt"
-        if dump_to "$candidate" 4 && python3 - "$candidate" <<'PY' >/dev/null 2>&1
-import json, sys
-state = json.load(open(sys.argv[1]))
-ok = (state.get("selectedSettingsTab") == "ai"
-      and state.get("settingsWindowVisible") is True
-      and state.get("settingsWindowCount") == 1
-      and isinstance(state.get("settingsWindowNumber"), int))
-raise SystemExit(0 if ok else 1)
-PY
-        then
-            cp "$candidate" "$settings_state"
-            break
-        fi
-        sleep 0.25
-    done
-    [ -s "$settings_state" ] || return 1
-
-    ax_wait press settings.ai.manage-plan 40 || return 1
-    event promo-ui all "command=$command_id action=manage-plan"
-    ax_wait press paywall.see-plans 40 || return 1
-    event promo-ui all "command=$command_id action=see-plans"
-    ax_scroll_to_bottom || return 1
-    ax_wait exists paywall.promo-code 40 || return 1
-    sleep 0.35
-    dump_to "$pricing_state" || return 1
-    capture_window_field "$pricing_state" settingsWindowNumber \
-        "$SCREENSHOT_DIR/promo-redemption-pricing-bottom.png" || return 1
-    event promo-ui all "command=$command_id action=scroll-bottom"
-
-    ax_element set paywall.promo-code "DEV-UNLIMITED-LOCAL" || return 1
-    ax_element verify paywall.promo-code "DEV-UNLIMITED-LOCAL" || return 1
-    event promo-ui all "command=$command_id action=enter-exact-fixture"
-    ax_wait enabled paywall.redeem 40 || return 1
-    ax_wait press paywall.redeem 40 || return 1
-    event promo-ui all "command=$command_id action=redeem"
-
-    for attempt in $(seq 1 160); do
-        candidate="$final_state.poll-$attempt"
-        if ! dump_to "$candidate" 4; then
-            sleep 0.25
-            continue
-        fi
-        receipt_outcome="$(python3 - "$candidate" <<'PY'
-import json, sys
-receipt = json.load(open(sys.argv[1])).get("liveTestPromoRedemptionReceipt") or {}
-print(receipt.get("outcome") or "")
-PY
-)"
-        if [ "$receipt_outcome" = "failure" ]; then
-            cp "$candidate" "$final_state"
-            capture_window_field "$final_state" settingsWindowNumber \
-                "$SCREENSHOT_DIR/promo-redemption-failure.png" >/dev/null 2>&1 || true
-            event promo-redemption all \
-                "command=$command_id outcome=failure exact=true plan=none tier=none preview=false"
-            return 1
-        fi
-        if python3 - "$candidate" "$command_id" "$RUN_STARTED_EPOCH" <<'PY' >/dev/null 2>&1
-import json, sys
-state = json.load(open(sys.argv[1]))
-receipt = state.get("liveTestPromoRedemptionReceipt") or {}
-prepared = receipt.get("preparedAt")
-started = receipt.get("startedAt")
-completed = receipt.get("completedAt")
-ordered = (all(isinstance(value, (int, float)) for value in
-               (prepared, started, completed))
-           and prepared >= float(sys.argv[3])
-           and prepared <= started <= completed)
-ok = (receipt.get("commandID") == sys.argv[2]
-      and receipt.get("outcome") == "success"
-      and receipt.get("exactCodeMatch") is True
-      and receipt.get("planID") == "founder"
-      and receipt.get("tier") == "ultra"
-      and receipt.get("previewActive") is False
-      and ordered
-      and state.get("currentTier") == "ultra"
-      and (state.get("tariffCopilotHours"), state.get("tariffComputeCredits"),
-           state.get("tariffGroundedCycles")) == (60, 1500, 300)
-      and int(state.get("copilotSecondsRemaining") or 0) > 0
-      and int(state.get("groundedCyclesRemaining") or 0) > 0)
-raise SystemExit(0 if ok else 1)
-PY
-        then
-            cp "$candidate" "$final_state"
-            break
-        fi
-        sleep 0.25
-    done
-    [ -s "$final_state" ] || {
-        [ -n "${candidate:-}" ] && [ -s "$candidate" ] && \
-            cp "$candidate" "$OUTDIR/promo-redemption.timeout.state.json"
-        event promo-redemption all \
-            "command=$command_id outcome=timeout exact=true plan=none tier=none preview=false"
-        return 1
-    }
-    ax_wait exists paywall.success 20 || return 1
-    capture_window_field "$final_state" settingsWindowNumber \
-        "$SCREENSHOT_DIR/promo-redemption-success.png" || return 1
-    event promo-redemption all \
-        "command=$command_id outcome=success exact=true plan=founder tier=ultra preview=false"
-    ax_wait press paywall.success-dismiss 20 || return 1
-    sleep 0.25
-    send ai.cruxwing.livetest.closeSettings
-    return 0
-}
-
-# Entitlement: without this every AI assertion below scores a 401 body as an "answer".
-# shellcheck source=testlib/entitle.sh
-source "$LIB/entitle.sh"
 
 # ── build ───────────────────────────────────────────────────────────────────
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
@@ -2063,27 +1884,27 @@ python3 "$LIB/verify_media_recording.py" --selftest || { echo "!! media verifier
 
 event suite all "seed=$SEED conditions=$CONDITIONS media=$MEDIA_CONDITIONS"
 
-osascript -e 'quit app "Cruxwing"' >/dev/null 2>&1
+osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1
 for _ in $(seq 1 40); do
     pgrep -x MeetGPT >/dev/null 2>&1 || break
     sleep 0.25
 done
 pgrep -x MeetGPT >/dev/null 2>&1 && {
-    echo "!! existing Cruxwing process did not quit; refusing an ambiguous test launch"
+    echo "!! existing Orakul process did not quit; refusing an ambiguous test launch"
     exit 2
 }
-/bin/launchctl setenv CRUXWING_LIVETEST_NONCE "$RUN_NONCE"
-/bin/launchctl setenv CRUXWING_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
-/bin/launchctl setenv CRUXWING_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
-/bin/launchctl setenv CRUXWING_DEV_CALL_LOGS 1
+/bin/launchctl setenv ORAKUL_LIVETEST_NONCE "$RUN_NONCE"
+/bin/launchctl setenv ORAKUL_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
+/bin/launchctl setenv ORAKUL_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
+/bin/launchctl setenv ORAKUL_DEV_CALL_LOGS 1
 # Passing the secure run values on `open` is intentional. Some macOS launch
 # paths cache the GUI bootstrap environment even after `launchctl setenv`,
 # which silently disabled the hooks while launching the right signed bundle.
 open --fresh \
-    --env "CRUXWING_LIVETEST_NONCE=$RUN_NONCE" \
-    --env "CRUXWING_LIVETEST_ARTIFACT_ROOT=$OUTDIR" \
-    --env "CRUXWING_LIVETEST_STARTED_AT=$RUN_STARTED_EPOCH" \
-    --env "CRUXWING_DEV_CALL_LOGS=1" \
+    --env "ORAKUL_LIVETEST_NONCE=$RUN_NONCE" \
+    --env "ORAKUL_LIVETEST_ARTIFACT_ROOT=$OUTDIR" \
+    --env "ORAKUL_LIVETEST_STARTED_AT=$RUN_STARTED_EPOCH" \
+    --env "ORAKUL_DEV_CALL_LOGS=1" \
     "$APP"; sleep 6
 APP_PID="$(pgrep -x MeetGPT | tail -1)"
 [ -n "$APP_PID" ] || { echo "!! launched app process was not found"; exit 2; }
@@ -2094,39 +1915,11 @@ dump || { echo "!! app not responding to hooks — dev build installed?"; exit 2
 check "dev call diagnostics armed" $? \
     "explicit dev gate enabled under nonce-confined owner-only artifact root"
 checkpoint launch ready || true
-[ "$DEV_PROMO_CODE" = "DEV-UNLIMITED-LOCAL" ] || {
-    echo "!! live promo test requires the exact seeded DEV-UNLIMITED-LOCAL fixture"
-    exit 3
-}
-# The UI capture is the evidence for SETTINGS-LIVE-PROMO-REDEMPTION and needs
-# Accessibility. Everything AFTER it needs only the ENTITLEMENT it happens to
-# produce. Aborting the whole matrix when Accessibility is missing meant one
-# permission — the broadest one, since it grants UI control of the entire Mac —
-# gated the transcription and response evidence too, which needs nothing but
-# Screen Recording and audio.
-#
-# So: run the UI capture when it can run, and fall back to the hook when it
-# cannot. The UI requirement is reported SKIPPED, never passed — the point of
-# that check is the clicks, and a hook proves nothing about them.
-if accessibility_available; then
-    promo_redemption_ui_capture
-    promo_redemption_rc=$?
-    check "Settings AI promo redemption" "$promo_redemption_rc" \
-        "fresh Accessibility-driven Manage → See plans → scroll → redeem receipt; Founder/Ultra with preview disabled"
-    [ "$promo_redemption_rc" = "0" ] || exit 3
+if [ "$AI_ASSERTIONS_ENABLED" = "1" ]; then
+    note "AI checks use the provider credentials already stored by the user in Orakul's Keychain"
 else
-    skip "Settings AI promo redemption" \
-        "needs Accessibility for this process (System Settings → Privacy → Accessibility). Entitling via the dev hook so the rest of the run proceeds."
-    promo_redemption_via_hook || {
-        echo "!! could not entitle via the dev redeem hook either — nothing downstream can run"
-        exit 3
-    }
-    event entitlement all "via=dev-hook reason=accessibility-unavailable"
+    note "AI answer-quality checks disabled; recording, transcription, and media checks remain enabled"
 fi
-ENTITLED=1
-ENTITLE_TIER=ultra
-ENTITLE_DETAIL="plan=founder tier=ultra via Settings AI Manage"
-export ENTITLED ENTITLE_TIER ENTITLE_DETAIL
 
 # Prompt schedule: derived from the seed, so successive runs land prompts at
 # DIFFERENT points in the meeting. A fixed schedule only ever proves the app
@@ -2153,8 +1946,8 @@ run_condition() {   # run_condition <name> <extra make-video args...>
     duration="$(python3 -c "import json,sys;print(json.loads(sys.stdin.read())['durationSeconds'])" <<<"$meta")"
     check "$cond render" 0 "${duration}s, $(basename "$video")"
 
-    send ai.cruxwing.livetest.restoreSettings; sleep 0.2
-    send ai.cruxwing.livetest.newCall; sleep 2
+    send ai.orakul.desktop.livetest.restoreSettings; sleep 0.2
+    send ai.orakul.desktop.livetest.newCall; sleep 2
     local pre_record_settings_state="$OUTDIR/$cond.pre-record-settings.state.json"
     dump_to "$pre_record_settings_state" || {
         check "$cond pre-record Settings baseline" 1 "state dump failed"
@@ -2164,7 +1957,7 @@ run_condition() {   # run_condition <name> <extra make-video args...>
     # vocabulary. The mid-call Settings worker then disables this fixture and
     # proves the running transcriber retains its start-time snapshot; its final
     # restore returns the developer's original glossary from the launch baseline.
-    send ai.cruxwing.livetest.applySetting id transcription.glossary-fixture value enabled
+    send ai.orakul.desktop.livetest.applySetting id transcription.glossary-fixture value enabled
     sleep 0.2
     if ! start_recording_and_wait; then
         check "$cond recording" 1 "did not reach correlated recording/call_started state"
@@ -2207,9 +2000,9 @@ run_condition() {   # run_condition <name> <extra make-video args...>
     check "$cond AI model selection snapshot during call" "$model_snapshot_rc" \
         "configured model changed while exact active exchange retained its launch model"
     if [ "$model_snapshot_rc" != "0" ]; then
-        send ai.cruxwing.livetest.restoreSettings
-        send ai.cruxwing.livetest.applySetting id transcription.glossary-fixture value enabled
-        send ai.cruxwing.livetest.closeSettings
+        send ai.orakul.desktop.livetest.restoreSettings
+        send ai.orakul.desktop.livetest.applySetting id transcription.glossary-fixture value enabled
+        send ai.orakul.desktop.livetest.closeSettings
         [ -n "$PLAY_PID" ] && kill "$PLAY_PID" >/dev/null 2>&1 || true
         [ -n "$PLAY_PID" ] && wait "$PLAY_PID" 2>/dev/null || true
         PLAY_PID=""
@@ -2379,13 +2172,13 @@ PY
     local overlap_started overlap_prefix
     overlap_started="$(python3 -c 'import time;print(time.time())')"
     overlap_prefix="$RUN_ID:$cond:model-overlap"
-    send ai.cruxwing.livetest.runPrompt id "whattoask" \
+    send ai.orakul.desktop.livetest.runPrompt id "whattoask" \
         surfaceID "$overlap_prefix:whattoask"
     sleep 0.05
-    send ai.cruxwing.livetest.runPrompt id "advice" \
+    send ai.orakul.desktop.livetest.runPrompt id "advice" \
         surfaceID "$overlap_prefix:advice"
     sleep 0.05
-    send ai.cruxwing.livetest.runPrompt id "summary" \
+    send ai.orakul.desktop.livetest.runPrompt id "summary" \
         surfaceID "$overlap_prefix:summary"
     event prompt-overlap "$cond" \
         "started=$overlap_started sequence=whattoask,advice,summary"
@@ -2425,7 +2218,7 @@ PY
     # but the final Summary alone is also insufficient evidence. Run Advice
     # after Summary has terminalized so two distinct prompt IDs/types must meet
     # all per-response quality and latency gates.
-    send ai.cruxwing.livetest.runPrompt id "advice" \
+    send ai.orakul.desktop.livetest.runPrompt id "advice" \
         surfaceID "$overlap_prefix:gradeable-advice"
     for _ in $(seq 1 "$AI_TIMEOUT"); do
         dump || true
@@ -2666,7 +2459,7 @@ PY
     # coherence/repetition, and unsupported numeric claims.
     local ai_chars ai_err
     ai_chars="$(jqv aiResponseChars)"; ai_err="$(jqv aiResponseIsError)"
-    if [ "$ENTITLED" = "1" ]; then
+    if [ "$AI_ASSERTIONS_ENABLED" = "1" ]; then
         { [ "${ai_chars:-0}" -gt 0 ] && [ "$ai_err" = "False" ]; }
         check "$cond in-call answer produced" $? "$ai_chars chars, error=$ai_err"
         python3 "$LIB/response_quality.py" \
@@ -2693,7 +2486,8 @@ PY
 )"
         check "$cond response quality" "$quality_rc" "$quality_detail"
     else
-        skip "$cond in-call answer" "unentitled — would grade a 401 body"
+        skip "$cond in-call answer" \
+            "ORAKUL_LIVETEST_AI_ASSERTIONS=0; configure a provider key in Orakul and set it to 1"
     fi
 
     python3 - "$base.score.json" "$OUTDIR/report.json" "$cond" "$latency" "$SEED" <<'PY'
@@ -2741,16 +2535,16 @@ run_media_condition() { # run_media_condition <tutorial|video> <script> <tempora
     duration="$(python3 -c "import json,sys;print(json.loads(sys.stdin.read())['durationSeconds'])" <<<"$meta")"
     check "$cond render" 0 "${duration}s deterministic fixture, $(basename "$video")"
 
-    send ai.cruxwing.livetest.restoreSettings; sleep 0.2
-    send ai.cruxwing.livetest.closeSettings
-    send ai.cruxwing.livetest.newCall; sleep 1
-    send ai.cruxwing.livetest.applySetting id recording.context value "$kind"
+    send ai.orakul.desktop.livetest.restoreSettings; sleep 0.2
+    send ai.orakul.desktop.livetest.closeSettings
+    send ai.orakul.desktop.livetest.newCall; sleep 1
+    send ai.orakul.desktop.livetest.applySetting id recording.context value "$kind"
     if [ "$kind" = "tutorial" ]; then
         # The existing fixed fixture contains idempotent + Postgres and proves
         # the technical-dictionary path without adding arbitrary test strings.
-        send ai.cruxwing.livetest.applySetting id transcription.glossary-fixture value enabled
+        send ai.orakul.desktop.livetest.applySetting id transcription.glossary-fixture value enabled
     else
-        send ai.cruxwing.livetest.applySetting id transcription.glossary-fixture value disabled
+        send ai.orakul.desktop.livetest.applySetting id transcription.glossary-fixture value disabled
     fi
     # Media coverage pays for one explicit tutorial application answer only.
     # Ambient co-pilot loops are already exercised and tariff-scored in every
@@ -2758,7 +2552,7 @@ run_media_condition() { # run_media_condition <tutorial|video> <script> <tempora
     # background cycles without adding a distinct assertion.
     local media_watch
     for media_watch in ai.brainstorm ai.agenda ai.fact-check ai.rhetoric ai.facilitation; do
-        send ai.cruxwing.livetest.applySetting id "$media_watch" value false
+        send ai.orakul.desktop.livetest.applySetting id "$media_watch" value false
     done
     sleep 0.3
     local selected_state="$base.context-selected.state.json"
@@ -2826,11 +2620,11 @@ PY
         stop_recording_if_active || true
         return
     fi
-    send ai.cruxwing.livetest.applySetting id recording.context value "$temporary"
+    send ai.orakul.desktop.livetest.applySetting id recording.context value "$temporary"
     event recording-context "$cond" "$kind->$temporary during active playback"
     sleep 1.25
     dump_to "$changed" || true
-    send ai.cruxwing.livetest.applySetting id recording.context value "$kind"
+    send ai.orakul.desktop.livetest.applySetting id recording.context value "$kind"
     event recording-context "$cond" "$temporary->$kind during active playback"
     sleep 1.25
     dump_to "$restored" || true
@@ -2859,7 +2653,7 @@ PY
         EXECUTED_MEDIA_PROMPTS=$((EXECUTED_MEDIA_PROMPTS + 1))
         local prompt_started
         prompt_started="$(python3 -c 'import time;print(time.time())')"
-        send ai.cruxwing.livetest.runPrompt id advice \
+        send ai.orakul.desktop.livetest.runPrompt id advice \
             surfaceID "$RUN_ID:$cond:apply-to-project"
         event media-prompt "$cond" "id=advice type=project-application started=$prompt_started"
         local attempt
@@ -3029,7 +2823,7 @@ fi
 
 # ── console + verdict ───────────────────────────────────────────────────────
 /usr/bin/log show --style ndjson --info --start "@$RUN_STARTED_EPOCH" \
-    --process "$APP_PID" --predicate 'subsystem == "ai.wheespr.meetgpt"' \
+    --process "$APP_PID" --predicate 'subsystem == "ai.orakul.desktop"' \
     >"$OUTDIR/console.log" 2>"$OUTDIR/console-logger.stderr.log"
 grep -cE "convertFail=[1-9]|empty transcription" "$OUTDIR/console.log" >/dev/null 2>&1 && \
     note "audio-pipeline warnings present — see $OUTDIR/console.log"
@@ -3055,7 +2849,6 @@ source, out = sys.argv[1:3]
 condition_count, media_prompt_count = map(int, sys.argv[3:5])
 events = [json.loads(line) for line in open(source) if line.strip()]
 requests = {}
-promo_requests = {}
 transcription_events = 0
 connector_events = 0
 allowed_fields = {
@@ -3090,30 +2883,12 @@ for event in events:
     if match and isinstance(request_id, str):
         stage = match.group(1)
         requests.setdefault(request_id, set()).add(stage)
-    promo_match = re.fullmatch(r"promo_redeem_(start|response|complete|failed)", name)
-    if promo_match and isinstance(request_id, str):
-        stage = promo_match.group(1)
-        promo_requests.setdefault(request_id, {})[stage] = event
 terminal = {request_id: stages for request_id, stages in requests.items()
             if stages & {"complete", "failed"}}
 complete_lifecycles = {request_id: stages for request_id, stages in terminal.items()
                        if "start" in stages and "prepare" in stages}
-promo_terminal = {
-    request_id: stages for request_id, stages in promo_requests.items()
-    if "complete" in stages or "failed" in stages
-}
-promo_complete_lifecycles = {}
-for request_id, stages in promo_terminal.items():
-    complete = stages.get("complete")
-    if ("start" in stages and "response" in stages and isinstance(complete, dict)
-            and isinstance(complete.get("durationMilliseconds"), int)
-            and complete.get("status") in range(200, 300)
-            and complete.get("pathTemplate") in {
-                "/api/promo/device-redeem", "/api/subscribe"
-            }):
-        promo_complete_lifecycles[request_id] = stages
 raw = open(source, encoding="utf-8").read().casefold()
-canaries = ["authorization:", "bearer ", "dev-unlimited-local",
+canaries = ["authorization:", "bearer ",
             "what decision is most at risk", "oauth", "cookie", "transcriptfull",
             "system_chars", "user_chars", "image_count", '"host"', '"detail"',
             '"processimagepath"', '"bootuuid"', '"backtrace"']
@@ -3123,9 +2898,6 @@ summary = {
     "requestCount": len(requests),
     "terminalRequestCount": len(terminal),
     "completeLifecycleCount": len(complete_lifecycles),
-    "promoRedemptionRequestCount": len(promo_requests),
-    "promoRedemptionTerminalRequestCount": len(promo_terminal),
-    "promoRedemptionCompleteLifecycleCount": len(promo_complete_lifecycles),
     "transcriptionEventCount": transcription_events,
     "connectorEventCount": connector_events,
     "contentCanaryLeaks": leaks,
@@ -3134,12 +2906,11 @@ summary = {
 }
 json.dump(summary, open(out, "w"), indent=2, sort_keys=True)
 raise SystemExit(0 if len(complete_lifecycles) >= condition_count * 2 + media_prompt_count
-                 and len(promo_complete_lifecycles) >= 1
                  and transcription_events > 0 and not leaks
                  and not schema_violations else 1)
 PY
 check "network lifecycle artifact" $? \
-    "closed-schema assistant and promo request lifecycles, transcription, and connector events; promo-code canary clean"
+    "closed-schema assistant request lifecycles, transcription, and connector events; content canaries clean"
 
 python3 - "$EVENTS_JSONL" "$EXECUTED_CONDITIONS" <<'PY' >/dev/null 2>&1
 import json, sys

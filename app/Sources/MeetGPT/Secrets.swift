@@ -1,11 +1,11 @@
-// GENERATED FILE — do not edit or commit real values.
-// build.sh regenerates this from app/.env on every build. It is gitignored.
+// Safe configuration for a plain clone, tests, and every distribution build.
+//
+// Local `app/build.sh` runs may generate the ignored
+// `LocalSecrets.generated.swift` and compile it with ORAKUL_LOCAL_CONFIG.
+// This tracked file is never rewritten by a build: a routine local build must
+// not turn credentials into a commit-ready Git diff.
+#if !ORAKUL_LOCAL_CONFIG
 enum Secrets {
-    static let openAIAPIKey    = ""
-    static let anthropicAPIKey = ""
-    static let googleAIAPIKey  = ""
-    static let deepgramAPIKey  = ""
-    static let assemblyAIAPIKey = ""
     // Local/test builds may use the gitignored .env Desktop OAuth client.
     // MEETGPT_DIST=1 blanks both values: sw() пропускает только публичные настройки.
     static let googleClientID  = ""
@@ -27,10 +27,6 @@ enum Secrets {
     static let transcriptionVAD = "on"
     static let transcriptionLanguage = "multi"
     static let llmGateway      = "direct"
-    static let deepSeekAPIKey  = ""
-    static let dashScopeAPIKey = ""
-    static let zhipuAPIKey     = ""
-    static let moonshotAPIKey  = ""
     static let ensemblePanel   = ""
     static let ensembleChairman = ""
     static let hubSpotClientID = ""
@@ -54,3 +50,4 @@ enum Secrets {
     static let confluenceToken = ""
     static let teamWatchAutoAck = "off"
 }
+#endif

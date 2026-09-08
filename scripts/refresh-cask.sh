@@ -26,12 +26,26 @@ for image in "$ARM" "$INTEL"; do
     [ -f "$image" ] || { echo "!! нет образа $image — соберите обе архитектуры (app/dist-all.sh)" >&2; exit 1; }
 done
 
-sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+if command -v sha256sum >/dev/null 2>&1; then
+    SHA256=(sha256sum)
+elif command -v shasum >/dev/null 2>&1; then
+    SHA256=(shasum -a 256)
+else
+    echo "!! нет sha256sum или shasum — контрольную сумму посчитать нельзя" >&2
+    exit 2
+fi
+sha() { "${SHA256[@]}" "$1" | awk '{print $1}'; }
 
 # Версия — из Info.plist приложения, а не из отдельного файла: в касте она
 # обязана совпадать с тем, что человек увидит в «Об этой программе».
-VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
-    "$ROOT/app/Support/Info.plist")"
+VERSION="$(python3 - "$ROOT/app/Support/Info.plist" <<'PY'
+import plistlib
+import sys
+
+with open(sys.argv[1], "rb") as handle:
+    print(plistlib.load(handle)["CFBundleShortVersionString"])
+PY
+)"
 
 # Минимальная macOS — из config/app.json, где её же читает страница и
 # руководство. Homebrew ждёт кодовое имя, а не номер.

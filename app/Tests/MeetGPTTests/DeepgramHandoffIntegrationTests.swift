@@ -260,7 +260,7 @@ struct DeepgramSocketLifecycleTests {
     func setupAndReadiness() async {
         let transport = InertDeepgramTransport()
         let streamer = DeepgramStreamer(
-            auth: .key("unit-key"), diarize: true, language: "en",
+            apiKey: "unit-key", diarize: true, language: "en",
             keyterms: ["Kubernetes"], transportOverrides: transport.overrides)
         let readyCount = LockedCounter()
         streamer.onReady = { readyCount.increment() }
@@ -291,7 +291,7 @@ struct DeepgramSocketLifecycleTests {
 @Suite("Production live engine handoff without hardware", .serialized)
 struct DeepgramHandoffIntegrationTests {
     private func makeState(
-        auth: DeepgramAuth,
+        apiKey: String,
         previous: HandoffTranscriber,
         placeholder: HandoffTranscriber,
         nextLocal: HandoffTranscriber,
@@ -299,8 +299,10 @@ struct DeepgramHandoffIntegrationTests {
         streamers: StreamerCapture
     ) -> AppState {
         var localFactoryCalls = 0
+        let keychain = InMemoryKeychain()
+        ProviderKeyStore(store: keychain).setTranscriptionKey(apiKey, for: .deepgram)
         return AppState(
-            credentialStore: InMemoryKeychain(),
+            credentialStore: keychain,
             transcriptionServiceFactory: { engine, _, _, _, _ in
                 switch engine {
                 case .local:
@@ -312,15 +314,14 @@ struct DeepgramHandoffIntegrationTests {
                     return placeholder
                 }
             },
-            deepgramStreamerFactory: { auth, diarize, language, keyterms in
+            deepgramStreamerFactory: { apiKey, diarize, language, keyterms in
                 let streamer = DeepgramStreamer(
-                    auth: auth, diarize: diarize, language: language,
+                    apiKey: apiKey, diarize: diarize, language: language,
                     keyterms: keyterms, transportOverrides: transport.overrides)
                 streamers.append(streamer)
                 return streamer
             },
-            transcriptionEngineAvailability: { _ in true },
-            deepgramAuthOverride: auth)
+            transcriptionEngineAvailability: { _ in true })
     }
 
     @Test("paused production Local route drops audio and Resume starts a clean future chunk")
@@ -374,7 +375,7 @@ struct DeepgramHandoffIntegrationTests {
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
             let state = makeState(
-                auth: .key("unit-key"), previous: previous,
+                apiKey: "unit-key", previous: previous,
                 placeholder: placeholder, nextLocal: nextLocal,
                 transport: transport, streamers: streamers)
             let systemChunker = AudioChunkBuffer(
@@ -416,7 +417,7 @@ struct DeepgramHandoffIntegrationTests {
         let placeholder = HandoffTranscriber(text: "instant placeholder")
         let nextLocal = HandoffTranscriber(text: "next private words")
         let state = makeState(
-            auth: .key("unit-key"),
+            apiKey: "unit-key",
             previous: previous,
             placeholder: placeholder,
             nextLocal: nextLocal,
@@ -450,7 +451,7 @@ struct DeepgramHandoffIntegrationTests {
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
             let state = makeState(
-                auth: .key("unit-key"), previous: previous,
+                apiKey: "unit-key", previous: previous,
                 placeholder: placeholder, nextLocal: nextLocal,
                 transport: transport, streamers: streamers)
             let systemChunker = AudioChunkBuffer(
@@ -489,7 +490,7 @@ struct DeepgramHandoffIntegrationTests {
         Config.transcriptionPostStopFinalPassEnabled = true
 
         let state = makeState(
-            auth: .key("unit-key"),
+            apiKey: "unit-key",
             previous: HandoffTranscriber(text: "private suffix"),
             placeholder: HandoffTranscriber(text: "cloud words"),
             nextLocal: HandoffTranscriber(text: "later private"),
@@ -520,7 +521,7 @@ struct DeepgramHandoffIntegrationTests {
         Config.transcriptionPostStopFinalPassEnabled = true
 
         let state = makeState(
-            auth: .key("unit-key"),
+            apiKey: "unit-key",
             previous: HandoffTranscriber(text: "private words"),
             placeholder: HandoffTranscriber(text: "cloud words"),
             nextLocal: HandoffTranscriber(text: "future private"),
@@ -555,7 +556,7 @@ struct DeepgramHandoffIntegrationTests {
         Config.transcriptionPostStopFinalPassEnabled = true
 
         let state = makeState(
-            auth: .key("unit-key"),
+            apiKey: "unit-key",
             previous: HandoffTranscriber(text: "old private"),
             placeholder: HandoffTranscriber(text: "instant"),
             nextLocal: HandoffTranscriber(text: "new private"),
@@ -597,7 +598,7 @@ struct DeepgramHandoffIntegrationTests {
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
             let state = makeState(
-                auth: .grant { "unit-grant" }, previous: previous,
+                apiKey: "unit-key", previous: previous,
                 placeholder: placeholder, nextLocal: nextLocal,
                 transport: transport, streamers: streamers)
             let systemChunker = AudioChunkBuffer(chunkSeconds: 0.02, overlapSeconds: 0) { _, _ in }
@@ -667,7 +668,6 @@ struct DeepgramHandoffIntegrationTests {
                 state.liveTranscriptionConfiguration().active?.engine == .local
             })
             #expect(state.selectedTranscriptionEngine == .local)
-            pair[0].onFallback?("late test compute cap")
             systemChunker.append(AudioFixtures.voicedBuffer(sampleRate: 16_000, seconds: 0.05))
             micChunker.append(AudioFixtures.voicedBuffer(sampleRate: 16_000, seconds: 0.05))
             #expect(await waitFor { await nextLocal.snapshot().transcriptions > 0 })
@@ -676,6 +676,10 @@ struct DeepgramHandoffIntegrationTests {
             #expect(state.selectTranscriptionEngine(.local))
             // Exercise the chunked-engine branch after the live-stream fallback;
             // this uses the same retained routes rather than installing new taps.
+            // Whisper is runtime BYOK too, so the fixture must model the user's
+            // explicit OpenAI credential instead of bypassing availability.
+            #expect(state.transcriptionProviderKeys.setKey(
+                "unit-openai-key", for: .openAI))
             #expect(state.selectTranscriptionEngine(.whisper))
             #expect(state.liveTranscriptionConfiguration().active?.engine == .whisper)
             #expect(state.selectTranscriptionEngine(.local))
@@ -702,7 +706,7 @@ struct DeepgramHandoffIntegrationTests {
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
             let state = makeState(
-                auth: .grant { "unit-grant" }, previous: previous,
+                apiKey: "unit-key", previous: previous,
                 placeholder: placeholder, nextLocal: nextLocal,
                 transport: transport, streamers: streamers)
             let systemChunker = AudioChunkBuffer(
@@ -785,21 +789,22 @@ struct DeepgramHandoffIntegrationTests {
             let placeholder = HandoffTranscriber(text: "unused placeholder")
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
+            let keychain = InMemoryKeychain()
+            ProviderKeyStore(store: keychain).setTranscriptionKey("unit-key", for: .deepgram)
             let state = AppState(
-                credentialStore: InMemoryKeychain(),
+                credentialStore: keychain,
                 transcriptionServiceFactory: { engine, _, _, _, _ -> TranscriptionService in
                     if engine == .local { return previous }
                     return placeholder
                 },
-                deepgramStreamerFactory: { auth, diarize, language, keyterms in
+                deepgramStreamerFactory: { apiKey, diarize, language, keyterms in
                     let streamer = DeepgramStreamer(
-                        auth: auth, diarize: diarize, language: language,
+                        apiKey: apiKey, diarize: diarize, language: language,
                         keyterms: keyterms, transportOverrides: transport.overrides)
                     streamers.append(streamer)
                     return streamer
                 },
-                transcriptionEngineAvailability: { _ in true },
-                deepgramAuthOverride: .key("unit-key"))
+                transcriptionEngineAvailability: { _ in true })
             let systemChunker = AudioChunkBuffer(chunkSeconds: 0.5, overlapSeconds: 0) { _, _ in }
             let micChunker = AudioChunkBuffer(chunkSeconds: 0.5, overlapSeconds: 0) { _, _ in }
             state.installTestLiveTranscriptionRuntime(
@@ -877,7 +882,7 @@ struct DeepgramHandoffIntegrationTests {
             let transport = InertDeepgramTransport()
             let streamers = StreamerCapture()
             let state = makeState(
-                auth: .key("unit-key"), previous: previous, placeholder: chunked,
+                apiKey: "unit-key", previous: previous, placeholder: chunked,
                 nextLocal: nextLocal, transport: transport, streamers: streamers)
             let systemChunker = AudioChunkBuffer(chunkSeconds: 0.02, overlapSeconds: 0) { _, _ in }
             let micChunker = AudioChunkBuffer(chunkSeconds: 0.02, overlapSeconds: 0) { _, _ in }
@@ -895,6 +900,8 @@ struct DeepgramHandoffIntegrationTests {
             try #require(pair.count == 2)
             #expect(pair[0].markCurrentSocketHealthyForTesting())
             #expect(pair[1].markCurrentSocketHealthyForTesting())
+            #expect(state.transcriptionProviderKeys.setKey(
+                "unit-openai-key", for: .openAI))
             #expect(state.selectTranscriptionEngine(.whisper))
 
             // CloseStream finals describe audio captured before the route changed;
@@ -933,7 +940,7 @@ struct DeepgramHandoffIntegrationTests {
         let transport = InertDeepgramTransport()
         let streamers = StreamerCapture()
         let state = makeState(
-            auth: .grant { "unit-grant" }, previous: previous,
+            apiKey: "unit-key", previous: previous,
             placeholder: placeholder, nextLocal: nextLocal,
             transport: transport, streamers: streamers)
         let systemChunker = AudioChunkBuffer(chunkSeconds: 0.02, overlapSeconds: 0) { _, _ in }
@@ -950,7 +957,9 @@ struct DeepgramHandoffIntegrationTests {
         // of range». Одна флака по таймингу уносила 2612 тестов; `#require`
         // останавливает этот тест и оставляет остальные.
         try #require(pair.count == 2)
-        #expect(pair.allSatisfy { $0.usageReporter != nil && $0.onFallback != nil })
+        // Runtime BYOK never calls the removed first-party usage meter. The
+        // direct provider failure hook is what owns this rollback now.
+        #expect(pair.allSatisfy { $0.onTerminalFailure != nil })
 
         pair[0].onError?("setup warning")
         pair[1].onError?("microphone setup warning")
@@ -958,7 +967,7 @@ struct DeepgramHandoffIntegrationTests {
         pair[1].onInterim?("doomed microphone partial")
         pair[0].onResult?("pre-failure system result", 1)
         pair[1].onResult?("pre-failure microphone result", nil)
-        pair[0].onTerminalFailure?("invalid test grant")
+        pair[0].onTerminalFailure?("invalid test key")
 
         // Сообщение об откате собирается из названия движка, поэтому проверка
         // держится за него. Перевод названий это и поймал: тест ждал
@@ -980,10 +989,9 @@ struct DeepgramHandoffIntegrationTests {
                 && state.transcript.contains(where: { $0.text == "restored local words" })
         })
 
-        // The losing track and the metered fallback can race after rollback;
-        // both must be harmless because the one-shot handoff state was claimed.
+        // The losing track can race after rollback and must be harmless because
+        // the one-shot handoff state was claimed.
         pair[1].onTerminalFailure?("late microphone failure")
-        pair[0].onFallback?("late credit cap")
         pair[0].onReady?()
         pair[1].onReady?()
         await Task.yield()
@@ -1003,8 +1011,10 @@ struct DeepgramHandoffIntegrationTests {
         let transport = InertDeepgramTransport()
         let streamers = StreamerCapture()
         var localFactoryCalls = 0
+        let keychain = InMemoryKeychain()
+        ProviderKeyStore(store: keychain).setTranscriptionKey("unit-key", for: .deepgram)
         let state = AppState(
-            credentialStore: InMemoryKeychain(),
+            credentialStore: keychain,
             transcriptionServiceFactory: { engine, _, _, _, _ -> TranscriptionService in
                 switch engine {
                 case .local:
@@ -1014,15 +1024,14 @@ struct DeepgramHandoffIntegrationTests {
                     return placeholder
                 }
             },
-            deepgramStreamerFactory: { auth, diarize, language, keyterms in
+            deepgramStreamerFactory: { apiKey, diarize, language, keyterms in
                 let streamer = DeepgramStreamer(
-                    auth: auth, diarize: diarize, language: language,
+                    apiKey: apiKey, diarize: diarize, language: language,
                     keyterms: keyterms, transportOverrides: transport.overrides)
                 streamers.append(streamer)
                 return streamer
             },
-            transcriptionEngineAvailability: { _ in true },
-            deepgramAuthOverride: .key("unit-key"))
+            transcriptionEngineAvailability: { _ in true })
         let systemChunker = AudioChunkBuffer(chunkSeconds: 0.5, overlapSeconds: 0) { _, _ in }
         let micChunker = AudioChunkBuffer(chunkSeconds: 0.5, overlapSeconds: 0) { _, _ in }
         state.installTestLiveTranscriptionRuntime(

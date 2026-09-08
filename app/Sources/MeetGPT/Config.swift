@@ -12,19 +12,20 @@ enum TranscriptionEngine: String, CaseIterable, Identifiable, Codable {
     /// Engines shown in Settings. `.server` (Cruxwing large-v3) is offered
     /// whenever a backend is configured in this build — availability (sign-in)
     /// is explained by the row itself rather than hiding the option.
-    /// Rows Settings offers. Both "Accurate" engines are withheld for now:
+    /// Rows Settings offers. Both legacy "Accurate" engines are withheld:
     ///
     ///  - `.server` (large-v3 on Cruxwing) was withheld because the backend had
     ///    no box behind it. That premise expired: `api.cruxwing.ai` resolves and
     ///    answers (`/health` → ok). The row stays withheld pending a check that
     ///    the deployed box actually serves transcription at usable latency —
     ///    reachable is not the same as ready.
-    ///  - `.whisper` is bring-your-own-OpenAI-key, which contradicts the app
-    ///    going keyless, and rendered as a second row also titled "Accurate".
+    ///  - `.whisper` historically reused the OpenAI chat key for meeting audio.
+    ///    A hidden audio-upload route cannot count as informed consent; a future
+    ///    restoration needs its own transcription credential and visible row.
     ///
-    /// Neither engine is deleted — `engineAvailable` still governs them and a
-    /// saved preference keeps working — so restoring a row is deleting a line
-    /// from `withheld` once the box is deployed.
+    /// The implementations remain for inherited-development compatibility, but
+    /// hidden rows fail closed at runtime. Restoring one requires removing it
+    /// from `withheld` and completing the corresponding consent boundary.
     static let withheld: Set<TranscriptionEngine> = [.server, .whisper]
 
     static var selectableCases: [TranscriptionEngine] {
@@ -148,45 +149,42 @@ enum Config {
     private static let credentialCache = CredentialMemoryCache()
     private static let devTierPreviewRuntimeGate = DevTierPreviewRuntimeGate()
     private static let credentialPersistenceQueue = DispatchQueue(
-        label: "ai.wheespr.meetgpt.credential-persistence",
+        label: "ai.orakul.desktop.credential-persistence",
         qos: .utility)
     // MARK: Ключи провайдеров
     //
-    // Два источника, порядок важен: сначала ключ, введённый в настройках
-    // (`ProviderKeyStore`, Связка ключей), потом зашитый при сборке из
-    // `mac/.env`.
-    //
-    // У Cruxwing пользовательский ввод убрали, когда появился серверный шлюз:
-    // ключи уехали на сервер. orakul этот код унаследовал, но сервера у него
-    // нет, а в готовые установщики ключи не зашиваются намеренно — без ввода
-    // в настройках ИИ-ответы там не работают вовсе.
+    // Единственный источник — ключ, который пользователь ввёл в настройках и
+    // который хранится в macOS Keychain. Ни публичная, ни локальная сборка не
+    // читает LLM-ключи из .env и не содержит резервного зашитого значения.
     static var openAIAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .openAI, baked: Secrets.openAIAPIKey)
+        ProviderKeyStore.current.key(for: .openAI) ?? ""
     }
     static var anthropicAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .anthropic, baked: Secrets.anthropicAPIKey)
+        ProviderKeyStore.current.key(for: .anthropic) ?? ""
     }
     static var googleAIAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .google, baked: Secrets.googleAIAPIKey)
+        ProviderKeyStore.current.key(for: .google) ?? ""
     }
-    /// У Яндекса зашитого ключа нет вовсе: провайдер появился уже после того,
-    /// как ключи перестали попадать в сборку. Значит, только из настроек.
     static var yandexGPTAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .yandexGPT, baked: "")
+        ProviderKeyStore.current.key(for: .yandexGPT) ?? ""
     }
-    static var deepgramAPIKey: String { Secrets.deepgramAPIKey }
-    static var assemblyAIAPIKey: String { Secrets.assemblyAIAPIKey }
+    static var deepgramAPIKey: String {
+        ProviderKeyStore.current.transcriptionKey(for: .deepgram) ?? ""
+    }
+    static var assemblyAIAPIKey: String {
+        ProviderKeyStore.current.transcriptionKey(for: .assemblyAI) ?? ""
+    }
     static var deepSeekAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .deepSeek, baked: Secrets.deepSeekAPIKey)
+        ProviderKeyStore.current.key(for: .deepSeek) ?? ""
     }
     static var dashScopeAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .qwen, baked: Secrets.dashScopeAPIKey)
+        ProviderKeyStore.current.key(for: .qwen) ?? ""
     }
     static var zhipuAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .zhipu, baked: Secrets.zhipuAPIKey)
+        ProviderKeyStore.current.key(for: .zhipu) ?? ""
     }
     static var moonshotAPIKey: String {
-        ProviderKeyStore.current.resolvedKey(for: .moonshot, baked: Secrets.moonshotAPIKey)
+        ProviderKeyStore.current.key(for: .moonshot) ?? ""
     }
     static var hubSpotClientID: String { Secrets.hubSpotClientID }
     static var hubSpotClientSecret: String { Secrets.hubSpotClientSecret }
@@ -310,6 +308,11 @@ enum Config {
             && !backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// Commercial usage limits belong only to the inherited managed gateway.
+    /// Public Orakul calls providers with the user's own key, so it must not
+    /// meter or disable those requests behind an Orakul allowance.
+    static var managedUsageLimitsEnabled: Bool { llmViaBackend }
+
     /// Council mode: answers come from a multi-model US+CN panel with a
     /// chairman synthesis (LLM_GATEWAY=ensemble).
     static var llmViaEnsemble: Bool { Secrets.llmGateway.lowercased() == "ensemble" }
@@ -426,7 +429,7 @@ enum Config {
     }
 
     /// The user's job position (RoleSkillMatrix position id, e.g.
-    /// "product-manager"). Selects the role skill layer applied to every AI
+    /// "product-manager"). Selects the role-framing layer applied to every AI
     /// action; nil = no role layer.
     static var userRoleID: String? {
         get { UserDefaults.standard.string(forKey: "skills.userRole") }
@@ -435,7 +438,7 @@ enum Config {
 
     /// Free-text role description, used when `userRoleID` is
     /// `RoleSkillMatrix.customRoleID` — for users whose job isn't in the
-    /// bundled position list (or who want more nuance than a title).
+    /// built-in position list (or who want more nuance than a title).
     static var userCustomRole: String {
         get { UserDefaults.standard.string(forKey: "skills.userCustomRole") ?? "" }
         set { UserDefaults.standard.set(newValue, forKey: "skills.userCustomRole") }
@@ -503,9 +506,21 @@ enum Config {
         set { UserDefaults.standard.set(newValue, forKey: "grounding.ledger") }
     }
 
-    /// Whether the async brainstormer runs during a call.
+    /// Master consent for provider calls the user did not trigger with a Send
+    /// or other explicit action. Direct BYOK makes those calls billable on the
+    /// user's own account, so a fresh install must make none until this switch
+    /// is deliberately enabled.
+    static var automaticProviderRequestsEnabled: Bool {
+        get { UserDefaults.standard.object(
+            forKey: "ai.automaticProviderRequests") as? Bool ?? false }
+        set { UserDefaults.standard.set(
+            newValue, forKey: "ai.automaticProviderRequests") }
+    }
+
+    /// Whether the async brainstormer runs during a call. Off until the user
+    /// explicitly opts in: direct BYOK requests are billed by their provider.
     static var brainstormEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "brainstorm.enabled") as? Bool ?? true }
+        get { UserDefaults.standard.object(forKey: "brainstorm.enabled") as? Bool ?? false }
         set { UserDefaults.standard.set(newValue, forKey: "brainstorm.enabled") }
     }
 
@@ -547,9 +562,10 @@ enum Config {
         set { UserDefaults.standard.set(newValue, forKey: "copilot.facilitation") }
     }
 
-    /// Whether the async agenda + framing checker runs during a call.
+    /// Whether the async agenda + framing checker runs during a call. Like all
+    /// automatic provider work, it requires an explicit opt-in.
     static var agendaCheckerEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: "agendacheck.enabled") as? Bool ?? true }
+        get { UserDefaults.standard.object(forKey: "agendacheck.enabled") as? Bool ?? false }
         set { UserDefaults.standard.set(newValue, forKey: "agendacheck.enabled") }
     }
 
@@ -581,21 +597,21 @@ enum Config {
         }
     }
 
-    /// Temporarily expose the real purchased entitlement to the secured live
-    /// suite. This is deliberately process-local and dev-only; it neither
-    /// removes nor rewrites the developer's saved preview.
+    /// Temporarily suppress the developer capability preview for compatibility
+    /// tests. This is process-local and dev-only; it never grants access.
     static func setLiveTestRealEntitlementMode(_ active: Bool) {
         guard isDevBuild else { return }
         devTierPreviewRuntimeGate.setSuppressed(active)
     }
 
-    /// Baseline plan floor from `DEFAULT_TIER` (mac/.env) — operator/dev default
-    /// or a paid entitlement later. Default free.
+    /// Baseline plan floor from `DEFAULT_TIER` (app/.env) — operator/dev default
+    /// retained for compatibility tests. The public Orakul path below always
+    /// exposes the full catalog.
     static var baselineTier: Tier {
         Tier(rawValue: Secrets.defaultTier.lowercased()) ?? .free
     }
 
-    /// Tier purchased through the paywall (Stripe) — a hard floor.
+    /// Legacy purchased-tier compatibility read by the optional backend profile.
     static var purchasedTier: Tier? {
         get { Tier(rawValue: UserDefaults.standard.string(forKey: "billing.purchasedTier") ?? "") }
         set { UserDefaults.standard.set(newValue?.rawValue, forKey: "billing.purchasedTier") }
@@ -624,27 +640,6 @@ enum Config {
     static var currentTier: Tier {
         if let preview = devTierOverride { return preview }
         return .ultra
-    }
-
-    /// The paywall was answered (subscribed or explicit "continue with Free").
-    static var paywallChoiceMade: Bool {
-        get { UserDefaults.standard.bool(forKey: "billing.paywallChoiceMade") }
-        set { UserDefaults.standard.set(newValue, forKey: "billing.paywallChoiceMade") }
-    }
-
-    /// Платный экран в orakul не показывается никогда.
-    ///
-    /// Не «отложен до появления тарифов» — их не будет. Экран, который просит
-    /// денег за то, что и так бесплатно, стоит доверия ровно столько же,
-    /// сколько кнопка «Подключить», ведущая в никуда.
-    ///
-    /// Сам экран из кода не выпилен: он тянет за собой покупки, состояния
-    /// аккаунта и половину настроек. Он просто недостижим, и это закреплено
-    /// тестом.
-    static var shouldShowPaywall: Bool { false }
-
-    static func markPostTrialPromptShown() {
-        UserDefaults.standard.set(true, forKey: "billing.postTrialPromptShown")
     }
 
     /// Two-tier selection: PROVIDER ("auto" or an LLMProvider rawValue) and
@@ -902,63 +897,63 @@ enum Config {
         }
     }
 
-    /// A stable per-install id used to mint a device-scoped account when a promo
-    /// code is redeemed without signing in (see PaywallAPI.deviceRedeem). Generated
-    /// once and persisted; a plain UUID satisfies the backend's device-id format.
-    static var deviceId: String {
-        if let existing = UserDefaults.standard.string(forKey: "device.id"),
-           existing.count >= 8 { return existing }
-        let id = UUID().uuidString.lowercased()
-        UserDefaults.standard.set(id, forKey: "device.id")
-        return id
-    }
+    // MARK: Transcription tuning
 
-    /// Opt out of first-party, anonymous funnel telemetry (FunnelTracker). Default
-    /// off = telemetry on; anonymous + no PII, but the user can disable it entirely.
-    static var funnelOptOut: Bool {
-        get { UserDefaults.standard.bool(forKey: "funnel.optOut") }
-        set { UserDefaults.standard.set(newValue, forKey: "funnel.optOut") }
-    }
-
-    // MARK: Transcription tuning (build-time, from mac/.env — not in the UI)
-
-    /// Default to the on-device engine (WhisperKit) when unset/unrecognized —
-    /// audio never leaves the Mac unless the operator explicitly opts into a
-    /// cloud engine (`server`/`whisper`/`deepgram`) in mac/.env.
-    /// The active engine: the user's Settings choice when it's available in
-    /// this build, else the build default (env), else on-device. Applied on the
-    /// next recording.
+    /// The active engine is the user's available Settings choice, then the
+    /// non-secret build default, then on-device WhisperKit. Cloud routes remain
+    /// unavailable until the user adds the corresponding key at runtime (or,
+    /// for the legacy server route, signs in to a configured backend). The
+    /// choice takes effect on the next recording.
     static var transcriptionEngineValue: TranscriptionEngine {
-        get {
-            if let saved = UserDefaults.standard.string(forKey: "transcription.engine"),
-               let engine = TranscriptionEngine(rawValue: saved),
-               engineAvailable(engine) { return engine }
-            let env = TranscriptionEngine(rawValue: Secrets.transcriptionEngine.lowercased()) ?? .local
-            return engineAvailable(env) ? env : .local
-        }
+        get { transcriptionEngineValue(using: ProviderKeyStore.current) }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: "transcription.engine") }
     }
 
-    /// Whether an engine can actually run in this build (cloud engines need
-    /// their key baked or a managed path; on-device always works).
+    /// Resolve the saved route against one explicit credential store. This is
+    /// used by AppState initialization before any process-global Keychain read,
+    /// keeping injected tests—and alternate signed builds—inside their store.
+    ///
+    /// An unavailable saved cloud route is normalized, not merely hidden. Key
+    /// presence unlocks a Settings row; it is not permission to resurrect an old
+    /// upload choice on a later launch without the user selecting that row again.
+    static func transcriptionEngineValue(using providerKeys: ProviderKeyStore) -> TranscriptionEngine {
+        if let saved = UserDefaults.standard.string(forKey: "transcription.engine"),
+           let engine = TranscriptionEngine(rawValue: saved) {
+            if engineAvailable(engine, providerKeys: providerKeys) { return engine }
+            if engine != .local {
+                UserDefaults.standard.set(
+                    TranscriptionEngine.local.rawValue, forKey: "transcription.engine")
+            }
+            return .local
+        }
+        let env = TranscriptionEngine(rawValue: Secrets.transcriptionEngine.lowercased()) ?? .local
+        return engineAvailable(env, providerKeys: providerKeys) ? env : .local
+    }
+
+    /// Whether an engine can actually run now. Cloud engines require a key the
+    /// user entered at runtime; the app has no baked or managed credential.
     /// `.server` (Cruxwing Whisper large-v3) is live: it needs a backend AND a
     /// signed-in session — the gateway meters per user, and an anonymous
     /// first-run must keep transcribing on-device instead of erroring.
     static var serverWhisperEnabled: Bool { true }
 
     static func engineAvailable(_ engine: TranscriptionEngine) -> Bool {
+        engineAvailable(engine, providerKeys: ProviderKeyStore.current)
+    }
+
+    static func engineAvailable(_ engine: TranscriptionEngine,
+                                providerKeys: ProviderKeyStore) -> Bool {
+        // A stored preference or build default must never resurrect a hidden
+        // cloud upload route. In particular, an OpenAI chat key is not consent
+        // to send meeting audio to the legacy Whisper API path.
+        guard TranscriptionEngine.selectableCases.contains(engine) else { return false }
         switch engine {
         case .local:    return true
         case .server:   return serverWhisperEnabled
-            && !backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && llmViaBackend
             && wheesprSession != nil
-        // Deepgram: a baked/BYO key (operator's own Deepgram bill) or, keyless,
-        // the backend's short-lived token grant — signed-in only, billed from
-        // the shared compute-credit pool at the deepgram chunk rate.
-        case .deepgram: return !deepgramAPIKey.isEmpty
-            || (!backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && wheesprSession != nil)
-        case .whisper:  return !openAIAPIKey.isEmpty
+        case .deepgram: return providerKeys.hasTranscriptionKey(for: .deepgram)
+        case .whisper:  return false
         }
     }
 
@@ -1149,12 +1144,12 @@ enum Config {
     }
 
     /// After a call ends (and when importing Fireflies), merge Whisper captions
-    /// with the Fireflies MCP transcript via the LLM. Default on — opt out in
-    /// Settings → Transcription. No-ops when Fireflies is not connected.
+    /// with the Fireflies MCP transcript via the selected LLM. Off until the
+    /// user explicitly opts in because it spends their provider account.
     static var firefliesTranscriptEnhanceEnabled: Bool {
         get {
             if UserDefaults.standard.object(forKey: "transcription.firefliesEnhance") == nil {
-                return true
+                return false
             }
             return UserDefaults.standard.bool(forKey: "transcription.firefliesEnhance")
         }

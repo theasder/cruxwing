@@ -1,8 +1,8 @@
 #!/bin/bash
 # Live end-to-end test of the REAL installed app — run after each change:
 #
-#   bash mac/livetest.sh              # build + install + run the scenario
-#   SKIP_BUILD=1 bash mac/livetest.sh # scenario only (app already installed)
+#   bash app/livetest.sh              # build + install + run the scenario
+#   SKIP_BUILD=1 bash app/livetest.sh # scenario only (app already installed)
 #
 # Scenario: launch the app -> start recording -> play a scripted "call"
 # through the speakers (`say`; the system-audio capture hears it exactly like
@@ -14,8 +14,8 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="/Applications/Cruxwing.app"
-STATE_JSON="/tmp/cruxwing-livetest-state.json"
+APP="/Applications/orakul.app"
+STATE_JSON="/tmp/orakul-livetest-state.json"
 SPEAK_SECONDS_MIN=26          # two 6s chunks per source + margin
 AI_TIMEOUT=90
 MARKER_BUDGET="forty thousand"     # must appear in the transcript
@@ -41,7 +41,7 @@ send() { # send <notification> [key value] — JXA: no python deps needed
             -e "\$.NSDistributedNotificationCenter.defaultCenter.postNotificationNameObjectUserInfoDeliverImmediately(\$('$1'), \$(), \$(), true);" >/dev/null
     fi
 }
-dump() { rm -f "$STATE_JSON"; send ai.cruxwing.livetest.dumpState path "$STATE_JSON"
+dump() { rm -f "$STATE_JSON"; send ai.orakul.desktop.livetest.dumpState path "$STATE_JSON"
          for _ in $(seq 1 20); do [ -f "$STATE_JSON" ] && break; sleep 0.25; done
          [ -f "$STATE_JSON" ] || { echo "!! no state dump — is the dev app running?"; return 1; }; }
 jqv() { python3 -c "import json,sys;d=json.load(open('$STATE_JSON'));print(d$1)"; }
@@ -51,7 +51,7 @@ if [ "${SKIP_BUILD:-0}" != "1" ]; then
     echo ">> building + installing"
     bash "$ROOT/build.sh" >/tmp/livetest-build.log 2>&1 || { echo "!! build failed — see /tmp/livetest-build.log"; exit 2; }
 fi
-osascript -e 'quit app "Cruxwing"' >/dev/null 2>&1; sleep 2
+osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1; sleep 2
 TEST_START="$(date '+%Y-%m-%d %H:%M:%S')"
 open "$APP"; sleep 6
 dump || exit 2
@@ -59,7 +59,7 @@ check "app responds to hooks" $? "state dump received"
 
 # ── 1 · create the call ─────────────────────────────────────────────────────
 echo ">> starting recording"
-send ai.cruxwing.livetest.toggleRecording
+send ai.orakul.desktop.livetest.toggleRecording
 sleep 5
 dump
 [ "$(jqv "['isRecording']")" = "True" ]; check "recording started" $? "status=$(jqv "['status']")"
@@ -108,7 +108,7 @@ check "transcript language matches spoken language" $? "$LANG_DETAIL"
 # ── 3 · press prompt buttons ────────────────────────────────────────────────
 for BUTTON in summary tasks; do
     echo ">> pressing '$BUTTON'"
-    send ai.cruxwing.livetest.runPrompt id "$BUTTON"
+    send ai.orakul.desktop.livetest.runPrompt id "$BUTTON"
     OK=1
     for _ in $(seq 1 "$AI_TIMEOUT"); do
         sleep 1; dump >/dev/null 2>&1 || continue
@@ -123,9 +123,9 @@ done
 
 # ── 4 · stop + audio-pipeline analysis from persisted logs ──────────────────
 echo ">> stopping recording"
-send ai.cruxwing.livetest.toggleRecording; sleep 3
+send ai.orakul.desktop.livetest.toggleRecording; sleep 3
 echo ">> analyzing persisted audio heartbeats since $TEST_START"
-LOGS="$(log show --start "$TEST_START" --predicate 'subsystem == "ai.wheespr.meetgpt"' 2>/dev/null)"
+LOGS="$(log show --start "$TEST_START" --predicate 'subsystem == "ai.orakul.desktop"' 2>/dev/null)"
 echo "$LOGS" | grep -E "Mic tap:" | tail -2
 echo "$LOGS" | grep -E "sysaudio:" | tail -3
 FINAL="$(echo "$LOGS" | grep -E "chunker\[(mic|system)\] final" | tail -2)"

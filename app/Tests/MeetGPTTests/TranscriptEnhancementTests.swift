@@ -45,6 +45,28 @@ private actor FirefliesFetchCounter {
 struct TranscriptEnhancementTests {
 
     @MainActor
+    @Test("turning automatic requests off while idle cancels the pending Fireflies merge")
+    func automaticMasterOffCancelsIdleFirefliesSchedule() async {
+        await SharedDefaults.withConfigLock {
+            let saved = Config.automaticProviderRequestsEnabled
+            defer { Config.automaticProviderRequestsEnabled = saved }
+            Config.automaticProviderRequestsEnabled = true
+
+            let state = AppState(
+                llm: MockLLMGateway(response: "must not be requested"),
+                credentialStore: InMemoryKeychain())
+            #expect(state.status == .idle)
+            state.scheduleAutomaticFirefliesEnhanceForTesting()
+            #expect(state.firefliesEnhancePending)
+
+            state.setAutomaticProviderRequestsEnabled(false)
+
+            #expect(Config.automaticProviderRequestsEnabled == false)
+            #expect(!state.firefliesEnhancePending)
+        }
+    }
+
+    @MainActor
     @Test("an old call Fireflies import cannot attach context to a new call")
     func staleImportCannotMutateNewCall() async {
         let gate = FirefliesFetchGate()

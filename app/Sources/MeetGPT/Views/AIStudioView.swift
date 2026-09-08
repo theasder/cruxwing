@@ -13,12 +13,6 @@ struct AIStudioView: View {
     @State private var exportingElsewhere = false
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.aiStudio)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
                 .padding(.horizontal, Space.l)

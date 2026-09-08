@@ -71,7 +71,7 @@ struct ConnectorProbeStrategyTests {
         // conclude users love a feature, and the usage number is not in the
         // transcript. If the readFor does not license disagreement, it will not.
         for id in ["posthog", "amplitude", "mixpanel"] {
-            let probe = try? #require(ConnectorProbeStrategy.probe(forServerID: id))
+            let probe = ConnectorProbeStrategy.probe(forServerID: id)
             let readFor = probe?.readFor.lowercased() ?? ""
             #expect(readFor.contains("not") || readFor.contains("versus"),
                     "\(id) never licenses contradicting the room")

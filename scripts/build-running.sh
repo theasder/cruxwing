@@ -18,6 +18,18 @@
 # строке того, кто вызывает этот файл, — оно осталось внутри файла.
 set -uo pipefail
 
+# macOS keeps `lsof` in /usr/sbin, which is absent from the stripped PATH used
+# by some editors and package runners. A missing inspector must fail closed:
+# allowing a mutation when we cannot identify the build would defeat the guard.
+if command -v lsof >/dev/null 2>&1; then
+    lsof_bin=$(command -v lsof)
+elif [ -x /usr/sbin/lsof ]; then
+    lsof_bin=/usr/sbin/lsof
+else
+    echo "НЕ УДАЛОСЬ ПРОВЕРИТЬ СБОРКУ: lsof не найден" >&2
+    exit 0
+fi
+
 # `pwd` без -P печатает логический путь: в /tmp это /var/folders/…, а lsof
 # всегда отдаёт физический /private/var/folders/… — сравнение молча не
 # совпадало бы у всякого, чей клон лежит за символической ссылкой.
@@ -25,7 +37,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)
 
 for pid in $(pgrep -f 'dist-all\.sh' 2>/dev/null); do
     [ "$pid" = "$$" ] && continue
-    cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
+    cwd=$("$lsof_bin" -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1)
     [ -z "$cwd" ] && continue
     case "$cwd" in
         "$root"/*|"$root") echo "СБОРКА ИДЁТ: pid $pid в $cwd"; exit 0 ;;

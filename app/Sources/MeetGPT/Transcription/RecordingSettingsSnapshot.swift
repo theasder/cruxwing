@@ -36,9 +36,11 @@ struct RecordingSettingsSnapshot: Equatable {
                 localDiarizationRemoteSpeakerCount)
     }
 
-    static func configured() -> RecordingSettingsSnapshot {
+    static func configured(
+        engine: TranscriptionEngine = Config.transcriptionEngineValue
+    ) -> RecordingSettingsSnapshot {
         RecordingSettingsSnapshot(
-            engine: Config.transcriptionEngineValue,
+            engine: engine,
             language: Config.transcriptionLanguage,
             localModel: Config.localWhisperModel,
             microphoneNoiseSuppression: Config.micNoiseSuppressionEnabled,

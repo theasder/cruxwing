@@ -34,20 +34,15 @@ struct MeetGPTApp: App {
     init() {
         // Apply the saved light/dark theme before any window appears.
         NSApplication.shared.appearance = Config.appAppearance.nsAppearance
-        // Channel watcher (Team sources) — runs when enabled + keywords set.
+        // Channel watcher (Team sources) — default-off, and runs only after the
+        // user has explicitly enabled it and configured keywords.
         Task { @MainActor in TeamWatcher.shared.apply() }
-        // Server-truth entitlement refresh (cancellations downgrade at launch).
-        Task { await PaywallAPI.refreshEntitlement() }
-        // Single-source model catalog: hydrate from the backend, fallback offline (M6b).
-        Task { await LLMCatalog.hydrate() }
-        // Funnel: app opened (anonymous, cookieless — see FunnelTracker).
-        FunnelTracker.track(.appOpen)
         // Load the vendored Agent Skills from the bundle (observable in Console).
-        let bundled = BundledSkillLibrary.all
-        Log.general.info("Loaded \(bundled.count, privacy: .public) bundled skill(s)")
+        let reviewed = BundledSkillLibrary.rankable
+        Log.general.info("Loaded \(reviewed.count, privacy: .public) runtime-reviewed bundled skill(s)")
         // Warm on-device sentence embeddings for relevance ranking (utility QoS).
         Task.detached(priority: .utility) {
-            BundledSkillEmbeddingIndex.ensureBuilt(library: bundled)
+            BundledSkillEmbeddingIndex.ensureBuilt(library: reviewed)
             let n = BundledSkillEmbeddingIndex.cachedCount
             if n > 0 {
                 Log.general.info("Skill embedding index ready (\(n, privacy: .public) vectors)")
@@ -79,6 +74,10 @@ struct MeetGPTApp: App {
                             // hop explicit and race-free, and the snapshot is
                             // taken per request so a mid-session connect is seen.
                             await MainActor.run { () -> AgenticReadExecutor? in
+                                // The global pause is a consent boundary, not a
+                                // hint for only the preloaded grounding path.
+                                // Agentic mid-answer reads must obey it too.
+                                guard state.useConnectedAppsInPrompts else { return nil }
                                 let servers = mcp.researchableServers
                                 guard !servers.isEmpty else { return nil }
                                 // Snapshot the tool lists here, on the actor —
@@ -99,32 +98,6 @@ struct MeetGPTApp: App {
                         },
                         isRecording: { await MainActor.run { state.isRecording } },
                         onTurnComplete: { _ in })
-                    // A cold WhisperKit model can take long enough that several
-                    // live chunks queue before the first caption appears. Warm it
-                    // as soon as the app opens so Record starts transcript-ready.
-                    state.prewarmLocalModelIfNeeded()
-                    // Claim the one-off device trial so a first-run user has real
-                    // credits to spend instead of "sign in to see credits".
-                    // Silent and best-effort: it no-ops when a session already
-                    // exists, and every failure leaves the signed-out state the
-                    // app already renders. In a Task so a slow or unreachable
-                    // backend never delays the window appearing.
-                    Task {
-                        // Flagged so the credit badge shows "loading" rather
-                        // than telling a brand-new user to sign in and then
-                        // taking it back a second later.
-                        let firstLaunch = Config.wheesprSession == nil
-                        if firstLaunch { await MainActor.run { state.trialClaimInFlight = true } }
-                        let claimed = await PaywallAPI.claimDeviceTrial()
-                        await MainActor.run {
-                            state.trialClaimInFlight = false
-                            if claimed { state.refreshEntitlementAfterRedeem() }
-                        }
-                    }
-                    // Retry any feedback submitted while offline. Makes no
-                    // request when nothing is queued, which is every launch
-                    // once the first meeting has been answered and delivered.
-                    Task { await FeedbackUploader.flush() }
                 }
         }
         .windowStyle(.hiddenTitleBar)

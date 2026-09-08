@@ -1,10 +1,8 @@
 import Foundation
 
-/// The server/purchased entitlement is the tariff truth. Engagement is useful
-/// product telemetry, but must never silently unlock an unbounded provider bill.
+/// Legacy capability-tier adapter retained while tariff-shaped call sites are
+/// isolated from the public target. It never derives access from engagement.
 enum TierPolicy {
-    static let paywallReminderDays = 7
-
     static func effectiveTier(stats _: UsageStats, floor: Tier) -> Tier {
         floor
     }

@@ -44,7 +44,7 @@ final class ServerWhisperTranscription: TranscriptionService {
                           userInfo: [NSLocalizedDescriptionKey: "BACKEND_URL для серверного Whisper указан неверно."])
         }
 
-        let boundary = "meetgpt-\(UUID().uuidString)"
+        let boundary = "orakul-\(UUID().uuidString)"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 90

@@ -1,11 +1,9 @@
 import Foundation
 
-/// Subscription tier. Gates which LLMs the user may select ("tariff
-/// architecture"). Ordered free < pro < premium via `rank`.
-///
-/// For now the current tier is stored locally (`Config.currentTier`); the
-/// backend will become the source of truth when the managed/proxy gateway
-/// lands (see `LLMGateway`).
+/// Inherited capability levels used by model-routing and prompt-budget code.
+/// Public Orakul has no subscriptions: `Config.currentTier` always exposes the
+/// highest level, while these cases remain until the old tariff-shaped call
+/// sites are removed. Ordered free < pro < premium < ultra via `rank`.
 enum Tier: String, CaseIterable, Codable, Identifiable {
     case free, pro, premium, ultra
 
@@ -82,10 +80,10 @@ enum LLMProvider: String, Codable, CaseIterable {
         }
     }
 
-    /// A provider is offered in the UI only when it can actually serve:
-    /// its key is baked in — or the managed backend holds the keys.
-    /// Whether this provider's key is baked into THIS build (direct client
-    /// usable). Council/ensemble runs on direct clients only — the backend
+    /// A provider is offered in the UI only when it can actually serve.
+    /// Whether this provider has a direct key supplied by the user. Every build
+    /// reads LLM credentials from Keychain; app/.env is never a fallback.
+    /// Council/ensemble runs on direct clients only — the inherited backend
     /// gateway serves single-model chat, not multi-model panels — so council
     /// availability checks this, never the backend shortcut below.
     var hasDirectKey: Bool {
@@ -187,10 +185,9 @@ struct LLMModel: Identifiable, Hashable {
     /// Verified input context window, or nil when it has not been verified.
     ///
     /// Gates opt-in full-context mode (backlog item 12). `nil` means NOT
-    /// OFFERED rather than unknown-so-try: guessing a window would sell credits
-    /// for a request the provider then rejects for exceeding it. Mirrors
-    /// `contextTokens` in cruxwing-api/functions/models.js, carried across in
-    /// the shared contract.
+    /// OFFERED rather than unknown-so-try: guessing a window could send a
+    /// request the provider rejects for exceeding it. The local catalogue is
+    /// the sole public source of this metadata.
     let contextTokens: Int?
 
     /// Immutable picker selection captured for this request. This differs from
@@ -462,8 +459,8 @@ enum LLMCatalog {
 
     /// Offer a council only when it has a real panel (≥2 configured providers).
     /// Both jurisdictions (US and China) are offered symmetrically once enough
-    /// of their providers have direct keys (product decision revised 2026-07,
-    /// see launch/DECISIONS.md D11 — the earlier China-off decision is reversed).
+    /// of their providers have direct keys. Availability follows configuration,
+    /// not a hard-coded jurisdiction preference.
     static func councilAvailable(_ jurisdiction: LLMProvider.Jurisdiction, for tier: Tier) -> Bool {
         return councilPanel(jurisdiction, for: tier).count >= 2
     }

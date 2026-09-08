@@ -11,7 +11,7 @@ final class SystemAudioCapture: NSObject {
     typealias BufferHandler = (AVAudioPCMBuffer) -> Void
 
     private var stream: SCStream?
-    private let outputQueue = DispatchQueue(label: "meetgpt.systemaudio.output")
+    private let outputQueue = DispatchQueue(label: "ai.orakul.desktop.systemaudio.output")
     private var onBuffer: BufferHandler?
     /// Кого позвать, если macOS оборвала поток на середине записи.
     ///

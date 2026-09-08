@@ -98,8 +98,19 @@ struct AutoOrchestratorFailoverTests {
             fallbackResolver: { _, _, _ in resolvedFallbacks })
     }
 
+    private func globalAutoRoute() -> (primary: LLMModel, alternates: [LLMModel]) {
+        let primary = AutoOrchestrator.route(.light, tier: .premium, hasImages: false)
+        let alternates = [openAI, google, anthropic]
+            .filter { $0.provider != primary.provider }
+        return (primary, alternates)
+    }
+
     private func errorSource(for provider: LLMProvider) -> String {
-        provider == .google ? "Gemini" : provider.label
+        switch provider {
+        case .google: return "Gemini"
+        case .zhipu: return "Zhipu GLM"
+        default: return provider.label
+        }
     }
 
     @Test("captured provider-pinned Auto selection beats a later live setting")
@@ -130,73 +141,75 @@ struct AutoOrchestratorFailoverTests {
         }
     }
 
-    @Test("a selected provider's HTTP 402 falls back before output without duplicate deltas")
-    func selectedProviderFundingFallback() async throws {
-        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
-        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
-        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
-        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
-        // а не унаследовано от машины.
-        try await withoutProviderKeys {
+    @Test("provider-pinned Auto stays within its chosen provider on failure")
+    func providerPinnedAutoFailsClosed() async {
+        await withSeededProviderKeys {
+            let gateway = FailoverScriptGateway([
+                .init(deltas: [], result: .failure(
+                    LLMError.http("OpenAI", 503, "private upstream body"))),
+                .init(deltas: ["must not run"], result: .success("must not run")),
+            ])
+            let sut = orchestrator(
+                gateway, selection: "auto:openAI", fallbacks: [google])
+
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "short", images: [], model: LLMCatalog.auto,
+                    onDelta: { _ in })
+                Issue.record("expected bounded provider failure")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(error.attempts == [
+                    .init(provider: .openAI, category: .unavailable),
+                ])
+                #expect(!error.localizedDescription.contains("private upstream body"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.map(\.provider) == [.openAI])
+        }
+    }
+
+    @Test("a concrete model failure never sends the request to another provider")
+    func concreteSelectionFailsClosed() async {
+        await withoutProviderKeys {
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
                     LLMError.http("OpenAI", 402, #"{"error":"not enough funds"}"#))),
-                .init(deltas: ["funded ", "answer"], result: .success("funded answer")),
+                .init(deltas: ["must not run"], result: .success("must not run")),
             ])
             let sut = orchestrator(gateway, selection: openAI.id)
-            var deltas: [String] = []
 
-            let answer = try await sut.streamChat(
-                system: "s", user: "u", images: [], model: openAI,
-                maxOutputTokens: 321, onDelta: { deltas.append($0) })
-
-            #expect(answer == "funded answer")
-            #expect(deltas == ["funded ", "answer"])
-            #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
-            #expect(gateway.calledOutputBudgets == [321, 321])
+            do {
+                _ = try await sut.streamChat(
+                    system: "s", user: "u", images: [], model: openAI,
+                    maxOutputTokens: 321, onDelta: { _ in })
+                Issue.record("expected bounded provider failure")
+            } catch let error as AutoOrchestrator.ProviderFailoverError {
+                #expect(error.attempts == [
+                    .init(provider: .openAI, category: .funding),
+                ])
+                #expect(!error.localizedDescription.contains("not enough funds"))
+            } catch {
+                Issue.record("unexpected error: \(type(of: error))")
+            }
+            #expect(gateway.calledModels.map(\.provider) == [.openAI])
+            #expect(gateway.calledOutputBudgets == [321])
         }
     }
 
     @Test("Auto recovers from a funding 429 on a different configured vendor")
     func autoFundingFallback() async throws {
-        // Здесь ключи ЗАСЕЯНЫ, а не пусты, и это не мелочь: проверке нужен
-        // непустой пул настроенных провайдеров, иначе `guard` ниже выходит из
-        // теста и он перестаёт что-либо утверждать. Первая моя правка закрепила
-        // тут пустое хранилище и превратила шаткую проверку в вечно пустую —
-        // сторож, который не может сработать, вместо срабатывающего раз в
-        // двадцать прогонов.
         try await withSeededProviderKeys {
-            let routed = AutoOrchestrator.route(.light, tier: .premium, hasImages: false)
-            let routedCost = CreditCostEstimate.credits(
-                model: routed.id, inputTokens: 100)
-            // Пул тот же, которым пользуется `route`, — только настроенные
-            // провайдеры. Здесь стояла запись про «глобальное состояние, которое
-            // соседние наборы меняют параллельно, и раз в двадцать прогонов
-            // проверка падала». Состояние действительно было глобальным: без
-            // подмены `ProviderKeyStore.current` читает связку ключей машины.
-            // Теперь оно закреплено вызовом выше, и обход не нужен.
-            let configuredPool = LLMCatalog.available(for: .premium)
-                .filter { $0.provider.isConfigured }
-            // Раньше здесь стоял `guard ... else { return }` со словами «в этой
-            // среде настроен один провайдер — переключаться не на кого, и
-            // утверждать нечего». Такой выход неотличим от успеха: проверка
-            // молча ничего не проверяла. Ключи засеяны выше, значит второй
-            // вендор ОБЯЗАН найтись, и его отсутствие — поломка, а не повод
-            // выйти.
-            let budgetSafeFallback = try #require(configuredPool.first(where: {
-                $0.provider != routed.provider
-                    && CreditCostEstimate.credits(model: $0.id, inputTokens: 100) <= routedCost
-            }), "второй настроенный вендор не найден — проверять нечего, и это поломка")
+            let route = globalAutoRoute()
+            let fallback = try #require(route.alternates.first)
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
-                    LLMError.http(errorSource(for: routed.provider), 429,
+                    LLMError.http(errorSource(for: route.primary.provider), 429,
                                   #"{"code":"insufficient_quota"}"#))),
                 .init(deltas: ["ok"], result: .success("ok")),
             ])
-            // The fallback is a real catalog model at or below the routed model's
-            // tariff; a stronger alternate would now be (correctly) refused.
-            let sut = orchestrator(gateway, selection: LLMCatalog.autoID,
-                                   fallbacks: [budgetSafeFallback])
+            let sut = orchestrator(
+                gateway, selection: LLMCatalog.autoID, fallbacks: [fallback])
             var deltas: [String] = []
 
             let answer = try await sut.streamChat(
@@ -205,34 +218,37 @@ struct AutoOrchestratorFailoverTests {
 
             #expect(answer == "ok")
             #expect(deltas == ["ok"])
-            #expect(gateway.calledModels.count == 2)
-            #expect(gateway.calledModels[0].provider != gateway.calledModels[1].provider)
+            #expect(gateway.calledModels.map(\.provider) == [
+                route.primary.provider, fallback.provider,
+            ])
         }
     }
 
     @Test("pre-output timeout and 5xx failures can use another vendor")
     func transientFallback() async throws {
-        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
-        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
-        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
-        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
-        // а не унаследовано от машины.
-        try await withoutProviderKeys {
+        try await withSeededProviderKeys {
+            let route = globalAutoRoute()
+            let fallback = try #require(route.alternates.first)
             func assertFallback(_ error: Error) async throws {
                 let gateway = FailoverScriptGateway([
                     .init(deltas: [], result: .failure(error)),
                     .init(deltas: ["recovered"], result: .success("recovered")),
                 ])
-                let sut = orchestrator(gateway, selection: openAI.id)
+                let sut = orchestrator(
+                    gateway, selection: LLMCatalog.autoID, fallbacks: [fallback])
 
                 let answer = try await sut.streamChat(
-                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                    system: "s", user: "u", images: [], model: LLMCatalog.auto,
+                    onDelta: { _ in })
 
                 #expect(answer == "recovered")
-                #expect(gateway.calledModels.map(\.provider) == [.openAI, .google])
+                #expect(gateway.calledModels.map(\.provider) == [
+                    route.primary.provider, fallback.provider,
+                ])
             }
 
-            try await assertFallback(LLMError.http("OpenAI", 503, "upstream unavailable"))
+            try await assertFallback(LLMError.http(
+                errorSource(for: route.primary.provider), 503, "upstream unavailable"))
             try await assertFallback(URLError(.timedOut))
         }
     }
@@ -244,7 +260,7 @@ struct AutoOrchestratorFailoverTests {
         // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
         // намеренно — так этот набор и вёл себя, — но теперь это сказано,
         // а не унаследовано от машины.
-        try await withoutProviderKeys {
+        await withoutProviderKeys {
             let original = LLMError.http(
                 "OpenAI", 503, "stream broke account=customer-secret sk-proj-tail")
             let gateway = FailoverScriptGateway([
@@ -309,7 +325,7 @@ struct AutoOrchestratorFailoverTests {
         // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
         // намеренно — так этот набор и вёл себя, — но теперь это сказано,
         // а не унаследовано от машины.
-        try await withoutProviderKeys {
+        await withoutProviderKeys {
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
                     LLMError.http("OpenAI", 402,
@@ -340,7 +356,7 @@ struct AutoOrchestratorFailoverTests {
         // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
         // намеренно — так этот набор и вёл себя, — но теперь это сказано,
         // а не унаследовано от машины.
-        try await withoutProviderKeys {
+        await withoutProviderKeys {
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
                     LLMError.http("OpenAI", 400, "private request echo customer-secret"))),
@@ -363,111 +379,87 @@ struct AutoOrchestratorFailoverTests {
         }
     }
 
-    @Test("direct fallback never silently upgrades beyond the selected model's tariff")
-    func fallbackRespectsSelectedCostCeiling() async throws {
-        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
-        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
-        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
-        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
-        // а не унаследовано от машины.
-        try await withoutProviderKeys {
-            let cheap = try #require(LLMCatalog.model(id: "deepseek-v4-pro"))
-            let expensive = try #require(LLMCatalog.model(id: "gpt-5.5"))
-            #expect(CreditCostEstimate.credits(model: cheap.id, inputTokens: 100) == 1)
-            #expect(CreditCostEstimate.credits(model: expensive.id, inputTokens: 100) == 7)
-            let gateway = FailoverScriptGateway([
-                .init(deltas: [], result: .failure(
-                    LLMError.http("DeepSeek", 402, "insufficient funds private-body"))),
-                .init(deltas: ["must not run"], result: .success("must not run")),
-            ])
-            let sut = orchestrator(gateway, selection: cheap.id, fallbacks: [expensive])
-
-            do {
-                _ = try await sut.streamChat(
-                    system: "s", user: "u", images: [], model: cheap, onDelta: { _ in })
-                Issue.record("expected bounded provider failure")
-            } catch let error as AutoOrchestrator.ProviderFailoverError {
-                #expect(error.attempts == [.init(provider: .deepSeek, category: .funding)])
-                #expect(!error.localizedDescription.contains("private-body"))
-            } catch {
-                Issue.record("unexpected error: \(type(of: error))")
-            }
-            #expect(gateway.calledModels.count == 1)
-        }
+    @Test("only global Auto, council, and orchestration selections permit cross-provider retry")
+    func crossProviderSelectionPolicy() {
+        #expect(!AutoOrchestrator.selectionPermitsCrossVendorFailover(openAI.id))
+        #expect(!AutoOrchestrator.selectionPermitsCrossVendorFailover("auto:openAI"))
+        #expect(!AutoOrchestrator.selectionPermitsCrossVendorFailover("auto:not-a-provider"))
+        #expect(!AutoOrchestrator.selectionPermitsCrossVendorFailover("orchestrate:not-a-level"))
+        #expect(AutoOrchestrator.selectionPermitsCrossVendorFailover(LLMCatalog.autoID))
+        #expect(AutoOrchestrator.selectionPermitsCrossVendorFailover(LLMCatalog.councilUS))
+        #expect(AutoOrchestrator.selectionPermitsCrossVendorFailover(LLMCatalog.councilCN))
+        #expect(AutoOrchestrator.selectionPermitsCrossVendorFailover(
+            OrchestrationLevel.max.selectionID))
     }
 
-    @Test("8k output surcharge participates in fallback tariff eligibility")
-    func fallbackRespectsOutputBudgetCost() async throws {
-        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
-        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
-        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
-        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
-        // а не унаследовано от машины.
-        try await withoutProviderKeys {
-            let primary = try #require(LLMCatalog.model(id: "gpt-5.4-mini"))
-            let expensiveAtEightK = try #require(LLMCatalog.model(id: "gemini-3.5-flash"))
-            #expect(CreditCostEstimate.credits(
-                model: primary.id, inputTokens: 100,
-                maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 2)
-            #expect(CreditCostEstimate.credits(
-                model: expensiveAtEightK.id, inputTokens: 100,
-                maxOutputTokens: OutputTokenBudget.explicitUserFacing) == 3)
+    @Test("explicit Auto preserves the requested output budget across provider retry")
+    func autoFallbackPreservesOutputBudget() async throws {
+        try await withSeededProviderKeys {
+            let route = globalAutoRoute()
+            let fallback = try #require(route.alternates.first)
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
-                    LLMError.http("OpenAI", 402, "insufficient funds"))),
-                .init(deltas: ["must not run"], result: .success("must not run")),
+                    LLMError.http(
+                        errorSource(for: route.primary.provider), 503, "unavailable"))),
+                .init(deltas: ["recovered"], result: .success("recovered")),
             ])
             let sut = orchestrator(
-                gateway, selection: primary.id, fallbacks: [expensiveAtEightK])
+                gateway, selection: LLMCatalog.autoID, fallbacks: [fallback])
 
-            do {
-                _ = try await sut.streamChat(
-                    system: "s", user: "u", images: [], model: primary,
-                    maxOutputTokens: OutputTokenBudget.explicitUserFacing) { _ in }
-                Issue.record("expected the over-tariff fallback to be refused")
-            } catch let error as AutoOrchestrator.ProviderFailoverError {
-                #expect(error.attempts == [
-                    .init(provider: .openAI, category: .funding),
-                ])
-            } catch {
-                Issue.record("unexpected error: \(type(of: error))")
-            }
-            #expect(gateway.calledModels.count == 1)
+            let answer = try await sut.streamChat(
+                system: "s", user: "u", images: [], model: LLMCatalog.auto,
+                maxOutputTokens: OutputTokenBudget.explicitUserFacing) { _ in }
+
+            #expect(answer == "recovered")
+            #expect(gateway.calledModels.map(\.provider) == [
+                route.primary.provider, fallback.provider,
+            ])
+            #expect(gateway.calledOutputBudgets == [
+                OutputTokenBudget.explicitUserFacing,
+                OutputTokenBudget.explicitUserFacing,
+            ])
         }
     }
 
     @Test("aggregate failure is bounded and never exposes upstream bodies")
-    func safeAggregateFailure() async throws {
-        // Ключи закреплены: без подмены `ProviderKeyStore.current` читает
-        // связку ключей САМОЙ МАШИНЫ, и отбор провайдеров зависит от того,
-        // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
-        // намеренно — так этот набор и вёл себя, — но теперь это сказано,
-        // а не унаследовано от машины.
-        try await withoutProviderKeys {
+    func safeAggregateFailure() async {
+        await withSeededProviderKeys {
+            let route = globalAutoRoute()
+            let alternates = Array(route.alternates.prefix(2))
+            #expect(alternates.count == 2)
+            guard alternates.count == 2 else { return }
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(
-                    LLMError.http("OpenAI", 402, "secret-account-id primary-body"))),
+                    LLMError.http(errorSource(for: route.primary.provider), 402,
+                                  "secret-account-id primary-body"))),
                 .init(deltas: [], result: .failure(
-                    LLMError.http("Gemini", 503, "private-google-body"))),
+                    LLMError.http(errorSource(for: alternates[0].provider), 503,
+                                  "private-second-body"))),
                 .init(deltas: [], result: .failure(
-                    LLMError.http("Anthropic", 401, "sk-ant-secret"))),
+                    LLMError.http(errorSource(for: alternates[1].provider), 401,
+                                  "private-third-body"))),
             ])
-            let sut = orchestrator(gateway, selection: openAI.id)
+            let sut = orchestrator(
+                gateway, selection: LLMCatalog.autoID, fallbacks: alternates)
 
             do {
                 _ = try await sut.streamChat(
-                    system: "s", user: "u", images: [], model: openAI, onDelta: { _ in })
+                    system: "s", user: "u", images: [], model: LLMCatalog.auto,
+                    onDelta: { _ in })
                 Issue.record("expected aggregate failure")
             } catch let error as AutoOrchestrator.ProviderFailoverError {
                 let message = error.localizedDescription
                 #expect(error.attempts.count == 3)
                 #expect(!error.outputStarted)
-                #expect(message.contains("OpenAI (funding)"))
-                #expect(message.contains("Google (unavailable)"))
-                #expect(message.contains("Anthropic (authentication)"))
+                #expect(error.attempts.map(\.provider) == [
+                    route.primary.provider, alternates[0].provider, alternates[1].provider,
+                ])
+                #expect(error.attempts.map(\.category) == [
+                    .funding, .unavailable, .authentication,
+                ])
                 #expect(!message.contains("secret-account-id"))
-                #expect(!message.contains("private-google-body"))
-                #expect(!message.contains("sk-ant-secret"))
+                #expect(!message.contains("private-second-body"))
+                #expect(!message.contains("private-third-body"))
             } catch {
                 Issue.record("unexpected error: \(type(of: error))")
             }
@@ -501,7 +493,8 @@ struct AutoOrchestratorFailoverTests {
                 #expect(actualStatus == status)
                 #expect(actualBody == body)
                 if status == 429 {
-                    #expect(CreditExhaustion.quotaMessage(from: error) == body)
+                    #expect(CreditExhaustion.quotaMessage(
+                        from: error, managed: true) == body)
                 }
             }
             #expect(gateway.calledModels.count == 1)
@@ -515,7 +508,7 @@ struct AutoOrchestratorFailoverTests {
         // вставил ли сопровождающий ключ в приложение. Здесь пул пуст
         // намеренно — так этот набор и вёл себя, — но теперь это сказано,
         // а не унаследовано от машины.
-        try await withoutProviderKeys {
+        await withoutProviderKeys {
             let gateway = FailoverScriptGateway([
                 .init(deltas: [], result: .failure(LLMError.http("OpenAI", 402, "funds"))),
                 .init(deltas: ["must not run"], result: .success("must not run")),

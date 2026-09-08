@@ -39,12 +39,6 @@ struct SettingsView: View {
     @EnvironmentObject var state: AppState
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.settings)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         VStack(spacing: 0) {
         TabView(selection: $state.selectedSettingsTab) {
             GeneralSettingsTab()
@@ -290,16 +284,35 @@ private struct TranscriptionSettingsTab: View {
     @State private var remoteSpeakerCount: Int = Config.localDiarizationRemoteSpeakerCount
     @State private var assemblyDiarization: Bool = Config.assemblyAIDiarizationEnabled
     @State private var firefliesEnhance: Bool = Config.firefliesTranscriptEnhanceEnabled
+    @State private var credentialRevision = 0
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.xl) {
+                SettingsSection(
+                    title: "Ключи облачной расшифровки",
+                    caption: "Необязательно. Ключ добавляете и удаляете вы; он хранится в Связке ключей и используется для прямого запроса к выбранному сервису. В сборке нет ключей orakul и нет серверной подстановки."
+                ) {
+                    TranscriptionProviderKeysSection(
+                        store: state.transcriptionProviderKeys,
+                        onRemove: { state.removeTranscriptionKey(for: $0) }
+                    ) { provider, isConfigured in
+                        credentialRevision &+= 1
+                        if provider == .assemblyAI, !isConfigured {
+                            assemblyDiarization = false
+                            Config.assemblyAIDiarizationEnabled = false
+                        }
+                    }
+                }
+
                 SettingsSection(title: "Движок",
                                 caption: "«Локально» оставляет звук звонка на этом компьютере. Deepgram или Whisper — значит, звук уходит к этому облачному провайдеру. Смена движка по ходу звонка действует сразу.") {
                     ForEach(TranscriptionEngine.selectableCases) { option in
                         EngineChoiceRow(engine: option,
                                         selected: state.selectedTranscriptionEngine == option,
-                                        available: Config.engineAvailable(option)) {
+                                        available: option == .deepgram
+                                            ? state.hasDeepgram
+                                            : Config.engineAvailable(option)) {
                             // AppState owns the selected row because a WebSocket
                             // handoff can still fail asynchronously after this
                             // closure returns and must visibly roll back.
@@ -342,7 +355,7 @@ private struct TranscriptionSettingsTab: View {
                 }
 
                 SettingsSection(title: "Дополнить из Fireflies",
-                                caption: "Если Fireflies подключён, его расшифровка сводится с локальной после звонка (и при импорте из Fireflies). Имена и термины проекта модель уточняет по подключённым приложениям — Notion, CRM, трекерам: тайминг от Whisper, говорящие от Fireflies, написание из коннекторов.") {
+                                caption: "Выключено по умолчанию и работает только вместе с общим переключателем автоматических запросов во вкладке «ИИ». После звонка orakul сведёт расшифровку Fireflies с локальной через выбранного AI-провайдера; это отправит ему текст и создаст расход по вашему договору. Имена и термины могут уточняться по разрешённым подключённым приложениям.") {
                     SettingsRow {
                         Label("Дополнять транскрипт из Fireflies", systemImage: "flame")
                             .labelStyle(SettingLabelStyle())
@@ -448,7 +461,7 @@ private struct TranscriptionSettingsTab: View {
                     }
                 }
 
-                if !Config.assemblyAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if state.hasAssemblyAI {
                     SettingsSection(title: "Кто говорил — после звонка",
                                     caption: "Необязательная обработка через AssemblyAI. Действует со следующей записи: orakul сохраняет дорожку собеседников и отправляет её только после нажатия «Определить говорящих» — никогда сам по ходу звонка.") {
                         SettingsRow {
@@ -580,7 +593,7 @@ private struct TranscriptionSettingsTab: View {
                         }
                         HStack {
                             if let metrics = state.connectedGlossarySuggestionMetrics {
-                                Text("источников: \(metrics.sourceCount) · токенов на входе: \(metrics.estimatedInputTokens) · ~\(metrics.estimatedComputeCredits) на вычисления\(metrics.cached ? " · из кэша" : "")")
+                                Text("источников: \(metrics.sourceCount) · токенов на входе: \(metrics.estimatedInputTokens)\(metrics.cached ? " · из кэша" : "") · расход считает ваш AI-провайдер")
                                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                             }
                             Spacer()
@@ -665,7 +678,20 @@ private struct AISettingsTab: View {
             }
 
             SettingsSection(title: "Ко-пилот",
-                            caption: "По ходу записи ищет слепые зоны — по вашей цели и расшифровке. Подключённые приложения он тоже спрашивает, российские трекеры в том числе. Наблюдения делят один часовой бюджет: выключите одно — остальные обновляются чаще. Кредитов и лимитов по тарифу нет.") {
+                            caption: Config.managedUsageLimitsEnabled
+                                ? "По ходу записи ищет слепые зоны — по вашей цели и расшифровке. Наблюдения делят один часовой бюджет: выключите одно — остальные обновляются чаще."
+                                : "Выключено по умолчанию. Если включить, orakul может предлагать цель и название, обновлять сводку, дополнять транскрипт из Fireflies и выполнять выбранные проверки, а также делать дополнительные проходы для уточнений и следующих вопросов. Каждый проход — отдельный запрос по вашему договору с AI-провайдером. Когда переключатель выключен, фоновых и дополнительных проходов нет; явное действие всё равно может сделать несколько запросов для чтения подключённых источников, совета моделей или резервного провайдера.") {
+                SettingsRow {
+                    Label("Автоматические запросы к ИИ", systemImage: "bolt.horizontal.circle")
+                        .labelStyle(SettingLabelStyle())
+                    Spacer()
+                    Toggle("", isOn: Binding(
+                        get: { state.automaticProviderRequestsEnabled },
+                        set: { state.setAutomaticProviderRequestsEnabled($0) }))
+                        .labelsHidden().toggleStyle(.switch)
+                        .accessibilityLabel("Автоматические запросы к ИИ")
+                        .accessibilityIdentifier("settings.ai.automatic-provider-requests")
+                }
                 SettingsRow {
                     Label("Мозговой штурм на звонке", systemImage: "lightbulb")
                         .labelStyle(SettingLabelStyle())
@@ -676,6 +702,7 @@ private struct AISettingsTab: View {
                         .labelsHidden().toggleStyle(.switch)
                         .accessibilityLabel("Мозговой штурм на звонке")
                         .accessibilityIdentifier("settings.ai.brainstorm")
+                        .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
                     Label("Повестка и рамка", systemImage: "scope")
@@ -687,6 +714,7 @@ private struct AISettingsTab: View {
                         .labelsHidden().toggleStyle(.switch)
                         .accessibilityLabel("Повестка и рамка")
                         .accessibilityIdentifier("settings.ai.agenda")
+                        .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
                     Label("Проверка фактов на звонке", systemImage: "checkmark.seal")
@@ -698,6 +726,7 @@ private struct AISettingsTab: View {
                         .labelsHidden().toggleStyle(.switch)
                         .accessibilityLabel("Проверка фактов на звонке")
                         .accessibilityIdentifier("settings.ai.fact-check")
+                        .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
                     Label("Слежу за риторикой", systemImage: "text.badge.xmark")
@@ -709,6 +738,7 @@ private struct AISettingsTab: View {
                         .labelsHidden().toggleStyle(.switch)
                         .accessibilityLabel("Слежу за риторикой")
                         .accessibilityIdentifier("settings.ai.rhetoric")
+                        .disabled(!state.automaticProviderRequestsEnabled)
                 }
                 SettingsRow {
                     Label("Слежу за ходом звонка", systemImage: "location.north.line")
@@ -720,6 +750,7 @@ private struct AISettingsTab: View {
                         .labelsHidden().toggleStyle(.switch)
                         .accessibilityLabel("Слежу за ходом звонка")
                         .accessibilityIdentifier("settings.ai.facilitation")
+                        .disabled(!state.automaticProviderRequestsEnabled)
                 }
             }
         }
@@ -785,9 +816,11 @@ private struct ConnectedAppsTab: View {
                     MCPAppsSection()
                 }
 
-                SettingsSection(title: "Звонки — в ваш ИИ-инструмент",
-                                caption: "orakul сам работает как MCP-сервер: ваши звонки и журнал решений доступны внутри Claude, ChatGPT, Cursor — любого инструмента с поддержкой MCP.") {
-                    OwnMCPCard()
+                if Config.llmViaBackend {
+                    SettingsSection(title: "Звонки — в ваш ИИ-инструмент",
+                                    caption: "Управляемая совместимость предоставляет MCP-адрес для звонков и журнала решений.") {
+                        OwnMCPCard()
+                    }
                 }
 
                 // Expanding block: collapsed by default unless connectors are
@@ -881,7 +914,6 @@ private struct AccountPrivacyTab: View {
     @State private var showSignIn = false
     @State private var confirmDelete = false
     @State private var deleting = false
-    @State private var shareAnalytics: Bool = !Config.funnelOptOut
     @State private var devTierPreview: String = Config.devTierOverride?.rawValue ?? "off"
 
     var body: some View {
@@ -895,7 +927,7 @@ private struct AccountPrivacyTab: View {
             // ключей» (нет сервера) и синхронизацию журнала решений (тоже нет).
             // Ключ провайдера вводится ниже, в разделе «ИИ», и вход для него не
             // нужен.
-            if !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if Config.llmViaBackend {
                 SettingsSection(title: "Аккаунт",
                                 caption: "Вход нужен, чтобы пользоваться моделями без своих ключей и синхронизировать журнал решений.") {
                     WheesprAccountRow(showSheet: $showSignIn)
@@ -969,22 +1001,8 @@ private struct AccountPrivacyTab: View {
             }
 
             SettingsSection(title: "Куда уходят ваши данные",
-                            caption: "Расшифровка по умолчанию идёт на этом компьютере. Куски расшифровки уходят провайдеру выбранной модели только когда вы сами запускаете действие ИИ — чей это провайдер, видно в списке моделей. Ничего не продаётся и не используется для рекламы.") {
+                            caption: "Расшифровка по умолчанию идёт на этом компьютере. Куски расшифровки уходят провайдеру выбранной модели, когда вы запускаете действие ИИ или явно включаете автоматические запросы — чей это провайдер, видно в списке моделей. Ничего не продаётся и не используется для рекламы.") {
                 EmptyView()
-            }
-
-            SettingsSection(title: "Аналитика использования",
-                            caption: "Обезличенные события без cookie: какие экраны открывали, какие действия запускали. Без аккаунта, без содержимого звонков, без слежки между приложениями. Помогает понять, где приложение помогает, а где мешает. Выключите — не уйдёт ничего.") {
-                SettingsRow {
-                    Label("Отправлять обезличенную статистику", systemImage: "chart.bar.xaxis")
-                        .labelStyle(SettingLabelStyle())
-                    Spacer()
-                    Toggle("", isOn: $shareAnalytics)
-                        .labelsHidden().toggleStyle(.switch)
-                        .onChange(of: shareAnalytics) { Config.funnelOptOut = !$1 }
-                        .accessibilityLabel("Отправлять обезличенную статистику")
-                        .accessibilityIdentifier("settings.privacy.analytics")
-                }
             }
 
             if Config.isDevBuild {
@@ -1023,7 +1041,6 @@ private struct AccountPrivacyTab: View {
         .padding(Space.xl)
         .frame(width: 520)
         .onAppear {
-            shareAnalytics = !Config.funnelOptOut
             devTierPreview = Config.devTierOverride?.rawValue ?? "off"
         }
         .sheet(isPresented: $showSignIn) { SignInSheet() }

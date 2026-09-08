@@ -18,12 +18,6 @@ struct TranscriptView: View {
     }()
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.transcript)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         Group {
             if state.transcript.isEmpty && state.provisionalLines.isEmpty {
                 TranscriptEmptyState(recording: state.status == .recording,

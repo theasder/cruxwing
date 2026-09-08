@@ -42,7 +42,7 @@ struct AssistantDOCXExporterTests {
     private func strings(for document: AssistantAnswerDocument) throws -> [String: String] {
         var output: [String: String] = [:]
         for part in AssistantDOCXExporter.packageParts(for: document) {
-            output[part.name] = try #require(String(data: part.data, encoding: .utf8))
+            output[part.name] = String(decoding: part.data, as: UTF8.self)
         }
         return output
     }

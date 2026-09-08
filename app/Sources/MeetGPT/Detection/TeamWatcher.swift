@@ -107,11 +107,11 @@ final class TeamWatcher: ObservableObject {
     // MARK: - Audit trail
 
     static var auditLogURL: URL {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("MeetGPT", isDirectory: true)
+        let url = OrakulApplicationSupport.teamWatchAuditLogURL
+        let dir = url.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
                                                  attributes: [.posixPermissions: 0o700])
-        return dir.appendingPathComponent("team-watch.log")
+        return url
     }
 
     /// Cap the plaintext audit log so an archive of third-party message text

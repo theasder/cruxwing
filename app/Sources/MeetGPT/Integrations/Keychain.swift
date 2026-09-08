@@ -10,7 +10,10 @@ protocol KeychainStore: Sendable {
     @discardableResult
     func set(_ data: Data, for account: String) -> Bool
     func get(_ account: String) -> Data?
-    func delete(_ account: String)
+    /// True when the item is absent after this call. `errSecItemNotFound` is a
+    /// success: the caller asked for absence, not proof that a row existed.
+    @discardableResult
+    func delete(_ account: String) -> Bool
 }
 
 /// The production store: one generic-password item per account key, under a
@@ -28,9 +31,14 @@ struct SystemKeychain: KeychainStore {
     /// Fresh namespace under the new service. Do not bump into the abandoned
     /// `ai.wheespr.meetgpt` rows — that reopens the ACL prompt loop.
     private static let accountVersion = "v1"
-    /// New service on purpose. Dialogs named this string when the old ACL
-    /// blocked access; keeping the old name would keep showing it.
-    private static let service = "com.cruxwing.credentials"
+    /// The first public builds still wrote under Cruxwing's service name. The
+    /// account itself was already bundle-scoped, so we can migrate only
+    /// Orakul's rows without ever enumerating or touching Cruxwing's tokens.
+    static let legacyServiceIdentifier = "com.cruxwing.credentials"
+
+    static func serviceIdentifier(bundleIdentifier: String) -> String {
+        "\(bundleIdentifier).credentials"
+    }
 
     /// Which keychain backs this build.
     ///
@@ -46,23 +54,42 @@ struct SystemKeychain: KeychainStore {
     /// keyed to the signing CERTIFICATE rather than the binary hash, so they
     /// survive a rebuild — verified by writing an item, re-signing a changed
     /// binary with the same cert, and reading it back without a prompt.
-    /// Distribution builds keep the data-protection keychain, which is stronger
-    /// and correctly entitled.
+    /// Distribution builds use the data-protection keychain only when their
+    /// actual signature carries the entitlement it requires. A Developer ID
+    /// build without an embedded provisioning profile does not; forcing the
+    /// modern keychain there makes every write fail with -34018.
     ///
     /// Adding `keychain-access-groups` to the dev signature is NOT an
     /// alternative: without a team prefix the system rejects the entitlement and
     /// kills the process on launch.
-    static var usesDataProtectionKeychain: Bool { usesDataProtection(isDevBuild: Config.isDevBuild) }
+    static let usesDataProtectionKeychain = dataProtectionKeychainSelected(
+        isDevBuild: Config.isDevBuild,
+        hasApplicationIdentifier: hasApplicationIdentifierEntitlement
+    )
 
-    /// Чистая, чтобы утверждение можно было проверить обеими ветками.
-    ///
-    /// Набор идёт в dev-сборке, то есть `Config.isDevBuild` там ВСЕГДА true.
-    /// Проверка, сравнивавшая атрибут с этим же выражением, была верна при
-    /// любом поведении и молчала ровно про ту ветку, которая уезжает людям, —
-    /// тот самый случай, что §2.3 плана уже описывает про учётные данные.
-    static func usesDataProtection(isDevBuild: Bool) -> Bool { !isDevBuild }
+    /// Pure selection rule so tests cover all signature/build combinations.
+    static func dataProtectionKeychainSelected(
+        isDevBuild: Bool,
+        hasApplicationIdentifier: Bool
+    ) -> Bool {
+        !isDevBuild && hasApplicationIdentifier
+    }
+
+    /// The data-protection keychain authorizes against this entitlement. It is
+    /// present in App Store/provisioned builds and absent from ordinary ad-hoc
+    /// and unprofiled Developer ID builds.
+    private static let hasApplicationIdentifierEntitlement: Bool = {
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        let value = SecTaskCopyValueForEntitlement(
+            task,
+            "com.apple.application-identifier" as CFString,
+            nil
+        )
+        return (value as? String).map { !$0.isEmpty } ?? false
+    }()
 
     private let bundleIdentifier: String
+    let serviceIdentifier: String
     private let accountNamespace: String
 
     /// Dev builds: never let the FILE keychain raise its classic ACL dialog
@@ -98,6 +125,7 @@ struct SystemKeychain: KeychainStore {
             ?? Bundle.main.bundleIdentifier
             ?? Self.productionBundleIdentifier
         self.bundleIdentifier = bundleID
+        serviceIdentifier = Self.serviceIdentifier(bundleIdentifier: bundleID)
         accountNamespace = "\(Self.accountVersion).\(bundleID)"
         _ = Self.interactionSuppressed
     }
@@ -135,10 +163,11 @@ struct SystemKeychain: KeychainStore {
     /// in UserDefaults. One builder now stamps the flag for all four paths so
     /// they cannot drift again.
     func query(account storedAccount: String,
-               adding extras: [String: Any] = [:]) -> [String: Any] {
+               adding extras: [String: Any] = [:],
+               service: String? = nil) -> [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: Self.service,
+            kSecAttrService as String: service ?? serviceIdentifier,
             kSecAttrAccount as String: storedAccount,
             kSecUseDataProtectionKeychain as String: Self.usesDataProtectionKeychain
         ]
@@ -146,39 +175,60 @@ struct SystemKeychain: KeychainStore {
         return query
     }
 
-    private func baseQuery(account storedAccount: String) -> [String: Any] {
+    private func baseQuery(account storedAccount: String,
+                           service: String? = nil) -> [String: Any] {
         // No kSecUseAuthenticationUI: deprecated since macOS 11, and redundant
         // beside the LAContext above — `interactionNotAllowed` is exactly what
         // the deprecation says to use instead.
         query(account: storedAccount, adding: [
             kSecUseAuthenticationContext as String: nonInteractiveContext()
-        ])
+        ], service: service)
     }
 
     /// Внутренний, а не приватный: набор обязан видеть, с какими правами
     /// доступа кладётся токен. Одно слово в этой строке решает, останется ли
     /// ключ от рабочего трекера на этом компьютере.
-    func insertAttributes(data: Data, account storedAccount: String) -> [String: Any] {
+    func insertAttributes(data: Data,
+                          account storedAccount: String,
+                          service: String? = nil) -> [String: Any] {
         query(account: storedAccount, adding: [
             kSecValueData as String: data,
             // Data-protection items key off the app identity without the classic
             // login-keychain ACL prompt that plagued `ai.wheespr.meetgpt`.
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        ])
+        ], service: service)
     }
 
     @discardableResult
     func set(_ data: Data, for account: String) -> Bool {
         let storedAccount = versionedAccount(account)
-        let query = baseQuery(account: storedAccount)
+        guard setStored(data, account: storedAccount) else { return false }
+
+        // Remove only the exact Orakul-namespaced legacy row after the new
+        // write succeeds. A failed migration never destroys the readable copy.
+        _ = deleteStored(storedAccount, service: Self.legacyServiceIdentifier)
+        return true
+    }
+
+    @discardableResult
+    private func setStored(_ data: Data,
+                           account storedAccount: String,
+                           service: String? = nil) -> Bool {
+        let query = baseQuery(account: storedAccount, service: service)
         let attributes: [String: Any] = [kSecValueData as String: data]
         var status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
-            status = SecItemAdd(insertAttributes(data: data, account: storedAccount) as CFDictionary, nil)
+            status = SecItemAdd(
+                insertAttributes(data: data, account: storedAccount, service: service) as CFDictionary,
+                nil
+            )
         } else if status == errSecInteractionNotAllowed || status == errSecAuthFailed {
             // Replace a stale row without prompting — Fail makes update/delete soft-fail.
             _ = SecItemDelete(query as CFDictionary)
-            status = SecItemAdd(insertAttributes(data: data, account: storedAccount) as CFDictionary, nil)
+            status = SecItemAdd(
+                insertAttributes(data: data, account: storedAccount, service: service) as CFDictionary,
+                nil
+            )
         }
         if status != errSecSuccess {
             Log.keychain.error("Keychain write failed for \(storedAccount, privacy: .public) — OSStatus \(status, privacy: .public)")
@@ -188,16 +238,30 @@ struct SystemKeychain: KeychainStore {
     }
 
     func get(_ account: String) -> Data? {
-        // Only the current service + namespace. Never probe `ai.wheespr.meetgpt`.
-        getStored(versionedAccount(account))
+        let storedAccount = versionedAccount(account)
+        if let current = getStored(storedAccount) { return current }
+
+        // Compatibility with the first Orakul builds. This is an exact account
+        // lookup, not an enumeration of the shared service, and therefore
+        // cannot read a Cruxwing account with a different bundle namespace.
+        guard let legacy = getStored(
+            storedAccount,
+            service: Self.legacyServiceIdentifier
+        ) else { return nil }
+
+        if setStored(legacy, account: storedAccount) {
+            _ = deleteStored(storedAccount, service: Self.legacyServiceIdentifier)
+        }
+        return legacy
     }
 
-    private func getStored(_ storedAccount: String) -> Data? {
+    private func getStored(_ storedAccount: String,
+                           service: String? = nil) -> Data? {
         let query = query(account: storedAccount, adding: [
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
             kSecUseAuthenticationContext as String: nonInteractiveContext()
-        ])
+        ], service: service)
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status == errSecInteractionNotAllowed || status == errSecAuthFailed {
@@ -207,24 +271,40 @@ struct SystemKeychain: KeychainStore {
             // connect rewrites the row under the current identity.
             Log.keychain.error(
                 "Keychain row \(storedAccount, privacy: .public) is ACL-blocked (OSStatus \(status, privacy: .public)) — deleting the orphan")
-            _ = SecItemDelete(self.query(account: storedAccount) as CFDictionary)
+            _ = SecItemDelete(
+                self.query(account: storedAccount, service: service) as CFDictionary
+            )
             return nil
         }
         guard status == errSecSuccess else { return nil }
         return result as? Data
     }
 
-    func delete(_ account: String) {
-        let status = deleteStored(versionedAccount(account))
+    @discardableResult
+    func delete(_ account: String) -> Bool {
+        let storedAccount = versionedAccount(account)
+        let status = deleteStored(storedAccount)
+        let legacyStatus = deleteStored(
+            storedAccount,
+            service: Self.legacyServiceIdentifier
+        )
         if status != errSecSuccess && status != errSecItemNotFound {
             Log.keychain.error(
                 "Keychain delete failed for \(versionedAccount(account), privacy: .public) — OSStatus \(status, privacy: .public)")
         }
+        if legacyStatus != errSecSuccess && legacyStatus != errSecItemNotFound {
+            Log.keychain.error(
+                "Legacy Keychain delete failed for \(storedAccount, privacy: .public) — OSStatus \(legacyStatus, privacy: .public)")
+        }
+        let currentAbsent = status == errSecSuccess || status == errSecItemNotFound
+        let legacyAbsent = legacyStatus == errSecSuccess || legacyStatus == errSecItemNotFound
+        return currentAbsent && legacyAbsent
     }
 
     @discardableResult
-    private func deleteStored(_ storedAccount: String) -> OSStatus {
-        SecItemDelete(baseQuery(account: storedAccount) as CFDictionary)
+    private func deleteStored(_ storedAccount: String,
+                              service: String? = nil) -> OSStatus {
+        SecItemDelete(baseQuery(account: storedAccount, service: service) as CFDictionary)
     }
 }
 
@@ -234,5 +314,6 @@ enum Keychain {
     @discardableResult
     static func set(_ data: Data, for account: String) -> Bool { SystemKeychain.shared.set(data, for: account) }
     static func get(_ account: String) -> Data? { SystemKeychain.shared.get(account) }
-    static func delete(_ account: String) { SystemKeychain.shared.delete(account) }
+    @discardableResult
+    static func delete(_ account: String) -> Bool { SystemKeychain.shared.delete(account) }
 }

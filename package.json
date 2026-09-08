@@ -2,8 +2,14 @@
   "name": "orakul-site",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "audit:history": "node scripts/scan-history-secrets.mjs",
+    "test": "node --test test/*.test.mjs",
+    "doctor": "bash scripts/doctor.sh",
+    "release:check": "bash scripts/release-gate.sh"
   },
   "//": "Тесты форка (app/Tests) гоняет swift test и vitest самого приложения — их сюда не подмешиваем."
 }

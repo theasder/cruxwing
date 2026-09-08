@@ -24,18 +24,26 @@ ENV_FILE="${2:-$ROOT/.env}"
 
 if [ -d "$TARGET" ]; then
     BIN="$(find "$TARGET/Contents/MacOS" -type f -perm -111 2>/dev/null | head -1)"
+    SCAN_ROOT="$TARGET"
 else
     BIN="$TARGET"
+    case "$TARGET" in
+        *.app/*) SCAN_ROOT="${TARGET%%.app/*}.app" ;;
+        *)       SCAN_ROOT="$TARGET" ;;
+    esac
 fi
 [ -f "$BIN" ] || { echo "!! нет исполняемого файла в $TARGET" >&2; exit 2; }
 [ -f "$ENV_FILE" ] || { echo ">> $ENV_FILE отсутствует — сравнивать не с чем"; exit 0; }
 
-# Публичные настройки уезжают в сборку намеренно: их список — тот же, что решает
-# в build.sh. Читается оттуда, а не дублируется здесь: второй список разошёлся
-# бы с первым, и проверка начала бы падать на исправной сборке.
-ALLOWED="$(sed -n '/^sw() {/,/^}/p' "$ROOT/build.sh" \
+# Публичные настройки уезжают в сборку намеренно: основа списка — тот же switch,
+# что решает это в build.sh. BACKEND_URL там нужен только затем, чтобы дойти до
+# отдельной ветки, которая принудительно возвращает пустую строку для DIST. Его
+# значение из .env не должно встречаться в артефакте ни по одному другому пути,
+# поэтому оно намеренно НЕ является исключением этой дословной проверки.
+ARTIFACT_ALLOWED="$(sed -n '/^sw() {/,/^}/p' "$ROOT/build.sh" \
     | grep -oE '^\s+[A-Z_|*]+\) : ;;|^\s+\|?[A-Z_*|]+ \\$' \
-    | grep -oE '[A-Z][A-Z0-9_]*\*?' | sort -u)"
+    | grep -oE '[A-Z][A-Z0-9_]*\*?' | sort -u \
+    | sed '/^BACKEND_URL$/d')"
 
 # Короткие значения не ищутся: «1», «ru», «team» встречаются в любом бинарнике
 # по совершенно другим причинам, и такая проверка кричала бы всегда. Восемь
@@ -54,7 +62,7 @@ while IFS= read -r line; do
     [ "${#value}" -ge "$MIN_LENGTH" ] || continue
 
     skip=""
-    for pattern in $ALLOWED; do
+    for pattern in $ARTIFACT_ALLOWED; do
         # shellcheck disable=SC2254
         case "$name" in $pattern) skip=1; break ;; esac
     done
@@ -64,17 +72,17 @@ while IFS= read -r line; do
     # последовательности печатаемой ASCII и молча пропускает UTF-8. Первая
     # версия этой проверки искала через `strings` и не нашла подложенное
     # значение с кириллицей — то есть докладывала «чисто» о заражённой сборке.
-    if grep -aqF -- "$value" "$BIN"; then
+    if grep -raqF -- "$value" "$SCAN_ROOT"; then
         leaked="$leaked $name"
     fi
 done < "$ENV_FILE"
 
 if [ -n "$leaked" ]; then
-    echo "!! В СОБРАННОМ ФАЙЛЕ НАЙДЕНЫ ЗНАЧЕНИЯ ИЗ .env — отгружать нельзя." >&2
+    echo "!! В СОБРАННОМ АРТЕФАКТЕ НАЙДЕНЫ ЗНАЧЕНИЯ ИЗ .env — отгружать нельзя." >&2
     echo "   Значения не печатаются намеренно; вот имена:" >&2
     for name in $leaked; do echo "     $name" >&2; done
     echo "   Через sw они не проходили бы (там стирается всё неназванное), значит" >&2
     echo "   в сборку они попали другим путём: новым файлом, ресурсом или plist'ом." >&2
     exit 1
 fi
-echo ">> значений из .env в собранном файле нет (проверено дословно, не по форме имени)"
+echo ">> значений из .env в $(basename "$SCAN_ROOT") нет (проверено дословно, не по форме имени)"

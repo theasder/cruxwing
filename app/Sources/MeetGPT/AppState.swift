@@ -242,8 +242,8 @@ final class TranscriptionRouteLease: @unchecked Sendable {
     }
 }
 
-/// Session-scoped switch flipped when a metered live stream (Deepgram via
-/// credit grant) hits its cap mid-call. The Deepgram-mode chunkers consult it
+/// Session-scoped switch flipped when a Deepgram live stream fails mid-call.
+/// The Deepgram-mode chunkers consult it
 /// on every emitted chunk: nil → chunks are discarded (the stream carries the
 /// transcript); a transcriber → the same chunkers now feed on-device Whisper,
 /// so the recording continues seamlessly. Audio callbacks read it off the
@@ -622,18 +622,6 @@ final class AppState: ObservableObject {
     /// is cooperative only.
     private var transcriptRevision = 0
 
-    /// Whether any AI action ran during THIS recording. Distinct from the
-    /// once-per-device `first_ai_action` activation flag: abandonment is a
-    /// per-session question, so it needs a per-session answer.
-    var sessionUsedAI = false
-
-    /// Where this instance reports usage. Injected rather than calling
-    /// `FunnelTracker` directly so a test observes its OWN state's events: a
-    /// global observer is shared with every suite running in parallel, and an
-    /// unrelated test that pauses a recording would land in another test's
-    /// assertions. Absence assertions — "a refused call reports nothing" — are
-    /// exactly the ones that race, and exactly the ones worth having.
-    let analytics: (AnalyticsEvent) -> Void
     @Published var contextFiles: [ImportedContextFile] = []
     /// Folders attached as standing context. Kept separate from `contextFiles`
     /// so the whole folder detaches in one action, and so the UI can show what a
@@ -1058,6 +1046,10 @@ final class AppState: ObservableObject {
     /// Persisted per recording so nothing dies on quit (M3); restorable from
     /// the sidebar history.
     @Published var savedSessions: [SavedSession] = []
+    /// Non-nil when History is only partial (a recovery copy was needed, a file
+    /// did not decode, or the archive directory could not be listed). An empty
+    /// list must never turn that storage failure into “no saved calls”.
+    @Published private(set) var historyStorageWarning: String?
     // Internal (not private) so the session-lifecycle test can assert a new
     // recording gets its own id.
     var currentSessionID = UUID()
@@ -1078,8 +1070,8 @@ final class AppState: ObservableObject {
     //
     // The first-run sample is a written call replayed into the real workspace.
     // It is fiction, and fiction must not reach anything that claims to be a
-    // record: not History, not the decision ledger, not the usage counters that
-    // decide when the paywall may appear. One flag guards all three, in one
+    // record: not History, not the decision ledger, not the compatibility usage
+    // counters. One flag guards all three, in one
     // place, rather than a condition at each call site that a later edit can
     // forget.
 
@@ -1221,9 +1213,9 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// The user's job position (RoleSkillMatrix id). Persisted; selects the role
-    /// skill layer — role-specific method hints per prompt button — applied on
-    /// top of the call theme. nil = no role layer.
+    /// The user's job position (RoleSkillMatrix id). Persisted; selects a small
+    /// first-party role-framing layer applied on top of the call theme.
+    /// nil = no role layer.
     @Published var userRoleID: String? = Config.userRoleID {
         didSet { Config.userRoleID = userRoleID }
     }
@@ -1456,6 +1448,58 @@ final class AppState: ObservableObject {
         return (
             blindSpotCycleEvaluations,
             backgroundSpendState.charactersAtLastRun["brainstorm"])
+    }
+
+    /// Master consent for provider work not directly initiated by the user.
+    /// This is independent of the per-feature switches below: both must be on
+    /// for an ambient watcher to run.
+    @Published private(set) var automaticProviderRequestsEnabled: Bool =
+        Config.automaticProviderRequestsEnabled
+
+    func setAutomaticProviderRequestsEnabled(_ enabled: Bool) {
+        guard enabled != automaticProviderRequestsEnabled
+                || enabled != Config.automaticProviderRequestsEnabled else { return }
+        let wasAutomatic = automaticCopilotEnabled
+        Config.automaticProviderRequestsEnabled = enabled
+        automaticProviderRequestsEnabled = enabled
+        reconcileCopilotAccounting(previouslyEnabled: wasAutomatic)
+        // The automatic Fireflies merge runs after Stop, while the workspace is
+        // idle. Revoke it before the recording-only branch below; otherwise the
+        // normal OFF path returns early and leaves a billable provider request in
+        // flight (manual enhancement remains governed by its explicit action).
+        if !enabled { cancelAutomaticFirefliesEnhance() }
+        guard isRecording else {
+            if !enabled {
+                clarifyingTask?.cancel()
+                clarifying = false
+                followUpTask?.cancel()
+                answerProposalTask?.cancel()
+            }
+            return
+        }
+        if enabled {
+            startBrainstorming()
+            startAgendaChecking()
+            startFactCheckLoop()
+            startRhetoricLoop()
+            startFacilitationLoop()
+            startGoalSuggestion()
+            startTitleSuggestion()
+            startDigestLoop()
+        } else {
+            stopBrainstorming()
+            stopAgendaChecking()
+            stopFactCheckLoop()
+            stopRhetoricLoop()
+            stopFacilitationLoop()
+            stopGoalSuggestion()
+            stopTitleSuggestion()
+            stopDigestLoop()
+            clarifyingTask?.cancel()
+            clarifying = false
+            followUpTask?.cancel()
+            answerProposalTask?.cancel()
+        }
     }
 
     /// Mirror of Config.brainstormEnabled (the blind-spot probe gate). Mutate
@@ -1742,7 +1786,7 @@ final class AppState: ObservableObject {
 
     /// Sign-in is only offered when a backend is configured to talk to.
     var wheesprAvailable: Bool {
-        !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        Config.llmViaBackend
     }
 
     var effectiveGoogleClientID: String {
@@ -1909,9 +1953,14 @@ final class AppState: ObservableObject {
         return true
     }
 
-    private func noteQuotaExhaustion(_ error: Error) {
-        guard copilotQuotaMessage == nil,
-              let message = CreditExhaustion.quotaMessage(from: error) else { return }
+    private func noteQuotaExhaustion(
+        _ error: Error,
+        managed: Bool = Config.managedUsageLimitsEnabled
+    ) {
+        guard managed,
+              copilotQuotaMessage == nil,
+              let message = CreditExhaustion.quotaMessage(from: error, managed: true)
+        else { return }
         copilotQuotaMessage = message
         lastError = message
         Log.general.info("copilot quota latched — background watches stop for this session")
@@ -1944,8 +1993,9 @@ final class AppState: ObservableObject {
         QuickPromptResolver.Configuration(
             tier: currentTier,
             connectorKeywords: connectedConnectorKeywords,
-            // A quota message is the app already knowing the pool is spent.
-            hasComputeCredits: copilotQuotaMessage == nil)
+            // Only the optional managed gateway has an Orakul credit pool.
+            hasComputeCredits: !Config.managedUsageLimitsEnabled
+                || copilotQuotaMessage == nil)
     }
 
     /// Keywords of every connected app that is actually IN USE — muted apps
@@ -1959,27 +2009,39 @@ final class AppState: ObservableObject {
         return QuickPromptResolver.connectorKeywords(connected: connected, muted: mutedAppIDs)
     }
 
-    var tierStatus: String { TierPolicy.status(stats: UsageTracker.stats, tier: currentTier) }
+    var tierStatus: String {
+        Config.managedUsageLimitsEnabled
+            ? TierPolicy.status(stats: UsageTracker.stats, tier: currentTier)
+            : "Все возможности · лимита Orakul нет"
+    }
 
     var tariffAllowance: TariffAllowance { TariffAllowance.forTier(currentTier) }
 
     var copilotSecondsRemaining: Int {
-        tariffAllowance.remainingCopilotSeconds(
-            usedSeconds: UsageTracker.copilotSecondsThisMonth,
-            activeSeconds: isRecording ? copilotActiveTimeMeter.seconds(at: Date()) : 0
+        UsageLimitPolicy.remaining(
+            managedLimitsEnabled: Config.managedUsageLimitsEnabled,
+            managedRemaining: tariffAllowance.remainingCopilotSeconds(
+                usedSeconds: UsageTracker.copilotSecondsThisMonth,
+                activeSeconds: isRecording ? copilotActiveTimeMeter.seconds(at: Date()) : 0
+            )
         )
     }
 
     var groundedCyclesRemaining: Int {
-        max(0, tariffAllowance.groundedCycles - UsageTracker.groundedCyclesThisMonth)
+        UsageLimitPolicy.remaining(
+            managedLimitsEnabled: Config.managedUsageLimitsEnabled,
+            managedRemaining: tariffAllowance.groundedCycles
+                - UsageTracker.groundedCyclesThisMonth
+        )
     }
 
     private var automaticCopilotEnabled: Bool {
-        Config.brainstormEnabled
+        automaticProviderRequestsEnabled
+            && (Config.brainstormEnabled
             || Config.factCheckDuringCallsEnabled
             || Config.rhetoricDuringCallsEnabled
             || (effectiveRecordingContextKind == .meeting
-                && (Config.agendaCheckerEnabled || Config.facilitationDuringCallsEnabled))
+                && (Config.agendaCheckerEnabled || Config.facilitationDuringCallsEnabled)))
     }
 
     /// Called after one Settings write. Multiple watches count as one union of
@@ -2003,7 +2065,21 @@ final class AppState: ObservableObject {
         automaticCopilotEnabled
             && !aiStreaming
             && copilotSecondsRemaining > 0
-            && copilotQuotaMessage == nil
+            && (!Config.managedUsageLimitsEnabled || copilotQuotaMessage == nil)
+    }
+
+    /// Revalidate consent after an actor/network await that follows a successful
+    /// background-queue reservation. Task cancellation is cooperative: without
+    /// this boundary a watcher cancelled by Settings OFF can resume from
+    /// `reserve` (or token refresh) and still begin its provider request. A
+    /// rejected reservation is released here so one cancelled tick cannot occupy
+    /// a background slot for the rest of the call.
+    private func mayEnterAutomaticWatchProviderBoundary(reservedKey key: String) async -> Bool {
+        guard canRunAutomaticCopilot, !Task.isCancelled else {
+            await bgQueue.finish(key: key)
+            return false
+        }
+        return true
     }
 
     /// Recompute the plan after a behaviour change; clamp the model if it dropped.
@@ -2027,11 +2103,6 @@ final class AppState: ObservableObject {
     /// refuse to reopen.
     @Published var onboardingReplayToken = 0
 
-    /// Raised once, when the first real meeting ends, to ask how it went.
-    /// ``FirstMeetingPrompt`` owns whether it may be raised at all; this is only
-    /// the signal to the view, so lowering it does not reopen the question.
-    @Published var showFirstMeetingFeedback = false
-
     /// Replay the first-run setup guide from Settings.
     ///
     /// Onboarding is gated on `Config.onboardingStep`, which records the last
@@ -2049,10 +2120,8 @@ final class AppState: ObservableObject {
         onboardingReplayToken &+= 1
     }
 
-    /// Adopt a freshly redeemed entitlement: re-read the plan and drop any
-    /// quota rejection the previous (unentitled) plan produced. Used by the
-    /// dev-build live-test hooks after `PaywallAPI.deviceRedeem`, so a suite
-    /// runs against a real plan instead of asserting against 401 bodies.
+    /// Re-read the current tier after a developer preview scope changes.
+    /// Kept as one state reconciliation point for the dev-only test surface.
     func refreshEntitlementAfterRedeem() {
         copilotQuotaMessage = nil
         wheesprConnected = Config.wheesprSession != nil
@@ -2114,7 +2183,7 @@ final class AppState: ObservableObject {
         refreshTier()
     }
 
-    /// Keys for transcription providers now come from build-time `Secrets`.
+    /// Cloud transcription is runtime BYOK; keys live in the injected Keychain.
     @Published var diarizing = false
     @Published private(set) var localDiarizationRunning = false
     @Published private(set) var localDiarizationProgress: Double = 0
@@ -2155,24 +2224,98 @@ final class AppState: ObservableObject {
     /// never reads it.
     var lastChunkText: [TranscriptSource: String] = [:]
 
+    /// Settings and runtime must mutate the same injected store. Routing key UI
+    /// through MCP's independently constructed wrapper worked in production only
+    /// because both happened to default to SystemKeychain; injected tests could
+    /// save into one store while AppState read another.
+    var transcriptionProviderKeys: ProviderKeyStore { providerKeys }
+
+    /// Revoke every active use before attempting persistent deletion. A failed
+    /// Keychain delete is reported as failure, but privacy still wins: an
+    /// in-memory stream or upload may not continue under a credential the user
+    /// has explicitly tried to remove.
+    @discardableResult
+    func removeTranscriptionKey(for provider: CloudTranscriptionProvider) -> Bool {
+        switch provider {
+        case .deepgram:
+            revokeDeepgramCredentialUse()
+        case .assemblyAI:
+            assemblyAIDiarizationTask?.cancel()
+            assemblyAIDiarizationTask = nil
+            diarizing = false
+            Config.assemblyAIDiarizationEnabled = false
+        }
+
+        let removed = providerKeys.removeTranscriptionKey(for: provider)
+        if !removed {
+            lastError = "Не удалось удалить ключ \(provider.label) из Связки ключей. Облачный маршрут уже выключен; разблокируйте Связку ключей и повторите удаление."
+        }
+        return removed
+    }
+
+    private func revokeDeepgramCredentialUse() {
+        let previousSettings = activeRecordingSettings ?? RecordingSettingsSnapshot.configured(
+            engine: Config.transcriptionEngineValue(using: providerKeys))
+        let previousEngine = activeSessionEngine ?? selectedTranscriptionEngine
+
+        // Normalize the durable and visible choice even if Keychain deletion
+        // later fails. A retained credential must never silently re-arm cloud.
+        Config.transcriptionEngineValue = .local
+        selectedTranscriptionEngine = .local
+
+        switch status {
+        case .starting:
+            forceLocalAtStartupBoundary = true
+            pendingStartupLocalFallback = nil
+            pendingEngineChange = .local
+            systemStreamer?.finish()
+            micStreamer?.finish()
+            systemStreamer = nil
+            micStreamer = nil
+        case .recording where previousEngine == .deepgram,
+             .paused where previousEngine == .deepgram:
+            // Stop new provider audio first. The route rewrite below can load a
+            // model or fail, but neither outcome may leave the socket usable.
+            systemStreamer?.finish()
+            micStreamer?.finish()
+            systemStreamer = nil
+            micStreamer = nil
+            let switched = switchActiveTranscriptionEngine(
+                to: .local,
+                replacing: previousSettings,
+                previousEngine: .deepgram,
+                allowPausedDeepgramRevocation: status == .paused)
+            if switched {
+                activeSessionEngine = .local
+                activeRecordingSettings = previousSettings.replacingEngine(with: .local)
+                noteSuccessfulEngineTransition(from: .deepgram, to: .local)
+            } else {
+                lastError = "Ключ Deepgram удаляется; облачный поток остановлен, но локальную расшифровку не удалось подготовить."
+            }
+            pendingEngineChange = nil
+        case .recording, .paused, .idle, .error, .stopping:
+            systemStreamer?.finish()
+            micStreamer?.finish()
+            systemStreamer = nil
+            micStreamer = nil
+            pendingEngineChange = nil
+        }
+    }
+
     var hasAssemblyAI: Bool {
-        !Config.assemblyAIAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        providerKeys.hasTranscriptionKey(for: .assemblyAI)
     }
 
-    /// True once a finished recording is available to (re)diarize.
-    /// Server-side speaker labels need only an account — the backend holds the
-    /// key (D34's BYO requirement was lifted by gpt-4o-transcribe-diarize).
+    /// Public Orakul has no first-party transcription backend. Keep the
+    /// compatibility property while inherited retention code is removed, but
+    /// never make a server upload reachable at runtime.
     var canDiarizeOnServer: Bool {
-        Config.llmViaBackend && wheesprConnected
+        false
     }
 
-    /// Where the audio actually goes, for the button that sends it.
-    ///
-    /// The two paths use different vendors and the UI previously named only
-    /// AssemblyAI, which is the BYO-key FALLBACK. A signed-in user's audio goes
-    /// to the backend and on to OpenAI. Telling someone their meeting is going
-    /// to one company when it is going to another is wrong however it is
-    /// worded, so this is derived from the branch that will actually run.
+    /// Where the audio actually goes, for the explicit post-call button.
+    /// Public Orakul has one reachable destination: AssemblyAI under the user's
+    /// own account.
     var diarizeDestination: String {
         Self.diarizeDestination(onServer: canDiarizeOnServer)
     }
@@ -2200,7 +2343,7 @@ final class AppState: ObservableObject {
     }
 
     var canDiarize: Bool {
-        (canDiarizeOnServer || (hasAssemblyAI && Config.assemblyAIDiarizationEnabled))
+        hasAssemblyAI && Config.assemblyAIDiarizationEnabled
             && sessionRetainedAudioTimelineValid
             && !sessionRecorder.isEmpty
             && status != .recording
@@ -2218,9 +2361,24 @@ final class AppState: ObservableObject {
             && !firefliesImporting
     }
 
-    /// Deepgram is usable with a baked/BYO key or — keyless — through the
-    /// backend's credit-metered token grant (signed-in only).
-    var hasDeepgram: Bool { Config.engineAvailable(.deepgram) }
+    /// Deepgram is usable only with the key the user stored in this AppState's
+    /// injected Keychain. A backend account or build setting never qualifies.
+    var hasDeepgram: Bool { transcriptionEngineIsAvailable(.deepgram) }
+
+    private func transcriptionEngineIsAvailable(_ engine: TranscriptionEngine) -> Bool {
+        guard transcriptionEngineAvailability(engine) else { return false }
+        switch engine {
+        case .deepgram:
+            return providerKeys.hasTranscriptionKey(for: .deepgram)
+        case .whisper:
+            // The production availability closure rejects this hidden route.
+            // An injected test/development policy may expose the retained
+            // compatibility client without teaching the public selector to do so.
+            return true
+        case .local, .server:
+            return true
+        }
+    }
 
     /// Full indexed context for inspection and context-set bookkeeping. Model
     /// requests must use `promptContext(query:)`, which retrieves a bounded
@@ -2585,7 +2743,7 @@ final class AppState: ObservableObject {
             connectedGlossaryCache = ConnectedGlossaryCache(
                 key: cacheKey, at: Date(), generation: result)
             Log.general.info(
-                "event=connected_glossary_ready sources=\(result.metrics.sourceCount, privacy: .public) grounding_chars=\(result.metrics.groundingChars, privacy: .public) prompt_tokens=\(result.metrics.estimatedInputTokens, privacy: .public) model=\(result.metrics.modelID, privacy: .public) estimated_credits=\(result.metrics.estimatedComputeCredits, privacy: .public) ranking=\(result.metrics.ranking.rawValue, privacy: .public)")
+                "event=connected_glossary_ready sources=\(result.metrics.sourceCount, privacy: .public) grounding_chars=\(result.metrics.groundingChars, privacy: .public) prompt_tokens=\(result.metrics.estimatedInputTokens, privacy: .public) model=\(result.metrics.modelID, privacy: .public) ranking=\(result.metrics.ranking.rawValue, privacy: .public)")
             devCallDiagnostics.record(
                 event: "connected_glossary_terminal",
                 fields: [
@@ -2594,7 +2752,6 @@ final class AppState: ObservableObject {
                         ["term": $0.term, "reason": $0.reason, "sources": $0.sources]
                     },
                     "ranking": result.metrics.ranking.rawValue,
-                    "estimatedComputeCredits": result.metrics.estimatedComputeCredits,
                 ])
         } catch {
             guard generationID == connectedGlossaryGeneration, !Task.isCancelled else { return }
@@ -2732,7 +2889,6 @@ final class AppState: ObservableObject {
             estimatedInputTokens: metrics.estimatedInputTokens,
             transcriptCharsSent: metrics.transcriptCharsSent,
             modelID: metrics.modelID,
-            estimatedComputeCredits: metrics.estimatedComputeCredits,
             ranking: metrics.ranking,
             cached: true)
     }
@@ -3276,6 +3432,10 @@ final class AppState: ObservableObject {
     private let connectedGlossarySourceProvider: ConnectedGlossarySourceProvider?
     private let connectedGlossaryGroundedCycleConsumer: (Tier) -> Bool
     private let credentialStore: KeychainStore
+    /// Runtime BYOK credentials, built from the same injected Keychain store as
+    /// the rest of this AppState. Tests therefore cannot accidentally read the
+    /// developer's real Deepgram or AssemblyAI key.
+    private let providerKeys: ProviderKeyStore
     private let shouldInstallProcessCredentialCache: Bool
     private let callDetector = CallDetector()
     private let callNotifier = CallNotifier()
@@ -3335,13 +3495,19 @@ final class AppState: ObservableObject {
     private var serverDiarizationEligibleForSession = false
     private var systemStreamer: DeepgramStreamer?
     private var micStreamer: DeepgramStreamer?
+    /// A credential deletion during the slow pre-capture preparation window is
+    /// an overriding privacy boundary, not a normal Settings preference change.
+    private var forceLocalAtStartupBoundary = false
+    /// Retained solely so removing the AssemblyAI key can cancel an upload/poll
+    /// already in flight before Keychain deletion is reported as successful.
+    private var assemblyAIDiarizationTask: Task<Void, Never>?
     private struct PendingStartupLocalFallback {
         let message: String
         let generationToken: RecordingGenerationToken
         let state: LiveStreamDegradeState
         let routeLease: TranscriptionRouteLease
     }
-    /// Deepgram can reject a grant while capture is still in `.starting`.
+    /// Deepgram can reject a user credential while capture is still in `.starting`.
     /// Applying Local immediately is unsafe because the capture-success reset
     /// would overwrite its recorder origin and model provenance moments later.
     private var pendingStartupLocalFallback: PendingStartupLocalFallback?
@@ -3532,7 +3698,7 @@ final class AppState: ObservableObject {
     /// restore). Production uses .default throughout.
     private let notificationCenter: NotificationCenter
     /// Content-bearing diagnostics are inert unless a dev binary was launched
-    /// with the explicit nonce/root/CRUXWING_DEV_CALL_LOGS authorization.
+    /// with the explicit nonce/root/ORAKUL_DEV_CALL_LOGS authorization.
     private let devCallDiagnostics: DevCallDiagnostics
 
     /// Deterministic connected-tool seam. nil in production, where commits use
@@ -3550,10 +3716,9 @@ final class AppState: ObservableObject {
     /// One bounded post-call pipeline, injectable so tests never load Core ML.
     private let localFinalPassServiceFactory: (String, String) -> TranscriptionService
     private let deepgramStreamerFactory: (
-        DeepgramAuth, Bool, String, [String]
+        String, Bool, String, [String]
     ) -> DeepgramStreamer
     private let transcriptionEngineAvailability: (TranscriptionEngine) -> Bool
-    private let deepgramAuthOverride: DeepgramAuth?
     typealias FirefliesTranscriptProvider = @MainActor (
         _ near: Date?, _ within: TimeInterval?
     ) async throws -> FirefliesTranscript
@@ -3582,10 +3747,10 @@ final class AppState: ObservableObject {
 
     init(transcriber: TranscriptionService? = nil,
          llm: LLMGateway = LLMGatewayFactory.make(),
-         analytics: @escaping (AnalyticsEvent) -> Void = { FunnelTracker.track($0) },
          credentialStore: KeychainStore = SystemKeychain.shared,
          sessionStore: SessionStore = .shared,
          notificationCenter: NotificationCenter = .default,
+         sessionLifecycleObserversForTesting: Bool = false,
          answerActionDispatcher: (any AnswerActionDispatching)? = nil,
          transcriptionEngineSwitchOverride: ((TranscriptionEngine) -> Bool)? = nil,
          transcriptionServiceFactory: @escaping (
@@ -3601,16 +3766,22 @@ final class AppState: ObservableObject {
              LocalWhisperTranscription(model: model, language: language, glossary: "")
          },
          deepgramStreamerFactory: @escaping (
-             DeepgramAuth, Bool, String, [String]
-         ) -> DeepgramStreamer = { auth, diarize, language, keyterms in
+             String, Bool, String, [String]
+         ) -> DeepgramStreamer = { apiKey, diarize, language, keyterms in
              DeepgramStreamer(
-                 auth: auth, diarize: diarize, language: language,
+                 apiKey: apiKey, diarize: diarize, language: language,
                  keyterms: keyterms)
          },
          transcriptionEngineAvailability: @escaping (TranscriptionEngine) -> Bool = {
-             Config.engineAvailable($0)
+             // AppState applies the injected Deepgram-key gate itself. Keeping
+             // the policy closure credential-free makes an injected Keychain
+             // the one runtime source instead of consulting the global store.
+            switch $0 {
+            case .deepgram: return true
+            case .whisper: return false
+            case .local, .server: return Config.engineAvailable($0)
+            }
          },
-         deepgramAuthOverride: DeepgramAuth? = nil,
          firefliesTranscriptProvider: FirefliesTranscriptProvider? = nil,
          backgroundLLMQueue: BackgroundLLMQueue = BackgroundLLMQueue(),
          blindSpotSuggestionProvider: @escaping (
@@ -3646,6 +3817,12 @@ final class AppState: ObservableObject {
              UsageTracker.consumeGroundedCycle(for: $0)
          },
          devCallDiagnostics: DevCallDiagnostics = .shared) {
+        // Install the injected credential boundary before resolving any route.
+        // Config's process-global store must never decide the initial engine or
+        // construct a transcriber for an AppState backed by another Keychain.
+        self.credentialStore = credentialStore
+        let injectedProviderKeys = ProviderKeyStore(store: credentialStore)
+        self.providerKeys = injectedProviderKeys
         self.notificationCenter = notificationCenter
         self.devCallDiagnostics = devCallDiagnostics
         self.answerActionDispatcher = answerActionDispatcher
@@ -3654,7 +3831,6 @@ final class AppState: ObservableObject {
         self.localFinalPassServiceFactory = localFinalPassServiceFactory
         self.deepgramStreamerFactory = deepgramStreamerFactory
         self.transcriptionEngineAvailability = transcriptionEngineAvailability
-        self.deepgramAuthOverride = deepgramAuthOverride
         self.firefliesTranscriptProvider = firefliesTranscriptProvider
         self.bgQueue = backgroundLLMQueue
         self.blindSpotSuggestionProvider = blindSpotSuggestionProvider
@@ -3663,7 +3839,12 @@ final class AppState: ObservableObject {
         self.blindSpotSkillGuidanceProvider = blindSpotSkillGuidanceProvider
         self.connectedGlossarySourceProvider = connectedGlossarySourceProvider
         self.connectedGlossaryGroundedCycleConsumer = connectedGlossaryGroundedCycleConsumer
-        let configuredEngine = Config.transcriptionEngineValue
+        let resolvedEngine = Config.transcriptionEngineValue(using: injectedProviderKeys)
+        let configuredEngine = transcriptionEngineAvailability(resolvedEngine)
+            && Config.engineAvailable(resolvedEngine, providerKeys: injectedProviderKeys)
+            ? resolvedEngine
+            : .local
+        self.selectedTranscriptionEngine = configuredEngine
         let configuredLanguage = Config.transcriptionLanguage
         let configuredGlossary = Config.transcriptionGlossary
         let resolvedTranscriber = transcriber ?? transcriptionServiceFactory(
@@ -3679,15 +3860,21 @@ final class AppState: ObservableObject {
         self.transcriberGlossary = transcriber == nil ? configuredGlossary : nil
         self.llm = llm
         self.sessionStore = sessionStore
-        self.savedSessions = sessionStore.list()
-        self.analytics = analytics
-        self.credentialStore = credentialStore
+        let sessionArchive = sessionStore.listWithUnreadable()
+        self.savedSessions = sessionArchive.sessions
+        self.historyStorageWarning = Self.historyWarning(for: sessionArchive.unreadable)
         self.shouldInstallProcessCredentialCache = credentialStore is SystemKeychain
         // Normalize the saved model to what the current plan allows.
         if !Config.selectedModel.isAvailable(for: currentTier) {
             selectedModelID = LLMCatalog.defaultModel(for: currentTier).id
         }
-        installSessionLifecycleObservers()
+        // The public direct-BYOK build has no Orakul account. Do not even
+        // subscribe to the inherited managed-session notification channel in
+        // that mode; an old Keychain row must not re-enter the running app.
+        if Config.llmViaBackend
+            || (Self.isUnderTest && sessionLifecycleObserversForTesting) {
+            installSessionLifecycleObservers()
+        }
         // Managed-Whisper safety net: when the session degrades to on-device
         // (plan cap, outage, sign-out), tell the user once — the transcript
         // keeps flowing either way.
@@ -3717,9 +3904,14 @@ final class AppState: ObservableObject {
         } else {
             let store = credentialStore
             let revisions = Config.credentialCacheRevisions
+            let managedAccountEnabled = Config.llmViaBackend
             task = Task.detached(priority: .userInitiated) {
                 let googleTokens = Config.loadGoogleTokens(from: store)
-                let wheesprSession = Config.loadWheesprSession(from: store)
+                // Direct BYOK has no Orakul account. In particular, do not read
+                // or hydrate a stale session left by an older managed build.
+                let wheesprSession = managedAccountEnabled
+                    ? Config.loadWheesprSession(from: store)
+                    : nil
                 return PersistedConnectionSnapshot(
                     googleTokens: googleTokens,
                     wheesprSession: wheesprSession,
@@ -3746,7 +3938,7 @@ final class AppState: ObservableObject {
                 googleConnected = snapshot.googleTokens != nil
             }
         }
-        if !wheesprConnectionMutatedSinceLaunch {
+        if Config.llmViaBackend && !wheesprConnectionMutatedSinceLaunch {
             if shouldInstallProcessCredentialCache {
                 _ = Config.installLoadedWheesprSession(
                     snapshot.wheesprSession,
@@ -3773,15 +3965,6 @@ final class AppState: ObservableObject {
         rebuildPromptWorkflows()
         guard !AppState.isUnderTest else { return }
         applyReminderSettings()
-        if wheesprConnected {
-            Task { [weak self] in
-                // Proactive refresh before the first API call when the access
-                // token is already expired (avoids a silent anonymous downgrade).
-                _ = await self?.wheesprAccessToken()
-                await PaywallAPI.refreshEntitlement()
-                self?.refreshTier()
-            }
-        }
     }
 
     deinit {
@@ -3958,6 +4141,7 @@ final class AppState: ObservableObject {
                 let named = self.meetingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                 let minChars = GoalSuggestion.isUsableCalendarTitle(named) ? 250 : 400
                 guard opening.count >= minChars else { continue }
+                guard self.automaticProviderRequestsEnabled else { return }
                 let system = """
                 Infer the most useful outcome of this recording for the person capturing it.
 
@@ -4021,12 +4205,14 @@ final class AppState: ObservableObject {
                     }
                 }
                 user += "Transcript opening:\n\(String(opening.prefix(2_500)))"
+                guard self.automaticProviderRequestsEnabled, !Task.isCancelled else { return }
                 let raw = try? await self.trackingComputeUsage {
                     try await self.llm.streamChat(
                         system: system, user: user,
                         model: LLMCatalog.fastAudit(for: Config.selectedModel)) { _ in }
                 }
-                if let goal = GoalSuggestion.sanitizeModelGoal(raw ?? ""),
+                if self.automaticProviderRequestsEnabled, !Task.isCancelled,
+                   let goal = GoalSuggestion.sanitizeModelGoal(raw ?? ""),
                    self.callGoal.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     // Placed straight into the empty field rather than offered as a
                     // chip to accept. It already drove blind spots through
@@ -4154,6 +4340,7 @@ final class AppState: ObservableObject {
     func startTitleSuggestion() {
         titleSuggestTask?.cancel()
         suggestedMeetingTitle = nil
+        guard automaticProviderRequestsEnabled else { return }
         titleSuggestTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: MeetingTitleProposal.delaySeconds * 1_000_000_000)
             guard let self, !Task.isCancelled else { return }
@@ -4203,6 +4390,7 @@ final class AppState: ObservableObject {
         digestTask?.cancel()
         callDigest = ""
         digestedEntryCount = 0
+        guard automaticProviderRequestsEnabled else { return }
         digestTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: Self.digestFoldIntervalNs)
@@ -4223,6 +4411,7 @@ final class AppState: ObservableObject {
     /// fast-audit model. Skips small increments; on failure leaves state
     /// untouched so the next tick retries the same span.
     private func foldDigest() async {
+        guard automaticProviderRequestsEnabled, !Task.isCancelled else { return }
         let entries = transcript
         guard entries.count > digestedEntryCount else { return }
         let newText = SystemInstructions.formatEntries(Array(entries[digestedEntryCount...]))
@@ -4237,12 +4426,14 @@ final class AppState: ObservableObject {
         digest.
         """
         let user = "CURRENT digest:\n\(callDigest.isEmpty ? "(empty)" : callDigest)\n\nNEW transcript segment:\n\(newText)"
+        guard automaticProviderRequestsEnabled, !Task.isCancelled else { return }
         guard let folded = try? await trackingComputeUsage({
             try await llm.streamChat(
                 system: system, user: user,
                 model: LLMCatalog.fastAudit(for: Config.selectedModel), onDelta: { _ in })
         }),
             !folded.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard automaticProviderRequestsEnabled, !Task.isCancelled else { return }
         callDigest = folded.trimmingCharacters(in: .whitespacesAndNewlines)
         digestedEntryCount = entries.count
     }
@@ -4316,6 +4507,18 @@ final class AppState: ObservableObject {
 
     // MARK: - Session persistence (M3)
 
+    private static func historyWarning(for unreadable: [String]) -> String? {
+        guard !unreadable.isEmpty else { return nil }
+        return "История открылась не полностью: проблемных записей — "
+            + "\(unreadable.count). Файлы оставлены на месте."
+    }
+
+    private func reloadSavedSessions() {
+        let archive = sessionStore.listWithUnreadable()
+        savedSessions = archive.sessions
+        historyStorageWarning = Self.historyWarning(for: archive.unreadable)
+    }
+
     /// Persist the current meeting under the recording's stable session id.
     /// Called on stop and after post-call AI runs; a failed write surfaces as
     /// lastError (silent loss is the bug this exists to fix).
@@ -4355,7 +4558,7 @@ final class AppState: ObservableObject {
         )
         do {
             try sessionStore.save(session)
-            savedSessions = sessionStore.list()
+            reloadSavedSessions()
         } catch {
             lastError = "Не удалось сохранить звонок: \(error.localizedDescription)"
         }
@@ -4515,7 +4718,7 @@ final class AppState: ObservableObject {
                 // вытесняют из ответа разные звонки, мест в нём три. Решение —
                 // в хранилище, где его можно проверить тестом.
                 let stored = try sessionStore.saveImported(session)
-                savedSessions = sessionStore.list()
+                reloadSavedSessions()
                 restoreSession(stored)
                 // A past call from the same team is the cheapest rich glossary
                 // source there is: no upload, no credits, and its vocabulary is
@@ -4549,7 +4752,7 @@ final class AppState: ObservableObject {
         transcriptEnhanceNote = nil
         lastChunkText.removeAll()
         lastError = nil
-        savedSessions = sessionStore.list()
+        reloadSavedSessions()
     }
 
     /// Что сказала система — по-русски настолько, насколько она умеет.
@@ -4623,15 +4826,23 @@ final class AppState: ObservableObject {
     }
 
     func deleteSession(id: UUID) {
-        sessionStore.delete(id: id)
-        savedSessions = sessionStore.list()
+        do {
+            _ = try sessionStore.delete(id: id)
+        } catch {
+            lastError = "Не удалось удалить звонок: \(Self.systemSaid(error))"
+        }
+        reloadSavedSessions()
     }
 
     /// Remove all saved meetings (History → Clear all). Destructive + irreversible;
     /// the caller confirms first.
     func clearAllHistory() {
-        sessionStore.deleteAll()
-        savedSessions = []
+        do {
+            try sessionStore.deleteAll()
+        } catch {
+            lastError = "Не удалось полностью очистить историю: \(Self.systemSaid(error))"
+        }
+        reloadSavedSessions()
     }
 
     // MARK: - Ledger read view (M3e — the ledger was write-only from the app)
@@ -4650,16 +4861,19 @@ final class AppState: ObservableObject {
     @Published private(set) var pendingEngineChange: TranscriptionEngine?
     /// Settings' selected row. Unlike a view-local `@State`, this follows an
     /// asynchronous pre-ready Deepgram rollback immediately.
-    @Published private(set) var selectedTranscriptionEngine = Config.transcriptionEngineValue
+    @Published private(set) var selectedTranscriptionEngine: TranscriptionEngine
 
-    /// Pure startup-race policy. Hydration may republish a newly available
-    /// saved engine only when no recording boundary is active.
+    /// Pure startup-race policy. Hydration may withdraw an unavailable route,
+    /// but it may not turn a Local row into cloud merely because a credential
+    /// appeared. Cloud transmission always needs a fresh explicit selection.
     static func transcriptionEngineAfterCredentialHydration(
         displayed: TranscriptionEngine,
         resolvedAfterHydration: TranscriptionEngine,
         callInFlight: Bool
     ) -> TranscriptionEngine {
-        callInFlight ? displayed : resolvedAfterHydration
+        guard !callInFlight else { return displayed }
+        if displayed == .local, resolvedAfterHydration != .local { return .local }
+        return resolvedAfterHydration
     }
 
     /// The engine used at Record must be the published Settings row, not a
@@ -4672,14 +4886,15 @@ final class AppState: ObservableObject {
     }
 
     /// Resolve and publish the exact route before any slow model/network work.
-    /// The raw saved preference is intentionally untouched: account hydration
-    /// may make it available again for a later call, but this call's Settings
-    /// row must always describe the route that can actually start now.
+    /// An unavailable cloud choice is durably normalized to Local; adding a key
+    /// later unlocks the row but never silently restores an old upload choice.
     func publishRecordingBoundaryEngine() -> TranscriptionEngine {
+        let displayed = selectedTranscriptionEngine
         let engine = Self.recordingBoundaryEngine(
-            displayed: selectedTranscriptionEngine,
-            displayedIsAvailable: transcriptionEngineAvailability(
-                selectedTranscriptionEngine))
+            displayed: displayed,
+            displayedIsAvailable: transcriptionEngineIsAvailable(
+                displayed))
+        if engine != displayed { Config.transcriptionEngineValue = .local }
         selectedTranscriptionEngine = engine
         return engine
     }
@@ -4692,7 +4907,7 @@ final class AppState: ObservableObject {
         }
         selectedTranscriptionEngine = Self.transcriptionEngineAfterCredentialHydration(
             displayed: selectedTranscriptionEngine,
-            resolvedAfterHydration: Config.transcriptionEngineValue,
+            resolvedAfterHydration: Config.transcriptionEngineValue(using: providerKeys),
             callInFlight: !canRepublish)
     }
 
@@ -4702,11 +4917,12 @@ final class AppState: ObservableObject {
     /// the call is still using its previous chunk engine.
     @discardableResult
     func selectTranscriptionEngine(_ engine: TranscriptionEngine) -> Bool {
-        let previousConfigured = Config.transcriptionEngineValue
-        let previousSettings = activeRecordingSettings ?? RecordingSettingsSnapshot.configured()
+        let previousConfigured = Config.transcriptionEngineValue(using: providerKeys)
+        let previousSettings = activeRecordingSettings ?? RecordingSettingsSnapshot.configured(
+            engine: previousConfigured)
         let previousEngine = activeSessionEngine ?? previousSettings.engine
         let available = transcriptionEngineSwitchOverride != nil
-            || transcriptionEngineAvailability(engine)
+            || transcriptionEngineIsAvailable(engine)
         guard available else {
             pendingEngineChange = nil
             lastError = "«\(engine.advantageTitle)» недоступно для этой учётной записи. Звонок продолжается на «\(previousEngine.advantageTitle)»."
@@ -4818,7 +5034,8 @@ final class AppState: ObservableObject {
 
     func liveTranscriptionConfiguration() -> LiveTranscriptionConfiguration {
         LiveTranscriptionConfiguration(
-            configured: .configured(),
+            configured: .configured(
+                engine: Config.transcriptionEngineValue(using: providerKeys)),
             active: activeRecordingSettings,
             pendingEngine: pendingEngineChange)
     }
@@ -4903,7 +5120,7 @@ final class AppState: ObservableObject {
 
     /// Whether the ledger UI has any chance of working (backend configured).
     var ledgerConfigured: Bool {
-        !Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        Config.llmViaBackend
     }
 
     /// goalType -> the contract's field order, from `GET /api/goal-contracts`.
@@ -4922,11 +5139,16 @@ final class AppState: ObservableObject {
     /// failure shows nothing rather than an error — nobody is watching the screen
     /// ten minutes before a call, and an error line there would be pure noise.
     func refreshMeetingBrief() async {
+        // This endpoint may synthesize a brief server-side. Calendar polling and
+        // local reminders stay useful with automatic AI off, but they must not
+        // smuggle an ambient model request past the master switch.
+        guard automaticProviderRequestsEnabled else { return }
         guard ledgerConfigured else { return }
         guard let meeting = BriefTarget.next(in: upcomingMeetings, now: Date(),
                                              briefed: briefsRequested) else { return }
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let token = await wheesprAccessToken() else { return }
+        guard automaticProviderRequestsEnabled, !Task.isCancelled else { return }
         // Mark before awaiting: two refreshes overlapping must not both spend.
         briefsRequested.insert(meeting.id)
         do {
@@ -5032,7 +5254,7 @@ final class AppState: ObservableObject {
             && blindSpotsEnabled
             && Config.brainstormEnabled
             && !suggestionsSnoozedThisCall
-            && copilotQuotaMessage == nil
+            && (!Config.managedUsageLimitsEnabled || copilotQuotaMessage == nil)
     }
 
     private func terminalizeActiveBlindSpotAttemptBeforeInvalidation(
@@ -5183,6 +5405,7 @@ final class AppState: ObservableObject {
         // A same-value Settings write is idempotent and leaves the current
         // provider request alone. Genuine restarts always get a fresh identity.
         guard brainstormTask == nil else { return }
+        guard automaticProviderRequestsEnabled else { return }
         guard !suggestionsSnoozedThisCall else { return }   // per-call quiet mode
         guard blindSpotsEnabled, Config.brainstormEnabled, isRecording else { return }
         blindSpotGeneration &+= 1
@@ -5192,13 +5415,17 @@ final class AppState: ObservableObject {
             while !Task.isCancelled {
                 guard let self, self.blindSpotRunIsCurrent(identity) else { break }
                 let tier = self.currentTier
-                let paid = tier.rank >= Tier.pro.rank
-                let fundedBaseCadence = CopilotCadence.blindSpotSeconds(
-                    for: tier,
-                    agendaEnabled: self.agendaCheckingEnabled,
-                    factCheckEnabled: self.liveFactCheckingEnabled,
-                    rhetoricEnabled: self.rhetoricWatchEnabled,
-                    facilitationEnabled: self.facilitationWatchEnabled)
+                let managedSpend = Config.managedUsageLimitsEnabled
+                let policyTier: Tier = managedSpend ? tier : .free
+                let paid = managedSpend && tier.rank >= Tier.pro.rank
+                let fundedBaseCadence = managedSpend
+                    ? CopilotCadence.blindSpotSeconds(
+                        for: tier,
+                        agendaEnabled: self.agendaCheckingEnabled,
+                        factCheckEnabled: self.liveFactCheckingEnabled,
+                        rhetoricEnabled: self.rhetoricWatchEnabled,
+                        facilitationEnabled: self.facilitationWatchEnabled)
+                    : CopilotCadence.directBYOKBlindSpotSeconds
                 // Paid cadence backs off over consecutive empty scans and snaps
                 // back the moment one lands. Blind spots are the most expensive
                 // loop; when optional watches are off their funded hourly share
@@ -5260,7 +5487,7 @@ final class AppState: ObservableObject {
                 let enoughNewMaterial = BackgroundSpendPolicy.shouldRunBlindSpot(
                     totalCharacters: transcriptCharacterCount,
                     charactersAtLastRun: self.backgroundSpendState.charactersAtLastRun["brainstorm"],
-                    tier: self.currentTier,
+                    tier: policyTier,
                     goalChanged: wake == .goalRefresh)
                 // A goal edit changes the request even when nobody spoke during
                 // the edit. The old guard consumed the wake and then rejected it
@@ -5295,11 +5522,11 @@ final class AppState: ObservableObject {
                 // several workflow connector graphs in one wake.
                 let probeIDs: [String]
                 let probeID: String
-                if self.currentTier.rank >= Tier.pro.rank {
+                if policyTier.rank >= Tier.pro.rank {
                     self.backgroundSpendState.paidProbeTick += 1
                     probeIDs = BlindSpotProbeRotation.probeIDs(
                         at: self.backgroundSpendState.paidProbeTick,
-                        count: BlindSpotProbeRotation.workflowCount(for: self.currentTier))
+                        count: BlindSpotProbeRotation.workflowCount(for: policyTier))
                     probeID = probeIDs[0]
                 } else {
                     probeIDs = ["brainstorm"]
@@ -5312,12 +5539,12 @@ final class AppState: ObservableObject {
                     if let provider = self.blindSpotSkillGuidanceProvider {
                         return provider(skillQuery, probeIDs)
                     }
-                    if self.currentTier.rank >= Tier.pro.rank {
+                    if policyTier.rank >= Tier.pro.rank {
                         var parts: [String] = []
                         for id in probeIDs {
                             let top = BundledSkillRouter.ranked(for: id, query: skillQuery)
                                 .prefix(1)
-                                .compactMap { BundledSkillRouter.format($0.skill) }
+                                .compactMap { BundledSkillRouter.format($0.skill, for: id) }
                                 .filter { !$0.isEmpty }
                             parts.append(contentsOf: top)
                         }
@@ -5331,7 +5558,7 @@ final class AppState: ObservableObject {
                                         RoleSkillMatrix.guidance(roleID: self.userRoleID, promptID: probeID),
                                         skillGuidance]
                     .compactMap { $0 }
-                if self.currentTier.rank >= Tier.pro.rank {
+                if policyTier.rank >= Tier.pro.rank {
                     brainstormLayers.insert(BlindSpotProbeRotation.lensBriefs(for: probeIDs), at: 0)
                 }
 
@@ -5358,8 +5585,10 @@ final class AppState: ObservableObject {
                 let token: String?
                 if let tokenProvider = self.blindSpotAccessTokenProvider {
                     token = await tokenProvider()
-                } else {
+                } else if Config.llmViaBackend {
                     token = await self.wheesprAccessToken()
+                } else {
+                    token = nil
                 }
                 self.mutateBlindSpotDevTrace(identity: identity) {
                     $0.tokenLookupCompletedAt = Date().timeIntervalSince1970
@@ -5530,7 +5759,9 @@ final class AppState: ObservableObject {
                         break
                     }
                     self.computeUsageRevision &+= 1
-                    let quotaMessage = CreditExhaustion.quotaMessage(from: error)
+                    let quotaMessage = CreditExhaustion.quotaMessage(
+                        from: error,
+                        managed: Config.managedUsageLimitsEnabled)
                     self.noteQuotaExhaustion(error)
                     if let execution = BrainstormService.executionTrace(from: error) {
                         self.recordBlindSpotExecution(execution)
@@ -5629,8 +5860,11 @@ final class AppState: ObservableObject {
         explicitQuery: String? = nil
     ) async -> String? {
         guard blindSpotRunIsCurrent(identity),
-              tariffAllowance.canRunGroundedCycle(
-                used: UsageTracker.groundedCyclesThisMonth) else { return nil }
+              UsageLimitPolicy.permits(
+                managedLimitsEnabled: Config.managedUsageLimitsEnabled,
+                withinManagedLimit: tariffAllowance.canRunGroundedCycle(
+                    used: UsageTracker.groundedCyclesThisMonth)
+              ) else { return nil }
         // Item 10, design #2: the previous scan may have named exactly what to look
         // up. When it did, that query drives this (already-budgeted) cycle instead
         // of the transcript heuristic — same call, sharper target.
@@ -5727,6 +5961,7 @@ final class AppState: ObservableObject {
     /// the same Co-pilot suggestions surface.
     private func startAgendaChecking() {
         agendaTask?.cancel()
+        guard automaticProviderRequestsEnabled else { return }
         guard Config.agendaCheckerEnabled else { return }
         agendaTask = Task { [weak self] in
             // Stagger off the blind-spot cadence so the two don't fire together.
@@ -5739,7 +5974,10 @@ final class AppState: ObservableObject {
                 guard CopilotTranscriptEligibility.canGenerateSuggestions(self.transcript) else { continue }
                 guard self.canRunAutomaticCopilot else { continue }
                 guard self.shouldSpendOnWatch("agenda") else { continue }
-                    guard await self.bgQueue.reserve(key: "agenda", signature: self.transcriptText.count) else { continue }
+                guard await self.bgQueue.reserve(
+                    key: "agenda", signature: self.transcriptText.count) else { continue }
+                guard await self.mayEnterAutomaticWatchProviderBoundary(
+                    reservedKey: "agenda") else { continue }
                 if let fresh = try? await CopilotBilling.labelled(.agenda, {
                     try await self.trackingComputeUsage({
                         try await AgendaCheckService.findings(
@@ -5769,6 +6007,7 @@ final class AppState: ObservableObject {
     /// full sweep in progress.
     private func startFactCheckLoop() {
         factCheckLoopTask?.cancel()
+        guard automaticProviderRequestsEnabled else { return }
         guard Config.factCheckDuringCallsEnabled else { return }
         factCheckLoopTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 25_000_000_000)   // initial offset
@@ -5783,7 +6022,14 @@ final class AppState: ObservableObject {
                 guard self.canRunAutomaticCopilot else { continue }
                 guard await self.bgQueue.reserve(key: "factcheck", signature: self.transcript.count) else { continue }
                 let transcript = self.promptTranscript(cap: 8_000)
-                let token = await self.wheesprAccessToken()
+                let token: String?
+                if Config.llmViaBackend {
+                    token = await self.wheesprAccessToken()
+                } else {
+                    token = nil
+                }
+                guard await self.mayEnterAutomaticWatchProviderBoundary(
+                    reservedKey: "factcheck") else { continue }
                 let layers = [self.effectiveRecordingContextGuidance,
                               self.activeCallTheme.guidance,
                               RoleSkillMatrix.guidance(roleID: self.userRoleID, promptID: "factcheck"),
@@ -5816,6 +6062,7 @@ final class AppState: ObservableObject {
     /// refreshed only when the transcript grows (coalesced). Empty note = clear.
     private func startRhetoricLoop() {
         rhetoricLoopTask?.cancel()
+        guard automaticProviderRequestsEnabled else { return }
         guard Config.rhetoricDuringCallsEnabled else { return }
         rhetoricLoopTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 35_000_000_000)   // offset from the others
@@ -5826,7 +6073,10 @@ final class AppState: ObservableObject {
                 guard self.transcript.count >= 4 else { continue }
                 guard self.canRunAutomaticCopilot else { continue }
                 guard self.shouldSpendOnWatch("rhetoric") else { continue }
-                    guard await self.bgQueue.reserve(key: "rhetoric", signature: self.transcriptText.count) else { continue }
+                guard await self.bgQueue.reserve(
+                    key: "rhetoric", signature: self.transcriptText.count) else { continue }
+                guard await self.mayEnterAutomaticWatchProviderBoundary(
+                    reservedKey: "rhetoric") else { continue }
                 let transcript = self.promptTranscript(cap: 6_000)
                 let raw = try? await CopilotBilling.labelled(.rhetoric) {
                     try await self.trackingComputeUsage {
@@ -5854,6 +6104,7 @@ final class AppState: ObservableObject {
     /// note = on track.
     private func startFacilitationLoop() {
         facilitationLoopTask?.cancel()
+        guard automaticProviderRequestsEnabled else { return }
         guard Config.facilitationDuringCallsEnabled else { return }
         facilitationLoopTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 40_000_000_000)   // offset from the others
@@ -5865,7 +6116,10 @@ final class AppState: ObservableObject {
                 guard self.transcript.count >= 4 else { continue }
                 guard self.canRunAutomaticCopilot else { continue }
                 guard self.shouldSpendOnWatch("facilitation") else { continue }
-                    guard await self.bgQueue.reserve(key: "facilitation", signature: self.transcriptText.count) else { continue }
+                guard await self.bgQueue.reserve(
+                    key: "facilitation", signature: self.transcriptText.count) else { continue }
+                guard await self.mayEnterAutomaticWatchProviderBoundary(
+                    reservedKey: "facilitation") else { continue }
                 let transcript = self.promptTranscript(cap: 6_000)
                 let raw = try? await CopilotBilling.labelled(.facilitation) {
                     try await self.trackingComputeUsage {
@@ -6159,7 +6413,6 @@ final class AppState: ObservableObject {
     /// and resume continues the same recording rather than starting a new one.
     func pauseRecording() {
         guard status == .recording else { return }
-        analytics(.featureUsed(.pauseResume))
         let now = Date()
         recordingElapsed.pause(at: now)
         // Close the transcription boundary before publishing `.paused`.
@@ -6559,7 +6812,7 @@ final class AppState: ObservableObject {
         // attachment cannot shut down or reconfigure active caption inference.
         if status == .idle {
             await prepareTranscriberForRecording(
-                engine: Config.transcriptionEngineValue,
+                engine: Config.transcriptionEngineValue(using: providerKeys),
                 language: Config.transcriptionLanguage
             )
         }
@@ -6595,7 +6848,7 @@ final class AppState: ObservableObject {
     // MARK: - Wheespr account (email OTP / password / phone / social)
 
     /// Single source of truth for adopting a backend session — used by email
-    /// OTP, password, phone, native Apple/Google, paywall, and device-redeem.
+    /// OTP, password, phone, and native Apple/Google compatibility paths.
     func applySession(_ session: WheesprSession) {
         Config.wheesprSession = session
         wheesprConnectionMutatedSinceLaunch = true
@@ -7239,17 +7492,15 @@ final class AppState: ObservableObject {
     /// connects a bill in June to a toggle they flipped in March.
     @Published var fullContextRequested = false
 
-    /// What full context would cost and send right now, for the composer to
-    /// show BEFORE the send. Recomputed from live state rather than cached, so
-    /// it cannot quote a stale price for a transcript that has since grown.
+    /// What full context would send right now, for the composer to show BEFORE
+    /// the send. Recomputed from live state rather than cached, so it cannot
+    /// quote a stale input size for a transcript that has since grown.
     var fullContextQuote: FullContextRequest.Quote {
         let model = Config.selectedRequestModel
         return FullContextRequest.quote(
             model: model,
             requested: fullContextRequested,
-            inputChars: transcriptText.count + attachedContextCharacters,
-
-            baseCredits: FullContextRequest.baseCredits(for: model))
+            inputChars: transcriptText.count + attachedContextCharacters)
     }
 
     /// Whether the control is worth showing at all for the current model.
@@ -7331,9 +7582,6 @@ final class AppState: ObservableObject {
     func runPrompt(_ originalPrompt: QuickPrompt) {
         let prompt = promptForCurrentRecording(originalPrompt)
         let adaptedForMedia = prompt.prompt != originalPrompt.prompt
-        FunnelTracker.trackOnce(.firstAIAction)   // funnel activation (once/device)
-        sessionUsedAI = true
-        analytics(.promptRun(promptID: originalPrompt.id, style: answerStyle))
         // The Fact Check prompt runs a structured, context-grounded check with a
         // color-coded result instead of a free-text answer.
         if prompt.id == "factcheck" { runFactCheck(originatingPrompt: prompt.prompt); return }
@@ -7355,7 +7603,8 @@ final class AppState: ObservableObject {
         // Quick prompts never consume pinned images — those are for the ask box.
         // Each built-in button carries an expert skill (methodology + quality bar)
         // that primes the system prompt; custom prompts resolve to nil → base only.
-        // The prompt id also selects the role×button hint from RoleSkillMatrix.
+        // A selected user role adds generic role framing; prompt-specific method
+        // text comes from the separately governed prompt and skill layers.
         run(prompt: prompt.prompt, images: [],
             skill: adaptedForMedia ? nil : PromptSkills.guidance(for: prompt.id),
             promptID: prompt.id)
@@ -7399,10 +7648,16 @@ final class AppState: ObservableObject {
         let context = promptContext(
             query: (originatingPrompt ?? "log decision") + "\n" + goal + "\n" + query)
         let workflow = designedWorkflow(for: "logdecision")
-        installPromptWorkflowPlan(
-            workflow: workflow,
-            composition: "Capture the decision",
-            writeback: ("File the decision", workflowLedgerApp))
+        if Config.llmViaBackend {
+            installPromptWorkflowPlan(
+                workflow: workflow,
+                composition: "Capture the decision",
+                writeback: ("File the decision", workflowLedgerApp))
+        } else {
+            installPromptWorkflowPlan(
+                workflow: workflow,
+                composition: "Capture the decision")
+        }
         let layers = [activeCallTheme.guidance,
                       RoleSkillMatrix.guidance(roleID: userRoleID, promptID: "logdecision"),
                       PromptSkills.guidance(for: "logdecision"),
@@ -7443,7 +7698,15 @@ final class AppState: ObservableObject {
                 guard self.aiRunGeneration == runGeneration else { return }
                 self.aiResponse = decision.markdown
 
-                // Best-effort ledger write.
+                // The public BYOK product is a local capture. The inherited
+                // managed ledger is neither advertised nor contacted unless a
+                // backend gateway was explicitly compiled and configured.
+                if !Config.llmViaBackend {
+                    self.aiStage = nil
+                    self.scheduleFollowUps(request: "Log the decision just made.",
+                                           material: groundedContext, output: decision.markdown)
+                } else {
+                // Best-effort managed ledger write.
                 let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !base.isEmpty else {
                     self.aiResponse += "\n\n_Captured locally — configure a backend to sync decisions to your ledger._"
@@ -7499,6 +7762,7 @@ final class AppState: ObservableObject {
                 self.aiStage = nil
                 self.scheduleFollowUps(request: "Log the decision just made.",
                                        material: groundedContext, output: decision.markdown)
+                }
             } catch is CancellationError {
                 // no-op
             } catch {
@@ -7578,7 +7842,12 @@ final class AppState: ObservableObject {
                     self.aiStage = nil
                 }
             }
-            let token = await self.wheesprAccessToken()
+            let token: String?
+            if Config.llmViaBackend {
+                token = await self.wheesprAccessToken()
+            } else {
+                token = nil
+            }
             // Ground the check in live sources (docs, incidents, tickets, CRM)
             // per the factcheck workflow — claims verify against evidence in
             // hand, not model memory. No-op when nothing relevant is connected.
@@ -7774,6 +8043,7 @@ final class AppState: ObservableObject {
     private func scheduleAnswerActionProposals(answer: String,
                                                capabilities: [AnswerActionPlanner.ToolCapability]) {
         answerProposalTask?.cancel()
+        guard automaticProviderRequestsEnabled else { return }
         let goal = effectiveCallGoal
         let model = LLMCatalog.background(for: Config.selectedModel)
         answerProposalTask = Task { [weak self] in
@@ -8383,6 +8653,10 @@ final class AppState: ObservableObject {
     /// outcome other than "here are questions worth asking".
     private func beginClarificationAssessment(prompt: String, images: [Data]) {
         clarifyingTask?.cancel()
+        guard automaticProviderRequestsEnabled else {
+            run(prompt: prompt, images: images)
+            return
+        }
         clarifying = true
         let goal = effectiveCallGoal
         let transcript = promptTranscript(cap: 1_500)
@@ -8535,7 +8809,7 @@ final class AppState: ObservableObject {
             var latestGroundedContext = context
             do {
                 // Summary/task buttons can be the first interaction after
-                // launch. Route their large bundled-skill catalog on the same
+                // launch. Resolve their bundled methodology on the same
                 // serial off-main lane as ordinary prompts so playback,
                 // transcription, and overlays remain responsive during warmup.
                 let bundledGuidance = await BundledSkillGuidanceWorker.shared.resolve(
@@ -8721,7 +8995,7 @@ final class AppState: ObservableObject {
         aiResponse = ""
         aiStreaming = true
         aiStage = nil
-        // Behaviour signal: an AI request. May promote the plan.
+        // Local compatibility usage signal for capability/cadence accounting.
         UsageTracker.recordAIRequest()
         refreshTier()
         let snapshot = transcript
@@ -8905,7 +9179,8 @@ final class AppState: ObservableObject {
 
                 // Stage 3 — refine audit (quality-bar re-check against the
                 // transcript); replaces the draft only with a non-empty final.
-                if let refine = workflow?.refine {
+                if self.automaticProviderRequestsEnabled,
+                   let refine = workflow?.refine {
                     try Task.checkCancellation()
                     self.aiStage = "Audit against transcript"
                     // The audit is mechanical checking, not deep reasoning — run
@@ -8975,6 +9250,7 @@ final class AppState: ObservableObject {
         // Same moment, but free: the action planner is pure and the tool lists
         // are already cached from each server's handshake.
         refreshAnswerActions()
+        guard automaticProviderRequestsEnabled else { return }
         let followUpModel = model ?? Config.selectedModel
         followUpTask?.cancel()
         followUpTask = Task { [weak self] in
@@ -9178,6 +9454,7 @@ final class AppState: ObservableObject {
     /// The team's recent ledger decisions as one grounding snippet — silent nil
     /// when signed out, offline, or the ledger is empty.
     private func ledgerGroundingSnippet(cap: Int) async -> GroundingSnippet? {
+        guard Config.llmViaBackend else { return nil }
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !base.isEmpty, let token = await wheesprAccessToken() else { return nil }
         guard let decisions = try? await DecisionLogService.recentDecisions(base: base, token: token),
@@ -9273,7 +9550,6 @@ final class AppState: ObservableObject {
         // down. Paired with the stop-side reading below, the two separate "we
         // silenced it" from "it was silent before we started".
         Log.audio.notice("record start — \(AudioRoute.describeOutputLevel(), privacy: .public)")
-        FunnelTracker.trackOnce(.firstRecording)   // funnel activation (once/device)
 
         // --- Microphone ---
         var mic = Permissions.microphone
@@ -9306,19 +9582,11 @@ final class AppState: ObservableObject {
         }
 
         let chunkSeconds = Config.transcriptionChunkSeconds
-        let configuredSettings = RecordingSettingsSnapshot.configured()
-        let sessionEngine = publishRecordingBoundaryEngine()
-        let sessionSettings = configuredSettings.replacingEngine(with: sessionEngine)
+        let configuredSettings = RecordingSettingsSnapshot.configured(
+            engine: Config.transcriptionEngineValue(using: providerKeys))
+        var sessionEngine = publishRecordingBoundaryEngine()
+        var sessionSettings = configuredSettings.replacingEngine(with: sessionEngine)
         let sessionLanguage = sessionSettings.language
-        let localFinalPassEnabled = Config.transcriptionPostStopFinalPassEnabled
-        let serverDiarizationEligible = canDiarizeOnServer
-        let retainSessionAudio = Self.shouldRetainSessionAudio(
-            engine: sessionEngine,
-            hasAssemblyAI: hasAssemblyAI,
-            assemblyDiarization: sessionSettings.assemblyDiarization,
-            serverDiarization: serverDiarizationEligible,
-            localFinalPassEnabled: localFinalPassEnabled,
-            localDiarizationEnabled: sessionSettings.localDiarization)
         // Publish the immutable in-flight snapshot before the potentially slow
         // model preparation await. Settings rejects changes during `.starting`
         // so its visible row can never outrun this route.
@@ -9328,6 +9596,37 @@ final class AppState: ObservableObject {
             language: sessionLanguage,
             glossary: sessionSettings.glossary,
             localModel: sessionSettings.localModel)
+
+        // Key deletion can race the model-retirement await above. Deepgram has
+        // no chunk-service fallback: if its credential is gone or was explicitly
+        // revoked, rebuild the route as Local before any capture callback exists.
+        // In particular, never let `.deepgram` fall through to OpenAI Whisper.
+        if sessionEngine == .deepgram,
+           forceLocalAtStartupBoundary || !transcriptionEngineIsAvailable(.deepgram) {
+            forceLocalAtStartupBoundary = false
+            sessionEngine = .local
+            sessionSettings = configuredSettings.replacingEngine(with: .local)
+            Config.transcriptionEngineValue = .local
+            selectedTranscriptionEngine = .local
+            activeRecordingSettings = sessionSettings
+            await prepareTranscriberForRecording(
+                engine: .local,
+                language: sessionLanguage,
+                glossary: sessionSettings.glossary,
+                localModel: sessionSettings.localModel)
+        } else if sessionEngine != .deepgram {
+            forceLocalAtStartupBoundary = false
+        }
+
+        let localFinalPassEnabled = Config.transcriptionPostStopFinalPassEnabled
+        let serverDiarizationEligible = canDiarizeOnServer
+        let retainSessionAudio = Self.shouldRetainSessionAudio(
+            engine: sessionEngine,
+            hasAssemblyAI: hasAssemblyAI,
+            assemblyDiarization: sessionSettings.assemblyDiarization,
+            serverDiarization: serverDiarizationEligible,
+            localFinalPassEnabled: localFinalPassEnabled,
+            localDiarizationEnabled: sessionSettings.localDiarization)
         activeSessionEngine = sessionEngine
         SpeechQualityMonitor.shared.reset()
         speechQualityIsPoor = false
@@ -9458,7 +9757,6 @@ final class AppState: ObservableObject {
             if retainSessionAudio {
                 beginSessionAudioRetention(on: systemChunker, at: startedAt)
             }
-            sessionUsedAI = false
             recordingElapsed.start(at: recordingStartedAt ?? Date())
             // Флаг с прошлого звонка не должен встречать следующий.
             systemAudioLostDuringRecording = false
@@ -9565,21 +9863,6 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// The abandonment signal: how far a recording got, and whether it produced
-    /// anything. A session that ran twenty minutes and yielded no transcript is
-    /// a different failure from one the user stopped after ten seconds, and the
-    /// funnel cannot tell them apart without this.
-    func reportSessionOutcome(startedAt: Date?) {
-        guard let startedAt else { return }
-        let bucket = AnalyticsEvent.DurationBucket(
-            seconds: Date().timeIntervalSince(startedAt))
-        let hadTranscript = !transcript.isEmpty
-        analytics(.sessionEnded(duration: bucket,
-                                hadTranscript: hadTranscript,
-                                usedAI: sessionUsedAI))
-        if !hadTranscript { analytics(.recordingAbandoned(after: bucket)) }
-    }
-
     private func stopRecording() async {
         // Settle before changing status: this includes every prior enabled
         // interval even when the final Settings state is OFF, and excludes the
@@ -9607,24 +9890,17 @@ final class AppState: ObservableObject {
         // Pairs with the start-side reading: if muted/volume differ across the
         // recording, capture changed playback and the diff says how.
         Log.audio.notice("record stop — \(AudioRoute.describeOutputLevel(), privacy: .public)")
-        let remainingAllowance = tariffAllowance.remainingCopilotSeconds(
-            usedSeconds: UsageTracker.copilotSecondsThisMonth)
-        UsageTracker.recordCopilot(seconds: min(copilotElapsedSeconds, remainingAllowance))
-        // Behaviour signal: a real meeting (>= 10s). May promote the plan.
+        if Config.managedUsageLimitsEnabled {
+            let remainingAllowance = tariffAllowance.remainingCopilotSeconds(
+                usedSeconds: UsageTracker.copilotSecondsThisMonth)
+            UsageTracker.recordCopilot(seconds: min(copilotElapsedSeconds, remainingAllowance))
+        }
+        // A real meeting (>= 10s) contributes only to local feature limits and
+        // never emits a first-party usage or feedback request.
         if let startedAt = recordingStartedAt, Date().timeIntervalSince(startedAt) >= 10 {
             UsageTracker.recordMeeting()
             refreshTier()
-            // Ask, once, how the first real call went. It is the only moment
-            // somebody can answer that, and the only feedback that comes from a
-            // person who actually ran the thing rather than one who merely
-            // downloaded it. Gated on the same >= 10s definition of "real" used
-            // above, so a mis-click cannot burn the single chance to ask.
-            if FirstMeetingPrompt.shouldAsk(meetingsSoFar: UsageTracker.meetings) {
-                FirstMeetingPrompt.markAsked()
-                showFirstMeetingFeedback = true
-            }
         }
-        reportSessionOutcome(startedAt: recordingStartedAt)
         micCapture.stop()
         await systemCapture.stop()
         // Stop means stop: invalidate UI delivery immediately and reject the
@@ -9713,7 +9989,8 @@ final class AppState: ObservableObject {
         // When Fireflies is connected, merge its cloud transcript with on-device
         // Whisper — but later, and only if Fireflies was actually on this call
         // (opt-out in Settings).
-        if Config.firefliesTranscriptEnhanceEnabled,
+        if automaticProviderRequestsEnabled,
+           Config.firefliesTranscriptEnhanceEnabled,
            mcp?.prefersMCP("fireflies") == true,
            !transcript.isEmpty {
             scheduleFirefliesEnhance()
@@ -9734,6 +10011,7 @@ final class AppState: ObservableObject {
 
     private func scheduleFirefliesEnhance() {
         cancelFirefliesEnhance()
+        guard automaticProviderRequestsEnabled else { return }
         let sessionID = currentSessionID
         let revision = firefliesMutationRevision
         firefliesEnhanceTask = Task { [weak self] in
@@ -9745,12 +10023,28 @@ final class AppState: ObservableObject {
             for delay in Self.firefliesEnhanceSchedule {
                 try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                 guard !Task.isCancelled, let self else { return }
+                guard self.automaticProviderRequestsEnabled else { return }
                 // The workspace has moved on — a later call, or one recording
                 // now. Enhancing would rewrite the wrong meeting's transcript.
                 guard self.currentSessionID == sessionID, self.status == .idle else { return }
                 if await self.enhanceTranscriptWithFireflies(automatic: true) { return }
             }
         }
+    }
+
+    /// Exercise the real delayed scheduler without waiting for a recording or
+    /// Fireflies' five-minute processing window. The task only sleeps until the
+    /// test revokes automatic consent, so it cannot reach a connector or model.
+    func scheduleAutomaticFirefliesEnhanceForTesting() {
+        guard Self.isUnderTest else { return }
+        scheduleFirefliesEnhance()
+    }
+
+    /// Stop only the ambient Fireflies schedule. Manual enhancement/import is
+    /// a user action and is not governed by the automatic-request master.
+    private func cancelAutomaticFirefliesEnhance() {
+        firefliesEnhanceTask?.cancel()
+        firefliesEnhanceTask = nil
     }
 
     /// Cancels a pending automatic merge — used when the workspace moves on.
@@ -9886,6 +10180,9 @@ final class AppState: ObservableObject {
     ///   stop retrying.
     @discardableResult
     private func enhanceTranscriptWithFireflies(automatic: Bool) async -> Bool {
+        if automatic {
+            guard automaticProviderRequestsEnabled, !Task.isCancelled else { return false }
+        }
         guard firefliesTranscriptProvider != nil || mcp != nil else { return false }
         guard status == .idle else { return false }
         guard !enhancingTranscript, !localRetranscribing, !diarizing else { return false }
@@ -9909,6 +10206,9 @@ final class AppState: ObservableObject {
                 near: near,
                 within: MCPConnectionManager.firefliesMatchWindow),
                   matchesFirefliesMutationIdentity(expected) else { return false }
+            if automatic {
+                guard automaticProviderRequestsEnabled, !Task.isCancelled else { return false }
+            }
             // Keep the raw Fireflies text available as context for prompt runs.
             if !contextFiles.contains(where: { $0.name == "Fireflies · \(fireflies.title)" }) {
                 contextFiles.append(ImportedContextFile(
@@ -9933,6 +10233,9 @@ final class AppState: ObservableObject {
     ///   for a transcript to EXIST, not to re-ask a model that already spoke.
     @discardableResult
     private func applyFirefliesEnhancement(_ fireflies: FirefliesTranscript, automatic: Bool) async -> Bool {
+        if automatic {
+            guard automaticProviderRequestsEnabled, !Task.isCancelled else { return false }
+        }
         let expected = captureTranscriptMutationIdentity()
         let sessionStart = recordingStartedAt ?? transcript.first?.timestamp ?? sessionDate
         let whisperSnapshot = expected.transcript
@@ -9949,6 +10252,9 @@ final class AppState: ObservableObject {
                 maxCharsPerSource: 1_500,
                 maxSources: 6)
             guard matchesFirefliesMutationIdentity(expected) else { return false }
+            if automatic {
+                guard automaticProviderRequestsEnabled, !Task.isCancelled else { return false }
+            }
         }
         do {
             let result = try await TranscriptEnhancementService.enhance(
@@ -9959,6 +10265,9 @@ final class AppState: ObservableObject {
                 digest: digestSnapshot,
                 grounding: grounding)
             guard matchesFirefliesMutationIdentity(expected) else { return false }
+            if automatic {
+                guard automaticProviderRequestsEnabled, !Task.isCancelled else { return false }
+            }
             // A partial merge covers only the start of the meeting. Replacing
             // the transcript with it would DELETE every line after the cut, so
             // the merged part is offered as context and the on-device
@@ -10002,7 +10311,10 @@ final class AppState: ObservableObject {
     /// Re-run diarization on demand (e.g. from a button).
     func diarizeNow() {
         guard canDiarize else { return }
-        Task { await diarizeSession() }
+        assemblyAIDiarizationTask?.cancel()
+        assemblyAIDiarizationTask = Task { [weak self] in
+            await self?.diarizeSession()
+        }
     }
 
     /// Private post-call refinement. It uses bounded overlapping windows; a
@@ -10219,7 +10531,6 @@ final class AppState: ObservableObject {
 
     func retranscribeLocallyNow() {
         guard canRetranscribeLocally else { return }
-        analytics(.featureUsed(.retranscribeLocal))
         automaticLocalFinalPassTask?.cancel()
         automaticLocalFinalPassTask = nil
         manualLocalFinalPassTask?.cancel()
@@ -10657,8 +10968,9 @@ final class AppState: ObservableObject {
     private func diarizeSession() async {
         guard sessionRetainedAudioTimelineValid,
               !diarizing,
-              canDiarizeOnServer
-                || (hasAssemblyAI && Config.assemblyAIDiarizationEnabled) else { return }
+              hasAssemblyAI,
+              Config.assemblyAIDiarizationEnabled,
+              let assemblyAIKey = providerKeys.transcriptionKey(for: .assemblyAI) else { return }
         let wav = sessionRecorder.makeWAV()
         guard !wav.isEmpty, let start = sessionRetainedAudioStart else { return }
         let requestedSessionID = currentSessionID
@@ -10667,20 +10979,10 @@ final class AppState: ObservableObject {
         diarizing = true
         defer { diarizing = false }
         do {
-            // Server first: it needs no key from the user and bills the
-            // recording once. A BYO AssemblyAI key stays the fallback for
-            // anyone who prefers it, or who is offline from our backend.
-            let utterances: [DiarizedUtterance]
-            if canDiarizeOnServer {
-                utterances = try await ServerDiarizationService.diarize(
-                    wav: wav,
-                    language: activeSessionLanguage ?? Config.transcriptionLanguage)
-            } else {
-                utterances = try await AssemblyAIService.diarize(
-                    wav: wav, apiKey: Config.assemblyAIAPIKey,
-                    speakersExpected: AssemblyAIService.speakersExpected(attendeeCount: callAttendeeCount),
-                    language: activeSessionLanguage ?? Config.transcriptionLanguage)
-            }
+            let utterances = try await AssemblyAIService.diarize(
+                wav: wav, apiKey: assemblyAIKey,
+                speakersExpected: AssemblyAIService.speakersExpected(attendeeCount: callAttendeeCount),
+                language: activeSessionLanguage ?? Config.transcriptionLanguage)
             guard currentSessionID == requestedSessionID,
                   chunkGeneration == requestedGeneration else { return }
             guard !utterances.isEmpty else { return }
@@ -10698,6 +11000,7 @@ final class AppState: ObservableObject {
         } catch {
             guard currentSessionID == requestedSessionID,
                   chunkGeneration == requestedGeneration else { return }
+            guard !Task.isCancelled else { return }
             lastError = error.localizedDescription
         }
     }
@@ -10747,7 +11050,7 @@ final class AppState: ObservableObject {
     /// Warm the on-device model during onboarding — only when the local engine
     /// is selected (cloud engines have nothing to download).
     func prewarmLocalModelIfNeeded() {
-        guard Config.transcriptionEngineValue == .local else { return }
+        guard Config.transcriptionEngineValue(using: providerKeys) == .local else { return }
         prepareLocalModel()
     }
 
@@ -10788,7 +11091,8 @@ final class AppState: ObservableObject {
         // reach whichever backend is selected for a later recording.
         guard chunkGeneration == generation else { return }
         let recordingTranscriber = requestedTranscriber ?? transcriber
-        let recordingEngine = requestedEngine ?? activeSessionEngine ?? Config.transcriptionEngineValue
+        let recordingEngine = requestedEngine ?? activeSessionEngine
+            ?? Config.transcriptionEngineValue(using: providerKeys)
         do {
             // Prefix the source with this recording generation so stale queued
             // Whisper work can never append into a later meeting.
@@ -10913,17 +11217,23 @@ final class AppState: ObservableObject {
     private func switchActiveTranscriptionEngine(
         to engine: TranscriptionEngine,
         replacing previousSettings: RecordingSettingsSnapshot,
-        previousEngine: TranscriptionEngine
+        previousEngine: TranscriptionEngine,
+        allowPausedDeepgramRevocation: Bool = false
     ) -> Bool {
         if let transcriptionEngineSwitchOverride {
             return transcriptionEngineSwitchOverride(engine)
         }
+        let routable = status == .recording
+            || (allowPausedDeepgramRevocation
+                && status == .paused
+                && previousEngine == .deepgram
+                && engine == .local)
         guard managesTranscriberLifecycle,
-              status == .recording,
+              routable,
               let systemChunker,
               let micChunker,
               recordingGenerationToken != nil,
-              transcriptionEngineAvailability(engine) else { return false }
+              transcriptionEngineIsAvailable(engine) else { return false }
 
         // An engine switch is a route boundary, not a recording boundary. Keep
         // this call's generation so already-emitted old-engine chunks can land;
@@ -11191,7 +11501,7 @@ final class AppState: ObservableObject {
     ) {
         switch recommendation {
         case .lighterLocalModel(let current, let recommended):
-            guard Config.transcriptionEngineValue == .local,
+            guard Config.transcriptionEngineValue(using: providerKeys) == .local,
                   Config.localWhisperModel == current else { return }
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
@@ -11200,7 +11510,7 @@ final class AppState: ObservableObject {
                 action: .none
             )
         case .coolerLocalModel(let current, let recommended):
-            guard Config.transcriptionEngineValue == .local,
+            guard Config.transcriptionEngineValue(using: providerKeys) == .local,
                   Config.localWhisperModel == current else { return }
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
@@ -11209,9 +11519,9 @@ final class AppState: ObservableObject {
                 action: .none
             )
         case .offerDeepgram:
-            guard Config.transcriptionEngineValue == .local,
+            guard Config.transcriptionEngineValue(using: providerKeys) == .local,
                   Config.localWhisperModel == "base",
-                  Config.engineAvailable(.deepgram) else { return }
+                  transcriptionEngineIsAvailable(.deepgram) else { return }
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
                 message: "On-device captions are falling behind on the lightest validated local model. Deepgram can reduce Mac load for the next recording, but sends meeting audio to the cloud.",
                 action: .useDeepgram
@@ -11220,7 +11530,7 @@ final class AppState: ObservableObject {
     }
 
     func useRecommendedDeepgramForNextRecording() {
-        guard transcriptionEngineAvailability(.deepgram) else { return }
+        guard transcriptionEngineIsAvailable(.deepgram) else { return }
         Config.transcriptionEngineValue = .deepgram
         // During a live/starting/paused call this is only a NEXT-call choice.
         // Publishing it now would claim cloud while the active Local route was
@@ -11242,14 +11552,13 @@ final class AppState: ObservableObject {
 
     /// Open two Deepgram sessions (system diarized, mic single-speaker) and feed
     /// them the mono-16k PCM the chunkers convert. The chunkers do no Whisper
-    /// transcription in this mode — they're used purely as converters, unless a
-    /// mid-call credit cap flips the degrade state and they start feeding
-    /// on-device Whisper instead.
+    /// transcription in this mode — they're used purely as converters. A
+    /// terminal provider/network failure can still degrade the session to the
+    /// on-device engine.
     ///
-    /// Auth: a baked/BYO key bills the operator's own Deepgram account. Keyless
-    /// builds mint short-lived tokens from the backend — every grant re-checks
-    /// compute credits, and both streams heartbeat their sent audio into the
-    /// shared credit pool (two tracks: you + the room).
+    /// Auth is strict runtime BYOK. The user-entered Keychain credential bills
+    /// their own Deepgram account; public Orakul never asks a first-party
+    /// backend to mint a grant or meter the two audio tracks.
     private func startDeepgram(
         chunkSeconds: Double,
         generationToken: RecordingGenerationToken,
@@ -11261,14 +11570,9 @@ final class AppState: ObservableObject {
         restoreTranscriberOnFailedHandoff: TranscriptionService? = nil,
         restoreRouteLeaseOnFailedHandoff: TranscriptionRouteLease? = nil
     ) {
-        let auth: DeepgramAuth
-        if let deepgramAuthOverride {
-            auth = deepgramAuthOverride
-        } else {
-            let bakedKey = Config.deepgramAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            auth = bakedKey.isEmpty
-                ? .grant { try await DeepgramBackend.grantToken() }
-                : .key(bakedKey)
+        guard let apiKey = providerKeys.transcriptionKey(for: .deepgram) else {
+            lastError = "Добавьте свой ключ Deepgram в настройках расшифровки."
+            return
         }
         let degrade = LiveStreamDegradeState()
         let degradeRouteLease = TranscriptionRouteLease()
@@ -11333,7 +11637,7 @@ final class AppState: ObservableObject {
             return disposition
         }
 
-        let system = deepgramStreamerFactory(auth, true, language, keyterms)
+        let system = deepgramStreamerFactory(apiKey, true, language, keyterms)
         system.onReady = { markHandoffReady(.system) }
         system.onTerminalFailure = { [weak self] message in
             guard restorePreviousIfNeeded(message) == .healthyStream else { return }
@@ -11366,7 +11670,7 @@ final class AppState: ObservableObject {
                 }
             }
         }
-        let mic = deepgramStreamerFactory(auth, false, language, keyterms)
+        let mic = deepgramStreamerFactory(apiKey, false, language, keyterms)
         mic.onReady = { markHandoffReady(.microphone) }
         mic.onTerminalFailure = { [weak self] message in
             guard restorePreviousIfNeeded(message) == .healthyStream else { return }
@@ -11397,28 +11701,6 @@ final class AppState: ObservableObject {
                 }
             }
         }
-        // Metered (grant) mode: both streams report sent audio into the credit
-        // pool; a cap — at grant time or on a heartbeat — degrades this session
-        // to on-device Whisper instead of killing the transcript.
-        if auth.isMetered {
-            let reporter: (Int) async -> DeepgramUsageVerdict = { chunks in
-                await DeepgramBackend.reportUsage(chunks: chunks)
-            }
-            let fallback: (String) -> Void = { [weak self] message in
-                guard restorePreviousIfNeeded(message) == .healthyStream else { return }
-                Task { @MainActor [weak self] in
-                    self?.degradeLiveStreamToLocal(message: message,
-                                                   generationToken: generationToken,
-                                                   state: degrade,
-                                                   routeLease: degradeRouteLease)
-                }
-            }
-            system.usageReporter = reporter
-            mic.usageReporter = reporter
-            system.onFallback = fallback
-            mic.onFallback = fallback
-        }
-
         systemStreamer = system
         micStreamer = mic
         system.start()
@@ -11519,8 +11801,36 @@ final class AppState: ObservableObject {
     /// finished. Internal so the deterministic handoff suite can exercise the
     /// same post-reset edge without opening ScreenCaptureKit hardware.
     func applyPendingStartupLocalFallbackIfNeeded() {
-        guard status == .recording,
-              let pending = pendingStartupLocalFallback else { return }
+        guard status == .recording else { return }
+
+        // A key can be removed after Deepgram's sockets/chunk routes were built
+        // but while ScreenCaptureKit is still awaiting startup. The deletion
+        // path already finishes both sockets before it returns; finish the other
+        // half of fail-closed startup here by replacing their dormant callbacks
+        // with Local before capture is published as an active recording.
+        if forceLocalAtStartupBoundary,
+           activeSessionEngine == .deepgram,
+           let settings = activeRecordingSettings {
+            forceLocalAtStartupBoundary = false
+            pendingStartupLocalFallback = nil
+            let switched = switchActiveTranscriptionEngine(
+                to: .local,
+                replacing: settings,
+                previousEngine: .deepgram)
+            if switched {
+                activeSessionEngine = .local
+                activeRecordingSettings = settings.replacingEngine(with: .local)
+                selectedTranscriptionEngine = .local
+                Config.transcriptionEngineValue = .local
+            } else {
+                lastError = "Ключ Deepgram удалён и облачный поток остановлен, но локальную расшифровку не удалось подготовить."
+            }
+            pendingEngineChange = nil
+            return
+        }
+
+        forceLocalAtStartupBoundary = false
+        guard let pending = pendingStartupLocalFallback else { return }
         pendingStartupLocalFallback = nil
         degradeLiveStreamToLocal(
             message: pending.message,
@@ -11529,9 +11839,9 @@ final class AppState: ObservableObject {
             routeLease: pending.routeLease)
     }
 
-    /// Mid-call credit cap on a metered live stream: finish both sockets and
-    /// hand the already-running chunkers to on-device Whisper. Idempotent —
-    /// system and mic streams both hit the cap and race to call this.
+    /// Terminal mid-call provider failure: finish both sockets and hand the
+    /// already-running chunkers to on-device Whisper. Idempotent because system
+    /// and mic streams can report the same outage in the same callback turn.
     private func degradeLiveStreamToLocal(message: String,
                                           generationToken: RecordingGenerationToken,
                                           state: LiveStreamDegradeState,
@@ -11774,8 +12084,11 @@ final class AppState: ObservableObject {
     /// latch that can only be tested by emptying a real pool goes untested.
     func debugLatchQuota(message: String) {
         guard Config.isDevBuild else { return }
-        noteQuotaExhaustion(LLMError.http(
-            "Backend", 429, #"{"error":"\#(message)","upgrade":true}"#))
+        noteQuotaExhaustion(
+            LLMError.http(
+                "Backend", 429,
+                #"{"error":"\#(message)","upgrade":true}"#),
+            managed: true)
     }
 
     /// Dev-build companion to `debugLatchQuota`: lets the video/UI harness

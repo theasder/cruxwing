@@ -22,7 +22,7 @@ cask "orakul" do
   app "orakul.app"
 
   zap trash: [
-    "~/Library/Application Support/MeetGPT",
+    "~/Library/Application Support/ai.orakul.desktop",
     "~/Library/Preferences/ai.orakul.desktop.plist",
     "~/Library/Caches/ai.orakul.desktop",
   ]

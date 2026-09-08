@@ -24,6 +24,108 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..');
 const read = (...p) => readFileSync(resolve(repo, ...p), 'utf8');
 
+// Keep braces in executable Swift and blank strings/comments. This is enough
+// structure to isolate @Test function bodies without mistaking example code in
+// documentation or a brace inside a multiline string for executable control
+// flow.
+function maskSwiftTrivia(source) {
+  const output = [...source];
+  let index = 0;
+  let blockDepth = 0;
+  let state = 'code';
+  while (index < source.length) {
+    const pair = source.slice(index, index + 2);
+    const triple = source.slice(index, index + 3);
+    if (state === 'code' && pair === '//') {
+      state = 'line-comment'; output[index] = output[index + 1] = ' '; index += 2; continue;
+    }
+    if (state === 'code' && pair === '/*') {
+      state = 'block-comment'; blockDepth = 1;
+      output[index] = output[index + 1] = ' '; index += 2; continue;
+    }
+    if (state === 'code' && triple === '"""') {
+      state = 'multiline-string'; output[index] = output[index + 1] = output[index + 2] = ' ';
+      index += 3; continue;
+    }
+    if (state === 'code' && source[index] === '"') {
+      state = 'string'; output[index] = ' '; index += 1; continue;
+    }
+    if (state === 'line-comment') {
+      if (source[index] === '\n') state = 'code';
+      else output[index] = ' ';
+      index += 1; continue;
+    }
+    if (state === 'block-comment') {
+      if (pair === '/*') {
+        blockDepth += 1; output[index] = output[index + 1] = ' '; index += 2; continue;
+      }
+      if (pair === '*/') {
+        blockDepth -= 1; output[index] = output[index + 1] = ' '; index += 2;
+        if (blockDepth === 0) state = 'code';
+        continue;
+      }
+      if (source[index] !== '\n') output[index] = ' ';
+      index += 1; continue;
+    }
+    if (state === 'multiline-string') {
+      if (triple === '"""') {
+        output[index] = output[index + 1] = output[index + 2] = ' ';
+        index += 3; state = 'code'; continue;
+      }
+      if (source[index] !== '\n') output[index] = ' ';
+      index += 1; continue;
+    }
+    if (state === 'string') {
+      if (source[index] === '\\') {
+        output[index] = ' ';
+        if (index + 1 < source.length && source[index + 1] !== '\n') output[index + 1] = ' ';
+        index += 2; continue;
+      }
+      if (source[index] === '"') state = 'code';
+      if (source[index] !== '\n') output[index] = ' ';
+      index += 1; continue;
+    }
+    index += 1;
+  }
+  return output.join('');
+}
+
+function swiftTestCredibilityOffenders(source, file = 'fixture.swift') {
+  const masked = maskSwiftTrivia(source);
+  const offenders = [];
+  const annotation = /@Test\b/g;
+  for (let match = annotation.exec(masked); match; match = annotation.exec(masked)) {
+    const functionIndex = masked.indexOf('func ', match.index);
+    const nextTest = masked.indexOf('@Test', match.index + match[0].length);
+    if (functionIndex < 0 || (nextTest >= 0 && nextTest < functionIndex)) continue;
+    const open = masked.indexOf('{', functionIndex);
+    if (open < 0) continue;
+    let depth = 1;
+    let close = open + 1;
+    for (; close < masked.length && depth > 0; close += 1) {
+      if (masked[close] === '{') depth += 1;
+      else if (masked[close] === '}') depth -= 1;
+    }
+    const body = masked.slice(open + 1, close - 1);
+    const bodyOffset = open + 1;
+    const patterns = [
+      ['silent return', /\bguard\b[\s\S]{0,1000}?\belse\s*\{\s*return\s*(?:skipNotice\s*\(\s*\)\s*)?\}/g],
+      ['literal tautology', /#expect\s*\(\s*(?:Bool\s*\(\s*)?true\s*\)?\s*\)/g],
+    ];
+    for (const [kind, pattern] of patterns) {
+      for (let problem = pattern.exec(body); problem; problem = pattern.exec(body)) {
+        const absolute = bodyOffset + problem.index;
+        const line = source.slice(0, absolute).split('\n').length;
+        const snippet = source.slice(absolute, absolute + problem[0].length)
+          .replace(/\s+/g, ' ').trim();
+        offenders.push({ file, line, kind, snippet });
+      }
+    }
+    annotation.lastIndex = close;
+  }
+  return offenders;
+}
+
 describe('open-source furniture', () => {
   describe('CI', () => {
     const ci = read('.github', 'workflows', 'ci.yml');
@@ -123,21 +225,48 @@ describe('open-source furniture', () => {
     });
   });
 
-  test('the build script publishes what it builds', () => {
-    // Дважды за вечер `audit-dmg.sh` ловил одно и то же: собрано, но не
-    // выложено. Сборка зелёная, DMG на месте, в папке публикации — вчерашний
-    // файл. Шаг копирования был ручным, поэтому иногда его не было.
+  test('the build script stops at a local artifact boundary', () => {
+    // Public contributors can build and inspect an artifact, but packaging must
+    // not mutate a private sibling checkout merely because it happens to exist
+    // on the maintainer's machine. Publication is a separately authorized step.
     const dist = readFileSync(resolve(repo, 'app', 'dist-all.sh'), 'utf8');
     const code = dist.split('\n')
       .filter((line) => !line.trim().startsWith('#')).join('\n');
-    assert.match(code, /cp .*PUBLISH|cp "\$dmg" "\$PUBLISH/,
-      'dist-all.sh builds the installers but no longer publishes them');
-    // И адрес публикации должен быть тем, который потом уезжает по rsync.
-    assert.match(code, /cruxwing-marketing\/public\/download/,
-      'the publish directory is not the one rsync sends');
+    assert.doesNotMatch(code, /cruxwing-marketing|\bPUBLISH=|cp .*\.dmg/,
+      'dist-all.sh still writes outside this repository');
+    assert.match(code, /ROOT="\$\(cd "\$\(dirname "\$0"\)" && pwd\)"/,
+      'the audit paths are no longer anchored to dist-all.sh itself');
+    const displayed = code.replaceAll('\\"', '"');
+    assert.match(displayed,
+      /bash "\$ROOT\/\.\.\/scripts\/audit-dmg\.sh" "\$ROOT\/dist\/orakul-AppleSilicon\.dmg" "\$ROOT\/dist\/orakul-Intel\.dmg"/,
+      'the local build no longer prints the explicit ROOT-anchored artifact audit command');
   });
 
-  test('no Swift test reports PASS while silently doing nothing', () => {
+  test('the credibility detector catches multiline skips and literal passes', () => {
+    const broken = `
+      @Test("fixture")
+      func fixture() {
+        guard let path = environment["ORAKUL_FIXTURE"],
+              !path.isEmpty else {
+          return
+        }
+        #expect(Bool(true))
+      }
+    `;
+    assert.deepEqual(swiftTestCredibilityOffenders(broken).map(({ kind }) => kind).sort(),
+      ['literal tautology', 'silent return']);
+
+    const credible = `
+      @Test("fixture", .enabled(if: hasFixture, "Set ORAKUL_FIXTURE."))
+      func fixture() throws {
+        let path = try #require(environment["ORAKUL_FIXTURE"])
+        #expect(!path.isEmpty)
+      }
+    `;
+    assert.deepEqual(swiftTestCredibilityOffenders(credible), []);
+  });
+
+  test('opt-in Swift harnesses never report PASS while doing nothing', () => {
     // `guard enabled else { return }` в теле теста печатает «passed». Шесть
     // проверок производительности так и молчали — во всех прогонах и в CI, —
     // а «250 сессий укладываются в бюджет» не значило ничего.
@@ -145,33 +274,30 @@ describe('open-source furniture', () => {
     // Пропуск обязан быть виден: трейт `.enabled(if:)` печатает «skipped».
     // Разница между «проверено» и «не запускалось» — это вся ценность отчёта.
     const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/OrakulCoreTests'];
+    // These are the corpus/live-boundary harnesses where absence is expected
+    // on a public contributor machine and therefore must be a visible skip.
+    // Literal `true` assertions remain forbidden in every Swift test file.
+    const optInHarnesses = new Set([
+      'ReflectionEvalHarness.swift',
+      'RealCallTranscriptionHarness.swift',
+      'LocalSpeakerLabelsTests.swift',
+      'ConnectedAppMuteTests.swift',
+      'NoBackendPromisesTests.swift',
+    ]);
     const offenders = [];
     for (const root of roots) {
       const dir = resolve(repo, root);
       if (!existsSync(dir)) continue;
       for (const file of readdirSync(dir).filter((f) => f.endsWith('.swift'))) {
         const source = readFileSync(resolve(dir, file), 'utf8');
-        source.split('\n').forEach((line, index) => {
-          if (line.trim().startsWith('//')) return;
-          // Две формы, и обе печатают «passed».
-          //
-          // Первая — флаг: `guard enabled`, `guard Self.preciseRunEnabled`.
-          // Точка обязательна, `\w` её не берёт: на этом проверка промахнулась.
-          //
-          // Вторая — переменная окружения: `guard let dir = env["…"]`. Её
-          // первая версия шаблона не видела вовсе, потому что искала слово
-          // «enabled», а таких пропусков нашлось ещё четыре — замеры
-          // диаризации и русского корпуса, молчавшие во всех прогонах.
-          const flagSkip = /guard\s+[\w.]*[Ee]nabled[\w.]*\s+else\s*\{\s*return\s*\}/;
-          const envSkip = /guard\s+let\s+\w+\s*=\s*[\w.]*[Ee]nv(?:ironment)?\[[^\]]+\]\s+else\s*\{\s*return\s*\}/;
-          if (flagSkip.test(line) || envSkip.test(line)) {
-            offenders.push(`${file}:${index + 1}: ${line.trim()}`);
-          }
-        });
+        offenders.push(...swiftTestCredibilityOffenders(source, file).filter((item) =>
+          item.kind === 'literal tautology' || optInHarnesses.has(file)));
       }
     }
     assert.deepEqual(offenders, [],
-      `these tests report PASS while skipping their body:\n${offenders.join('\n')}`);
+      `these tests report PASS without checking anything:\n${offenders
+        .map((item) => `${item.file}:${item.line}: ${item.kind}: ${item.snippet}`)
+        .join('\n')}`);
   });
 
   test('the Russian dictionary exists once, not once per package', () => {
@@ -235,15 +361,17 @@ describe('open-source furniture', () => {
       const text = readFileSync(flow, 'utf8');
       assert.match(text, /paths: \['public\/\*\*'/,
         'публикация не привязана к правкам страницы — она устареет молча');
-      assert.match(text, /fetch-depth: 0/,
-        'без полной истории subtree split даст пустую ветку и отчитается успехом');
-      assert.match(text, /subtree split --prefix=public/,
-        'ветка страницы собирается не из public/');
+      assert.match(text, /actions\/upload-pages-artifact@[0-9a-f]{40}[\s\S]*?path:\s*public/,
+        'Pages artifact собирается не из public/');
+      assert.match(text, /actions\/deploy-pages@[0-9a-f]{40}/,
+        'artifact страницы не передаётся штатному Pages deployment');
+      assert.doesNotMatch(text, /git push|contents:\s*write/,
+        'публикация страницы всё ещё переписывает Git-ветку');
     });
 
     test('после выкладки проверяется, что отдаётся именно она', () => {
       const text = readFileSync(flow, 'utf8');
-      assert.match(text, /curl[\s\S]{0,120}github\.io/,
+      assert.match(text, /curl[\s\S]{0,120}\$DEPLOYED_PAGE_URL/,
         'никто не смотрит, что страница действительно обновилась');
       assert.match(text, /exit 1/,
         'шаг не умеет падать — «выложено» ничего не значит');

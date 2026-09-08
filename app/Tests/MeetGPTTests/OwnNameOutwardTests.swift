@@ -14,6 +14,13 @@ import Testing
 @Suite("Своё имя наружу") @MainActor
 struct OwnNameOutwardTests {
 
+    private static var productionSources: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Sources/MeetGPT", isDirectory: true)
+    }
+
     @Test("клиент MCP называет себя orakul")
     func clientNameIsOurs() {
         #expect(MCPConnectionManager.mcpClientName == "orakul")
@@ -49,6 +56,52 @@ struct OwnNameOutwardTests {
             #expect(offenders.isEmpty,
                     "\(relative) называет чужой продукт в строке: \(offenders)")
         }
+    }
+
+    @Test("каждый HTTP-клиент использует сетевое имя orakul")
+    func everyHTTPClientUsesOurNetworkIdentity() throws {
+        let header = OrakulNetworkIdentity.shared.configuration
+            .httpAdditionalHeaders?["User-Agent"] as? String
+        #expect(header == OrakulNetworkIdentity.userAgent)
+        #expect(header?.hasPrefix("orakul/") == true)
+        #expect(header?.localizedCaseInsensitiveContains("MeetGPT") == false)
+        #expect(header?.localizedCaseInsensitiveContains("Cruxwing") == false)
+        #expect(header?.contains("CFNetwork") == false)
+        #expect(header?.contains("Darwin") == false)
+
+        guard let walker = FileManager.default.enumerator(
+            at: Self.productionSources,
+            includingPropertiesForKeys: nil)
+        else {
+            Issue.record("не удалось обойти исходники приложения")
+            return
+        }
+
+        var filesUsingURLSession = 0
+        var bypasses: [String] = []
+        for case let url as URL in walker where url.pathExtension == "swift" {
+            let source = try String(contentsOf: url, encoding: .utf8)
+            guard source.contains("URLSession") else { continue }
+            filesUsingURLSession += 1
+            guard url.lastPathComponent != "OrakulNetworkIdentity.swift" else { continue }
+
+            let executableLines = source
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+                .joined()
+            let compact = executableLines.filter { !$0.isWhitespace }
+            if compact.contains("URLSession.shared")
+                || compact.contains("URLSession=.shared")
+                || compact.contains("URLSession(configuration:") {
+                bypasses.append(url.path.replacingOccurrences(
+                    of: Self.productionSources.path + "/", with: ""))
+            }
+        }
+
+        #expect(filesUsingURLSession >= 20,
+                "нашлось только \(filesUsingURLSession) сетевых файлов — проверка стала пустой")
+        #expect(bypasses.isEmpty,
+                "эти файлы обходят OrakulNetworkIdentity и отдают системе имя MeetGPT: \(bypasses)")
     }
 
     @Test("название задачи в чужом трекере — по-русски и своё")

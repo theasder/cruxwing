@@ -17,12 +17,6 @@ struct TeamSourcesView: View {
     }
 
     var body: some View {
-        // Reports which surfaces are actually reached — see
-        // cruxwing-api/docs/analytics-events.md.
-        trackedBody.trackSurface(.teamSources)
-    }
-
-    @ViewBuilder private var trackedBody: some View {
         VStack(alignment: .leading, spacing: Space.m) {
             connectors
             watcherCard

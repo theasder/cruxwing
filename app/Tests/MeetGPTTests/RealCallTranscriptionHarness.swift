@@ -86,6 +86,45 @@ struct RealCallTranscriptionHarness {
     /// план (§6.3) в это же время говорит, что корпуса ещё нет.
     static var hasFixture: Bool { fixtureRoot != nil }
 
+    private static let fixtureReason = Comment(
+        rawValue: "Set CRUXWING_REAL_CALL_FIXTURE to a private real-call fixture directory.")
+
+    private static var hasMultipleFixtures: Bool {
+        ((try? loadFixtures().count) ?? 0) > 1
+    }
+
+    private static var hasCloudSidecars: Bool {
+        guard let fixtures = try? loadFixtures() else { return false }
+        let engines = ["assemblyai", "openai-diarize", "fireflies"]
+        return fixtures.contains { fixture in
+            engines.contains { engine in
+                FileManager.default.fileExists(
+                    atPath: fixture.audio.deletingPathExtension()
+                        .appendingPathExtension("\(engine).txt").path)
+            }
+        }
+    }
+
+    private static var hasDomainFixtures: Bool {
+        guard let fixtures = try? loadFixtures() else { return false }
+        return fixtures.contains { $0.reference.expectedTerms?.isEmpty == false }
+    }
+
+    private static var hasProseFixtures: Bool {
+        guard let fixtures = try? loadFixtures() else { return false }
+        return fixtures.contains { fixture in
+            fixture.reference.expectedTerms?.isEmpty == false
+                && plausibleAgendas.keys.contains { fixture.name.hasPrefix($0) }
+        }
+    }
+
+    private static var hasGlossaryFixtures: Bool {
+        guard let fixtures = try? loadFixtures() else { return false }
+        return fixtures.contains {
+            $0.reference.topic?.isEmpty == false || $0.reference.expectedTerms?.isEmpty == false
+        }
+    }
+
     private static var fixtureRoot: URL? {
         guard let path = ProcessInfo.processInfo.environment["CRUXWING_REAL_CALL_FIXTURE"],
               !path.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
@@ -133,16 +172,6 @@ struct RealCallTranscriptionHarness {
     private static func loadFixture() throws -> (audio: URL, reference: Reference)? {
         guard let first = try loadFixtures().first else { return nil }
         return (first.audio, first.reference)
-    }
-
-    private func skipNotice() {
-        print("""
-
-        [real-call] skipped — no fixture. Build one from a recording you have:
-          bash testlib/build_real_call_fixture.sh path/to/recording.mp4
-          CRUXWING_REAL_CALL_FIXTURE=data swift test --filter RealCallTranscriptionHarness
-
-        """)
     }
 
     // MARK: - One decode, shared
@@ -239,9 +268,11 @@ struct RealCallTranscriptionHarness {
 
     // MARK: - Tests
 
-    @Test("transcribes a real call within the accuracy ceiling", .enabled(if: Self.hasFixture))
+    @Test("transcribes a real call within the accuracy ceiling",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func realCallAccuracy() async throws {
-        guard let (reference, _, score) = try await measured() else { return skipNotice() }
+        let outcome = try #require(try await measured())
+        let (reference, _, score) = outcome
 
         print("""
 
@@ -273,9 +304,10 @@ struct RealCallTranscriptionHarness {
         #expect(score.wer < 0.60, "transcription is far worse than the recorded baseline")
     }
 
-    @Test("does not lose most of the speech", .enabled(if: Self.hasFixture))
+    @Test("does not lose most of the speech",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func doesNotDropSpeech() async throws {
-        guard let (_, _, score) = try await measured() else { return skipNotice() }
+        let (_, _, score) = try #require(try await measured())
 
         // The measured chunk-boundary failure showed up here first: 124 spoken
         // words arrived as 53 while WER alone still looked survivable. Recall
@@ -285,9 +317,10 @@ struct RealCallTranscriptionHarness {
                 "output is far shorter than the speech: \(score.summary)")
     }
 
-    @Test("does not hallucinate more than it hears", .enabled(if: Self.hasFixture))
+    @Test("does not hallucinate more than it hears",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func doesNotHallucinate() async throws {
-        guard let (_, _, score) = try await measured() else { return skipNotice() }
+        let (_, _, score) = try #require(try await measured())
 
         // Whisper's known failure on near-silence is to repeat a phrase for the
         // length of the window. Overlapping windows made that likelier, so it
@@ -296,9 +329,10 @@ struct RealCallTranscriptionHarness {
                 "output looks padded with invented speech: \(score.summary)")
     }
 
-    @Test("keeps the words the meeting is actually about", .enabled(if: Self.hasFixture))
+    @Test("keeps the words the meeting is actually about",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func keepsMeaningfulTerms() async throws {
-        guard let (reference, hypothesis, _) = try await measured() else { return skipNotice() }
+        let (reference, hypothesis, _) = try #require(try await measured())
 
         // WER weights "the" and the product name identically. A meeting is
         // recalled by its nouns, so they get measured separately. Terms are
@@ -313,10 +347,11 @@ struct RealCallTranscriptionHarness {
         #expect(rate > 0.5, "over half the meeting's distinctive words were lost")
     }
 
-    @Test("seam trimming does not leave repeated or dangling lines", .enabled(if: Self.hasFixture))
+    @Test("seam trimming does not leave repeated or dangling lines",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func lineHygiene() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         var worstDuplicate = 0.0
         var worstConjunction = 0.0
@@ -343,9 +378,10 @@ struct RealCallTranscriptionHarness {
         #expect(worstConjunction < 0.45, "cuts are landing before conjunctions")
     }
 
-    @Test("the same audio scores the same twice", .enabled(if: Self.hasFixture))
+    @Test("the same audio scores the same twice",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func isDeterministic() async throws {
-        guard let fixture = try Self.loadFixture() else { return skipNotice() }
+        let fixture = try #require(try Self.loadFixture())
 
         // Deliberately does NOT use the cache: this is the one test that has to
         // decode twice. If file-fed decoding is not reproducible then the
@@ -363,14 +399,14 @@ struct RealCallTranscriptionHarness {
                 "file-fed decoding is not reproducible; the metric cannot support A/B")
     }
 
-    @Test("scores the whole corpus, so one recording cannot carry a conclusion")
+    @Test(
+        "scores the whole corpus, so one recording cannot carry a conclusion",
+        .enabled(
+            if: Self.hasMultipleFixtures,
+            "Add at least two real-call fixtures before drawing a corpus-level conclusion."))
     func scoresWholeCorpus() async throws {
         let fixtures = try Self.loadFixtures()
-        guard fixtures.count > 1 else {
-            print("[real-call] corpus test needs 2+ fixtures — build them with " +
-                  "testlib/build_srt_fixtures.py")
-            return
-        }
+        try #require(fixtures.count > 1)
 
         var rows: [(name: String, score: TranscriptAccuracy.Score, realtime: Double)] = []
         for fixture in fixtures {
@@ -429,7 +465,11 @@ struct RealCallTranscriptionHarness {
             .prefix(limit)
             .map(\.key)
     }
-    @Test("compares a cloud engine on the same audio and the same scorer")
+    @Test(
+        "compares a cloud engine on the same audio and the same scorer",
+        .enabled(
+            if: Self.hasCloudSidecars,
+            "Add a private <fixture>.(assemblyai|openai-diarize|fireflies).txt sidecar."))
     func cloudEngineComparison() throws {
         let fixtures = try Self.loadFixtures()
         // One row per (engine, recording). The engine that SHIPS is
@@ -448,10 +488,7 @@ struct RealCallTranscriptionHarness {
                                                       hypothesis: hypothesis)))
             }
         }
-        guard !rows.isEmpty else {
-            print("[real-call] no <name>.assemblyai.txt sidecars — cloud comparison skipped")
-            return
-        }
+        try #require(!rows.isEmpty)
 
         // Scored with the SAME scorer and the same references as the local
         // numbers. A different normaliser would make the comparison meaningless.
@@ -467,16 +504,19 @@ struct RealCallTranscriptionHarness {
                          engine as NSString, mean, engineRows.count))
         }
         print("")
-        #expect(rows.allSatisfy { $0.1.referenceWords > 0 })
+        #expect(rows.allSatisfy {
+            $0.1.referenceWords > 0 && $0.1.wer.isFinite && $0.1.wer < 1.0
+        }, "a cloud sidecar is empty or farther than one error per reference word")
     }
 
-    @Test("keeps the domain vocabulary a work call is actually about")
+    @Test(
+        "keeps the domain vocabulary a work call is actually about",
+        .enabled(
+            if: Self.hasDomainFixtures,
+            "Add expectedTerms to a private real-call reference fixture."))
     func domainTermRecall() async throws {
         let fixtures = try Self.loadFixtures().filter { $0.reference.expectedTerms?.isEmpty == false }
-        guard !fixtures.isEmpty else {
-            print("[real-call] no fixture carries expectedTerms — domain recall skipped")
-            return
-        }
+        try #require(!fixtures.isEmpty)
 
         // Optional decoder-prompt glossary. The app already supports one and it
         // has never been measured; this is the experiment.
@@ -490,6 +530,7 @@ struct RealCallTranscriptionHarness {
         _ = useGlossary
 
         var worst = 1.0
+        var worstWER = 0.0
         for fixture in fixtures {
             let terms = (fixture.reference.expectedTerms ?? []).map(\.term)
             let glossary: String
@@ -513,6 +554,7 @@ struct RealCallTranscriptionHarness {
                                                  hypothesis: hypothesis)
             let rate = terms.isEmpty ? 1 : Double(found.count) / Double(terms.count)
             worst = min(worst, rate)
+            worstWER = max(worstWER, score.wer)
 
             // A term reproduced AS the weak-ASR corruption is worse than a miss:
             // it looks like a confident answer and reads as a real word.
@@ -528,15 +570,25 @@ struct RealCallTranscriptionHarness {
                          missing.prefix(5).joined(separator: ", ") as NSString,
                          corruptions.isEmpty ? "" : "  CORRUPTED: \(corruptions.joined(separator: ", "))"))
         }
-        #expect(worst >= 0.0)
+        #expect(worst >= 0.30, "domain-term recall fell below the usable corpus floor")
+        #expect(worstWER < 0.75,
+                "a glossary run bought terms by making the surrounding transcript unusable")
     }
 
-    @Test("a second pass primed by the first recovers inconsistent terms")
+    @Test(
+        "a second pass primed by the first recovers inconsistent terms",
+        .enabled(
+            if: Self.hasDomainFixtures,
+            "Add expectedTerms to a private real-call reference fixture."))
     func twoPassSelfPriming() async throws {
         let fixtures = try Self.loadFixtures().filter { $0.reference.expectedTerms?.isEmpty == false }
-        guard !fixtures.isEmpty else { return }
+        try #require(!fixtures.isEmpty)
 
         print("\n[real-call] two-pass self-priming, model \(Self.modelUnderTest):")
+        var beforeFound = 0
+        var afterFound = 0
+        var totalTerms = 0
+        var afterWERs: [Double] = []
         for fixture in fixtures {
             let terms = (fixture.reference.expectedTerms ?? []).map(\.term)
 
@@ -560,6 +612,10 @@ struct RealCallTranscriptionHarness {
             let after = TranscriptAccuracy.termRecall(terms: terms, in: second)
             let beforeWER = TranscriptAccuracy.score(reference: fixture.reference.text, hypothesis: first)
             let afterWER = TranscriptAccuracy.score(reference: fixture.reference.text, hypothesis: second)
+            beforeFound += before.found.count
+            afterFound += after.found.count
+            totalTerms += terms.count
+            afterWERs.append(afterWER.wer)
 
             print(String(format: "  %-42@ mined %2d  terms %d/%d -> %d/%d   WER %.4f -> %.4f",
                          fixture.name as NSString, mined.count,
@@ -567,7 +623,11 @@ struct RealCallTranscriptionHarness {
                          after.found.count, terms.count,
                          beforeWER.wer, afterWER.wer))
         }
-        #expect(Bool(true))
+        #expect(totalTerms > 0, "the opted-in corpus contains no domain terms")
+        #expect(afterFound >= beforeFound,
+                "self-priming lost domain terms: \(beforeFound)/\(totalTerms) -> \(afterFound)/\(totalTerms)")
+        #expect(afterWERs.allSatisfy { $0.isFinite && $0 < 0.75 },
+                "self-priming made the surrounding transcript unusable")
     }
 
     /// Plausible pre-call documents for the two fixtures that carry
@@ -597,12 +657,20 @@ struct RealCallTranscriptionHarness {
         """,
     ]
 
-    @Test("mining a prose document recovers the terms a curated list would")
+    @Test(
+        "mining a prose document recovers the terms a curated list would",
+        .enabled(
+            if: Self.hasProseFixtures,
+            "Add a supported private fixture with expectedTerms before running the prose glossary eval."))
     func minedFromProseMatchesCuratedList() async throws {
         let fixtures = try Self.loadFixtures().filter { $0.reference.expectedTerms?.isEmpty == false }
-        guard !fixtures.isEmpty else { return }
+        try #require(!fixtures.isEmpty)
 
         print("\n[real-call] glossary mined from a PROSE document, model \(Self.modelUnderTest):")
+        var measuredFixtures = 0
+        var mineableTerms = 0
+        var foundTerms = 0
+        var expectedTerms = 0
         for fixture in fixtures {
             guard let agenda = Self.plausibleAgendas.first(where: {
                 fixture.name.hasPrefix($0.key)
@@ -624,6 +692,10 @@ struct RealCallTranscriptionHarness {
             let mineable = terms.filter { term in
                 mined.contains { $0.caseInsensitiveCompare(term) == .orderedSame }
             }
+            measuredFixtures += 1
+            mineableTerms += mineable.count
+            foundTerms += found.count
+            expectedTerms += terms.count
             print(String(format: "  %-40@ mined %2d  covers %d/%d of the key  terms %d/%d (%.2f)  WER %.4f",
                          fixture.name as NSString, mined.count,
                          mineable.count, terms.count,
@@ -634,16 +706,21 @@ struct RealCallTranscriptionHarness {
                 print("      missed: \(missing.prefix(6).joined(separator: ", "))")
             }
         }
-        #expect(Bool(true))
+        #expect(measuredFixtures > 0, "no configured fixture matched a plausible prose agenda")
+        #expect(mineableTerms > 0, "the prose miner recovered none of the fixture answer key")
+        #expect(Double(foundTerms) / Double(max(expectedTerms, 1)) >= 0.30,
+                "prose-derived glossary recall fell below the corpus floor")
     }
 
-    @Test("one whole-file pass, the way a post-call re-transcription would run", .enabled(if: Self.hasFixture))
+    @Test("one whole-file pass, the way a post-call re-transcription would run",
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func wholeFileSinglePass() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         print("\n[real-call] whole-file single pass vs the 6s live pipeline, " +
               "model \(Self.modelUnderTest):")
+        var measured: [(score: TranscriptAccuracy.Score, realtime: Double)] = []
         for fixture in fixtures {
             // The live pipeline cuts at 6s because a caption has to appear
             // while people are still talking. After the call that constraint is
@@ -688,11 +765,17 @@ struct RealCallTranscriptionHarness {
             let audioSeconds = fixture.reference.segmentDurationSeconds ?? 300
             let found = terms.isEmpty ? 0
                 : TranscriptAccuracy.termRecall(terms: terms, in: hypothesis).found.count
+            measured.append((score, elapsed / max(audioSeconds, 1)))
             print(String(format: "  %-46@ %@  rt %.2fx  terms %d/%d",
                          fixture.name as NSString, score.summary,
                          elapsed / audioSeconds, found, terms.count))
         }
-        #expect(Bool(true))
+        #expect(measured.count == fixtures.count,
+                "one or more configured audio fixtures produced no PCM samples")
+        #expect(measured.allSatisfy {
+            $0.score.referenceWords > 0 && $0.score.wer.isFinite && $0.score.wer < 0.75
+                && $0.realtime.isFinite && $0.realtime > 0
+        }, "whole-file transcription exceeded the corpus quality ceiling")
     }
 
     /// Does retrying a failed decode at a higher temperature recover words?
@@ -710,10 +793,11 @@ struct RealCallTranscriptionHarness {
     ///
     /// Measured rather than assumed, because the last "obvious" lever here cost
     /// 14 points of recall.
-    @Test("temperature fallback sweep, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
+    @Test("temperature fallback sweep, whole-file pass", .timeLimit(.minutes(60)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func temperatureFallbackSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let counts = (ProcessInfo.processInfo.environment["CRUXWING_WHISPER_FALLBACK_SWEEP"]
                       ?? "0,2").split(separator: ",").compactMap { Int($0) }
@@ -767,7 +851,13 @@ struct RealCallTranscriptionHarness {
             print(String(format: "  fb=%d  wer %.4f  recall %.4f  words %d  rt %.2fx",
                          count, m.wer, m.recall, m.words, m.rt))
         }
-        #expect(Bool(true))
+        #expect(Set(counts).count >= 2, "a sweep needs at least two distinct fallback counts")
+        #expect(means.count == Set(counts).count,
+                "one or more fallback configurations produced no result")
+        #expect(means.values.allSatisfy {
+            $0.wer.isFinite && $0.wer < 0.75 && $0.words > 0
+                && $0.rt.isFinite && $0.rt > 0
+        }, "a fallback configuration exceeded the corpus quality ceiling")
     }
 
     /// Does splitting on speech boundaries beat splitting every 30 seconds?
@@ -779,14 +869,16 @@ struct RealCallTranscriptionHarness {
     ///
     /// Runs on top of whichever fallback count won the sweep above, passed in
     /// via CRUXWING_WHISPER_FALLBACK, so the two levers are not confounded.
-    @Test("VAD chunking vs fixed windows, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
+    @Test("VAD chunking vs fixed windows, whole-file pass", .timeLimit(.minutes(60)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func chunkingStrategySweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let fallback = Int(ProcessInfo.processInfo.environment["CRUXWING_WHISPER_FALLBACK"] ?? "0") ?? 0
         let useVAD: [Bool] = [false, true]
         print("\n[real-call] chunking sweep, model \(Self.modelUnderTest), fallback \(fallback):")
+        var results: [(label: String, wer: Double, words: Int, realtime: Double)] = []
 
         for vad in useVAD {
             let label = vad ? "vad" : "fixed"
@@ -823,10 +915,15 @@ struct RealCallTranscriptionHarness {
             }
 
             let mean = { (xs: [Double]) in xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
+            results.append((label, mean(wers), words, mean(realtimes)))
             print(String(format: "  %-5@ MEAN wer %.4f  recall %.4f  words %d  rt %.2fx",
                          label as NSString, mean(wers), mean(recalls), words, mean(realtimes)))
         }
-        #expect(Bool(true))
+        #expect(results.count == 2, "both fixed and VAD chunking must be measured")
+        #expect(results.allSatisfy {
+            $0.wer.isFinite && $0.wer < 0.75 && $0.words > 0
+                && $0.realtime.isFinite && $0.realtime > 0
+        }, "a chunking strategy exceeded the corpus quality ceiling")
     }
 
     /// Is the confidence filter deleting correct speech?
@@ -840,14 +937,16 @@ struct RealCallTranscriptionHarness {
     /// the transcription is right. Accented speech scores lower while still
     /// being correct, so a precision bar written for live captions deletes it.
     /// This measures what raising that bar costs and what it recovers.
-    @Test("confidence floor sweep, whole-file pass", .timeLimit(.minutes(60)), .enabled(if: Self.hasFixture))
+    @Test("confidence floor sweep, whole-file pass", .timeLimit(.minutes(60)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func confidenceFloorSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let floors = (ProcessInfo.processInfo.environment["CRUXWING_WHISPER_LOGPROB_SWEEP"]
                       ?? "-0.85,-1.2,-1.6,-99").split(separator: ",").compactMap { Float($0) }
         print("\n[real-call] confidence floor sweep, model \(Self.modelUnderTest):")
+        var results: [(floor: Float, wer: Double, words: Int)] = []
 
         for floor in floors {
             var wers: [Double] = []
@@ -879,10 +978,14 @@ struct RealCallTranscriptionHarness {
             }
 
             let mean = { (xs: [Double]) in xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
+            results.append((floor, mean(wers), words))
             print(String(format: "  floor %-6.2f MEAN wer %.4f  recall %.4f  D %d  I %d  words %d",
                          floor, mean(wers), mean(recalls), deletions, insertions, words))
         }
-        #expect(Bool(true))
+        #expect(Set(floors).count >= 2, "a sweep needs at least two confidence floors")
+        #expect(results.count == Set(floors).count)
+        #expect(results.allSatisfy { $0.wer.isFinite && $0.wer < 0.75 && $0.words > 0 },
+                "a confidence-floor configuration exceeded the corpus quality ceiling")
     }
 
     /// Where do the missing words actually go?
@@ -896,14 +999,16 @@ struct RealCallTranscriptionHarness {
     /// separates the two possibilities that the WER number cannot: a segment the
     /// filter DELETED, versus one the decoder never produced. They have
     /// completely different fixes.
-    @Test("segment accounting on an accented fixture", .timeLimit(.minutes(20)), .enabled(if: Self.hasFixture))
+    @Test("segment accounting on an accented fixture", .timeLimit(.minutes(20)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func segmentAccounting() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         // Worst deletion counts in the corpus: 05 (D 153) and 15 (D 195).
         let targets = fixtures.filter { $0.name.hasPrefix("05_") || $0.name.hasPrefix("15_") }
         let chosen = targets.isEmpty ? Array(fixtures.prefix(1)) : targets
+        var measured = 0
 
         for fixture in chosen {
             guard let wav = try Self.wavData(for: fixture.audio) else { continue }
@@ -916,6 +1021,14 @@ struct RealCallTranscriptionHarness {
             let referenceWords = fixture.reference.text.split(separator: " ").count
             let hypothesisWords = hypothesis.split(separator: " ").count
             let emittedWords = box.emittedWordCount
+            measured += 1
+            #expect(box.total > 0, "the decoder emitted no segment verdicts for \(fixture.name)")
+            #expect(box.accepted + box.rejected == box.total,
+                    "segment verdict accounting does not balance for \(fixture.name)")
+            #expect(referenceWords > 0 && hypothesisWords > 0,
+                    "segment accounting has no words to compare for \(fixture.name)")
+            #expect(emittedWords >= hypothesisWords,
+                    "the final transcript contains words absent from decoder verdicts")
 
             print("""
 
@@ -933,7 +1046,8 @@ struct RealCallTranscriptionHarness {
                 print("  dropped text samples: \(box.droppedSamples.prefix(5))")
             }
         }
-        #expect(Bool(true))
+        #expect(measured == chosen.count,
+                "one or more selected fixtures produced no decodable WAV data")
     }
 
     /// Collects verdicts from the decoder callback, which is not main-actor bound.
@@ -972,10 +1086,11 @@ struct RealCallTranscriptionHarness {
     /// `medium` is in the sweep although the app does not offer it: if it sits
     /// near large-v3 at a fraction of the weight, the three-option ladder is
     /// wrong, and that is worth knowing before writing more captions.
-    @Test("model sweep, whole-file pass", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
+    @Test("model sweep, whole-file pass", .timeLimit(.minutes(120)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func modelSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let models = (ProcessInfo.processInfo.environment["CRUXWING_WHISPER_MODEL_SWEEP"]
             ?? "openai_whisper-base,openai_whisper-small,openai_whisper-medium,"
@@ -1028,7 +1143,11 @@ struct RealCallTranscriptionHarness {
             print(String(format: "  %-38@ wer %.4f  recall %.4f  D %5d  I %4d  rt %.2fx",
                          model as NSString, wer, recall, deletions, insertions, rt))
         }
-        #expect(Bool(true))
+        #expect(Set(models).count >= 2, "a model sweep needs at least two distinct models")
+        #expect(summary.count == Set(models).count)
+        #expect(summary.allSatisfy {
+            $0.1.isFinite && $0.1 < 0.75 && $0.5.isFinite && $0.5 > 0
+        }, "a model produced unusable or empty whole-file output")
     }
 
     /// Does the SHIPPING language setting match the one every measurement used?
@@ -1042,14 +1161,16 @@ struct RealCallTranscriptionHarness {
     /// and would look exactly like the deletions that dominate this corpus: a
     /// window detected as Hindi or Chinese emits little or nothing useful for an
     /// English reference to match.
-    @Test("auto-detect vs forced English", .timeLimit(.minutes(90)), .enabled(if: Self.hasFixture))
+    @Test("auto-detect vs forced English", .timeLimit(.minutes(90)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func languageModeSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let model = ProcessInfo.processInfo.environment["CRUXWING_REAL_CALL_MODEL"]
             ?? "openai_whisper-large-v3-v20240930"
         print("\n[real-call] language mode sweep, model \(model):")
+        var results: [String: (wer: Double, measuredFixtures: Int)] = [:]
 
         for language in ["multi", "en"] {
             var wers: [Double] = []
@@ -1077,11 +1198,16 @@ struct RealCallTranscriptionHarness {
             }
 
             let mean = { (xs: [Double]) in xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
+            results[language] = (mean(wers), wers.count)
             print(String(format: "  %-6@ MEAN wer %.4f  recall %.4f  D %d  worst %@ %.4f",
                          language as NSString, mean(wers), mean(recalls), deletions,
                          worst.0 as NSString, worst.1))
         }
-        #expect(Bool(true))
+        #expect(Set(results.keys) == ["multi", "en"],
+                "both the shipped auto-detect mode and forced English must be measured")
+        #expect(results.values.allSatisfy {
+            $0.measuredFixtures == fixtures.count && $0.wer.isFinite && $0.wer < 0.75
+        }, "a language mode produced empty or unusable output")
     }
 
     /// What does the live path's chunk length cost in accuracy?
@@ -1096,14 +1222,16 @@ struct RealCallTranscriptionHarness {
     /// says what the choice actually costs, so the trade can be made on numbers:
     /// a longer window gives the decoder more context either side of a word, at
     /// the price of a caption arriving later.
-    @Test("live chunk length sweep", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
+    @Test("live chunk length sweep", .timeLimit(.minutes(120)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func liveChunkLengthSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let lengths = (ProcessInfo.processInfo.environment["CRUXWING_LIVE_CHUNK_SWEEP"]
                        ?? "4,6,8,12").split(separator: ",").compactMap { Double($0) }
         print("\n[real-call] live chunk length sweep, model \(Self.modelUnderTest):")
+        var results: [(seconds: Double, wer: Double)] = []
 
         for seconds in lengths {
             var wers: [Double] = []
@@ -1132,10 +1260,15 @@ struct RealCallTranscriptionHarness {
             }
 
             let mean = { (xs: [Double]) in xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
+            results.append((seconds, mean(wers)))
             print(String(format: "  %.0fs MEAN wer %.4f  recall %.4f  D %d  I %d",
                          seconds, mean(wers), mean(recalls), deletions, insertions))
         }
-        #expect(Bool(true))
+        #expect(Set(lengths).count >= 2, "a chunk-length sweep needs at least two lengths")
+        #expect(results.count == Set(lengths).count)
+        #expect(results.allSatisfy {
+            $0.seconds > 0 && $0.wer.isFinite && $0.wer < 0.75
+        }, "a live chunk length exceeded the corpus quality ceiling")
     }
 
     /// Seam quality at FIXED caption latency.
@@ -1155,10 +1288,11 @@ struct RealCallTranscriptionHarness {
     /// - `overlap` decides how much audio two windows share. More overlap gives
     ///   the stitcher more to match on, at the cost of decoding the same audio
     ///   twice.
-    @Test("seam levers at fixed window", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
+    @Test("seam levers at fixed window", .timeLimit(.minutes(120)),
+          .enabled(if: Self.hasFixture, Self.fixtureReason))
     func seamLeverSweep() async throws {
         let fixtures = try Self.loadFixtures()
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         // "overlap:slack" pairs. Default first, so every row reads against it.
         let combos = (ProcessInfo.processInfo.environment["CRUXWING_SEAM_SWEEP"]
@@ -1171,6 +1305,7 @@ struct RealCallTranscriptionHarness {
             }
         print("\n[real-call] seam sweep at \(Config.transcriptionChunkSeconds)s window, "
               + "model \(Self.modelUnderTest):")
+        var results: [(overlap: Double, slack: Double, wer: Double)] = []
 
         for (overlap, slack) in combos {
             var wers: [Double] = []
@@ -1196,10 +1331,15 @@ struct RealCallTranscriptionHarness {
             }
 
             let mean = { (xs: [Double]) in xs.isEmpty ? 0 : xs.reduce(0, +) / Double(xs.count) }
+            results.append((overlap, slack, mean(wers)))
             print(String(format: "  ov%.1f sl%.0f MEAN wer %.4f  S %d  D %d  I %d",
                          overlap, slack, mean(wers), substitutions, deletions, insertions))
         }
-        #expect(Bool(true))
+        #expect(combos.count >= 2, "a seam sweep needs at least two valid overlap:slack pairs")
+        #expect(results.count == combos.count)
+        #expect(results.allSatisfy {
+            $0.overlap >= 0 && $0.slack >= 0 && $0.wer.isFinite && $0.wer < 0.75
+        }, "a seam configuration exceeded the corpus quality ceiling")
     }
 
     /// Glossary × tier, whole-file pass — the gate the shipped config lacks.
@@ -1221,12 +1361,17 @@ struct RealCallTranscriptionHarness {
     ///          two-pass shape the post-call re-transcription could ship
     ///   key    `expectedTerms` verbatim — the answer key: the CEILING of what
     ///          any glossary source could deliver, not a shippable mode
-    @Test("glossary mode sweep, whole-file pass", .timeLimit(.minutes(120)), .enabled(if: Self.hasFixture))
+    @Test(
+        "glossary mode sweep, whole-file pass",
+        .timeLimit(.minutes(120)),
+        .enabled(
+            if: Self.hasGlossaryFixtures,
+            "Add topic or expectedTerms to a private real-call reference fixture."))
     func glossaryModeSweep() async throws {
         let fixtures = try Self.loadFixtures().filter {
             $0.reference.topic?.isEmpty == false || $0.reference.expectedTerms?.isEmpty == false
         }
-        guard !fixtures.isEmpty else { return skipNotice() }
+        try #require(!fixtures.isEmpty)
 
         let modes = (ProcessInfo.processInfo.environment["CRUXWING_GLOSSARY_SWEEP"]
                      ?? "off,mined,self,key").split(separator: ",").map(String.init)
@@ -1328,7 +1473,16 @@ struct RealCallTranscriptionHarness {
                          foundTotal, termTotal,
                          termTotal == 0 ? 0 : Double(foundTotal) / Double(termTotal)))
         }
-        #expect(Bool(true))
+        let measuredModes = Set(rows.map(\.mode))
+        #expect(measuredModes.contains("off"), "the glossary sweep has no unprimed baseline")
+        #expect(measuredModes.count >= 2, "a glossary sweep needs at least two measured modes")
+        let scoreable = rows.filter {
+            !$0.name.hasPrefix("14_") && !$0.name.hasPrefix("15_")
+        }
+        #expect(!scoreable.isEmpty, "the glossary sweep has no scoreable references")
+        #expect(scoreable.allSatisfy {
+            $0.score.referenceWords > 0 && $0.score.wer.isFinite && $0.score.wer < 0.75
+        }, "a glossary mode exceeded the corpus quality ceiling")
     }
 
     /// Decode a fixture to 16-bit WAV bytes.

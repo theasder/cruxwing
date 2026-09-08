@@ -61,7 +61,7 @@ enum CalendarService {
     ///   window instead, and throws `.noEvent` when every candidate is hidden.
     static func currentAgenda(accessToken: String,
                               excluding: Set<String> = [],
-                              session: URLSession = .shared) async throws -> CalendarAgenda {
+                              session: URLSession = OrakulNetworkIdentity.shared) async throws -> CalendarAgenda {
         let now = Date()
         // Google applies timeMin to the event END, so using now keeps an event
         // already in progress while excluding events that have already ended.
@@ -93,7 +93,7 @@ enum CalendarService {
     static func upcomingEvents(accessToken: String,
                                horizon: TimeInterval = 24 * 3600,
                                maxResults: Int = 25,
-                               session: URLSession = .shared) async throws -> [UpcomingMeeting] {
+                               session: URLSession = OrakulNetworkIdentity.shared) async throws -> [UpcomingMeeting] {
         let now = Date()
         let timeMin = ISO8601DateFormatter().string(from: now)
         let timeMax = ISO8601DateFormatter().string(from: now.addingTimeInterval(horizon))
@@ -228,7 +228,7 @@ enum CalendarService {
     /// removes that ambiguity.
     static func agenda(eventID: String,
                        accessToken: String,
-                       session: URLSession = .shared) async throws -> CalendarAgenda {
+                       session: URLSession = OrakulNetworkIdentity.shared) async throws -> CalendarAgenda {
         let encoded = eventID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? eventID
         guard let url = URL(string:
             "https://www.googleapis.com/calendar/v3/calendars/primary/events/\(encoded)")

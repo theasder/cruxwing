@@ -1,10 +1,9 @@
 // Учётных данных нет ни в репозитории, ни в собранном приложении.
 //
-// `Secrets.swift` теперь под контролем версий — иначе `cd app && swift test`
-// у клонирующего не собирается вовсе: файл порождается сборкой, в клоне его
-// нет, и первая же ссылка на `Secrets.` разваливает вывод типов. Цена этого
-// решения — файл, в который сборка пишет из `.env` и который теперь коммитится.
-// Значит, нужна проверка, которой раньше не требовалось.
+// `Secrets.swift` — отслеживаемая неизменяемая конфигурация безопасного клона.
+// Локальная сборка пишет `.env` только в игнорируемый
+// `LocalSecrets.generated.swift` и включает его отдельным compile flag. Так
+// обычная сборка не превращает живой ключ в готовую к коммиту правку.
 //
 // Повод не выдуманный. В унаследованном файле лежали два живых секрета клиента
 // Google проекта Cruxwing — и они уехали в опубликованные DMG: `LC_ALL=C grep -a`
@@ -15,7 +14,10 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync, existsSync, readdirSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs';
+import {
+  readFileSync, existsSync, readdirSync, writeFileSync, rmSync, mkdtempSync,
+  mkdirSync, chmodSync,
+} from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { resolve, dirname } from 'node:path';
@@ -25,6 +27,8 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '..');
 const secretsPath = resolve(repo, 'app', 'Sources', 'MeetGPT', 'Secrets.swift');
+const localSecretsPath = resolve(
+  repo, 'app', 'Sources', 'MeetGPT', 'LocalSecrets.generated.swift');
 
 /// Формы, по которым учётные данные узнаются независимо от имени поля.
 /// Именно формы, а не список известных строк: список защищает только от
@@ -50,6 +54,29 @@ function skipUnbuilt() {
     : 'приложение ещё не собрано — проверка бинарника запускается после build.sh';
 }
 
+function fakeAppBundle({ resource = 'clean', executable = 'clean' } = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'orakul-artifact-scan-'));
+  const app = join(root, 'orakul.app');
+  const macOS = join(app, 'Contents', 'MacOS');
+  const resources = join(app, 'Contents', 'Resources');
+  mkdirSync(macOS, { recursive: true });
+  mkdirSync(resources, { recursive: true });
+  const binary = join(macOS, 'MeetGPT');
+  writeFileSync(binary, `${executable}\n`);
+  chmodSync(binary, 0o755);
+  writeFileSync(join(resources, 'settings.json'), `${resource}\n`);
+  return { root, app };
+}
+
+function exitStatus(command, args, options = {}) {
+  try {
+    execFileSync(command, args, { stdio: 'pipe', ...options });
+    return 0;
+  } catch (error) {
+    return error.status ?? 1;
+  }
+}
+
 describe('учётные данные', () => {
   test('в истории коммитов нет ни одного настоящего секрета', () => {
     // Репозиторий уйдёт в открытый доступ вместе с историей. Секрет, удалённый
@@ -72,7 +99,8 @@ describe('учётные данные', () => {
     const values = history.match(
       /GOCSPX-[A-Za-z0-9_-]{15,}|sk-[A-Za-z0-9]{32,}|ghp_[A-Za-z0-9]{36}|AIza[0-9A-Za-z_-]{35}/g);
     assert.equal(values, null,
-      `в истории найдены настоящие ключи: ${[...new Set(values ?? [])].join(', ')}`);
+      'в истории найдены строки, похожие на настоящие ключи; '
+      + 'не печатайте их в CI — отзовите ключи и перепишите историю до публикации');
   });
 
   test('никакой секрет не пишется в файл настроек', () => {
@@ -116,6 +144,36 @@ describe('учётные данные', () => {
                                  { cwd: repo, encoding: 'utf8' }).trim();
     assert.equal(tracked, 'app/Sources/MeetGPT/Secrets.swift',
       'Secrets.swift снова не отслеживается — `cd app && swift test` у клонирующего упадёт');
+  });
+
+  test('локальная сборка пишет только в точечно игнорируемый файл', () => {
+    const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
+    assert.match(build, /SECRETS="\$ROOT\/Sources\/MeetGPT\/LocalSecrets\.generated\.swift"/,
+      'build.sh снова перезаписывает отслеживаемую конфигурацию');
+    assert.match(build, /-DORAKUL_LOCAL_CONFIG/,
+      'локальная конфигурация не включается явным compile flag');
+
+    const tracked = execFileSync('git', ['ls-files', '--error-unmatch',
+      'app/Sources/MeetGPT/Secrets.swift'], { cwd: repo, encoding: 'utf8' }).trim();
+    assert.equal(tracked, 'app/Sources/MeetGPT/Secrets.swift');
+
+    const generatedTracked = execFileSync('git', ['ls-files',
+      'app/Sources/MeetGPT/LocalSecrets.generated.swift'],
+    { cwd: repo, encoding: 'utf8' }).trim();
+    assert.equal(generatedTracked, '',
+      'локальный файл с ключами оказался под контролем версий');
+
+    // `git check-ignore` проверяет реальное правило, даже если build.sh ещё не
+    // создавал файл в этом checkout.
+    const ignored = execFileSync('git', ['check-ignore',
+      'app/Sources/MeetGPT/LocalSecrets.generated.swift'],
+    { cwd: repo, encoding: 'utf8' }).trim();
+    assert.equal(ignored, 'app/Sources/MeetGPT/LocalSecrets.generated.swift');
+    assert.ok(!existsSync(localSecretsPath)
+      || !execFileSync('git', ['status', '--short', '--untracked-files=all', '--',
+        'app/Sources/MeetGPT/LocalSecrets.generated.swift'],
+      { cwd: repo, encoding: 'utf8' }).trim(),
+    'сгенерированный файл виден Git');
   });
 
   test('в Secrets.swift нет ничего похожего на учётные данные', () => {
@@ -292,10 +350,13 @@ describe('учётные данные', () => {
     const script = resolve(repo, 'app', 'assert-no-env-values.sh');
     const dir = mkdtempSync(join(tmpdir(), 'orakul-env-scan-'));
     const env = join(dir, 'probe.env');
+    // Assemble the fixture at runtime so the repository's own history scanner
+    // never has to exempt a credential-shaped literal in its test source.
+    const plantedSecret = 'sk-' + 'live-' + 'ASCIISECRET1234567';
     // Секрет ASCII, как настоящий, и второй — с кириллицей: `strings` его не
     // видит, и первая версия проверки докладывала «чисто» о заражённой сборке.
     writeFileSync(env, [
-      'OPENAI_API_KEY=sk-live-ASCIISECRET1234567',
+      `OPENAI_API_KEY=${plantedSecret}`,
       'CONFLUENCE_SITE=компания.atlassian.net',
       'DEFAULT_TIER=team',
       'TRANSCRIPTION_ENGINE=local',
@@ -314,12 +375,12 @@ describe('учётные данные', () => {
 
     // Публичные настройки в сборке — норма: они и должны там быть.
     assert.equal(run('код\nteam\nlocal\n'), 0, 'проверка ругается на исправную сборку');
-    assert.equal(run('код\nsk-live-ASCIISECRET1234567\n'), 1, 'ASCII-секрет не найден');
+    assert.equal(run(`код\n${plantedSecret}\n`), 1, 'ASCII-секрет не найден');
     assert.equal(run('код\nкомпания.atlassian.net\n'), 1, 'значение с кириллицей не найдено');
 
     // И главное свойство отчёта: имя переменной — да, значение — никогда.
     const binary = join(dir, 'leaky');
-    writeFileSync(binary, 'код\nsk-live-ASCIISECRET1234567\n');
+    writeFileSync(binary, `код\n${plantedSecret}\n`);
     let output = '';
     try {
       execFileSync('bash', [script, binary, env], { stdio: 'pipe' });
@@ -327,10 +388,86 @@ describe('учётные данные', () => {
       output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
     }
     assert.match(output, /OPENAI_API_KEY/, 'отчёт не называет переменную — чинить нечего');
-    assert.ok(!output.includes('sk-live-ASCIISECRET1234567'),
+    assert.ok(!output.includes(plantedSecret),
       'проверка напечатала сам секрет в журнал сборки — то есть открыла ту дыру, которую ищет');
 
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  test('дословная проверка читает Resources, а не только исполняемый файл', () => {
+    // Deepgram keys have no prefix and look like an ordinary 40-character
+    // digest. A shape scan cannot distinguish one; only the exact value from
+    // the env that fed the build can.
+    const deepgram = 'abcdef0123456789abcdef0123456789abcdef01';
+    const fixture = fakeAppBundle({ resource: `{"key":"${deepgram}"}` });
+    const env = join(fixture.root, 'build.env');
+    writeFileSync(env, `DEEPGRAM_API_KEY=${deepgram}\n`);
+    try {
+      assert.notEqual(exitStatus('bash', [
+        resolve(repo, 'app', 'assert-no-env-values.sh'), fixture.app, env,
+      ]), 0, 'секрет в Contents/Resources остался незамеченным');
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
+  test('дословная проверка не разрешает BACKEND_URL ни в одной части bundle', () => {
+    // build.sh keeps BACKEND_URL in its switch only so DIST can force it to an
+    // empty string. That implementation detail must not exempt an address that
+    // arrived through a resource, plist, or any other packaging path.
+    const backend = 'https://backend-leak-fixture.invalid/v1';
+    const envContents = `BACKEND_URL=${backend}\n`;
+    const fixtures = [
+      fakeAppBundle({ executable: `compiled:${backend}` }),
+      fakeAppBundle({ resource: `{"backend":"${backend}"}` }),
+    ];
+    try {
+      for (const [index, fixture] of fixtures.entries()) {
+        const env = join(fixture.root, 'build.env');
+        writeFileSync(env, envContents);
+        assert.notEqual(exitStatus('bash', [
+          resolve(repo, 'app', 'assert-no-env-values.sh'), fixture.app, env,
+        ]), 0, `BACKEND_URL fixture ${index + 1} in the bundle was not rejected`);
+      }
+    } finally {
+      for (const fixture of fixtures) {
+        rmSync(fixture.root, { recursive: true, force: true });
+      }
+    }
+  });
+
+  test('проверка форм читает весь bundle, знает основные семейства и пропускает чистый bundle', () => {
+    const script = resolve(repo, 'app', 'assert-no-baked-secrets.sh');
+    // Values are assembled at runtime so the repository history contains only
+    // detection patterns, never strings that look like live credentials.
+    const credentialFixtures = [
+      'sk-' + 'a'.repeat(32),
+      'sk-' + 'ant-' + 'a'.repeat(28),
+      'GOC' + 'SPX-' + 'a'.repeat(20),
+      '12345678901-' + 'a'.repeat(24) + '.apps.googleusercontent.com',
+      'AI' + 'za' + 'a'.repeat(35),
+      'gh' + 'p_' + 'a'.repeat(36),
+      'AK' + 'IA' + 'A'.repeat(16),
+      'xo' + 'xb-' + 'a'.repeat(24),
+      '-----BEGIN ' + 'PRIVATE KEY-----',
+      'Bearer ' + 'a'.repeat(32),
+    ];
+    const leakyBundles = credentialFixtures.map((credential) =>
+      fakeAppBundle({ resource: `{"key":"${credential}"}` }));
+    const clean = fakeAppBundle();
+    try {
+      for (const [index, leaky] of leakyBundles.entries()) {
+        assert.notEqual(exitStatus('bash', [script, leaky.app]), 0,
+          `семейство учётных данных ${index + 1} в Contents/Resources осталось незамеченным`);
+      }
+      assert.equal(exitStatus('bash', [script, clean.app]), 0,
+        'чистый bundle отклонён — такой сторож просто отключат');
+    } finally {
+      for (const leaky of leakyBundles) {
+        rmSync(leaky.root, { recursive: true, force: true });
+      }
+      rmSync(clean.root, { recursive: true, force: true });
+    }
   });
 
 
@@ -372,6 +509,17 @@ describe('учётные данные', () => {
     // Строка берётся целиком: внутри неё есть свои скобки, и «до первой
     // закрывающей» вырезает половину команды — первая версия этой проверки так
     // и сделала и упала на исправном стороже.
+    const configLine = build.split('\n').find((text) => text.includes('DIST_CONFIG='));
+    assert.match(configLine ?? '', /Sources\/MeetGPT\/Secrets\.swift/,
+      'останов проверяет не тот Secrets.swift, который DIST действительно компилирует');
+    assert.doesNotMatch(configLine ?? '', /LocalSecrets\.generated/,
+      'останов снова проверяет локальный файл, выключенный в DIST-сборке');
+
+    const countLine = build.split('\n').find((text) => text.includes('DIST_BACKEND_COUNT='));
+    assert.ok(countLine, 'останов принимает отсутствие объявления backendBaseURL за пустое значение');
+    assert.match(build, /DIST_BACKEND_COUNT" != "1"/,
+      'отсутствующее или неоднозначное объявление backendBaseURL больше не останавливает сборку');
+
     const line = build.split('\n').find((text) => text.includes('DIST_BACKEND='));
     assert.ok(line, 'останов больше не читает Secrets.swift');
     assert.ok(!/sw BACKEND_URL/.test(line),
@@ -383,7 +531,7 @@ describe('учётные данные', () => {
       writeFileSync(secrets, contents);
       const script = [
         'set -u',
-        `SECRETS=${JSON.stringify(secrets)}`,
+        `DIST_CONFIG=${JSON.stringify(secrets)}`,
         line.trim(),
         'if [ -n "$DIST_BACKEND" ]; then echo "останов"; exit 1; fi',
         'echo "проход"',

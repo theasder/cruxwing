@@ -47,13 +47,13 @@ struct TranscriptionEngineLiveSwitchTests {
         #expect(oldFinal < nextChunk)
     }
 
-    @Test("account hydration republishes the engine the next recording will use")
-    func hydrationKeepsSettingsAndRuntimeAligned() {
+    @Test("account hydration cannot silently re-arm a normalized cloud route")
+    func hydrationKeepsNormalizedLocalRoute() {
         let idle = AppState.transcriptionEngineAfterCredentialHydration(
             displayed: .local,
             resolvedAfterHydration: .deepgram,
             callInFlight: false)
-        #expect(idle == .deepgram)
+        #expect(idle == .local)
 
         // If the user already began the private call while Keychain was
         // loading, hydration must not arm cloud for the following call.
@@ -71,8 +71,8 @@ struct TranscriptionEngineLiveSwitchTests {
             displayedIsAvailable: false) == .local)
     }
 
-    @Test("fail-closed startup publishes the Local route without erasing the saved preference")
-    func failClosedStartupPublishesActualEngine() {
+    @Test("an unavailable cloud preference normalizes to Local until explicitly selected again")
+    func failClosedStartupNormalizesStaleCloudPreference() {
         let defaults = UserDefaults.standard
         let key = "transcription.engine"
         let savedRaw = defaults.object(forKey: key)
@@ -81,16 +81,27 @@ struct TranscriptionEngineLiveSwitchTests {
             else { defaults.removeObject(forKey: key) }
         }
         defaults.set(TranscriptionEngine.deepgram.rawValue, forKey: key)
+        let keychain = InMemoryKeychain()
+        let keys = ProviderKeyStore(store: keychain)
         let state = AppState(
-            credentialStore: InMemoryKeychain(),
-            transcriptionEngineAvailability: { $0 != .deepgram })
+            credentialStore: keychain,
+            transcriptionEngineAvailability: { _ in true })
         state.applyTestDisplayedTranscriptionEngine(.deepgram)
 
         #expect(state.selectedTranscriptionEngine == .deepgram)
         #expect(state.publishRecordingBoundaryEngine() == .local)
         #expect(state.selectedTranscriptionEngine == .local)
-        #expect(defaults.string(forKey: key) == TranscriptionEngine.deepgram.rawValue,
-                "the unavailable saved preference should remain available for later hydration")
+        #expect(defaults.string(forKey: key) == TranscriptionEngine.local.rawValue)
+
+        // Adding a credential unlocks the row; it is not consent to resurrect
+        // a cloud upload choice from an earlier launch.
+        #expect(keys.setTranscriptionKey("unit-key", for: .deepgram))
+        #expect(Config.transcriptionEngineValue(using: keys) == .local)
+        #expect(state.selectedTranscriptionEngine == .local)
+
+        #expect(state.selectTranscriptionEngine(.deepgram))
+        #expect(state.selectedTranscriptionEngine == .deepgram)
+        #expect(defaults.string(forKey: key) == TranscriptionEngine.deepgram.rawValue)
     }
 
     @Test("next-call cloud recommendation never relabels a live Private route")
@@ -103,8 +114,11 @@ struct TranscriptionEngineLiveSwitchTests {
             else { defaults.removeObject(forKey: key) }
         }
         defaults.set(TranscriptionEngine.local.rawValue, forKey: key)
+        let keychain = InMemoryKeychain()
+        ProviderKeyStore(store: keychain).setTranscriptionKey(
+            "unit-deepgram-key", for: .deepgram)
         let state = AppState(
-            credentialStore: InMemoryKeychain(),
+            credentialStore: keychain,
             transcriptionEngineAvailability: { _ in true })
         state.applyTestActiveRecordingSettings(snapshot(engine: .local))
         state.applyTestWorkspace(recording: true)

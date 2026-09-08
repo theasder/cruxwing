@@ -91,7 +91,7 @@ final class GoogleAccountAuth {
             .joined(separator: "&")
             .data(using: .utf8)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await OrakulNetworkIdentity.shared.data(for: request)
         if let error = GoogleAuth.oauthError(from: data) { throw error }
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw GoogleAuthError.http(http.statusCode)

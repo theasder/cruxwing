@@ -44,7 +44,7 @@ enum GoogleWorkspaceSearchService {
                        services: Set<GoogleService>,
                        accessToken: String,
                        maxResults: Int = 3,
-                       session: URLSession = .shared) async throws -> [FetchedDocument] {
+                       session: URLSession = OrakulNetworkIdentity.shared) async throws -> [FetchedDocument] {
         // Empty, not an error. A caller asking for grounding it cannot have
         // should get no snippets, the same as a search that matched nothing —
         // an error here would surface mid-call as a failure the user can do

@@ -38,7 +38,8 @@ struct AccountSessionTests {
         // and theirs hit ours.
         let center = NotificationCenter()
         let state = AppState(credentialStore: InMemoryKeychain(),
-                             notificationCenter: center)
+                             notificationCenter: center,
+                             sessionLifecycleObserversForTesting: true)
         let session = WheesprSession(
             accessToken: "a2",
             refreshToken: "r2",
@@ -61,7 +62,8 @@ struct AccountSessionTests {
     func expiredNotificationSignsOutWithToast() async {
         let center = NotificationCenter()
         let state = AppState(credentialStore: InMemoryKeychain(),
-                             notificationCenter: center)
+                             notificationCenter: center,
+                             sessionLifecycleObserversForTesting: true)
         state.applySession(WheesprSession(
             accessToken: "a3",
             refreshToken: "r3",

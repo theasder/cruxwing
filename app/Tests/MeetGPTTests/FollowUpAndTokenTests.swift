@@ -101,8 +101,11 @@ struct TokenEstimateTests {
 struct ComputeUsageRefreshTests {
     @Test("automatic follow-up completion publishes a credit refresh revision")
     func followUpPublishesRevision() async {
+        let savedAutomatic = Config.automaticProviderRequestsEnabled
+        defer { Config.automaticProviderRequestsEnabled = savedAutomatic }
         let llm = MockLLMGateway(response: "A useful answer")
         let state = AppState(llm: llm)
+        state.setAutomaticProviderRequestsEnabled(true)
         state.runPrompt(.custom(icon: "✨", title: "Test", prompt: "Summarize this."))
 
         await state.aiTask?.value

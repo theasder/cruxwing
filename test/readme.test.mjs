@@ -16,17 +16,19 @@ const repo = resolve(here, '..');
 const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
 
 describe('README', () => {
-  test('README does not claim the images are unpublished', () => {
-    // Файл длинный, и утверждения в нём разъезжаются между собой: быстрый
-    // старт вёл в выпуск, а раздел «чего ещё нет» в это же время сообщал,
-    // что скачать неоткуда, — два противоположных факта в одном документе.
+  test('README does not advertise the stale release behind the wrong identity', () => {
+    // GitHub currently canonicalises the supposed Orakul repository as
+    // theasder/cruxwing. A historical notarised binary is not a release of
+    // this source state, so a download CTA would be a false claim.
     const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
-    for (const stale of ['на сайт не выложены', 'откуда скачать: DMG',
-                         'ссылки на них не будет']) {
-      assert.ok(!readme.includes(stale), `README всё ещё утверждает: «${stale}»`);
-    }
-    // И наоборот: раз выпуск есть, на него должна быть ссылка.
-    assert.match(readme, /releases\/latest/, 'README не ведёт в выпуск');
+    assert.doesNotMatch(readme, /releases\/latest/,
+      'README sends readers to a release that does not prove this branch');
+    assert.match(readme, /theasder\/orakul[^\n]*перенаправляет[\s\S]{0,80}theasder\/cruxwing/,
+      'README hides the current repository-name redirect');
+    assert.match(readme, /владелец должен сам переименовать/,
+      'README does not name the human action that unblocks publication');
+    assert.match(readme, /оба новых DMG/,
+      'README does not require a fresh two-architecture release');
   });
 
   test('the Bitrix24 caveat is in README, because the issue says it is', () => {
@@ -204,83 +206,18 @@ describe('README', () => {
     assert.doesNotMatch(readme, /₽|подписк|платная версия/i);
   });
 
-  test('the test count is the real one, not the one it had when written', () => {
-    // "2607 тестов проходят" is the README's one hard number, and a stale one
-    // is worse than none: a visitor who runs the suite and counts something
-    // else stops believing the rest of the page. It sat at 2598 through nine
-    // added tests with nothing to notice.
-    //
-    // Swift Testing reports a parameterized @Test as ONE test regardless of its
-    // argument count, so counting declarations matches the reported total
-    // exactly — which is what makes an equality check honest here rather than
-    // a bound.
-    // Counted per suite, not just the app's. Moving the connectors into the
-    // core moved 23 tests with them, and a headline that counts only
-    // app/Tests would have dropped by 23 while nothing was lost — the exact
-    // reading that makes a visitor stop trusting the page.
-    const countSwift = (...segments) => {
-      const dir = resolve(repo, ...segments);
-      const files = readdirSync(dir).filter((n) => n.endsWith('.swift'));
-      assert.ok(files.length > 3, `no Swift test files in ${segments.join('/')}`);
-      return files
-        .flatMap((name) => readFileSync(resolve(dir, name), 'utf8').split('\n'))
-        .filter((line) => /^\s*@Test\b/.test(line)).length;
-    };
-    const appTests = countSwift('app', 'Tests', 'MeetGPTTests');
-    const coreTests = countSwift('mvp', 'Tests', 'OrakulCoreTests');
-    assert.ok(appTests > 20, 'the app suite count would be fake');
-
-    // The per-suite numbers in the run command.
-    // Форма слова зависит от числа: 2657 штук, 2663 штуки, 2661 штука.
-    // Раньше здесь стояло только «штук», и правильная по-русски запись роняла
-    // проверку — а неправильная проходила.
-    const counted = /swift test` \((\d{3,5}) (штук|штуки|штука)\)/.exec(readme);
-    const inCommand = Number(counted?.[1] ?? NaN);
-    if (counted) {
-      const n = inCommand % 100;
-      const tail = (n >= 11 && n <= 14) ? 'штук'
-        : [, 'штука', 'штуки', 'штуки', 'штуки'][inCommand % 10] ?? 'штук';
-      assert.equal(counted[2], tail,
-        `${inCommand} — по-русски «${tail}», а написано «${counted[2]}»`);
+  test('test commands stay useful without a volatile marketing counter', () => {
+    // Exact totals went stale repeatedly and made every new test require a
+    // README edit. The runner is the source of truth; the front page should
+    // name each lane and let its output report the current count.
+    assert.doesNotMatch(readme, /\d{3,5}\s+(?:тест|теста|тестов|проверок)\s+(?:проходит|проходят)/,
+      'README advertises a test total that will drift on the next contribution');
+    for (const command of ['cd app && swift test', 'cd mvp && swift test', 'npm test']) {
+      assert.ok(readme.includes(command), `README omits the ${command} lane`);
     }
-    assert.equal(inCommand, appTests,
-      `README says ${inCommand} app tests, the suite declares ${appTests}`);
-    const inCore = Number(/mvp — (\d{2,5})/.exec(readme)?.[1] ?? NaN);
-    assert.equal(inCore, coreTests,
-      `README says ${inCore} core tests, the suite declares ${coreTests}`);
-
-    // The npm number too — it went stale the moment this very test was added,
-    // which is the whole argument for checking it rather than trusting it.
-    // Counted here instead of in its own test on purpose: a new test() would
-    // change the number it is trying to verify.
-    const suites = readdirSync(here).filter((n) => n.endsWith('.test.mjs'));
-    const nodeTests = suites
-      .flatMap((name) => readFileSync(resolve(here, name), 'utf8').split('\n'))
-      .filter((line) => /^\s*test\(/.test(line)).length;
-    const statedNode = Number(/`npm test` в корне \((\d{1,4})/.exec(readme)?.[1] ?? NaN);
-    assert.equal(statedNode, nodeTests,
-      `README says ${statedNode} npm tests, the suites declare ${nodeTests}`);
-
-    // The headline is the sum of all three, checked last so a mismatch names
-    // the parts. Checking it as a sum is what stops the number drifting when
-    // a test only moves between suites.
-    // Числительное согласуется, а не приписывается: «3251 тестов проходят» —
-    // не по-русски, и на 3251 это выяснилось только потому, что образец с
-    // жёстким «тестов проходят» перестал совпадать. Форма проверяется здесь
-    // же, иначе следующий раз пройдёт молча.
-    const headline = /(\d{3,5}) (тест|теста|тестов) (проходит|проходят)/.exec(readme);
-    assert.ok(headline, 'в README пропало число проходящих тестов');
-    const stated = Number(headline[1]);
-    assert.equal(stated, appTests + coreTests + nodeTests,
-      `README claims ${stated} tests; suites declare ${appTests} + ${coreTests} + ${nodeTests}`);
-
-    const teen = stated % 100 >= 11 && stated % 100 <= 14;
-    const last = stated % 10;
-    const noun = teen ? 'тестов' : last === 1 ? 'тест' : last >= 2 && last <= 4 ? 'теста' : 'тестов';
-    const verb = !teen && last === 1 ? 'проходит' : 'проходят';
-    assert.equal(headline[2], noun,
-      `${stated} — по-русски «${noun}», а написано «${headline[2]}»`);
-    assert.equal(headline[3], verb,
-      `${stated} ${noun} «${verb}», а написано «${headline[3]}»`);
+    assert.match(readme, /ядро, командная строка[\s\S]{0,100}тестируются\s+на Linux/,
+      'README hides the real Linux core/CLI lane');
+    assert.doesNotMatch(readme, /тестов там пока не гоняется/,
+      'README still says the Linux suite is not run');
   });
 });

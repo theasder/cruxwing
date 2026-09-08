@@ -1059,9 +1059,15 @@ enum TranscriptionFactory {
         case .whisper:
             return WhisperAPITranscription(language: language, glossary: glossary)
         case .deepgram:
-            // Deepgram's live streams are owned by AppState; this service is
-            // not used for chunks while that engine is active.
-            return WhisperAPITranscription(language: language, glossary: glossary)
+            // Deepgram's live streams are owned by AppState. This fail-safe is
+            // deliberately on-device: if route wiring ever reaches the chunked
+            // service without a Deepgram credential, it must not cross-fallback
+            // meeting audio to OpenAI merely because an unrelated LLM key exists.
+            return LocalWhisperTranscription(
+                model: localModel,
+                language: language,
+                glossary: glossary,
+                autoLanguageHint: autoLanguageHint)
         }
     }
 }

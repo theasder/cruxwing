@@ -160,7 +160,7 @@ enum TeamConnectors {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await OrakulNetworkIdentity.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
             throw LLMError.badResponse("Team connector")
         }

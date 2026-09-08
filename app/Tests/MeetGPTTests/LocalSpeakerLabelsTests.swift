@@ -5,6 +5,15 @@ import Testing
 @Suite("Local speaker labels", .serialized)
 struct LocalSpeakerLabelsTests {
 
+    private static var hasDiarizationFixture: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        guard let path = environment["ORAKUL_DIARIZE_WAV"],
+              FileManager.default.fileExists(atPath: path),
+              let rawCount = environment["ORAKUL_DIARIZE_REMOTE_SPEAKERS"],
+              let count = Int(rawCount) else { return false }
+        return (1...4).contains(count)
+    }
+
     private let start = Date(timeIntervalSince1970: 1_000_000)
 
     private func entry(_ text: String, at offset: TimeInterval,
@@ -231,14 +240,19 @@ struct LocalSpeakerLabelsTests {
 
     /// ORAKUL_DIARIZE_WAV=/path/to/call.wav ORAKUL_DIARIZE_REMOTE_SPEAKERS=2
     /// swift test --filter smokeRealDiarization
-    @Test("smoke: real models label a real recording")
+    @Test(
+        "smoke: real models label a real recording",
+        .enabled(
+            if: Self.hasDiarizationFixture,
+            "Set ORAKUL_DIARIZE_WAV to a readable WAV and ORAKUL_DIARIZE_REMOTE_SPEAKERS to 1...4."))
     func smokeRealDiarization() async throws {
         let environment = ProcessInfo.processInfo.environment
-        guard let path = environment["ORAKUL_DIARIZE_WAV"],
-              let rawCount = environment["ORAKUL_DIARIZE_REMOTE_SPEAKERS"],
-              let count = Int(rawCount) else { return }
+        let path = try #require(environment["ORAKUL_DIARIZE_WAV"])
+        let rawCount = try #require(environment["ORAKUL_DIARIZE_REMOTE_SPEAKERS"])
+        let count = try #require(Int(rawCount))
         let wav = try Data(contentsOf: URL(fileURLWithPath: path))
         let samples = LocalWhisperTranscription.floatSamples(fromWAV: wav)
+        #expect(!samples.isEmpty, "the configured WAV contains no decodable samples")
         let segments = try await LocalDiarization.segments(
             samples: samples,
             expectedRemoteSpeakerCount: count)

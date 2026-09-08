@@ -23,7 +23,7 @@ struct CreditPeriodTests {
     @Test("the allowance refills one calendar month after the period start")
     func resetsOneMonthLater() {
         let start = date("2026-07-15T00:00:00Z")
-        let reset = try? #require(CreditPeriod.resetDate(periodStart: start))
+        let reset = CreditPeriod.resetDate(periodStart: start)
         #expect(reset == date("2026-08-15T00:00:00Z"))
     }
 
@@ -32,7 +32,7 @@ struct CreditPeriodTests {
         // The server clamps the same way; a period anchored on the 31st must
         // not roll past the end of a 30-day month.
         let start = date("2026-01-31T00:00:00Z")
-        let reset = try? #require(CreditPeriod.resetDate(periodStart: start))
+        let reset = CreditPeriod.resetDate(periodStart: start)
         #expect(reset == date("2026-02-28T00:00:00Z"))
     }
 

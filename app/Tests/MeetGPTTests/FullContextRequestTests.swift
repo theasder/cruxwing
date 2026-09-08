@@ -4,15 +4,9 @@ import Testing
 
 /// Opt-in full-context mode, client half.
 ///
-/// The rules are implemented twice — here and in
-/// `cruxwing-api/functions/fullContext.js` — because the price must be shown
-/// BEFORE the send and charged after. Two implementations of one rule is a
-/// standing invitation to drift, so `catalogueMatchesTheContract` and the
-/// constants tests pin this side against the shared contract rather than
-/// trusting that they were written to match.
-///
-/// A quoted price that differs from what is charged is worse than not shipping
-/// the mode, which is why that pinning is the first thing here.
+/// Eligibility is derived from the verified window metadata in the local model
+/// catalogue. Unknown metadata fails closed instead of relying on a copied
+/// server pricing contract.
 @Suite("Full context requests")
 struct FullContextRequestTests {
 
@@ -22,32 +16,25 @@ struct FullContextRequestTests {
                         supportsVision: false)
     }
 
-    // MARK: - Cross-repo agreement
+    // MARK: - Local catalogue invariants
 
-    @Test("every model's window matches the shared contract")
-    func catalogueMatchesTheContract() {
-        // The contract is emitted from the server's own catalog, so this is the
-        // check that the app is not offering the mode for a model the server
-        // will refuse it for — or, worse, quoting a size the server will not send.
-        let contract = SharedContract.models
-        guard !contract.isEmpty else { return }
-
-        for model in LLMCatalog.fallback {
-            guard let entry = contract[model.id] else { continue }
-            #expect(model.contextTokens == entry.contextTokens,
-                    "\(model.id) disagrees with contract/contract.json")
+    @Test("catalogued model identifiers and verified windows are internally valid")
+    func catalogueMetadataIsValid() {
+        let models = LLMCatalog.fallback
+        #expect(Set(models.map(\.id)).count == models.count)
+        for model in models {
+            if let window = model.contextTokens {
+                #expect(window > 0, "\(model.id) has a non-positive context window")
+            }
         }
     }
 
-    @Test("eligibility agrees with the contract for every catalogued model")
-    func eligibilityAgreesWithContract() {
-        let contract = SharedContract.models
-        guard !contract.isEmpty else { return }
+    @Test("eligibility follows verified local window metadata")
+    func eligibilityFollowsLocalCatalogue() {
         for model in LLMCatalog.fallback {
-            guard let entry = contract[model.id] else { continue }
-            let contractEligible = (entry.contextTokens ?? 0)
+            let locallyEligible = (model.contextTokens ?? 0)
                 >= FullContextRequest.minimumContextTokens
-            #expect(FullContextRequest.isEligible(model) == contractEligible, "\(model.id)")
+            #expect(FullContextRequest.isEligible(model) == locallyEligible, "\(model.id)")
         }
     }
 
@@ -55,8 +42,8 @@ struct FullContextRequestTests {
 
     @Test("a model with no verified window is not eligible")
     func unverifiedWindowIsNotEligible() {
-        // Absent metadata means NOT OFFERED, not unknown-so-try. Guessing sells
-        // credits for a request the provider rejects for exceeding its window.
+        // Absent metadata means NOT OFFERED, not unknown-so-try. Guessing would
+        // send a request the provider rejects for exceeding its window.
         #expect(model("kimi-k2.6").contextTokens == nil)
         #expect(!FullContextRequest.isEligible(model("kimi-k2.6")))
     }
@@ -74,23 +61,24 @@ struct FullContextRequestTests {
 
     // MARK: - The default is untouched
 
-    @Test("not asking leaves the envelope and the price alone")
+    @Test("not asking leaves the ordinary envelope alone")
     func defaultIsUnchanged() {
         let quote = FullContextRequest.quote(model: model("gemini-3.1-pro-preview"),
                                              requested: false,
-                                             inputChars: 500_000, baseCredits: 3)
+                                             inputChars: 500_000)
         #expect(!quote.active)
         #expect(quote.limitChars == FullContextRequest.defaultEnvelopeChars)
-        #expect(quote.credits == 3)
+        #expect(quote.estimatedInputTokens
+                == FullContextRequest.estimatedInputTokens(
+                    for: FullContextRequest.defaultEnvelopeChars))
     }
 
     @Test("an eligible model does not opt itself in")
     func capabilityDoesNotEnableItself() {
         // Per request. A model that supports a big window must not decide to
-        // spend the user's credits on one.
+        // send a larger, potentially more expensive provider request on its own.
         #expect(!FullContextRequest.quote(model: model("gemini-3.1-pro-preview"),
-                                          requested: false, inputChars: 900_000,
-                                          baseCredits: 3).active)
+                                          requested: false, inputChars: 900_000).active)
     }
 
     @Test("truncation is reported even when the mode is off")
@@ -98,9 +86,9 @@ struct FullContextRequestTests {
         // This is what makes opting in a considered choice rather than a guess:
         // the user can see the default envelope is clipping their call.
         #expect(FullContextRequest.quote(model: model("gpt-5.4"), requested: false,
-                                         inputChars: 50_000, baseCredits: 4).truncated)
+                                         inputChars: 50_000).truncated)
         #expect(!FullContextRequest.quote(model: model("gpt-5.4"), requested: false,
-                                          inputChars: 500, baseCredits: 4).truncated)
+                                          inputChars: 500).truncated)
     }
 
     // MARK: - Refusals are stated
@@ -110,64 +98,42 @@ struct FullContextRequestTests {
         // Falling back silently would leave the user believing they sent a
         // two-hour call, and acting on an answer that read 8k characters of it.
         let quote = FullContextRequest.quote(model: model("kimi-k2.6"), requested: true,
-                                             inputChars: 200_000, baseCredits: 2)
+                                             inputChars: 200_000)
         #expect(!quote.active)
         #expect(quote.refusal?.contains("no verified context window") == true)
         #expect(quote.summary == quote.refusal)
     }
 
-    @Test("a refused request is not charged extra")
-    func refusalCostsNothingExtra() {
-        #expect(FullContextRequest.quote(model: model("glm-5.2"), requested: true,
-                                         inputChars: 900_000, baseCredits: 2).credits == 2)
+    // MARK: - Provider input estimate
+
+    @Test("the token estimate rounds up and rejects nonsense input")
+    func tokenEstimateIsConservative() {
+        #expect(FullContextRequest.estimatedInputTokens(for: 1) == 1)
+        #expect(FullContextRequest.estimatedInputTokens(for: 7) == 2)
+        #expect(FullContextRequest.estimatedInputTokens(for: -5) == 0)
     }
 
-    // MARK: - Price
-
-    @Test("price scales in whole envelopes and rounds up")
-    func priceScales() {
-        let envelope = FullContextRequest.defaultEnvelopeChars
-        #expect(FullContextRequest.credits(baseCredits: 3, inputChars: 1) == 3)
-        #expect(FullContextRequest.credits(baseCredits: 3, inputChars: envelope) == 3)
-        #expect(FullContextRequest.credits(baseCredits: 3, inputChars: envelope + 1) == 6)
-        #expect(FullContextRequest.credits(baseCredits: 3, inputChars: envelope * 4) == 12)
-    }
-
-    @Test("price is capped")
-    func priceIsCapped() {
-        #expect(FullContextRequest.credits(baseCredits: 3, inputChars: 100_000_000)
-                == 3 * FullContextRequest.maximumCreditMultiplier)
-    }
-
-    @Test("nonsense input never produces a nonsense price")
-    func priceIsRobust() {
-        #expect(FullContextRequest.credits(baseCredits: 0, inputChars: -5) >= 1)
-        #expect(FullContextRequest.credits(baseCredits: -3, inputChars: 100) >= 1)
-    }
-
-    @Test("the quote prices what will be sent, not what was offered")
-    func pricesWhatIsSent() {
+    @Test("the quote estimates what will be sent, not what was offered")
+    func estimatesWhatIsSent() {
         let target = model("claude-sonnet-5")
         let limit = FullContextRequest.maximumInputChars(for: target)
         let over = FullContextRequest.quote(model: target, requested: true,
-                                            inputChars: limit * 10, baseCredits: 3)
+                                            inputChars: limit * 10)
         let atLimit = FullContextRequest.quote(model: target, requested: true,
-                                               inputChars: limit, baseCredits: 3)
-        #expect(over.credits == atLimit.credits)
+                                               inputChars: limit)
+        #expect(over.estimatedInputTokens == atLimit.estimatedInputTokens)
         #expect(over.truncated)
     }
 
     // MARK: - What the user reads
 
-    @Test("the summary names both the price and the size")
-    func summaryNamesPriceAndSize() {
-        // The decision is "is this worth N credits", and neither number alone
-        // answers it.
+    @Test("the summary names provider input without inventing Orakul credits")
+    func summaryNamesProviderInput() {
         let quote = FullContextRequest.quote(model: model("gemini-3.1-pro-preview"),
-                                             requested: true, inputChars: 40_000,
-                                             baseCredits: 3)
-        #expect(quote.summary.contains("credits"))
-        #expect(quote.summary.contains("Full context"))
+                                             requested: true, inputChars: 40_000)
+        #expect(quote.summary.contains("токенов"))
+        #expect(quote.summary.contains("Весь контекст"))
+        #expect(!quote.summary.lowercased().contains("credit"))
     }
 
     @Test("a truncated send says so rather than implying everything went")
@@ -175,15 +141,15 @@ struct FullContextRequestTests {
         let target = model("claude-sonnet-5")
         let limit = FullContextRequest.maximumInputChars(for: target)
         let quote = FullContextRequest.quote(model: target, requested: true,
-                                             inputChars: limit * 2, baseCredits: 3)
-        #expect(quote.summary.contains("last"))
-        #expect(!quote.summary.contains("everything"))
+                                             inputChars: limit * 2)
+        #expect(quote.summary.contains("последние"))
+        #expect(!quote.summary.contains("отправляю всё"))
     }
 
     @Test("nothing is shown when the mode is off")
     func silentWhenOff() {
         #expect(FullContextRequest.quote(model: model("gpt-5.4"), requested: false,
-                                         inputChars: 100, baseCredits: 3).summary.isEmpty)
+                                         inputChars: 100).summary.isEmpty)
     }
 
     // MARK: - The window is used conservatively
@@ -205,7 +171,7 @@ struct FullContextRequestTests {
     }
 }
 
-/// Full context as the user meets it: a per-request control with a price on it.
+/// Full context as the user meets it: a per-request control with an input estimate.
 @MainActor
 @Suite("Full context in the app")
 struct FullContextAppStateTests {
@@ -223,8 +189,8 @@ struct FullContextAppStateTests {
 
     @Test("attached material counts toward the quote")
     func attachedMaterialCounted() {
-        // A folder of specs can dwarf the transcript. A price that ignored it
-        // would understate, which is the one direction this must never err in.
+        // A folder of specs can dwarf the transcript. An estimate that ignored
+        // it would understate what is sent.
         let appState = state()
         let before = appState.attachedContextCharacters
         appState.contextFiles = [ImportedContextFile(name: "spec.md",
@@ -235,7 +201,7 @@ struct FullContextAppStateTests {
 
     @Test("the quote is recomputed, never cached")
     func quoteIsLive() {
-        // A cached price would quote a stale figure for a transcript that has
+        // A cached size would quote a stale figure for a transcript that has
         // since grown — and the transcript grows continuously during a call.
         let appState = state()
         appState.fullContextRequested = true
@@ -266,15 +232,4 @@ struct FullContextAppStateTests {
                 == FullContextRequest.isEligible(Config.selectedRequestModel))
     }
 
-    @Test("the base rate matches the server's table")
-    func baseRatesMatchServer() {
-        // Quoting cheap and charging more is the failure this module exists to
-        // avoid, and the base rate is half of every quote.
-        #expect(FullContextRequest.baseCredits(for:
-            LLMCatalog.fallback.first { $0.id == "claude-opus-5" }!) == 7)
-        #expect(FullContextRequest.baseCredits(for:
-            LLMModel(id: "unlisted", label: "x", provider: .openAI,
-                     minTier: .free, supportsVision: false))
-                == FullContextRequest.fallbackCredits)
-    }
 }

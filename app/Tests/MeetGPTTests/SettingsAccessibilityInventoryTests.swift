@@ -147,10 +147,13 @@ struct SettingsAccessibilityInventoryTests {
         }
     }
 
-    @Test("Account and Privacy exposes the reversible analytics control")
-    func privacyControls() throws {
-        require(["settings.privacy.analytics"],
-                in: try inspected(tab: .accountPrivacy))
+    @Test("Account and Privacy has no first-party analytics control")
+    func noFirstPartyAnalyticsControl() throws {
+        let view = try inspected(tab: .accountPrivacy)
+        #expect(throws: (any Error).self,
+                "a telemetry toggle survived after first-party analytics was removed") {
+            _ = try view.find(viewWithAccessibilityIdentifier: "settings.privacy.analytics")
+        }
     }
 
     @Test("live co-pilot Settings survive all 16 accessibility overlaps")

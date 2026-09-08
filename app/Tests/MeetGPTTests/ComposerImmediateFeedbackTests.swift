@@ -84,11 +84,16 @@ struct ComposerImmediateFeedbackTests {
     @Test("COMPOSER-PROMPT-ECHO-IMMEDIATE: Send publishes the turn before clarification finishes")
     func promptEchoesBeforeAsyncClarification() async throws {
         let previousClarificationSetting = Config.clarifyingQuestionsEnabled
+        let previousAutomaticSetting = Config.automaticProviderRequestsEnabled
         Config.clarifyingQuestionsEnabled = true
-        defer { Config.clarifyingQuestionsEnabled = previousClarificationSetting }
+        defer {
+            Config.clarifyingQuestionsEnabled = previousClarificationSetting
+            Config.automaticProviderRequestsEnabled = previousAutomaticSetting
+        }
 
         let gateway = DelayedClarificationGateway()
         let state = AppState(llm: gateway)
+        state.setAutomaticProviderRequestsEnabled(true)
         let now = Date()
         state.restoreSession(SavedSession(
             id: UUID(), title: "Launch", startedAt: now, savedAt: now,
@@ -134,10 +139,15 @@ struct ComposerImmediateFeedbackTests {
     @Test("COMPOSER-PROMPT-SUPERSEDES-CLARIFICATION: a later Send removes the stale card before answering")
     func laterPromptSupersedesClarificationCard() async throws {
         let previousClarificationSetting = Config.clarifyingQuestionsEnabled
+        let previousAutomaticSetting = Config.automaticProviderRequestsEnabled
         Config.clarifyingQuestionsEnabled = true
-        defer { Config.clarifyingQuestionsEnabled = previousClarificationSetting }
+        defer {
+            Config.clarifyingQuestionsEnabled = previousClarificationSetting
+            Config.automaticProviderRequestsEnabled = previousAutomaticSetting
+        }
 
         let state = AppState(llm: SupersededClarificationGateway())
+        state.setAutomaticProviderRequestsEnabled(true)
         let firstPrompt = "Draft a launch plan"
         state.ask(firstPrompt)
         for _ in 0..<1_000 where state.pendingClarification == nil {

@@ -26,7 +26,6 @@ struct ConnectedGlossarySuggestionMetrics: Equatable, Sendable {
     let estimatedInputTokens: Int
     let transcriptCharsSent: Int
     let modelID: String
-    let estimatedComputeCredits: Int
     let ranking: Ranking
     let cached: Bool
 }
@@ -164,14 +163,11 @@ enum ConnectedGlossarySuggestionService {
             rejectedKeys: rejectedKeys) else { return nil }
         onPrepared?(request)
 
-        let estimatedCredits = CreditCostEstimate.credits(
-            model: model.id, inputTokens: request.estimatedInputTokens)
         guard useFastModel, let ranker else {
             return Generation(
                 suggestions: Array(request.candidates.prefix(maxSuggestions)),
                 metrics: metrics(
-                    request: request, model: model,
-                    credits: estimatedCredits, ranking: .localOnly),
+                    request: request, model: model, ranking: .localOnly),
                 fallbackMessage: nil)
         }
 
@@ -189,37 +185,32 @@ enum ConnectedGlossarySuggestionService {
                 return Generation(
                     suggestions: Array(request.candidates.prefix(maxSuggestions)),
                     metrics: metrics(
-                        request: request, model: model,
-                        credits: estimatedCredits, ranking: .localFallback),
+                        request: request, model: model, ranking: .localFallback),
                     fallbackMessage: "Fast AI cleanup returned no supported terms; showing locally extracted suggestions.")
             }
             return Generation(
                 suggestions: parsed,
                 metrics: metrics(
-                    request: request, model: model,
-                    credits: estimatedCredits, ranking: .fastModel),
+                    request: request, model: model, ranking: .fastModel),
                 fallbackMessage: nil)
         } catch ConnectedGlossarySuggestionError.timeout {
             return Generation(
                 suggestions: Array(request.candidates.prefix(maxSuggestions)),
                 metrics: metrics(
-                    request: request, model: model,
-                    credits: estimatedCredits, ranking: .localFallback),
+                    request: request, model: model, ranking: .localFallback),
                 fallbackMessage: "Fast AI cleanup timed out; showing locally extracted suggestions.")
         } catch is CancellationError {
             if Task.isCancelled { return nil }
             return Generation(
                 suggestions: Array(request.candidates.prefix(maxSuggestions)),
                 metrics: metrics(
-                    request: request, model: model,
-                    credits: estimatedCredits, ranking: .localFallback),
+                    request: request, model: model, ranking: .localFallback),
                 fallbackMessage: "Fast AI cleanup timed out; showing locally extracted suggestions.")
         } catch {
             return Generation(
                 suggestions: Array(request.candidates.prefix(maxSuggestions)),
                 metrics: metrics(
-                    request: request, model: model,
-                    credits: estimatedCredits, ranking: .localFallback),
+                    request: request, model: model, ranking: .localFallback),
                 fallbackMessage: "Fast AI cleanup was unavailable; showing locally extracted suggestions.")
         }
     }
@@ -414,7 +405,6 @@ enum ConnectedGlossarySuggestionService {
 
     private static func metrics(request: PreparedRequest,
                                 model: LLMModel,
-                                credits: Int,
                                 ranking: ConnectedGlossarySuggestionMetrics.Ranking)
         -> ConnectedGlossarySuggestionMetrics {
         ConnectedGlossarySuggestionMetrics(
@@ -424,7 +414,6 @@ enum ConnectedGlossarySuggestionService {
             estimatedInputTokens: request.estimatedInputTokens,
             transcriptCharsSent: 0,
             modelID: model.id,
-            estimatedComputeCredits: credits,
             ranking: ranking,
             cached: false)
     }

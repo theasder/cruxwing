@@ -87,21 +87,37 @@ struct SavedSession: Codable, Identifiable, Equatable {
 /// UUID. The root directory is injectable for tests; the shared instance lives
 /// in Application Support (works sandboxed and unsandboxed).
 struct SessionStore {
+    typealias DirectoryContents = @Sendable (URL) throws -> [URL]
+    typealias RemoveItem = @Sendable (URL) throws -> Void
+    typealias DirectorySynchronizer = @Sendable (URL) throws -> Void
+
     let root: URL
+    private let directoryContents: DirectoryContents
+    private let removeItem: RemoveItem
+    private let synchronizeDirectory: DirectorySynchronizer
+
+    init(root: URL,
+         directoryContents: @escaping DirectoryContents = {
+             try FileManager.default.contentsOfDirectory(
+                 at: $0, includingPropertiesForKeys: nil)
+         },
+         removeItem: @escaping RemoveItem = {
+             try FileManager.default.removeItem(at: $0)
+         },
+         synchronizeDirectory: @escaping DirectorySynchronizer = {
+             try OrakulAtomicFile.synchronizeDirectory($0)
+         }) {
+        self.root = root
+        self.directoryContents = directoryContents
+        self.removeItem = removeItem
+        self.synchronizeDirectory = synchronizeDirectory
+    }
 
     static let shared: SessionStore = {
-        // Under test the shared store is redirected to a scratch directory.
-        // Opening a call now SAVES the outgoing one, so any test that restores
-        // two sessions writes — and with the real path that would deposit
-        // fixture meetings into the user's actual history. Tests that assert on
-        // persistence inject their own root; this only makes the default safe.
-        if AppState.isUnderTest {
-            return SessionStore(root: FileManager.default.temporaryDirectory
-                .appendingPathComponent("cruxwing-tests/Sessions", isDirectory: true))
-        }
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return SessionStore(root: base.appendingPathComponent("MeetGPT/Sessions", isDirectory: true))
+        // The central path helper also redirects tests to a scratch root. Never
+        // fall back to the inherited MeetGPT directory: it is shared with the
+        // parent product, so its transcripts have no trustworthy owner marker.
+        SessionStore(root: OrakulApplicationSupport.sessionsDirectory)
     }()
 
     private var encoder: JSONEncoder {
@@ -121,32 +137,51 @@ struct SessionStore {
         root.appendingPathComponent("\(id.uuidString).json")
     }
 
+    private struct DecodedSession {
+        let session: SavedSession
+        let recovered: Bool
+    }
+
+    private func decodedSession(at destination: URL) -> DecodedSession? {
+        let recovery = OrakulAtomicFile.recoveryURL(for: destination).standardizedFileURL
+        for candidate in OrakulAtomicFile.readableCandidates(for: destination) {
+            guard let data = try? Data(contentsOf: candidate),
+                  let session = try? decoder.decode(SavedSession.self, from: data) else {
+                continue
+            }
+            return DecodedSession(
+                session: session,
+                recovered: candidate.standardizedFileURL == recovery
+            )
+        }
+        return nil
+    }
+
     /// Write (or overwrite) a session. Errors are surfaced to the caller —
     /// losing a meeting silently is exactly what this store exists to prevent.
     func save(_ session: SavedSession) throws {
-        // Права как у ядра: 0700 на каталог, 0600 на файл. Здесь лежат
-        // расшифровки и чужие сообщения — то самое, про что продукт говорит
-        // «остаётся на вашем компьютере». Про сеть это правда; на самом
-        // компьютере файлы были открыты любому процессу пользователя.
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
-                                                attributes: [.posixPermissions: 0o700])
         let data = try encoder.encode(session)
         let destination = url(for: session.id)
-        // Пустой файл с правами, потом запись в него: `.atomic` создал бы свой
-        // файл со своими правами и стёр эти.
-        if !FileManager.default.fileExists(atPath: destination.path) {
-            _ = FileManager.default.createFile(atPath: destination.path, contents: nil,
-                                               attributes: [.posixPermissions: 0o600])
+        let decoded = decodedSession(at: destination)
+        let policy: OrakulAtomicFile.RecoveryPolicy
+        if decoded?.recovered == true {
+            policy = .preserveExistingRecovery
+        } else if decoded != nil {
+            policy = .replaceRecoveryWithPrimary
+        } else {
+            // Neither copy is known-good. Commit the complete in-memory session
+            // first, then remove corrupt leftovers rather than blessing one as a
+            // recovery snapshot.
+            policy = .discardPreviousContent
         }
-        try data.write(to: destination)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600],
-                                               ofItemAtPath: destination.path)
+        try OrakulAtomicFile.write(data, to: destination, recoveryPolicy: policy)
     }
 
     /// All sessions, newest first. Unreadable files are skipped, never fatal.
     func list() -> [SavedSession] { listWithUnreadable().sessions }
 
-    /// Sessions plus the names of files that would not decode.
+    /// Sessions plus every condition that made the archive incomplete: an
+    /// unreadable file, a recovery fallback, or a directory-listing failure.
     ///
     /// Пропустить нечитаемый файл — правильно: один испорченный звонок не
     /// должен ронять весь архив. Но пропустить МОЛЧА — нет. Раньше здесь стоял
@@ -159,18 +194,44 @@ struct SessionStore {
     /// JSON-файлы, их можно читать и без нас», — а значит, испорченный файл
     /// появится. Командная строка про такой файл уже говорит.
     func listWithUnreadable() -> (sessions: [SavedSession], unreadable: [String]) {
-        guard let files = try? FileManager.default.contentsOfDirectory(
-            at: root, includingPropertiesForKeys: nil) else { return ([], []) }
+        let files: [URL]
+        do {
+            files = try directoryContents(root)
+        } catch {
+            let cocoa = error as NSError
+            if cocoa.domain == NSCocoaErrorDomain,
+               cocoa.code == NSFileReadNoSuchFileError {
+                return ([], [])
+            }
+            // `DecisionRecallContext` already reports every entry in
+            // `unreadable` as an incomplete record. Preserve that path instead
+            // of turning an enumeration failure into a confident empty archive.
+            return ([], ["archive directory could not be listed: \(error.localizedDescription)"])
+        }
+
+        var destinations = Set(files.filter { $0.pathExtension == "json" })
+        for file in files {
+            if let primary = OrakulAtomicFile.primaryURL(forRecoveryURL: file),
+               primary.pathExtension == "json" {
+                destinations.insert(primary)
+            }
+            if let primary = OrakulAtomicFile.primaryURL(forStagingURL: file),
+               primary.pathExtension == "json" {
+                destinations.insert(primary)
+            }
+        }
 
         var sessions: [SavedSession] = []
         var unreadable: [String] = []
-        for file in files where file.pathExtension == "json" {
-            guard let data = try? Data(contentsOf: file),
-                  let session = try? decoder.decode(SavedSession.self, from: data) else {
-                unreadable.append(file.lastPathComponent)
+        for destination in destinations {
+            guard let decoded = decodedSession(at: destination) else {
+                unreadable.append(destination.lastPathComponent)
                 continue
             }
-            sessions.append(session)
+            sessions.append(decoded.session)
+            if decoded.recovered {
+                unreadable.append(destination.lastPathComponent + " (opened recovery copy)")
+            }
         }
         return (sessions.sorted { $0.startedAt > $1.startedAt }, unreadable.sorted())
     }
@@ -210,20 +271,51 @@ struct SessionStore {
     }
 
     func load(id: UUID) -> SavedSession? {
-        guard let data = try? Data(contentsOf: url(for: id)) else { return nil }
-        return try? decoder.decode(SavedSession.self, from: data)
+        decodedSession(at: url(for: id))?.session
     }
 
-    func delete(id: UUID) {
-        try? FileManager.default.removeItem(at: url(for: id))
+    @discardableResult
+    func delete(id: UUID) throws -> Bool {
+        try OrakulAtomicFile.erase(
+            url(for: id),
+            directoryContents: directoryContents,
+            removeItem: removeItem,
+            synchronizeDirectory: synchronizeDirectory
+        )
     }
 
     /// Remove every saved session (the History "clear all" action). Deletes the
     /// JSON files directly so even a corrupt/unlisted file is cleared.
-    func deleteAll() {
-        let files = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
-        for file in files where file.pathExtension == "json" {
-            try? FileManager.default.removeItem(at: file)
+    func deleteAll() throws {
+        let files: [URL]
+        do {
+            files = try directoryContents(root)
+        } catch {
+            let cocoa = error as NSError
+            if cocoa.domain == NSCocoaErrorDomain,
+               cocoa.code == NSFileReadNoSuchFileError {
+                return
+            }
+            throw error
         }
+
+        let artifacts = files.filter { file in
+            if file.pathExtension == "json" { return true }
+            if OrakulAtomicFile.primaryURL(forRecoveryURL: file)?.pathExtension == "json" {
+                return true
+            }
+            return OrakulAtomicFile.primaryURL(forStagingURL: file)?.pathExtension == "json"
+        }.sorted { left, right in
+            func rank(_ file: URL) -> Int {
+                if OrakulAtomicFile.primaryURL(forStagingURL: file) != nil { return 0 }
+                if OrakulAtomicFile.primaryURL(forRecoveryURL: file) != nil { return 1 }
+                return 2
+            }
+            return rank(left) < rank(right)
+        }
+
+        guard !artifacts.isEmpty else { return }
+        for artifact in artifacts { try removeItem(artifact) }
+        try synchronizeDirectory(root)
     }
 }

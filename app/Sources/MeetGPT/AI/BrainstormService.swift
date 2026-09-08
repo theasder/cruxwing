@@ -141,7 +141,7 @@ enum BrainstormService {
                                          canProbe: Bool = false) async throws -> SuggestionResult {
         let clip = cacheStableWindow(transcript)
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !base.isEmpty {
+        if Config.llmViaBackend && !base.isEmpty {
             return try await fromBackend(base: base, goal: goal, transcript: clip,
                                          priorTitles: priorTitles, accessToken: accessToken,
                                          extraGuidance: extraGuidance, context: context,

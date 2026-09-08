@@ -327,7 +327,7 @@ final class GoogleAuth {
             .joined(separator: "&")
             .data(using: .utf8)
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await OrakulNetworkIdentity.shared.data(for: request)
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         // OAuth servers return the useful error code/description in the JSON
         // body on non-2xx responses. Parse it before falling back to HTTP status.
@@ -378,7 +378,7 @@ final class GoogleAuth {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = "token=\(formEncode(token))".data(using: .utf8)
-        _ = try? await URLSession.shared.data(for: request)
+        _ = try? await OrakulNetworkIdentity.shared.data(for: request)
     }
 
     // MARK: PKCE helpers

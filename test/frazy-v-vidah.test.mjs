@@ -84,7 +84,7 @@ test('счёт действительно что-то ловит', () => {
 });
 
 test('строки журнала и идентификаторы переводить не просят', () => {
-  for (const technical of ['event=promo_redeem_start request_id=',
+  for (const technical of ['event=backend_chat_start request_id=',
                            'settings.connected.provider.notion',
                            'EEEE, d MMMM · HH:mm']) {
     assert.ok(NOT_FOR_A_PERSON.test(technical), `засчитано за фразу: ${technical}`);

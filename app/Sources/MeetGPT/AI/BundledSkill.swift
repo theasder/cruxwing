@@ -7,8 +7,9 @@ import Foundation
 /// The `body` (SKILL.md content below the frontmatter) layers onto the system
 /// prompt exactly like a `PromptSkill` or `CallTheme` pack via
 /// `SystemInstructions.system(skills:)`.
-/// Ingest-time risk verdict from a skill's frontmatter (`risk:`), recorded by the
-/// high-star ingest audit — see `Resources/Skills/SECURITY-AUDIT.md`.
+/// Upstream risk hint from a skill's frontmatter (`risk:`). This is advisory
+/// evidence, not runtime authorization; the local hash-pinned review policy in
+/// `runtime-allowlist.json` is the authority.
 enum SkillRisk: String, Sendable {
     case safe
     case notApplicable = "none"
@@ -29,10 +30,6 @@ enum SkillRisk: String, Sendable {
         self = SkillRisk(rawValue: value.lowercased()) ?? .unrecognized
     }
 
-    /// Verdicts the relevance ranker must never auto-inject.
-    var barsAutomaticInjection: Bool {
-        self == .critical || self == .unrecognized
-    }
 }
 
 struct BundledSkill: Identifiable, Equatable, Sendable {
@@ -40,8 +37,11 @@ struct BundledSkill: Identifiable, Equatable, Sendable {
     let name: String         // frontmatter `name`
     let description: String  // frontmatter `description` — used to judge relevance
     let body: String         // markdown below the frontmatter
-    /// frontmatter `risk` — gates automatic injection, see `BundledSkillLibrary.rankable`
+    /// Upstream frontmatter hint; local policy still decides runtime eligibility.
     var risk: SkillRisk = .unspecified
+    /// SHA-256 of the exact vendored SKILL.md bytes. Nil for synthetic parser
+    /// fixtures; only bundle-loaded, digest-matching content can be authorized.
+    var sourceSHA256: String? = nil
 
     /// Parse a SKILL.md into a `BundledSkill`. Pure and self-contained so it can
     /// be unit-tested without the bundle. The frontmatter is the leading
@@ -186,48 +186,28 @@ struct BundledSkill: Identifiable, Equatable, Sendable {
 /// crash. Quarantined ids (see `BundledSkillSanitizer.quarantineIDs`) are never
 /// loaded even if a `SKILL.md` folder is still on disk.
 enum BundledSkillLibrary {
-    static let all: [BundledSkill] = load()
+    /// Every shipped third-party skill is still re-authorized from its exact
+    /// bytes. This keeps an accidentally added folder or stale vendor edit out
+    /// of memory and out of model prompts even before repository tests run.
+    static let all: [BundledSkill] = load(only: BundledSkillRuntimePolicy.reviewedIDs)
+        .filter(BundledSkillRuntimePolicy.allowsForAnyReviewedPrompt)
 
-    /// The subset the relevance ranker may choose from automatically.
-    ///
-    /// ~70 vendored skills are marked `risk: critical` because their methodology
-    /// takes a real-world action — sending mail, posting to social, moving funds,
-    /// administering a server. None is a `BundledSkillRouter` seed, but the ranker
-    /// can surface a *non-preferred* catalog skill, so a meeting that merely
-    /// mentions email could otherwise pull one into the prompt. They stay in `all`
-    /// and remain resolvable by id: this gates automatic injection, nothing else.
-    ///
-    /// A skill whose `risk:` value this build does not recognize is gated too —
-    /// see `SkillRisk.unrecognized`. Missing and explicitly-`unknown` verdicts
-    /// stay rankable: 970 of 1,188 skills carry one, so gating them would empty
-    /// the catalog the ranker exists to search.
-    ///
-    /// Also drops skills whose catalogued `meeting_relevance` is `none` — git
-    /// rebasing, single-cell genomics, generative art. They are not dangerous,
-    /// they are simply not something any meeting should pull in.
-    ///
-    /// A curated `BundledSkillRouter.map` seed is EXEMPT: those ids were chosen by
-    /// hand for specific buttons, so a generated label must never overrule them.
-    /// This is not hypothetical — the first labelling pass marked `humanizer`
-    /// (a seed for `answer` and `summary`) as `none`, and without this exemption
-    /// the filter would have silently removed it from two buttons.
-    static let rankable: [BundledSkill] = {
-        let seeds = Set(BundledSkillRouter.map.values.flatMap { $0 })
-        return all.filter {
-            guard !$0.risk.barsAutomaticInjection else { return false }
-            return seeds.contains($0.id) || SkillCatalogMetadata.isMeetingRelevant($0.id)
-        }
-    }()
+    /// The relevance ranker has no broader catalog: the reviewed, shipped set
+    /// is the complete runtime boundary.
+    static let rankable: [BundledSkill] = all
 
-    static func skill(id: String) -> BundledSkill? {
-        guard !BundledSkillSanitizer.quarantineIDs.contains(id) else { return nil }
-        return all.first { $0.id == id }
+    /// Runtime candidates reviewed for one specific built-in prompt.
+    static func rankable(for promptID: String) -> [BundledSkill] {
+        rankable.filter { BundledSkillRuntimePolicy.allows($0, for: promptID) }
     }
 
-    /// The skill body, ready to layer onto the system prompt.
-    static func guidance(id: String) -> String? { skill(id: id)?.body }
+    static func runtimeSkill(id: String, for promptID: String) -> BundledSkill? {
+        guard let skill = rankable.first(where: { $0.id == id }),
+              BundledSkillRuntimePolicy.allows(skill, for: promptID) else { return nil }
+        return skill
+    }
 
-    private static func load() -> [BundledSkill] {
+    private static func load(only ids: Set<String>? = nil) -> [BundledSkill] {
         guard let root = SkillResources.skillsDirectory else {
             return []
         }
@@ -240,11 +220,15 @@ enum BundledSkillLibrary {
         for dir in entries.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
             let id = dir.lastPathComponent
             if BundledSkillSanitizer.quarantineIDs.contains(id) { continue }
+            if let ids, !ids.contains(id) { continue }
             let isDir = (try? dir.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             guard isDir else { continue }
             let skillFile = dir.appendingPathComponent("SKILL.md")
-            guard let markdown = try? String(contentsOf: skillFile, encoding: .utf8) else { continue }
-            skills.append(BundledSkill.parse(id: id, markdown: markdown))
+            guard let data = try? Data(contentsOf: skillFile),
+                  let markdown = String(data: data, encoding: .utf8) else { continue }
+            var skill = BundledSkill.parse(id: id, markdown: markdown)
+            skill.sourceSHA256 = BundledSkillRuntimePolicy.sha256(data)
+            skills.append(skill)
         }
         return skills
     }

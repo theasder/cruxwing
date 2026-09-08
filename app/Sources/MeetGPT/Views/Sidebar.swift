@@ -54,7 +54,9 @@ struct Sidebar: View {
                     BrainstormSection()
                     ContextSection()
                     HistorySection()
-                    LedgerSection()
+                    if Config.llmViaBackend {
+                        LedgerSection()
+                    }
                 }
                 // Ширина берётся у панели, а не у содержимого.
                 //
@@ -192,7 +194,9 @@ struct NewCallButton: View {
 
 /// Saved meetings (M3 session persistence): newest first, click to restore
 /// the full workspace — transcript, AI output, goal, digest. Rows disable
-/// while recording (restore would clobber the live session); hidden when empty.
+/// while recording (restore would clobber the live session). The section stays
+/// visible without rows when Fireflies import is available or storage reports
+/// an incomplete archive.
 private struct HistorySection: View {
     @EnvironmentObject var state: AppState
     @State private var confirmClear = false
@@ -204,7 +208,8 @@ private struct HistorySection: View {
         // section used to render only with saved calls, which hid the import
         // from exactly the person most likely to want it: someone with no
         // recordings here yet and a year of meetings in Fireflies.
-        if !state.savedSessions.isEmpty || state.canImportFromFireflies {
+        if !state.savedSessions.isEmpty || state.canImportFromFireflies
+                || state.historyStorageWarning != nil {
             VStack(alignment: .leading, spacing: Space.s) {
                 HStack(spacing: Space.xs) {
                     SectionLabel("История")
@@ -250,11 +255,18 @@ private struct HistorySection: View {
                     .disabled(state.isRecording)
                     .accessibilityLabel("Очистить историю")
                 }
-                if state.savedSessions.isEmpty {
+                if state.savedSessions.isEmpty && state.historyStorageWarning == nil {
                     Text("Сохранённых звонков пока нет. Импортируйте звонок из Fireflies, чтобы поискать в нём слепые зоны.")
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+                if let warning = state.historyStorageWarning {
+                    Label(warning, systemImage: "exclamationmark.triangle")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("history-storage-warning")
                 }
                 ForEach(state.savedSessions.prefix(Self.maxRows)) { session in
                     HistoryRow(session: session,

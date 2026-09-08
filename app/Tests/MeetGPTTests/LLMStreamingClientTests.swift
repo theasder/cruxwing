@@ -84,7 +84,7 @@ struct LLMStreamingClientTests {
 
     @Test("OpenAI: a non-2xx response throws")
     func openAIError() async throws {
-        try await withResponder(401, Data(#"{"error":"bad key"}"#.utf8)) {
+        await withResponder(401, Data(#"{"error":"bad key"}"#.utf8)) {
             let client = OpenAIClient(session: StreamMockURLProtocol.session(), keyProvider: { "sk-test" })
             await #expect(throws: (any Error).self) {
                 _ = try await client.streamChat(system: "s", user: "u", model: "gpt-5.4-mini") { _ in }
@@ -139,7 +139,7 @@ struct LLMStreamingClientTests {
 
     @Test("Anthropic: a non-2xx response throws")
     func anthropicError() async throws {
-        try await withResponder(529, Data(#"{"type":"error"}"#.utf8)) {
+        await withResponder(529, Data(#"{"type":"error"}"#.utf8)) {
             let client = AnthropicClient(
                 session: StreamMockURLProtocol.session(), keyProvider: { "ak-test" })
             await #expect(throws: (any Error).self) {
@@ -194,7 +194,7 @@ struct LLMStreamingClientTests {
 
     @Test("Gemini: a non-2xx response throws")
     func geminiError() async throws {
-        try await withResponder(400, Data(#"{"error":{"code":400}}"#.utf8)) {
+        await withResponder(400, Data(#"{"error":{"code":400}}"#.utf8)) {
             let client = GeminiClient(
                 session: StreamMockURLProtocol.session(), keyProvider: { "gk-test" })
             await #expect(throws: (any Error).self) {

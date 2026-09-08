@@ -77,7 +77,6 @@
       "SETTINGS-LIVE-CONNECTED-GROUNDING",
       "SETTINGS-LIVE-ACCOUNT-PRIVACY",
       "SETTINGS-LIVE-RESTORE-CAPTURE",
-      "SETTINGS-LIVE-PROMO-REDEMPTION",
       "CONNECTED-TRANSCRIPTION-GLOSSARY-SUGGESTIONS"
     ],
     "commandChecks": {
@@ -595,7 +594,7 @@
       "proof": [
         {
           "path": "videotest.sh",
-          "contains": "send ai.cruxwing.livetest.runPrompt id \"whattoask\""
+          "contains": "send ai.orakul.desktop.livetest.runPrompt id \"whattoask\""
         },
         {
           "path": "videotest.sh",
@@ -1613,7 +1612,7 @@
         },
         {
           "path": "videotest.sh",
-          "contains": "send ai.cruxwing.livetest.restoreSettings finishRun true"
+          "contains": "send ai.orakul.desktop.livetest.restoreSettings finishRun true"
         },
         {
           "path": "videotest.sh",
@@ -1733,7 +1732,7 @@
         },
         {
           "path": "videotest.sh",
-          "contains": "closed-schema assistant and promo request lifecycles"
+          "contains": "closed-schema assistant request lifecycles"
         }
       ]
     },
@@ -2400,38 +2399,6 @@
       ]
     },
     {
-      "id": "SETTINGS-LIVE-PROMO-REDEMPTION",
-      "category": "settings-during-call",
-      "priority": "critical",
-      "description": "Drive Settings \u2192 AI \u2192 Manage \u2192 See plans through macOS Accessibility, scroll to the promo field, redeem the exact DEV-UNLIMITED-LOCAL fixture, and fail closed unless a fresh nonce-correlated non-preview receipt, Founder/Ultra entitlement, screenshots, UI action timeline, and sanitized successful API lifecycle all agree.",
-      "proof": [
-        {
-          "path": "videotest.sh",
-          "contains": "promo_redemption_ui_capture() {"
-        },
-        {
-          "path": "Sources/MeetGPT/Dev/LiveTestHooks.swift",
-          "contains": "struct LiveTestPromoRedemptionReceipt"
-        },
-        {
-          "path": "Sources/MeetGPT/Views/Paywall/PaywallView.swift",
-          "contains": ".accessibilityIdentifier(\"paywall.promo-code\")"
-        },
-        {
-          "path": "Tests/MeetGPTTests/PaywallViewTests.swift",
-          "contains": "pricing stage exposes stable promo input and Redeem automation identities"
-        },
-        {
-          "path": "Tests/MeetGPTTests/PromoRedemptionReceiptTests.swift",
-          "contains": "exact code records one ordered Founder Ultra success without preview"
-        },
-        {
-          "path": "../cruxwing-api/test/auth.integration.test.js",
-          "contains": "redeems the exact local code through the real route into a Founder/Ultra session and profile"
-        }
-      ]
-    },
-    {
       "id": "SETTINGS-AX-INVENTORY",
       "category": "settings-during-call",
       "priority": "critical",
@@ -2703,7 +2670,7 @@
         },
         {
           "path": "Sources/MeetGPT/Dev/LiveTestHooks.swift",
-          "contains": "ai.cruxwing.livetest.glossarySuggestions"
+          "contains": "ai.orakul.desktop.livetest.glossarySuggestions"
         },
         {
           "path": "videotest.sh",

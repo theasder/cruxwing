@@ -4,9 +4,8 @@ import Testing
 
 /// What the credits rail says, and why it matters that it says the right thing.
 ///
-/// Reported: "credits unavailable in the account where apps are connected,
-/// even though I'm a developer using the dev promo code." Nothing was wrong
-/// with the promo. The app had no Cruxwing account session at all — connected
+/// Reported: "credits unavailable in the account where apps are connected."
+/// The app had no Cruxwing account session at all — connected
 /// apps are stored separately, so a workspace with Google, Notion and Asana
 /// attached looked signed in — and the rail rendered that as "credits
 /// unavailable", the same string it uses when the billing service is down.

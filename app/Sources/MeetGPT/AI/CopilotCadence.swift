@@ -9,6 +9,10 @@ import Foundation
 /// burn more credits per scan.
 enum CopilotCadence {
     static let blindSpotSeconds: UInt64 = 120
+    /// Direct BYOK has no tariff whose unused allowance should be reallocated.
+    /// Once the user explicitly enables automatic analysis, use a conservative
+    /// fixed cadence instead of silently mapping the free app to Ultra spend.
+    static let directBYOKBlindSpotSeconds: UInt64 = 300
     /// Slowest Pro+ cadence, reached when every specialist watch is enabled.
     static let blindSpotPaidSeconds: UInt64 = 90
     static let agendaSeconds: UInt64 = 300

@@ -28,13 +28,19 @@ State: v1, 2026-08-17.
 | Stars and forks | 0 and 0 | same |
 | Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
-| Page | <https://theasder.github.io/orakul/> serves «orakul.ai — звонок, который можно спросить» | `curl` |
-| Page and doc checks | 347 tests, all green | `npm test`, run 2026-08-18 |
-| App and core tests | 2983 and 701 | README, maintainer run |
+| Page | На 2026-08-17 отдавала «orakul.ai — звонок, который можно спросить» | исторический `curl` |
+| Page and doc checks | `npm test`; the runner reports the current total | root CI |
+| App and core checks | `cd app && swift test`; `cd mvp && swift test` | macOS CI |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
 
 Repo is four days old. Everything below about growth starts from that, not from
 an assumption the audience already exists.
+
+**Current publication blocker (checked 2026-08-25).** The repository URL
+`github.com/theasder/orakul` now redirects to `theasder/cruxwing`, and the Page
+above returns 404. The historical table is not a claim that either address
+works today. The owner must restore the canonical repository name before the
+Pages workflow is allowed to publish or a fresh release is advertised.
 
 **«All green» needs one caveat, stated because a table that hides it is worse
 than no table.** `BlindSpotSchedulerRaceTests` failed twice on full runs on
@@ -131,9 +137,11 @@ It found one that did not. `FeedbackUploader` built `URL(string:
 relative URL. The request was assembled and failed later inside `URLSession`, so
 feedback went unsent by accident rather than by decision. Had an address ever
 appeared, the rating, the note and the email would have gone with it — a
-person's own words about their own meeting. The guard is explicit now, the
-address is injectable so the two branches can be tested at all, and the queued
-answer stays on disk untouched.
+person's own words about their own meeting. That path was first made explicit
+and testable; the public-source hardening pass then removed the uploader,
+first-meeting prompt, and endpoint from the compiled application altogether.
+`OffDeviceTrafficTests` now makes that structural absence the invariant instead
+of preserving a queue for a service Orakul does not operate.
 
 **One of these lines was not true until 2026-08-18, and the way it failed is
 worth keeping.** The server halt read `sw BACKEND_URL` — while `sw` blanks that
@@ -220,7 +228,9 @@ suite red, which is the state this section describes.
 
 **What was wrong.** `build.sh` substitutes values through `sw`, and for names
 listed in `SECRET_VARS` a DIST build gets an empty string back. The list is
-written by hand: 44 names pass through `sw`, 26 sit in the list. Four of the
+written by hand: 35 names pass through `sw`, 17 sit in the list. Nine former
+AI and transcription provider-key inputs were removed from both counts because every build now
+reads those credentials only from the user's Keychain. Four of the
 uncovered eighteen were credentials:
 
 ```
@@ -296,8 +306,10 @@ line that left `DEFAULT_TIER` allowed and reported a false «guard is weak».
 
 ### 5.3 Install in one command — code done 2026-08-18, one owner action left
 
-Shipped DMGs are signed and notarised, and installed by hand. For a developer,
-distribution means `brew`. Landing in the main `homebrew-cask` runs into
+The historical DMGs were signed and notarised, but they do not pass the current
+source/provenance audit and are not a release of this tree. After fresh audited
+DMGs exist, a developer-friendly distribution path means `brew`. Landing in the
+main `homebrew-cask` runs into
 notability: their rules name no numeric threshold, the criterion is stated in
 words[^cask], and with zero stars there is nothing to argue. An own tap sets no
 such condition:
@@ -827,13 +839,17 @@ consent a condition of entry rather than a promise.
 
 ### 6.4 Russian strings to the end
 
-Measured 2026-08-18: of 446 string literals in `Views/` and `Onboarding/`, 23
+Measured through 2026-08-26: of 446 string literals in `Views/` and `Onboarding/`, 23
 carry no Cyrillic letter — down from 44 on 2026-08-17. That is an **upper bound,
 not a work list**: what is left is names (`GitHub`, `orakul`), bare
 interpolations (`"\($0)"`, `"+\(apps.count)"`, `"\(field.title) — \(service.title)"`),
 quote wrappers (`"“\(evidence)”"`) and an example placeholder
 (`https://mcp.example.com/mcp`). No English sentence remains on those two
 surfaces.
+
+The denominator returned from 445 to 446 when the explicit master switch for
+automatic AI requests was added. The 23-string non-Cyrillic ceiling did not
+change because the new control is Russian.
 
 The count went 22 → 23 on 2026-08-18, and the guard caught it: the Plane
 settings row labels its fields `"\(field.title) — \(service.title)"`, which
@@ -1290,9 +1306,11 @@ author recorded inside an exported Word document — and all three must carry th
 public name. The last two were already right; nothing said they had to stay that
 way, and a document travels further than a request.
 
-On-disk paths (`Application Support/MeetGPT`) are deliberately outside that rule:
-they go nowhere, and renaming them would orphan the data of everyone who already
-has the product installed.
+Historical correction (2026-08-25): that storage exception was unsafe for a
+public fork. Production data now lives under
+`Application Support/ai.orakul.desktop`; ambiguous `MeetGPT` data may belong to
+the parent product and is never read or imported automatically. A future import
+must be explicit and user-selected rather than inferred from a shared path.
 
 **A hint meant to bias a ranking search was emptying a filtering one —
 2026-08-21.** Each source gets a `queryHint` appended to the question: «тарифы
@@ -2220,7 +2238,7 @@ scripts and refuses exactly this contradiction.
   was searching for a string that was no longer there. The test proved nothing
   and looked green. Tokens in the fixtures are ASCII now, like real ones, and a
   separate case covers the encoded form.
-- **A reproducible release — extended to Linux 2026-08-18.** The DMG has
+- **Artifact freshness diagnostics — extended to Linux 2026-08-18.** The DMG has
   carried a stamp and `audit-dmg.sh` from the start; the packages I shipped this
   week carried nothing, so a `.deb` could not say what it was built from. Both
   now embed `build-info` — version, commit, source hash, the paths that hash
@@ -2236,8 +2254,15 @@ scripts and refuses exactly this contradiction.
   untouched package matches, and one line added to a core file makes the audit
   report a mismatch.
 
-  CI runs the audit on every pull request. Publishing the report alongside a
-  release is what remains, and that needs a release to publish.
+  This is a self-report freshness check, not reproducible-build proof: the
+  artifact carries the hash that the audit reads. The manual clean-tag candidate
+  workflow now adds GitHub/Sigstore provenance over independently calculated
+  file digests, but it has not been run for a current public release and does
+  not claim byte-for-byte reproduction outside that builder.
+
+  CI runs the source audit on every pull request. Owner configuration, a
+  reviewed tag, verification of the downloaded workflow candidate and explicit
+  publication remain; `docs/RELEASING.md` keeps those actions separate.
 - **One maintainer — said out loud in README, 2026-08-18.** An issue may wait
   days, and during a holiday may not be answered at all. The obligation from
   CODE_OF_CONDUCT — explain every closure — holds regardless; what cannot be
@@ -2277,7 +2302,7 @@ Played as the attacker against the real code. What landed:
 | Accept a write and do nothing (empty body, no error flag) | The MCP path calls a tool, throws only when the server marks an error, and rendered the empty answer as «Задача создана.» — the most expensive false sentence in the product: a person leaves the call believing the commitment is recorded | No answer, no claim. The service's own words are shown when there are any; silence is reported as silence, with «Проверьте в трекере». The Russian-tracker twin never had this — `parseCreated` refuses a response with no key, so what reaches the screen is the key itself, and the key is the proof |
 | Name the address the person's browser will open | The export to Notion opened the URL the MCP server named, and the check on it looked like a check: the string starts with `https://` and **contains** «notion.so». So does `https://notion.so.chuzhoy.ru/login`, and so does `https://chuzhoy.ru/?next=notion.so`. The server chose where the browser went, at the one moment a person is least suspicious — they pressed «export» and are waiting for their own page to appear | The **owner** of the address is compared, not searched for: the domain itself or a subdomain of it, `https` only. A host that merely *ends* with the name (`podnotion.so`, a domain that costs a rouble and a minute) was not covered until a mutation removed the dot and the suite stayed green — that case is a test now |
 | Speak the instruction out loud | The guard that warns the person confirming a write looked at three sources: the answer, the connectors' findings, and attached files. The argument for each is the same — an instruction sitting in the **input** leaves no trace in the answer, because the model does what it was asked and writes an ordinary sentence. That argument holds word for word for the transcript, and the transcript was not among the three. It is also the only source a stranger fills with their **voice**: another participant, a guest on a link, audio from a clip | The transcript is the fourth source, and the slice checked is the one the model actually saw (`promptTranscript`), not a selection of our own. A guard that fires on ordinary speech teaches people to press «anyway», so the opposite case is pinned too: a normal sentence about ignoring last quarter raises nothing |
-| Answer for our own server | Certificate pinning existed, was configured by `BACKEND_CERT_PINS`, is named in this file — and the money went around it. Five paywall calls and the feedback upload used the plain shared session: entitlement («you are on Pro», «the trial ended»), the profile with its token in a header, and the **checkout address**, which the app opens in a browser. Whoever answers for our host with a mis-issued certificate picks the page where the card is typed | All of them go through the pinned session now, and it costs nothing: the delegate is scoped to the host and quietly performs default trust for every other address. The rule is inverted rather than listed — only named third-party vendors may use a plain session, and a file that knows our address may not be on that list |
+| Answer for our own server | Certificate pinning existed, was configured by `BACKEND_CERT_PINS`, is named in this file — and the money went around it. Five paywall calls and the feedback upload used the plain shared session: entitlement («you are on Pro», «the trial ended»), the profile with its token in a header, and the **checkout address**, which the app opened in a browser. Whoever answered for our host with a mis-issued certificate could pick the page where the card was typed | The immediate fix routed the calls through the pinned session. The public-source hardening pass then removed feedback upload, checkout, StoreKit, promo redemption, and anonymous device-trial routes altogether. The remaining read-only plan/usage/profile compatibility calls still use the pinned session; only named third-party vendors may use a plain one |
 | Put the address inside the words | The answer is drawn as inline markdown, and inline markdown understands `[words](address)`. The person sees the words; nobody sees the address — `Text` renders it as an ordinary link and a click takes the browser wherever the brackets say. The model is not the only author here: the answer is built on what the connected services returned — an issue title, a wiki page, a transcript line from a service that sells a competing product — and carrying quotations across is exactly what the model is asked to do. Measured before fixing: the parser really does produce a link, and the address really is invisible | The jump is removed, the words stay, and the address is **shown**. A product that promises a quote with its source cannot hide the source behind a label. An address already written out is not repeated |
 | Stop filling the index beside the storage | One service answers with the rows in a **dictionary** and their order in a separate list — Mattermost's `posts` and `order`. Swift dictionaries are unordered, so the list is the only thing that says which match came first. A missing `order` was already refused; an **empty** one beside a full `posts` was not, and it returned «ничего не нашлось» about an answer that contained the findings. The service need not break to do this: it can simply stop filling that list, or change the shape of the ids so the list points nowhere. No error, HTTP 200, rows present — and a confident emptiness for as long as it lasts | Rows in storage with nothing resolvable is a format change and is said out loud, exactly as «rows present, none readable» already is. A genuinely empty answer stays an empty answer — the difference is whether the storage holds anything — and a partial mismatch still answers, because one bad row among good ones was never a reason to refuse them all |
 | Teach us to stop asking | The engine adapts: when the stem question comes back empty while the word question found something, it stops asking that service by the stem. That is what makes Russian declensions findable — «тарифы» said, «тарифами» stored — so switching it off is switching off half of the Russian search, silently and for the rest of the run. It took **one** response to do it, and a hostile service needs nothing more than answering the word and not the stem — indistinguishable from honest whole-word matching, which Gitea and Rocket.Chat really do | Two matching observations, not one, and a successful stem question resets the count. The cost is asymmetric and that is the whole argument: caution costs one extra request per call to a service that would find nothing anyway; haste costs the declensions with nobody told. The neighbouring case memory already demanded two — «из двух пустых не следует ничего» — and the stem memory did not |
@@ -2818,7 +2843,8 @@ ignored, and the write reports the real error.
 
 **Somebody else's chat was sitting on disk with ordinary permissions.**
 `TeamWatcher` writes a line per keyword match into
-`~/Library/Application Support/MeetGPT/team-watch.log`, and that line carries up
+what was then `~/Library/Application Support/MeetGPT/team-watch.log` (now
+`~/Library/Application Support/ai.orakul.desktop/team-watch.log`), and that line carries up
 to 140 characters of a message from a work chat — Slack, Mattermost, Пачка —
 that a person let us watch. The size was thought about (512 KB, one rotation);
 the permissions were not, so any process running as that user could read it,

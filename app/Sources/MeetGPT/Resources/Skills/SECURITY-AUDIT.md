@@ -1,6 +1,13 @@
-# Skills security & prompt-injection audit
+# Historical skills security & prompt-injection ingest scan
 
-Scanned **1193** `SKILL.md` files.
+This is evidence from the pre-quarantine bulk ingest, not a current catalog
+manifest or a positive safety review. The application now ships only nine
+individually reviewed, hash-pinned methods; the other 1,101 files that survived
+the earlier provenance cleanup are not bundled. Current membership lives in
+`INGEST_MANIFEST.json`, and runtime authorization lives in the default-deny,
+prompt-scoped `runtime-allowlist.json`.
+
+Scanned **1193 candidate** `SKILL.md` files.
 Pattern matches: **123** (critical hits across 17 skills, high across 36, medium across 27).
 
 ## By rule

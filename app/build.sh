@@ -4,13 +4,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 BUILD_ARCH="${MEETGPT_ARCH:-native}"
 SWIFT_BUILD_ARGS=(-c release)
+SWIFT_SCRATCH="$ROOT/.build"
 case "$BUILD_ARCH" in
     native)
         DEFAULT_APP_BASENAME="orakul"
         ;;
     arm64|x86_64)
+        SWIFT_SCRATCH="$ROOT/.build/$BUILD_ARCH"
         SWIFT_BUILD_ARGS+=(--triple "${BUILD_ARCH}-apple-macosx13.0"
-                           --scratch-path "$ROOT/.build/$BUILD_ARCH")
+                           --scratch-path "$SWIFT_SCRATCH")
         if [ "$BUILD_ARCH" = "x86_64" ]; then
             DEFAULT_APP_BASENAME="orakul-Intel"
         else
@@ -64,24 +66,118 @@ LEGACY_DEST="$APP_DIR/MeetGPT.app"
 
 cd "$ROOT"
 
-# --- Generate Secrets.swift from .env (build-time key injection) ---
-# Keys leave the UI and live in app/.env; we bake them into a gitignored
-# Secrets.swift so they compile into the app. No .env → empty keys (still builds).
-echo ">> generating Secrets.swift from .env"
+# --- Generate optional LOCAL build configuration from .env ---
+# The generated file is ignored. `Sources/MeetGPT/Secrets.swift` remains the
+# immutable, safe fallback used by clones, tests and distribution builds.
+echo ">> generating ignored LocalSecrets.generated.swift from .env"
 ENV_FILE="$ROOT/.env"
-SECRETS="$ROOT/Sources/MeetGPT/Secrets.swift"
+SECRETS="$ROOT/Sources/MeetGPT/LocalSecrets.generated.swift"
 
 # Distribution hardening: a release build (MEETGPT_DIST=1, set by notarize.sh)
-# bakes NO provider/org secrets into the binary. The shipped app serves LLM
-# through the backend gateway (LLM_GATEWAY=backend — keys stay server-side) and
-# transcribes on-device (TRANSCRIPTION_ENGINE=local). Dev builds (flag unset)
-# keep keys baked for local iteration.
+# bakes NO provider/org secrets into the binary. The shipped app talks directly
+# to the provider with a key the user stores in Keychain
+# (LLM_GATEWAY=direct), and transcribes on-device
+# (TRANSCRIPTION_ENGINE=local). Local builds may still compile explicitly
+# development-only connector OAuth and non-secret transcription tuning from
+# this repository's ignored .env, but every provider key is runtime BYOK.
 DIST="${MEETGPT_DIST:-0}"
+
+# A release commit must be enough to reconstruct the bytes being shipped.
+# OrakulSourceHash distinguishes two local builds, but it cannot recover files
+# that were never committed; stamping HEAD alone would therefore make a dirty
+# release look attributable while leaving no source revision that can rebuild
+# it. Check the entire worktree (not only app/) before compiling.
+#
+# The override exists only for exercising the distribution build path locally.
+# Such an artifact is stamped as dirty, and audit-dmg.sh rejects it, so it cannot
+# pass the release audit by accident.
+DIST_TREE_STATE="development"
+require_clean_dist_tree() {
+    [ "$DIST" = "1" ] || return 0
+
+    local repo_root dirty_status index_entries index_entry
+    local untracked_inputs ignored_inputs artifact_input
+    repo_root="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null)" || {
+        echo "!! DIST build is not inside a Git worktree — release provenance is unavailable" >&2
+        return 1
+    }
+    dirty_status="$(git -C "$repo_root" status --porcelain=v1 --untracked-files=all 2>/dev/null)" || {
+        echo "!! DIST build could not verify worktree cleanliness" >&2
+        return 1
+    }
+
+    # `assume-unchanged` and sparse/skip-worktree index flags can hide a changed
+    # tracked file from both status and diff. A release checkout must not use
+    # either optimization anywhere: otherwise HEAD can again describe bytes
+    # other than the ones the compiler reads.
+    index_entries="$(git -C "$repo_root" ls-files -v 2>/dev/null)" || {
+        echo "!! DIST build could not inspect Git index flags" >&2
+        return 1
+    }
+    while IFS= read -r index_entry; do
+        [ -n "$index_entry" ] || continue
+        [ "${index_entry:0:1}" = "H" ] || {
+            echo "!! DIST build found a tracked file hidden by a Git index flag" >&2
+            echo "!! Clear assume-unchanged/skip-worktree state before release; the path is withheld" >&2
+            return 1
+        }
+    done <<< "$index_entries"
+
+    # `git status --untracked-files=all` still hides ignored files. Most ignored
+    # paths are harmless build caches, but an ignored *.pem, *.key, *.log or
+    # .DS_Store below a copied/source root is an artifact input: SwiftPM copies
+    # the whole Skills directory, and app-source-hash walks these roots. Such a
+    # file would ship under a "clean" HEAD without existing in that commit.
+    #
+    # LocalSecrets.generated.swift is the one deliberate exception. build.sh
+    # creates it from .env for local builds, but DIST never enables
+    # ORAKUL_LOCAL_CONFIG, so it is neither compiled nor copied.
+    untracked_inputs="$(git -C "$repo_root" ls-files --others \
+        --exclude-standard -- \
+        app/Support app/Sources/MeetGPT mvp/Sources/OrakulCore 2>/dev/null)" || {
+        echo "!! DIST build could not inspect untracked artifact inputs" >&2
+        return 1
+    }
+    [ -z "$untracked_inputs" ] || {
+        echo "!! DIST build found an untracked file inside an artifact input root" >&2
+        echo "!! Track or remove it before release; its path/content is withheld from logs" >&2
+        return 1
+    }
+
+    ignored_inputs="$(git -C "$repo_root" ls-files --others --ignored \
+        --exclude-standard -- \
+        app/Support app/Sources/MeetGPT mvp/Sources/OrakulCore 2>/dev/null)" || {
+        echo "!! DIST build could not inspect ignored artifact inputs" >&2
+        return 1
+    }
+    while IFS= read -r artifact_input; do
+        [ -n "$artifact_input" ] || continue
+        [ "$artifact_input" = "app/Sources/MeetGPT/LocalSecrets.generated.swift" ] && continue
+        echo "!! DIST build found an ignored file inside an artifact input root" >&2
+        echo "!! Move or track it before release; its path/content is withheld from logs" >&2
+        return 1
+    done <<< "$ignored_inputs"
+
+    if [ -n "$dirty_status" ]; then
+        if [ "${ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION:-0}" != "1" ]; then
+            echo "!! DIST build requires a clean Git worktree; commit or remove all changes first" >&2
+            echo "!! For a non-release local build-path check only: ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION=1" >&2
+            return 1
+        fi
+        DIST_TREE_STATE="dirty-local-verification"
+        echo ">> WARNING: dirty DIST build allowed for local verification only"
+        echo ">> scripts/audit-dmg.sh will reject this artifact"
+        return 0
+    fi
+
+    DIST_TREE_STATE="clean"
+}
+require_clean_dist_tree || exit 1
 # Известные секреты — перечислены для читателя, а НЕ для решения: решение
 # принимает разрешительный список внутри sw(). Оставлен потому, что отвечает на
 # вопрос «что вообще бывает в .env», и потому что §5.2 роадмапа считает по нему
 # размер дыры, которой больше нет.
-SECRET_VARS="OPENAI_API_KEY ANTHROPIC_API_KEY GOOGLE_AI_API_KEY DEEPGRAM_API_KEY ASSEMBLYAI_API_KEY DEEPSEEK_API_KEY DASHSCOPE_API_KEY ZHIPU_API_KEY MOONSHOT_API_KEY GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_SIGNIN_CLIENT_ID GOOGLE_SIGNIN_CLIENT_SECRET HUBSPOT_CLIENT_ID HUBSPOT_CLIENT_SECRET ASANA_CLIENT_ID ASANA_CLIENT_SECRET AFFINITY_CLIENT_ID AFFINITY_CLIENT_SECRET ZOOM_CLIENT_ID ZOOM_CLIENT_SECRET SLACK_BOT_TOKEN SLACK_CHANNEL_IDS CONFLUENCE_SITE CONFLUENCE_EMAIL CONFLUENCE_TOKEN"
+SECRET_VARS="GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_SIGNIN_CLIENT_ID GOOGLE_SIGNIN_CLIENT_SECRET HUBSPOT_CLIENT_ID HUBSPOT_CLIENT_SECRET ASANA_CLIENT_ID ASANA_CLIENT_SECRET AFFINITY_CLIENT_ID AFFINITY_CLIENT_SECRET ZOOM_CLIENT_ID ZOOM_CLIENT_SECRET SLACK_BOT_TOKEN SLACK_CHANNEL_IDS CONFLUENCE_SITE CONFLUENCE_EMAIL CONFLUENCE_TOKEN"
 
 sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-escaped
     if [ "$DIST" = "1" ]; then
@@ -103,7 +199,11 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
         case "$1" in
             BACKEND_URL|BACKEND_CERT_PINS|DEFAULT_TIER|LLM_GATEWAY \
                 |ENSEMBLE_CHAIRMAN|ENSEMBLE_PANEL|TEAM_WATCH_AUTO_ACK \
-                |TRANSCRIPTION_*) : ;;   # публичные настройки: не секреты
+                |TRANSCRIPTION_ENGINE|TRANSCRIPTION_CHUNK_SECONDS \
+                |TRANSCRIPTION_CHUNK_OVERLAP_SECONDS \
+                |TRANSCRIPTION_BOUNDARY_SLACK_SECONDS \
+                |TRANSCRIPTION_LOCAL_MODEL|TRANSCRIPTION_VAD \
+                |TRANSCRIPTION_LANGUAGE) : ;;   # exact non-secret settings
             # `BACKEND_URL` стоит в списке, хотя в сборку всё равно уезжает
             # пустым: его отдельно стирают ниже, и там же написано почему.
             # Убрать его отсюда — значит сделать то объяснение недостижимым
@@ -154,10 +254,9 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
     # to whatever directory the checkouts happen to share — nothing, a sibling
     # project, or somebody else's secrets.
     #
-    # Losing it costs nothing here: the app ships with LLM_GATEWAY=backend, so
-    # provider keys stay server-side by design and every *_API_KEY in mac/.env is
-    # deliberately empty. A dev build that genuinely wants direct provider access
-    # sets the key in this repo's .env, explicitly.
+    # Losing it costs nothing here: every build reads the user's provider key
+    # from Keychain at runtime. LLM credentials are deliberately not part of
+    # this generated build configuration, even for local development.
     # strip an inline comment (# at line start or after whitespace) + trim, so a
     # value like `BACKEND_URL= # fill me` bakes as empty, not the comment text.
     v="$(printf '%s' "$v" | sed -E 's/(^|[[:space:]])#.*$/\1/; s/^[[:space:]]+//; s/[[:space:]]+$//')"
@@ -166,14 +265,10 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
     printf '%s' "$v"
 }
 cat > "$SECRETS" <<EOF
-// GENERATED FILE — do not edit or commit real values.
-// build.sh regenerates this from app/.env on every build. It is gitignored.
+// GENERATED AND GITIGNORED — local build values only.
+// A distribution build never enables ORAKUL_LOCAL_CONFIG.
+#if ORAKUL_LOCAL_CONFIG
 enum Secrets {
-    static let openAIAPIKey    = "$(sw OPENAI_API_KEY)"
-    static let anthropicAPIKey = "$(sw ANTHROPIC_API_KEY)"
-    static let googleAIAPIKey  = "$(sw GOOGLE_AI_API_KEY)"
-    static let deepgramAPIKey  = "$(sw DEEPGRAM_API_KEY)"
-    static let assemblyAIAPIKey = "$(sw ASSEMBLYAI_API_KEY)"
     // Local/test builds may use the gitignored .env Desktop OAuth client.
     // MEETGPT_DIST=1 blanks both values: sw() пропускает только публичные настройки.
     static let googleClientID  = "$(sw GOOGLE_CLIENT_ID)"
@@ -195,10 +290,6 @@ enum Secrets {
     static let transcriptionVAD = "$(sw TRANSCRIPTION_VAD)"
     static let transcriptionLanguage = "$(sw TRANSCRIPTION_LANGUAGE)"
     static let llmGateway      = "$(sw LLM_GATEWAY)"
-    static let deepSeekAPIKey  = "$(sw DEEPSEEK_API_KEY)"
-    static let dashScopeAPIKey = "$(sw DASHSCOPE_API_KEY)"
-    static let zhipuAPIKey     = "$(sw ZHIPU_API_KEY)"
-    static let moonshotAPIKey  = "$(sw MOONSHOT_API_KEY)"
     static let ensemblePanel   = "$(sw ENSEMBLE_PANEL)"
     static let ensembleChairman = "$(sw ENSEMBLE_CHAIRMAN)"
     static let hubSpotClientID = "$(sw HUBSPOT_CLIENT_ID)"
@@ -222,11 +313,19 @@ enum Secrets {
     static let confluenceToken = "$(sw CONFLUENCE_TOKEN)"
     static let teamWatchAutoAck = "$(sw TEAM_WATCH_AUTO_ACK)"
 }
+#endif
 EOF
+
+if [ "$DIST" != "1" ]; then
+    SWIFT_BUILD_ARGS+=(-Xswiftc -DORAKUL_LOCAL_CONFIG)
+fi
 
 if [ "$DIST" = "1" ]; then
     echo ">> DIST build: ключи не бакаются — их вводит человек, расшифровка на устройстве"
-    # Читается СГЕНЕРИРОВАННЫЙ файл, а не функция, которая его наполняет.
+    # Читается файл, который DIST действительно компилирует. Локальный
+    # `LocalSecrets.generated.swift` в этом режиме остаётся под выключенным
+    # `#if ORAKUL_LOCAL_CONFIG`; проверять его означало бы доказывать свойства
+    # файла, которого в отгружаемом бинарнике нет.
     #
     # Раньше здесь стояло `sw BACKEND_URL` — и это была мёртвая проверка: тот
     # же `sw` двадцатью строками выше стирает BACKEND_URL в dist-ветке, так что
@@ -235,9 +334,16 @@ if [ "$DIST" = "1" ]; then
     # доказательство. Правило репозитория ровно об этом: проверять отгружаемое,
     # а не то, что его кормит.
     #
-    # Теперь достаточно любого пути, которым адрес мог попасть в файл: снятая
-    # подстановка, вторая запись, правка руками — всё видно здесь.
-    DIST_BACKEND="$(sed -n 's/.*backendBaseURL *= *"\(.*\)".*/\1/p' "$SECRETS")"
+    # Ровно одно строковое объявление: отсутствие/динамическое выражение не
+    # трактуется как пустота. Иначе переименование поля убрало бы саму проверку,
+    # а сборка продолжила бы докладывать «сервер не задан».
+    DIST_CONFIG="$ROOT/Sources/MeetGPT/Secrets.swift"
+    DIST_BACKEND_COUNT="$(grep -Ec '^[[:space:]]*static let backendBaseURL[[:space:]]*=[[:space:]]*"[^"]*"[[:space:]]*$' "$DIST_CONFIG" || true)"
+    if [ "$DIST_BACKEND_COUNT" != "1" ]; then
+        echo "!! В $DIST_CONFIG ожидалось ровно одно строковое объявление backendBaseURL" >&2
+        exit 1
+    fi
+    DIST_BACKEND="$(sed -n 's/.*backendBaseURL[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$DIST_CONFIG")"
     # Проверка перевёрнута против cruxwing. Там запрещался адрес рабочей копии
     # (`localhost`) при обязательном боевом; здесь запрещён любой непустой:
     # orakul ходит к провайдеру напрямую, сервера у него нет, и адрес в
@@ -246,7 +352,7 @@ if [ "$DIST" = "1" ]; then
     if [ -n "$DIST_BACKEND" ]; then
         echo "!! В DIST-сборку попал адрес сервера ($DIST_BACKEND) — отказ." >&2
         echo "!! У orakul нет сервера: LLM_GATEWAY=direct, ключ пользователя, запрос к провайдеру." >&2
-        echo "!! Адрес попал в Secrets.swift — уберите его источник, а не эту проверку." >&2
+        echo "!! Адрес попал в отгружаемый Secrets.swift — уберите его источник, а не эту проверку." >&2
         exit 1
     fi
     echo ">> сервер не задан — так и задумано"
@@ -265,12 +371,36 @@ fi
 # отвечать исходникам, на которые ссылается его штамп, а не остаткам прошлого
 # прогона. Платим двумя минутами на архитектуру.
 if [ "$BUILD_ARCH" != "native" ]; then
-    swift package "${SWIFT_BUILD_ARGS[@]}" clean 2>/dev/null || true
+    # A prospective-release check may provide GIT_INDEX_FILE for Orakul's root
+    # tree. SwiftPM spawns Git while creating dependency worktrees; forwarding
+    # the root index into those nested repositories leaves their own indexes
+    # empty (every file appears deleted and untracked). The compiler never
+    # needs Orakul's alternate index, so keep that boundary out of SwiftPM.
+    env -u GIT_INDEX_FILE swift package "${SWIFT_BUILD_ARGS[@]}" clean 2>/dev/null || true
+fi
+
+if [ "$DIST" = "1" ]; then
+    # Resolution may fetch a missing checkout, but it may not choose a newer
+    # revision than the reviewed lockfile. Inspect the exact scratch path this
+    # architecture will compile: app/.build is ignored, so the main clean-tree
+    # gate cannot see a hand-edited dependency checkout.
+    echo ">> resolving exactly Package.resolved and verifying SwiftPM checkouts"
+    env -u GIT_INDEX_FILE swift package "${SWIFT_BUILD_ARGS[@]}" \
+        --only-use-versions-from-resolved-file resolve
+    bash "$ROOT/../scripts/verify-swiftpm-checkouts.sh" \
+        "$SWIFT_SCRATCH" "$ROOT/Package.resolved"
 fi
 
 echo ">> swift build (release, $BUILD_ARCH)"
-swift build "${SWIFT_BUILD_ARGS[@]}"
-BIN_DIR="$(swift build "${SWIFT_BUILD_ARGS[@]}" --show-bin-path)"
+env -u GIT_INDEX_FILE swift build "${SWIFT_BUILD_ARGS[@]}"
+if [ "$DIST" = "1" ]; then
+    # Catch a checkout changed while compilation was running as well as one
+    # already dirty before it. A releasable dependency cannot generate files
+    # into its own source tree.
+    bash "$ROOT/../scripts/verify-swiftpm-checkouts.sh" \
+        "$SWIFT_SCRATCH" "$ROOT/Package.resolved"
+fi
+BIN_DIR="$(env -u GIT_INDEX_FILE swift build "${SWIFT_BUILD_ARGS[@]}" --show-bin-path)"
 BIN="$BIN_DIR/MeetGPT"
 [ -x "$BIN" ] || { echo "!! built executable missing: $BIN" >&2; exit 1; }
 
@@ -283,14 +413,27 @@ cp "$ROOT/Support/Info.plist" "$STAGE/Contents/Info.plist"
 # MAS requires a strictly increasing CFBundleVersion — derive from git height.
 BUILD_NUM="$(git -C "$ROOT" rev-list --count HEAD 2>/dev/null || echo 1)"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$STAGE/Contents/Info.plist" 2>/dev/null || true
-# The commit this bundle was actually built from, so a shipped artifact can be
-# traced back to source without guessing. A release chain that checks out the
-# wrong ref still produces a green log and a working DMG — the only way to
-# catch it is to ask the binary what it is, which needs this stamp to exist.
-GIT_SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+# The full commit this bundle reports it was built from. A short prefix is
+# convenient in a UI but ambiguous as release provenance; the plist is the
+# machine-readable record and therefore keeps the complete object id.
+GIT_SHA="$(git -C "$ROOT" rev-parse --verify 'HEAD^{commit}' 2>/dev/null || true)"
+if [ -z "$GIT_SHA" ]; then
+    if [ "$DIST" = "1" ]; then
+        echo "!! DIST build has no Git commit to stamp — refusing an untraceable release" >&2
+        exit 1
+    fi
+    GIT_SHA="unknown"
+fi
 /usr/libexec/PlistBuddy -c "Add :OrakulCommit string $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Set :OrakulCommit $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null || true
-# Хеш самих исходников — потому что коммита мало.
+if ! /usr/libexec/PlistBuddy -c "Add :OrakulTreeState string $DIST_TREE_STATE" \
+        "$STAGE/Contents/Info.plist" 2>/dev/null \
+   && ! /usr/libexec/PlistBuddy -c "Set :OrakulTreeState $DIST_TREE_STATE" \
+        "$STAGE/Contents/Info.plist" 2>/dev/null; then
+    echo "!! could not stamp worktree provenance in Info.plist" >&2
+    exit 1
+fi
+# Полный SHA-256 исходников и входов упаковки — потому что одного коммита мало.
 #
 # Коммит отвечает на вопрос «какой ref был выписан», а не «что внутри». При
 # незакоммиченном дереве он врёт молча: 12 августа подряд собрано девять разных
@@ -298,23 +441,43 @@ GIT_SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 # файлах. Отличить сборку с десятью коннекторами от вчерашней по штампу было
 # нельзя.
 #
-# `Secrets.swift` исключён: он генерируется при каждой сборке из .env, и его
-# содержимое зависит от режима, а не от исходников. Включив его, мы получили бы
-# разный хеш у dev- и dist-сборки одного и того же кода.
+# `LocalSecrets.generated.swift` исключается общей реализацией source-hash.sh: он
+# генерируется из .env, и его содержимое зависит от режима, а не от исходников.
+# Безопасный, отслеживаемый `Secrets.swift` при этом входит в штамп.
 # Ядро входит в хеш наравне с приложением. Раньше считалось только по
 # `Sources/MeetGPT`, а с тех пор приложение линкует OrakulCore: коннекторы,
 # словарь и поиск ушли туда и физически лежат в этом же бинарнике. Проверено:
 # три файла ядра поменялись, бинарник пересобрался — штамп остался прежним.
 # Штамп, который не замечает половину того, что отгружает, хуже отсутствующего:
-# на него ссылается форма отчёта об ошибке.
-SOURCE_HASH="$(cd "$ROOT/.." && find app/Sources/MeetGPT mvp/Sources/OrakulCore -type f \
-    ! -name Secrets.swift | LC_ALL=C sort | xargs shasum -a 1 2>/dev/null \
-    | shasum -a 1 | cut -c1-12)"
+# на него ссылается форма отчёта об ошибке. Сборка и аудит вызывают один скрипт,
+# чтобы не расходиться из-за платформы, формы пути или алгоритма.
+SOURCE_HASH="$(bash "$ROOT/../scripts/app-source-hash.sh")"
 /usr/libexec/PlistBuddy -c "Add :OrakulSourceHash string $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Set :OrakulSourceHash $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null || true
 echo ">> исходники: $SOURCE_HASH (коммит $GIT_SHA)"
 # App-level privacy manifest (App Review requirement).
 cp "$ROOT/Support/PrivacyInfo.xcprivacy" "$STAGE/Contents/Resources/PrivacyInfo.xcprivacy"
+
+# The executable statically links permissively licensed dependencies. Their
+# redistribution terms must travel with the binary, not merely remain available
+# in a source checkout that most DMG users will never see. Keep tracked snapshots
+# so a clean release does not depend on SwiftPM's generated checkout layout.
+LEGAL="$ROOT/Support/Legal"
+LEGAL_MANIFEST="$LEGAL/MANIFEST.sha256"
+if [ ! -s "$LEGAL_MANIFEST" ]; then
+    echo "!! legal payload manifest missing ($LEGAL_MANIFEST) — refusing to package" >&2
+    exit 1
+fi
+if ! cmp -s "$ROOT/../LICENSE" "$LEGAL/Orakul/LICENSE"; then
+    echo "!! bundled Orakul license is stale — sync Support/Legal/Orakul/LICENSE" >&2
+    exit 1
+fi
+if ! (cd "$LEGAL" && shasum -a 256 -c MANIFEST.sha256 >/dev/null); then
+    echo "!! legal payload differs from its tracked SHA-256 manifest" >&2
+    exit 1
+fi
+rm -rf "$STAGE/Contents/Resources/Legal"
+cp -R "$LEGAL" "$STAGE/Contents/Resources/Legal"
 
 # SwiftPM emits bundled resources (the vendored Agent Skills + role matrix) as
 # a sibling resource bundle next to the built binary. In the .app it belongs in
@@ -347,15 +510,16 @@ if [ -z "$SIGN_ID" ]; then
 fi
 if [ -z "$SIGN_ID" ]; then
     SIGN_ID="$(printf '%s\n' "$IDENTITIES" \
-              | grep -Em1 'Apple Development|Mac Developer|MeetGPT' \
+              | grep -Em1 'Apple Development|Mac Developer|Orakul|MeetGPT' \
               | awk -F'"' '{print $2}' || true)"
 fi
 if [ -z "$SIGN_ID" ]; then
     # Self-signed dev certs are not "valid" (-v) until trusted in the keychain,
     # but codesign can still sign with them — and TCC keys on their stable
-    # identity, which is all we need. Pick up an untrusted MeetGPT cert too.
+    # identity, which is all we need. Pick up an untrusted Orakul cert too;
+    # retain MeetGPT as a compatibility fallback for existing developer setups.
     SIGN_ID="$(security find-identity -p codesigning 2>/dev/null \
-              | grep -Em1 'MeetGPT' | awk -F'"' '{print $2}' || true)"
+              | grep -Em1 'Orakul|MeetGPT' | awk -F'"' '{print $2}' || true)"
 fi
 if [ -z "$SIGN_ID" ]; then
     SIGN_ID="-"
@@ -375,7 +539,7 @@ fi
 # --verify --deep --strict` reported "valid on disk / satisfies its Designated
 # Requirement", spctl objected only to notarization, and then launchd refused to
 # spawn it with "Launch failed", POSIX 153, no crash report and nothing in the
-# system log. The user just sees "The application Cruxwing can't be opened."
+# system log. The user just sees that the application cannot be opened.
 # So drop the entitlement whenever either half is missing. Sign in with Apple is
 # then absent from that build; Google and email OTP sign-in still work.
 PROFILE="${MEETGPT_PROVISION_PROFILE:-$ROOT/Support/embedded.provisionprofile}"
@@ -427,7 +591,7 @@ fi
 
 # Sign the staging bundle before installing it. Developers often launch
 # the staged app directly; leaving that copy unsigned gives it a different
-# TCC identity from /Applications/Cruxwing.app, so an apparently granted
+# TCC identity from /Applications/orakul.app, so an apparently granted
 # Microphone or Screen Recording permission is rejected at runtime.
 codesign --force --deep --sign "$SIGN_ID" --entitlements "$SIGN_ENT" "$STAGE"
 codesign --verify --deep --strict "$STAGE"

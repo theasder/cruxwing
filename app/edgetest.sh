@@ -24,17 +24,22 @@ set -u
 umask 077
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="/Applications/Cruxwing.app"
-OUTDIR="$(mktemp -d /tmp/cruxwing-edgetest.XXXXXX)"
+APP="/Applications/orakul.app"
+OUTDIR="$(mktemp -d /tmp/orakul-edgetest.XXXXXX)"
 chmod 700 "$OUTDIR"
 STATE_JSON="$OUTDIR/state.json"
 RUN_NONCE="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 RUN_STARTED_EPOCH="$(python3 -c 'import time; print(int(time.time()))')"
+AI_ASSERTIONS_ENABLED="${ORAKUL_LIVETEST_AI_ASSERTIONS:-1}"
+case "$AI_ASSERTIONS_ENABLED" in
+    0|1) ;;
+    *) echo "!! ORAKUL_LIVETEST_AI_ASSERTIONS must be 0 or 1"; exit 2 ;;
+esac
 
 cleanup() {
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_NONCE >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv CRUXWING_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_NONCE >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv ORAKUL_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -58,34 +63,28 @@ function run(argv) {
 }
 JXA
 }
-dump() { rm -f "$STATE_JSON"; send ai.cruxwing.livetest.dumpState path "$STATE_JSON"
+dump() { rm -f "$STATE_JSON"; send ai.orakul.desktop.livetest.dumpState path "$STATE_JSON"
          for _ in $(seq 1 20); do [ -f "$STATE_JSON" ] && break; sleep 0.25; done
          [ -f "$STATE_JSON" ] || { echo "!! no state dump — dev app running?"; return 1; }; }
 jqv() { python3 -c "import json;d=json.load(open('$STATE_JSON'));print(d$1)"; }
-inject() { send ai.cruxwing.livetest.injectLine text "$1" source "$2" ${3:+speaker "$3"}; }
-appwin() { osascript -e 'tell application "System Events" to count windows of process "Cruxwing"' 2>/dev/null || echo 0; }
+inject() { send ai.orakul.desktop.livetest.injectLine text "$1" source "$2" ${3:+speaker "$3"}; }
+appwin() { osascript -e 'tell application "System Events" to count windows of process "orakul"' 2>/dev/null || echo 0; }
 
 # ── E1 · cold launch, then relaunch while running ───────────────────────────
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
     echo ">> building + installing"
     bash "$ROOT/build.sh" >"$OUTDIR/build.log" 2>&1 || { echo "!! build failed — $OUTDIR/build.log"; exit 2; }
 fi
-osascript -e 'quit app "Cruxwing"' >/dev/null 2>&1; sleep 2
-/bin/launchctl setenv CRUXWING_LIVETEST_NONCE "$RUN_NONCE"
-/bin/launchctl setenv CRUXWING_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
-/bin/launchctl setenv CRUXWING_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
+osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1; sleep 2
+/bin/launchctl setenv ORAKUL_LIVETEST_NONCE "$RUN_NONCE"
+/bin/launchctl setenv ORAKUL_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
+/bin/launchctl setenv ORAKUL_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
 open "$APP"; sleep 6
 dump || exit 2
 check "E1a cold launch reaches idle" $? "status=$(jqv "['status']")"
 
-# Entitle the APP's own session before any AI scenario. Without this the E3
-# assertions grade a "401 Sign in to use your Free AI credits" body as an
-# answer — green suite, zero coverage.
-# shellcheck source=testlib/entitle.sh
-source "$ROOT/testlib/entitle.sh"
-send ai.cruxwing.livetest.redeem code "DEV-UNLIMITED-LOCAL"
-sleep 3
-entitle_or_warn
+# E3 uses only the provider credentials the user already saved in Orakul.
+# The harness never inserts a shared key or grants itself product access.
 PIDS_BEFORE="$(pgrep -x MeetGPT | sort | tr '\n' ' ')"
 open "$APP"; sleep 3   # relaunch while running — LaunchServices must reuse
 PIDS_AFTER="$(pgrep -x MeetGPT | sort | tr '\n' ' ')"
@@ -94,16 +93,16 @@ check "E1b relaunch reuses the running instance" $? "pids: ${PIDS_AFTER:-none}"
 dump; [ "$(jqv "['status']")" != "" ]; check "E1c app still responds after relaunch" $? "hooks alive"
 
 # ── E2 · empty and whitespace asks must not start a run ─────────────────────
-send ai.cruxwing.livetest.ask text ""
-send ai.cruxwing.livetest.ask text "   "
+send ai.orakul.desktop.livetest.ask text ""
+send ai.orakul.desktop.livetest.ask text "   "
 sleep 2; dump
 [ "$(jqv "['aiStreaming']")" = "False" ] && [ "$(jqv "['aiResponseChars']")" = "0" ]
 check "E2 empty ask starts nothing" $? "streaming=$(jqv "['aiStreaming']") chars=$(jqv "['aiResponseChars']")"
 
 # ── E3 · ask while streaming: the second message must not vanish ────────────
-send ai.cruxwing.livetest.ask text "First question: give a long answer about meeting preparation."
+send ai.orakul.desktop.livetest.ask text "First question: give a long answer about meeting preparation."
 sleep 1   # let the first run enter streaming
-send ai.cruxwing.livetest.ask text "Second question: what is two plus two?"
+send ai.orakul.desktop.livetest.ask text "Second question: what is two plus two?"
 TERMINAL=1
 for _ in $(seq 1 90); do
     sleep 1; dump >/dev/null 2>&1 || continue
@@ -112,14 +111,13 @@ done
 check "E3a run reaches a terminal state" $TERMINAL "streaming=$(jqv "['aiStreaming']")"
 [ "$(jqv "['aiResponsePrompt']")" = "Second question: what is two plus two?" ]
 check "E3b live prompt is the SECOND ask (not silently dropped)" $? "prompt: $(jqv "['aiResponsePrompt']" | head -c 60)"
-# Only meaningful with an entitlement: unentitled, the "answer" is a 401 body
-# and asserting on it proves nothing.
-if [ "$ENTITLED" = "1" ]; then
+# Only meaningful when the user has opted into live provider assertions.
+if [ "$AI_ASSERTIONS_ENABLED" = "1" ]; then
     [ "$(jqv "['aiResponseIsError']")" = "False" ] && [ "$(jqv "['aiResponseChars']")" -gt 0 ]
     check "E3c the answer is real, not an error body" $? \
         "$(jqv "['aiResponseChars']") chars, error=$(jqv "['aiResponseIsError']")"
 else
-    printf '⏭️  E3c the answer is real — unentitled, would grade a 401 body\n'
+    printf '⏭️  E3c the answer is real — provider assertions disabled\n'
 fi
 [ "$(jqv "['aiHistoryCount']")" -ge 0 ]
 note "history=$(jqv "['aiHistoryCount']") (first turn archived if it had streamed text) · head: $(jqv "['aiResponseHead'][:80]" | tr '\n' ' ')"
@@ -156,7 +154,7 @@ TOTAL_GAIN=$(( $(jqv "['transcriptCount']") - BASE_TC ))
 check "E6 same sentence minutes apart is kept" $? "+$TOTAL_GAIN line(s) (want 2)"
 
 # ── E7 · quota latch: watches stop, one visible notice ──────────────────────
-send ai.cruxwing.livetest.latchQuota
+send ai.orakul.desktop.livetest.latchQuota
 sleep 1; dump
 QM="$(jqv "['copilotQuotaMessage']")"
 [ "$QM" != "None" ] && [ -n "$QM" ]; check "E7a latch is set from the 429" $? "message: $(echo "$QM" | head -c 70)"
@@ -164,7 +162,7 @@ case "$QM" in *"{"*) BAD=0;; *) BAD=1;; esac
 [ "$BAD" = "1" ]; check "E7b notice is a sentence, not raw JSON" $? "no JSON envelope leaked"
 
 # ── E8 · a new call clears the latch and per-call state ─────────────────────
-send ai.cruxwing.livetest.newCall
+send ai.orakul.desktop.livetest.newCall
 sleep 2; dump
 # JSONEncoder drops nil optionals entirely — an absent key IS the cleared state.
 CLEARED="$(python3 -c "import json;d=json.load(open('$STATE_JSON'));print(d.get('copilotQuotaMessage'))")"
@@ -175,8 +173,8 @@ check "E8b new call starts with an empty transcript" $? "transcriptCount=$(jqv "
 
 # ── E9 · rapid record toggling must settle cleanly ──────────────────────────
 for _ in 1 2 3; do
-    send ai.cruxwing.livetest.toggleRecording; sleep 1
-    send ai.cruxwing.livetest.toggleRecording; sleep 1
+    send ai.orakul.desktop.livetest.toggleRecording; sleep 1
+    send ai.orakul.desktop.livetest.toggleRecording; sleep 1
 done
 sleep 4; dump
 STATUS="$(jqv "['status']")"
@@ -188,9 +186,9 @@ check "E9 rapid start/stop settles" $? "status=$STATUS after 3 fast cycles"
 # as the newest SAVED session, not in the live transcript.
 inject "persistence marker line about project falcon budget" system "Speaker A"
 sleep 1
-send ai.cruxwing.livetest.newCall     # startNewCall persists the outgoing call
+send ai.orakul.desktop.livetest.newCall     # startNewCall persists the outgoing call
 sleep 2
-osascript -e 'quit app "Cruxwing"' >/dev/null 2>&1; sleep 3
+osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1; sleep 3
 open "$APP"; sleep 6
 if dump; then
     python3 -c "

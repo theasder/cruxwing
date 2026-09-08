@@ -7,8 +7,8 @@ enum CreditUsagePhase: Equatable {
     case stale
     /// No account session to query a balance for. Distinct from `unavailable`
     /// (the request failed): one is fixed by signing in, the other by waiting.
-    /// Collapsing them into one label is what made a signed-out app look like
-    /// a broken promo code.
+    /// Collapsing them into one label makes a missing session look like a
+    /// transient service failure.
     case signedOut
     case unavailable
 }
@@ -53,7 +53,7 @@ final class CreditUsageLoader: ObservableObject {
             // Not a failure: there is no account session (or the backend
             // gateway is off), so there is no balance to ask for. Reporting it
             // as `unavailable` made a signed-out app indistinguishable from a
-            // billing outage — and from a promo code that had not applied.
+            // transient service failure.
             usage = nil
             phase = .signedOut
             return
@@ -472,8 +472,7 @@ enum CreditBadge: Equatable {
 
     /// Whether the badge is reporting a problem the user can act on, rather
     /// than a balance. Both are "not a number", but only one is fixable by
-    /// signing in, and conflating them is what sent a developer hunting a
-    /// promo-code bug that did not exist.
+    /// signing in, and conflating them points debugging at the wrong boundary.
     /// "12 credits · sign up for 15 a month".
     ///
     /// Names what the user HAS first, because they do have it — then what
@@ -545,7 +544,8 @@ enum CreditBadge: Equatable {
     }
 }
 
-/// Clickable preflight with an absolute 6k threshold and a readable breakdown.
+/// Clickable preflight with a readable input breakdown. Managed mode uses its
+/// tariff boundary; direct BYOK uses the selected model's context window.
 /// The rail itself never animates while recording; only the explicit app switch
 /// can change its composition, which keeps transcript scrolling stable.
 struct PromptBudgetControl: View {
@@ -714,9 +714,11 @@ struct BudgetSummary: View {
                 creditSpendStatus(compact: compactStatus)
             } else {
                 // Direct-key/dev mode has no credit meter — token estimate
-                // remains the only honest number to show.
+                // remains the only honest number to show. Relate it to the
+                // selected model's verified context window, never to the
+                // inherited managed gateway's 6k credit-price boundary.
                 totalLabel(total)
-                statusLabel(compact: compactStatus)
+                directContextStatus(compact: compactStatus)
             }
             disclosureGlyph
         }
@@ -775,16 +777,26 @@ struct BudgetSummary: View {
             .lineLimit(1)
     }
 
-    private func statusLabel(compact: Bool) -> some View {
-        Group {
-            if estimate.tokensAboveBaseCreditInput > 0 {
+    private func directContextStatus(compact: Bool) -> some View {
+        let contextWindow = Config.selectedRequestModel.contextTokens
+        let overflow = max(0, estimate.totalTokens - (contextWindow ?? estimate.totalTokens))
+        let fraction = contextWindow.map {
+            min(1, Double(estimate.totalTokens) / Double(max($0, 1)))
+        }
+        let percentage = fraction.map { Int(($0 * 100).rounded()) }
+
+        return Group {
+            if overflow > 0 {
                 Text(compact
-                     ? "· +~\(TokenEstimate.label(estimate.tokensAboveBaseCreditInput)) >6k"
-                     : "· +~\(TokenEstimate.label(estimate.tokensAboveBaseCreditInput)) сверх 6k")
+                     ? "· +~\(TokenEstimate.label(overflow)) сверх окна"
+                     : "· +~\(TokenEstimate.label(overflow)) сверх окна модели")
                     .foregroundStyle(Theme.danger)
+            } else if let percentage {
+                Text(compact ? "· ~\(percentage)% окна" : "· ~\(percentage)% окна модели")
+                    .foregroundStyle(percentage >= 80 ? Theme.amber : Theme.inkTertiary)
             } else {
-                Text(compact ? "· <6k" : "· меньше 6k")
-                    .foregroundStyle(Theme.accentText)
+                Text(compact ? "· размер" : "· приблизительный размер контекста")
+                    .foregroundStyle(Theme.inkTertiary)
             }
         }
         .font(Typo.caption)
@@ -810,6 +822,14 @@ struct BudgetSummary: View {
 private struct InputBudgetRail: View {
     let estimate: TokenEstimate
 
+    /// The inherited gateway prices input around a fixed 6k boundary. Direct
+    /// providers do not: their meaningful boundary is the selected model's
+    /// verified context window.
+    private var referenceTokens: Int? {
+        if Config.llmViaBackend { return TokenEstimate.baseCreditInputTokens }
+        return Config.selectedRequestModel.contextTokens
+    }
+
     private var segments: [(tokens: Int, color: Color)] {
         [(estimate.transcriptTokens, Theme.accent),
          (estimate.contextTokens, Theme.amber),
@@ -819,7 +839,7 @@ private struct InputBudgetRail: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let scale = max(max(estimate.totalTokens, TokenEstimate.baseCreditInputTokens), 1)
+            let scale = max(max(estimate.totalTokens, referenceTokens ?? 0), 1)
             ZStack(alignment: .leading) {
                 Capsule().fill(Theme.surfaceSunken)
 
@@ -834,14 +854,16 @@ private struct InputBudgetRail: View {
                     }
                 }
 
-                Rectangle()
-                    .fill(estimate.tokensAboveBaseCreditInput > 0
-                          ? Theme.danger : Theme.hairlineStrong)
-                    .frame(width: 1, height: proxy.size.height)
-                    .offset(x: min(proxy.size.width - 1,
-                                   proxy.size.width
-                                   * CGFloat(TokenEstimate.baseCreditInputTokens)
-                                   / CGFloat(scale)))
+                if let referenceTokens {
+                    Rectangle()
+                        .fill(estimate.totalTokens > referenceTokens
+                              ? Theme.danger : Theme.hairlineStrong)
+                        .frame(width: 1, height: proxy.size.height)
+                        .offset(x: min(proxy.size.width - 1,
+                                       proxy.size.width
+                                       * CGFloat(referenceTokens)
+                                       / CGFloat(scale)))
+                }
             }
             .clipShape(Capsule())
         }
@@ -871,37 +893,51 @@ struct PromptBudgetDetails: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.m) {
-            // Balance, then when it refills, then what it buys. A credit count
-            // on its own is not actionable — "412 left" reads very differently
-            // on day 2 than on day 29, and the reset was never shown at all.
-            VStack(alignment: .leading, spacing: Space.xs) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("Кредиты")
-                        .font(Typo.headline)
-                        .foregroundStyle(Theme.ink)
-                    Spacer(minLength: Space.s)
-                    if let tier = creditUsage?.tier, !tier.isEmpty {
-                        Text(tier.capitalized)
-                            .font(Typo.caption.weight(.semibold))
+            if Config.llmViaBackend {
+                // Balance, then when it refills, then what it buys. This block
+                // belongs only to the inherited managed gateway; direct BYOK
+                // has no Orakul balance or plan.
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Кредиты")
+                            .font(Typo.headline)
+                            .foregroundStyle(Theme.ink)
+                        Spacer(minLength: Space.s)
+                        if let tier = creditUsage?.tier, !tier.isEmpty {
+                            Text(tier.capitalized)
+                                .font(Typo.caption.weight(.semibold))
+                                .foregroundStyle(Theme.inkSecondary)
+                                .padding(.horizontal, Space.s)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(Theme.surfaceSunken))
+                        }
+                    }
+                    if let headline = balanceHeadline {
+                        Text(headline)
+                            .font(Typo.caption)
                             .foregroundStyle(Theme.inkSecondary)
-                            .padding(.horizontal, Space.s)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(Theme.surfaceSunken))
+                            .monospacedDigit()
                     }
                 }
-                if let headline = balanceHeadline {
-                    Text(headline)
+                managedCreditSection
+            } else {
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text("Контекст запроса")
+                        .font(Typo.headline)
+                        .foregroundStyle(Theme.ink)
+                    Text("Orakul не продаёт кредиты и не ограничивает запросы. Ключ и оплату выбранного AI-провайдера контролируете вы.")
                         .font(Typo.caption)
-                        .foregroundStyle(Theme.inkSecondary)
-                        .monospacedDigit()
+                        .foregroundStyle(Theme.inkTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
-            creditSection
             Hairline()
 
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Из чего складывается цена промпта")
+                Text(Config.llmViaBackend
+                     ? "Из чего складывается цена промпта"
+                     : "Что занимает контекст запроса")
                     .font(Typo.bodyStrong)
                     .foregroundStyle(Theme.inkSecondary)
                 Text("Пока примерно \(TokenEstimate.label(estimate.totalTokens)) входных токенов")
@@ -961,65 +997,51 @@ struct PromptBudgetDetails: View {
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    private var thresholdDetail: String {
-        if estimate.tokensAboveBaseCreditInput > 0 {
-            return "Примерно \(TokenEstimate.label(estimate.tokensAboveBaseCreditInput)) сверх 6 тысяч · у провайдера это дороже"
-        }
-        return "Пока меньше 6 тысяч токенов · нажатая кнопка добавит инструкции"
-    }
-
     @ViewBuilder
-    private var creditSection: some View {
-        if Config.llmViaBackend {
-            switch creditUsagePhase {
-            case .loading:
-                HStack(spacing: Space.s) {
-                    ProgressView()
-                        .controlSize(.small)
-                    Text("Загружаю баланс кредитов…")
-                        .font(Typo.caption)
-                        .foregroundStyle(Theme.inkSecondary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Загружаю баланс кредитов")
-            case .fresh, .stale:
-                if let usage = creditUsage {
-                    let allowance = max(usage.allowances.computeCredits, 1)
-                    let remaining = max(0, usage.remaining.computeCredits)
-                    VStack(alignment: .leading, spacing: Space.xs) {
-                        HStack {
-                            Text("Кредиты")
-                                .font(Typo.caption.weight(.semibold))
-                                .foregroundStyle(Theme.inkSecondary)
-                            Spacer()
-                            Text("осталось \(remaining) из \(allowance)\(creditUsagePhase == .stale ? " · по последней проверке" : "")")
-                                .font(Typo.caption)
-                                .foregroundStyle(Theme.inkSecondary)
-                                .monospacedDigit()
-                        }
-                        ProgressView(value: Double(min(remaining, allowance)), total: Double(allowance))
-                            .tint(remaining * 5 < allowance ? Theme.danger : Theme.accent)
-                            .controlSize(.small)
+    private var managedCreditSection: some View {
+        switch creditUsagePhase {
+        case .loading:
+            HStack(spacing: Space.s) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Загружаю баланс кредитов…")
+                    .font(Typo.caption)
+                    .foregroundStyle(Theme.inkSecondary)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Загружаю баланс кредитов")
+        case .fresh, .stale:
+            if let usage = creditUsage {
+                let allowance = max(usage.allowances.computeCredits, 1)
+                let remaining = max(0, usage.remaining.computeCredits)
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    HStack {
+                        Text("Кредиты")
+                            .font(Typo.caption.weight(.semibold))
+                            .foregroundStyle(Theme.inkSecondary)
+                        Spacer()
+                        Text("осталось \(remaining) из \(allowance)\(creditUsagePhase == .stale ? " · по последней проверке" : "")")
+                            .font(Typo.caption)
+                            .foregroundStyle(Theme.inkSecondary)
+                            .monospacedDigit()
                     }
-                } else {
-                    unavailableCreditRow
+                    ProgressView(value: Double(min(remaining, allowance)), total: Double(allowance))
+                        .tint(remaining * 5 < allowance ? Theme.danger : Theme.accent)
+                        .controlSize(.small)
                 }
-            case .signedOut:
-                signedOutCreditRow
-            case .unavailable:
+            } else {
                 unavailableCreditRow
             }
-
-            Text("Стоимость запроса у провайдера складывается из базовой ставки модели и надбавок за длинный вход и длинный ответ. Точную сумму считает сам провайдер.")
-                .font(Typo.caption)
-                .foregroundStyle(Theme.inkTertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        } else {
-            Text("Меньше входного текста — меньше расход у провайдера. Плата за модели у orakul не берётся.")
-                .font(Typo.caption)
-                .foregroundStyle(Theme.inkTertiary)
-                .fixedSize(horizontal: false, vertical: true)
+        case .signedOut:
+            signedOutCreditRow
+        case .unavailable:
+            unavailableCreditRow
         }
+
+        Text("Стоимость запроса у провайдера складывается из базовой ставки модели и надбавок за длинный вход и длинный ответ. Точную сумму считает сам провайдер.")
+            .font(Typo.caption)
+            .foregroundStyle(Theme.inkTertiary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// No account session. Names the cause and the fix, and says plainly that

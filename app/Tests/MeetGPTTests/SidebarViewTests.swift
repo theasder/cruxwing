@@ -60,4 +60,26 @@ struct SidebarViewTests {
 
         #expect(state.focusItems.isEmpty)
     }
+
+    @Test("History shows archive read failures instead of an empty-state claim")
+    func historyStorageFailureIsVisible() throws {
+        enum ListingFailure: Error { case denied }
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("sidebar-history-warning-\(UUID().uuidString)",
+                                    isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = SessionStore(root: root, directoryContents: { _ in
+            throw ListingFailure.denied
+        })
+        let state = AppState(llm: MockLLMGateway(response: ""), sessionStore: store)
+        let inspected = try Sidebar().environmentObject(state).inspect()
+
+        #expect(throws: Never.self) {
+            try inspected.find(viewWithAccessibilityIdentifier: "history-storage-warning")
+        }
+        #expect(throws: (any Error).self) {
+            try inspected.find(text: "Сохранённых звонков пока нет. Импортируйте звонок из Fireflies, чтобы поискать в нём слепые зоны.")
+        }
+    }
 }

@@ -10,7 +10,7 @@
 # подряд: девять установщиков за день выходили с одним номером коммита и разным
 # содержимым.
 #
-#   bash scripts/source-hash.sh mvp/Sources/OrakulCore mvp/Sources/orakul
+#   bash scripts/source-hash.sh mvp/Package.swift mvp/Sources/OrakulCore
 #
 # Пути передаются явно и относительно корня репозитория: в пакет для Linux едет
 # не то же, что в macOS-приложение, и штамповать пакет хешем исходников, которых
@@ -22,20 +22,48 @@ cd "$(dirname "$0")/.."
 [ "$#" -gt 0 ] || { echo "укажите каталоги с исходниками" >&2; exit 1; }
 
 for path in "$@"; do
-    [ -d "$path" ] || { echo "нет каталога: $path" >&2; exit 1; }
+    [ -e "$path" ] || { echo "нет пути: $path" >&2; exit 1; }
+    [ -d "$path" ] || [ -f "$path" ] || {
+        echo "путь не файл и не каталог: $path" >&2
+        exit 1
+    }
+    case "$path" in
+        /*|.|..|./*|../*|*/./*|*/../*|*/.|*/..|*//*)
+            echo "путь должен быть нормализован и относителен корню: $path" >&2
+            exit 1
+            ;;
+        */)
+            echo "уберите завершающий / из пути: $path" >&2
+            exit 1
+            ;;
+    esac
 done
 
-# `sha1sum` на Linux, `shasum -a 1` на macOS: вывод одинаковый, имя разное.
-# Порядок задаётся LC_ALL=C, иначе локаль меняет сортировку и хеш начинает
-# зависеть от настроек машины, а не от кода.
-if command -v sha1sum >/dev/null; then
-    SUM=(sha1sum)
+# Полный SHA-256, а не короткий идентификатор. Короткий SHA-1 годился как
+# подпись для человека, но не как контрольная сумма опубликованного файла.
+# `sha256sum` есть в Linux-образах, системный `shasum` — на macOS.
+if command -v sha256sum >/dev/null; then
+    SUM=(sha256sum)
+elif command -v shasum >/dev/null; then
+    SUM=(shasum -a 256)
 else
-    SUM=(shasum -a 1)
+    echo "нет sha256sum или shasum — SHA-256 посчитать нельзя" >&2
+    exit 1
 fi
 
-find "$@" -type f ! -name Secrets.swift \
-    | LC_ALL=C sort \
-    | xargs "${SUM[@]}" \
+# В поток входят и относительный путь, и SHA-256 содержимого каждого файла.
+# Нулевые разделители не ломаются на пробелах и переводах строк в именах.
+# Порядок задаётся LC_ALL=C, иначе локаль делает штамп зависимым от машины.
+#
+# LocalSecrets.generated.swift — единственное исключение: build.sh создаёт его
+# из локального .env. Безопасный Sources/MeetGPT/Secrets.swift, манифесты,
+# lockfile, plist/entitlements and the build recipe are passed explicitly by
+# each packager and therefore affect the artifact stamp.
+find "$@" -type f ! -name LocalSecrets.generated.swift -print0 \
+    | LC_ALL=C sort -z \
+    | while IFS= read -r -d '' file; do
+        file_hash="$("${SUM[@]}" < "$file" | awk '{print $1}')"
+        printf '%s\0%s\0' "$file" "$file_hash"
+      done \
     | "${SUM[@]}" \
-    | cut -c1-12
+    | awk '{print $1}'

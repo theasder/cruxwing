@@ -32,6 +32,20 @@ struct TariffAllowance: Codable, Equatable, Sendable {
     }
 }
 
+/// Keeps inherited managed-plan accounting from becoming a product limit in
+/// direct BYOK mode. The public path has no Orakul-funded pool to exhaust.
+enum UsageLimitPolicy {
+    static func permits(managedLimitsEnabled: Bool,
+                        withinManagedLimit: @autoclosure () -> Bool) -> Bool {
+        !managedLimitsEnabled || withinManagedLimit()
+    }
+
+    static func remaining(managedLimitsEnabled: Bool,
+                          managedRemaining: @autoclosure () -> Int) -> Int {
+        managedLimitsEnabled ? max(0, managedRemaining()) : .max
+    }
+}
+
 enum TariffPeriod {
     static func currentStart(anchor: Date?, now: Date = Date()) -> Date {
         var calendar = Calendar(identifier: .gregorian)

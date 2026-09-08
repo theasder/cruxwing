@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "default_decision": "deny",
+  "scope": "automatic-prompt-methodology-only",
+  "review_revision": 1,
+  "reviewed_at": "2026-08-25",
+  "reviewed_skill_count": 9,
+  "reviewed_skills": [
+    {
+      "id": "anti-sycophancy",
+      "decision": "allow",
+      "source_repo": "sickn33/agentic-awesome-skills",
+      "source_commit": "ab5f6c205a548d2f4bec411728c79b9c156fc696",
+      "source_sha256": "629c6914792e9c1d780cdb5bdb85cecf3a98ff44002c2343c765bbd6d9397dd9",
+      "license": "MIT",
+      "prompt_ids": ["steelman"],
+      "rationale": "Response-posture checklist only; it asks for evidence-led disagreement and contains no account, file, network, or execution workflow."
+    },
+    {
+      "id": "capture",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "6d9630f83c2cb51615142dbb54e4091cddfdc4b8",
+      "source_sha256": "fd4232fa8ae704fadd92f57ebd698efe616e64a6d5fabcaafa45802347736965",
+      "license": "MIT",
+      "prompt_ids": ["commitments", "logdecision", "tasks", "unresolved"],
+      "rationale": "Meeting-note organization methodology with an explicit no-action-without-approval rule; unavailable workspace/tool directions are inert inside Orakul's untrusted-content wrapper."
+    },
+    {
+      "id": "challenge",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "eb04f1e49bae8a81681ad5b84c262a15798637b67aeff686f3a6da5a98f86904",
+      "license": "MIT",
+      "prompt_ids": ["advice", "dispute", "rhetoric", "steelman", "unresolved", "whattoask"],
+      "rationale": "Pure pre-mortem and assumption-analysis methodology; no credentials, external writes, publication, or account action."
+    },
+    {
+      "id": "executive-mentor",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "8c4f6b85b37e348f0e969cf03fad1c0b7b6afaf66a2331e384e9f0d34119542a",
+      "license": "MIT",
+      "prompt_ids": ["advice", "answer"],
+      "rationale": "Adversarial-questioning framework; fenced script examples are stripped and unavailable role invocations remain inert reference text."
+    },
+    {
+      "id": "postmortem",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "ca1b7ab332c72f523beefdf5d2be7399f475582a09fee4e36daffab51394a78e",
+      "license": "MIT",
+      "prompt_ids": ["risks", "summary"],
+      "rationale": "Blameless retrospective and root-cause methodology; produces analysis only and requests no external side effect."
+    },
+    {
+      "id": "product-discovery",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "52d492cb9eefe2136b21a295a9041bc60e11d7261f3f8ce84f3b58d83c8e75e4",
+      "license": "MIT",
+      "prompt_ids": ["brainstorm", "whattoask"],
+      "rationale": "Product opportunity and experiment-framing methodology; script examples are stripped before prompt inclusion."
+    },
+    {
+      "id": "research-summarizer",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "057b410fd89b3a0dc982c61eae22db89da3480e2e738f1333b8001d20ada3eb0",
+      "license": "MIT",
+      "prompt_ids": ["answer", "factcheck", "summary"],
+      "rationale": "Evidence and source-summarization methodology for supplied material; script examples are stripped and it explicitly performs no web search."
+    },
+    {
+      "id": "roadmap-communicator",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "d54b8192051b329d60d8258b1367f39c50c91c725ac326742c3932b91834ac64",
+      "license": "MIT",
+      "prompt_ids": ["agenda"],
+      "rationale": "Planning and stakeholder-communication methodology; script examples are stripped and no external action is required."
+    },
+    {
+      "id": "stress-test",
+      "decision": "allow",
+      "source_repo": "alirezarezvani/claude-skills",
+      "source_commit": "f2bac0a8f29b71846cc62d9d580249c2a3246030",
+      "source_sha256": "bfa5b78f085c2b7b6f72f6993b4dde409e0fd2f2b0d4183a304326c0b01646c6",
+      "license": "MIT",
+      "prompt_ids": ["factcheck", "risks", "rhetoric", "steelman", "whattoask"],
+      "rationale": "Pure counter-evidence, downside, sensitivity, and hedge analysis; no credentials or external side effect."
+    }
+  ]
+}

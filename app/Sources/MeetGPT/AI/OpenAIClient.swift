@@ -21,7 +21,7 @@ final class OpenAIClient {
 
     /// Defaults to OpenAI proper; pass a base URL + key lookup for any
     /// OpenAI-compatible provider.
-    init(session: URLSession = .shared,
+    init(session: URLSession = OrakulNetworkIdentity.shared,
          providerName: String = "OpenAI",
          endpoint: URL = URL(string: "https://api.openai.com/v1/chat/completions")!,
          keyProvider: @escaping () -> String = { Config.openAIAPIKey },

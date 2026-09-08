@@ -7,11 +7,11 @@
 #      (developer.apple.com → Certificates, or Xcode → Settings → Accounts).
 #   2. Store notarytool credentials (App Store Connect API key or app-specific
 #      password):
-#        xcrun notarytool store-credentials meetgpt-notary \
+#        xcrun notarytool store-credentials orakul-notary \
 #            --apple-id you@example.com --team-id TEAMID
 #
 # Then:  ./notarize.sh
-# Env:   NOTARY_PROFILE (default meetgpt-notary), NOTARY_SIGN_ID (override cert)
+# Env:   NOTARY_PROFILE (default orakul-notary), NOTARY_SIGN_ID (override cert)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -35,11 +35,11 @@ APP="$ROOT/build/$APP_BASENAME.app"
 # threw both away: the shipped app came back non-sandboxed AND carrying a
 # restricted Sign-in-with-Apple entitlement it had no profile for, so launchd
 # refused to spawn it and the app died with "Launchd job spawn failed" — which
-# Finder reports as "The application Cruxwing can't be opened."
+# Finder reports only that the application cannot be opened.
 ENT="$ROOT/Support/MeetGPT.sandbox.entitlements"
 [ -f "$ROOT/build/.local.entitlements" ] && ENT="$ROOT/build/.local.entitlements"
 DIST="$ROOT/dist"
-PROFILE="${NOTARY_PROFILE:-meetgpt-notary}"
+PROFILE="${NOTARY_PROFILE:-orakul-notary}"
 
 # Учётные данные нотаризации проверяются ДО сборки, а не в момент отправки.
 #

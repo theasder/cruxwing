@@ -2,42 +2,21 @@ import Testing
 import Foundation
 @testable import MeetGPT
 
-/// The role skill matrix (job position × prompt button → skills + method hint)
-/// is bundled as JSON and layered onto the system prompt. Pin the parser and
-/// the guidance composition.
+/// The role picker is a small first-party table. Prompt-specific methodology is
+/// governed separately by the reviewed bundled-skill policy.
 @Suite("Role skill matrix")
 struct RoleSkillMatrixTests {
-    private let sample = Data("""
-    {"positions":[
-      {"id":"product-manager","label":"Product Manager","symbol":"shippingbox",
-       "buttons":{
-         "brainstorm":{"skills":["product-discovery"],"hint":"Hang ideas off discovered opportunities; score by RICE."},
-         "risks":{"skills":["experiment-designer"],"hint":"Frame risks as untested hypotheses with a cheapest test."}
-       }}
-    ]}
-    """.utf8)
-
-    @Test("parses positions with button cells")
-    func parsesPositions() {
-        let positions = RoleSkillMatrix.parse(sample)
-        #expect(positions.count == 1)
-        let pm = positions[0]
-        #expect(pm.id == "product-manager")
-        #expect(pm.buttons["brainstorm"]?.skills == ["product-discovery"])
-        #expect(pm.buttons["risks"]?.hint.contains("cheapest test") == true)
-    }
-
-    @Test("malformed data parses to empty, never crashes")
-    func malformedData() {
-        #expect(RoleSkillMatrix.parse(Data("not json".utf8)).isEmpty)
-        #expect(RoleSkillMatrix.parse(Data()).isEmpty)
-    }
-
-    @Test("guidance composes role framing plus the button hint")
+    @Test("guidance is generic role framing, independent of prompt id")
     func guidanceComposition() {
-        // Guidance is nil for an unknown role regardless of button.
         #expect(RoleSkillMatrix.guidance(roleID: "not-a-role", promptID: "brainstorm") == nil)
         #expect(RoleSkillMatrix.guidance(roleID: nil, promptID: "brainstorm") == nil)
+        let brainstorm = RoleSkillMatrix.guidance(
+            roleID: "product-manager", promptID: "brainstorm")
+        let factcheck = RoleSkillMatrix.guidance(
+            roleID: "product-manager", promptID: "factcheck")
+        #expect(brainstorm == factcheck)
+        #expect(brainstorm?.contains("Продакт-менеджер") == true)
+        #expect(brainstorm?.contains("product-discovery") == false)
     }
 
     @Test("custom role guidance frames the user's own description")
@@ -56,21 +35,13 @@ struct RoleSkillMatrixTests {
                                          promptID: "brainstorm") == nil)
     }
 
-    @Test("the bundled matrix loads: 10 positions, 12 hinted buttons each")
-    func bundledMatrixLoads() {
+    @Test("the first-party role table is explicit, unique and usable")
+    func roleTable() {
         #expect(RoleSkillMatrix.positions.count == 10)
+        #expect(Set(RoleSkillMatrix.positions.map(\.id)).count == 10)
         for position in RoleSkillMatrix.positions {
-            #expect(position.buttons.count == 12, "\(position.id) has \(position.buttons.count) buttons")
-            for (buttonID, cell) in position.buttons {
-                #expect(!cell.hint.isEmpty, "\(position.id)/\(buttonID) hint empty")
-            }
+            #expect(!position.label.isEmpty)
+            #expect(!position.symbol.isEmpty)
         }
-        // Guidance for a real role+button carries the role framing and the hint.
-        //
-        // Роль называется по-русски: `label` в role-matrix.json переведён, `id`
-        // остался прежним. Название подставляется в промпт, и русское там
-        // уместно — вся остальная рамка уже по-русски.
-        let guidance = RoleSkillMatrix.guidance(roleID: "product-manager", promptID: "brainstorm")
-        #expect(guidance?.contains("Продакт-менеджер") == true)
     }
 }

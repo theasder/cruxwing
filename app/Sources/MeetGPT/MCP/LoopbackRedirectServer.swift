@@ -5,7 +5,7 @@ import Network
 /// One-shot localhost HTTP listener that catches an OAuth redirect
 /// (`http://127.0.0.1:<port>/callback?...`) during an MCP authorization flow.
 ///
-/// Why loopback and not a `meetgpt://` scheme: some MCP authorization servers
+/// Why loopback and not an `orakul://` scheme: some MCP authorization servers
 /// (live-verified: Fireflies) reject custom-scheme redirect URIs at /authorize,
 /// while every probed server accepts loopback — so loopback is the one pattern
 /// that works everywhere. This is the standard desktop-client approach
@@ -25,7 +25,7 @@ final class LoopbackRedirectServer: @unchecked Sendable {
     }
 
     private let port: UInt16
-    private let queue = DispatchQueue(label: "meetgpt.mcp.loopback")
+    private let queue = DispatchQueue(label: "ai.orakul.desktop.mcp.loopback")
     private let lock = NSLock()
     private var listener: NWListener?
     private var continuation: CheckedContinuation<URL, Error>?
