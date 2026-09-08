@@ -66,8 +66,8 @@ struct SecretInAddressTests {
             try Self.manifest(path: "/search/{token}").validate()
             Issue.record("манифест с секретом в пути принят")
         } catch let error as ConnectorManifest.ManifestError {
-            #expect(error.description.contains("журналы прокси"))
-            #expect(error.description.contains("адресе (path)"))
+            #expect(error.description.contains("proxy logs"))
+            #expect(error.description.contains("the path"))
         }
     }
 

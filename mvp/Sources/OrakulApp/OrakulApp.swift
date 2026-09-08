@@ -49,7 +49,7 @@ final class ArchiveModel: ObservableObject {
         // встреча — худший исход для архива.
         status = archive.skipped.isEmpty
             ? ""
-            : "Не смог прочитать: \(archive.skipped.joined(separator: ", "))"
+            : "Could not read: \(archive.skipped.joined(separator: ", "))"
     }
 
     func search() {
@@ -76,10 +76,10 @@ struct ContentView: View {
                 .font(.system(size: 22, weight: .semibold, design: .serif))
 
             HStack(spacing: 8) {
-                TextField("Что мы решили по тарифам?", text: $model.question)
+                TextField("What did we decide about pricing?", text: $model.question)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { model.search() }
-                Button("Найти") { model.search() }
+                Button("Search") { model.search() }
                     .keyboardShortcut(.defaultAction)
             }
 
@@ -96,9 +96,9 @@ struct ContentView: View {
             Divider()
 
             HStack {
-                Text("Созвоны: \(model.sessions.count)").foregroundStyle(.secondary)
+                Text("Calls: \(model.sessions.count)").foregroundStyle(.secondary)
                 Spacer()
-                Button("Обновить") { model.reload() }
+                Button("Refresh") { model.reload() }
             }
             .font(.system(size: 12))
 
@@ -116,8 +116,8 @@ struct ContentView: View {
 
             // Запись пока делает командная строка: в окне у неё нет ни выбора
             // устройства, ни индикатора уровня, а кнопка без них обманывает.
-            Text("Запись: orakul записать 60 «Планёрка». Системный звук пока не пишется — "
-                 + "только ваш микрофон.")
+            Text("Recording: orakul record 60 «Standup». System audio is not captured "
+                 + "yet — only your microphone.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }

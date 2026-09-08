@@ -52,15 +52,15 @@ public struct LexiconPack: Decodable, Equatable, Sendable {
         public var description: String {
             switch self {
             case .collidesWithOrdinaryWord(let pack, let word):
-                return "«\(word)» из пакета «\(pack)» — обычное русское слово. Починка превратила бы нормальную фразу в жаргон: страховой агент стал бы термином. Такое слово в словарь не берут."
+                return "«\(word)» from pack «\(pack)» is an ordinary Russian word. Repairing it would turn a normal phrase into jargon: an insurance agent would become a technical term. A word like that does not belong in the lexicon."
             case .duplicate(let pack, let word):
-                return "«\(word)» в пакете «\(pack)» указано дважды. Два канона у одного слова означают, что починка зависит от порядка обхода."
+                return "«\(word)» appears twice in pack «\(pack)». Two canonical forms for one word mean the repair depends on iteration order."
             case .wrongAlphabet(let pack, let word):
-                return "«\(word)» из пакета «\(pack)» записано не тем алфавитом: аббревиатуры пишутся латиницей, заимствования — кириллицей. Иначе словарь чинит слово в сторону, обратную канону."
+                return "«\(word)» from pack «\(pack)» is written in the wrong alphabet: abbreviations go in Latin, borrowings in Cyrillic. Otherwise the lexicon repairs the word away from its own canon."
             case .conflictBetweenPacks(let word, let first, let second, let canonical, let other):
-                return "«\(word)» пакет «\(first)» чинит в «\(canonical)», а «\(second)» — в «\(other)». Какой из них сработает, решал бы порядок чтения файлов, то есть имя файла. Это то же самое, что дубль внутри пакета, только увидеть его труднее."
+                return "«\(word)»: pack «\(first)» repairs it to «\(canonical)», and «\(second)» to «\(other)». Which one wins would be decided by the order the files are read, that is, by the file name. That is the same problem as a duplicate inside one pack, only harder to see."
             case .termIsOrdinaryElsewhere(let word, let term, let ordinary):
-                return "«\(word)» пакет «\(term)» считает термином, а «\(ordinary)» — обычным словом. Один из них ошибается, и пока не решено какой, словарь чинит речь по чужому мнению."
+                return "«\(word)»: pack «\(term)» calls it a technical term, and «\(ordinary)» an ordinary word. One of them is wrong, and until it is settled which, the lexicon repairs speech according to somebody else's opinion."
             }
         }
     }

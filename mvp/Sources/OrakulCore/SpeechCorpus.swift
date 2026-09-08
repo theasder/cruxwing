@@ -59,15 +59,15 @@ public struct SpeechCorpus: Decodable, Equatable, Sendable {
         public var description: String {
             switch self {
             case .unreadable(let path):
-                return "Описание корпуса «\(path)» не разобралось. Обязательные поля у записи: id, genre (talk или call), consent (public или participants), source, engines."
+                return "The corpus description at «\(path)» could not be parsed. A record requires: id, genre (talk or call), consent (public or participants), source, engines."
             case .missingFile(let item, let path):
-                return "У записи «\(item)» в описании указан файл «\(path)», которого нет. Замер по несуществующему файлу тихо превратится в замер по остальным."
+                return "Record «\(item)» names a file «\(path)» that does not exist. A measurement over a missing file quietly becomes a measurement over the rest."
             case .emptySource(let item):
-                return "У записи «\(item)» пустой source. Без него замер невоспроизводим: цифру нельзя перепроверить, а значит нельзя и оспорить."
+                return "Record «\(item)» has an empty source. Without it the measurement is not reproducible: the figure cannot be re-checked, and so cannot be disputed."
             case .noEngines(let item):
-                return "У записи «\(item)» нет ни одной расшифровки движка — измерять нечего."
+                return "Record «\(item)» has no engine transcript at all — there is nothing to measure."
             case .duplicateID(let id):
-                return "Запись «\(id)» описана дважды. Одна и та же речь, посчитанная два раза, сдвигает среднее и выглядит как больший корпус."
+                return "Record «\(id)» is described twice. The same speech counted twice shifts the average and looks like a larger corpus."
             }
         }
     }

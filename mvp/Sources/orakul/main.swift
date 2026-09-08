@@ -22,10 +22,10 @@ func recordFromMicrophone(_ rest: [String]) async -> CommandLineApp.Result {
                      exitCode: 1)
     }
 
-    FileHandle.standardError.write(Data("Записываю \(Int(seconds)) с. Говорите…\n".utf8))
+    FileHandle.standardError.write(Data("Recording \(Int(seconds))s. Speak…\n".utf8))
     do {
         let samples = try await MicrophoneRecorder.record(seconds: seconds) { done in
-            FileHandle.standardError.write(Data("\r\(String(format: "%.0f", done)) с".utf8))
+            FileHandle.standardError.write(Data("\r\(String(format: "%.0f", done))s".utf8))
         }
         FileHandle.standardError.write(Data("\n".utf8))
 
@@ -40,11 +40,11 @@ func recordFromMicrophone(_ rest: [String]) async -> CommandLineApp.Result {
             // был ниже фона обычной комнаты.
             let reason: String
             if buffer.looksSilent {
-                reason = String(format: "Тишина: уровень %.5f при пороге %.3f. "
-                                + "Похоже, выбран не тот микрофон или он выключен.",
+                reason = String(format: "Silence: level %.5f against a threshold of %.3f. "
+                                + "The wrong microphone is probably selected, or it is switched off.",
                                 buffer.level, AudioAccumulator.silenceThreshold)
             } else {
-                reason = String(format: "Слишком коротко — записано %.1f с.", buffer.seconds)
+                reason = String(format: "Too short — %.1fs recorded.", buffer.seconds)
             }
             return CommandLineApp.Result(output: reason, exitCode: 1)
         }
@@ -52,15 +52,15 @@ func recordFromMicrophone(_ rest: [String]) async -> CommandLineApp.Result {
         // Сохраняем запись рядом, чтобы её можно было расшифровать и потом:
         // потерять созвон из-за ненастроенного движка было бы обидно.
         let wav = URL(fileURLWithPath: home)
-            .appendingPathComponent("записи", isDirectory: true)
+            .appendingPathComponent("recordings", isDirectory: true)
             .appendingPathComponent("\(UUID().uuidString).wav")
         try FileManager.default.createDirectory(at: wav.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         try WAVFile.encode(samples: buffer.samples).write(to: wav)
 
         return CommandLineApp.Result(output: """
-        Записано \(String(format: "%.1f", buffer.seconds)) с → \(wav.path)
-        Дальше: orakul расшифровать \(wav.path) "\(title.isEmpty ? "Созвон" : title)"
+        Recorded \(String(format: "%.1f", buffer.seconds))s → \(wav.path)
+        Next: orakul transcribe \(wav.path) "\(title.isEmpty ? "Call" : title)"
         """, exitCode: 0)
     } catch {
         return CommandLineApp.Result(output: "\(error)", exitCode: 1)
@@ -79,16 +79,16 @@ case "корпус", "corpus":
     if let directory = rest.first {
         do {
             let corpus = try SpeechCorpus.load(directory: directory)
-            var lines = ["Корпус: записей \(corpus.items.count)"]
+            var lines = ["Corpus: \(corpus.items.count) recordings"]
             for (genre, count) in corpus.countsByGenre.sorted(by: { $0.key.rawValue < $1.key.rawValue }) {
                 lines.append("  \(genre.rawValue): \(count)")
             }
-            lines.append("  с человеческой расшифровкой: \(corpus.withReference.count)")
+            lines.append("  with a human transcript: \(corpus.withReference.count)")
             // Предупреждение, а не ошибка: корпус из одних докладов — рабочий
             // корпус, просто отвечает он на другой вопрос.
             if corpus.countsByGenre[.call] == nil {
-                lines.append("!! звонков нет: замер по такому корпусу говорит про доклады,"
-                             + " а обещание продукта — про звонки")
+                lines.append("!! no calls: a measurement over this corpus speaks about talks,"
+                             + " and the product's promise is about calls")
             }
             result = CommandLineApp.Result(output: lines.joined(separator: "\n"), exitCode: 0)
         } catch {
@@ -99,7 +99,7 @@ case "корпус", "corpus":
         }
     } else {
         result = CommandLineApp.Result(
-            output: "Нужно: orakul корпус <папка>. Описание — corpus.json в этой папке.",
+            output: "Usage: orakul corpus <folder>. The description is corpus.json inside it.",
             exitCode: 2)
     }
 case "спросить", "ask":
@@ -108,8 +108,8 @@ case "спросить", "ask":
     let environment = ProcessInfo.processInfo.environment
     if rest.count < 2 {
         result = CommandLineApp.Result(
-            output: "Нужно: orakul спросить <сервис> <вопрос>.\n"
-                + "Сервисы: " + ConnectorQuery.services.joined(separator: ", ") + ".",
+            output: "Usage: orakul ask <service> <question>.\n"
+                + "Services: " + ConnectorQuery.services.joined(separator: ", ") + ".",
             exitCode: 2)
     } else {
         // Поля, которые у сервиса свои: `ORAKUL_FIELD_workspace=…`. Имена не

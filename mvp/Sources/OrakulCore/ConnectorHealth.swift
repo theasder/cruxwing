@@ -67,7 +67,7 @@ public actor ConnectorHealth {
         guard refusals[service] == nil else { return }
         let rounded = seconds < 1 ? String(format: "%.1f", seconds) : String(Int(seconds))
         refusals[service] = Refusal(service: service,
-                                    words: "не ответил за \(rounded) с",
+                                    words: "did not answer within \(rounded)s",
                                     at: now())
     }
 

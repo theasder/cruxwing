@@ -238,19 +238,19 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         public var description: String {
             switch self {
             case .missingDocumentation(let id):
-                return "Манифест «\(id)» без ссылки на документацию вендора. Метод, адрес, параметр поиска и форму ответа проверяют по ней; без неё коннектор — догадка."
+                return "Manifest «\(id)» has no link to the vendor documentation. The method, address, search parameter and response shape are checked against it; without it a connector is a guess."
             case .noSearchParameter(let id):
-                return "В манифесте «\(id)» ни один параметр не подставляет {query}, и блока scan тоже нет. Перечисление задач поиском не считается, пока не объявлены граница и отбор: фильтрация первой страницы у себя отвечает «ничего не нашлось» на полном архиве."
+                return "In manifest «\(id)» no parameter substitutes {query}, and there is no scan block either. Listing issues does not count as search until a bound and a filter are declared: filtering only the first page locally answers «nothing matched» over a full archive."
             case .unboundedScan(let id):
-                return "В манифесте «\(id)» перечисление без границы: pages и perPage обязаны быть от 1, а pages — не больше \(ManifestConnector.scanPageLimit). Без потолка коннектор выкачивает чужой трекер целиком и всё равно не обещает найти."
+                return "In manifest «\(id)» the listing has no bound: pages and perPage must be at least 1, and pages no more than \(ManifestConnector.scanPageLimit). Without a ceiling the connector drains somebody else's tracker in full and still promises nothing."
             case .scanWithoutMatch(let id):
-                return "В манифесте «\(id)» есть scan, но не сказано, по каким полям отбирать (match). Перечисление без отбора — это не поиск, а список."
+                return "Manifest «\(id)» has a scan block but never says which fields to filter on (match). A listing without a filter is a list, not a search."
             case .unknownPlaceholder(let id, let name):
-                return "В манифесте «\(id)» подстановка {\(name)} никому не известна. Она уйдёт в адрес как есть, и сервис ответит 404 на запрос, который выглядит правильным. Объявите поле в parameters или уберите подстановку."
+                return "In manifest «\(id)» the substitution {\(name)} is unknown to anyone. It will go into the address as is, and the service will answer 404 to a request that looks correct. Declare the field in parameters, or remove the substitution."
             case .secretInAddress(let id, let where_):
-                return "В манифесте «\(id)» секрет стоит в \(where_). Адрес запроса виден всем по дороге: он попадает в журналы прокси, в журналы самого сервиса и в отчёты об ошибках, и остаётся там после того, как токен отозвали. Секрет передаётся заголовком."
+                return "In manifest «\(id)» a secret sits in \(where_). The request address is visible to everyone along the way: it lands in proxy logs, in the service's own logs and in error reports, and stays there after the token is revoked. A secret travels in a header."
             case .unreadable(let name):
-                return "Манифест «\(name)» не разобрался."
+                return "Manifest «\(name)» could not be parsed."
             }
         }
     }
@@ -305,9 +305,9 @@ public struct ConnectorManifest: Decodable, Equatable, Sendable {
         // OAuth. Решение, записанное словами в одном манифесте, следующий автор
         // повторять не обязан — поэтому оно здесь, а не только там.
         for (place, texts) in [
-            ("адресе (path)", [request.path]),
-            ("параметрах запроса (query)", request.query.flatMap { [$0.name, $0.value] }),
-            ("параметрах постраничного обхода (scan.page)",
+            ("the path", [request.path]),
+            ("the query parameters", request.query.flatMap { [$0.name, $0.value] }),
+            ("the pagination parameters (scan.page)",
              (scan?.page ?? []).flatMap { [$0.name, $0.value] }),
         ] {
             for text in texts where text.contains("{token}") || text.contains("{basic}") {

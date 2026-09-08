@@ -31,16 +31,16 @@ enum MicrophoneRecorder {
                 Системные настройки → Конфиденциальность и безопасность → Микрофон.
                 """
             case .engineFailed(let message):
-                return "Не смог запустить запись: \(message)"
+                return "Could not start recording: \(message)"
             case .converterUnavailable:
-                return "Не смог привести звук микрофона к 16 кГц моно."
+                return "Could not convert the microphone audio to 16 kHz mono."
             case .unsupportedPlatform:
                 return """
                 Запись с микрофона на этой системе не работает: она сделана на \
                 AVFoundation, которого здесь нет.
                 Всё остальное работает: запишите звук чем угодно в WAV 16 кГц и \
-                отдайте его — `orakul расшифровать звонок.wav "Название"` \
-                (с `ORAKUL_ENGINE`) или `orakul добавить расшифровка.txt "Название"`.
+                отдайте его — `orakul расшифровать звонок.wav "Title"` \
+                (с `ORAKUL_ENGINE`) или `orakul добавить расшифровка.txt "Title"`.
                 """
             }
         }

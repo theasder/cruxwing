@@ -61,9 +61,9 @@ public struct LocalNotes: Sendable {
         public var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Папка с заметками не выбрана. Откройте «Настройки → Подключённые приложения» и укажите её."
+                return "No notes folder is selected. Open Settings → Connected apps and name one."
             case .unreadable(let path):
-                return "Не получилось прочитать папку «\(path)». Проверьте, что она на месте и доступна для чтения."
+                return "Could not read the folder «\(path)». Check that it is still there and readable."
             }
         }
     }

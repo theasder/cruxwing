@@ -64,7 +64,7 @@ public struct MeetingPipeline: Sendable {
             // Пустое название — это «Звонок», а не пустая строка в списке.
             // Слово продукта одно и то же везде: на странице, в приложении и
             // здесь. «Созвон» тут был единственным местом, где оно расходилось.
-            title: trimmedTitle.isEmpty ? "Звонок" : trimmedTitle,
+            title: trimmedTitle.isEmpty ? "Call" : trimmedTitle,
             date: today(),
             digest: text)
 

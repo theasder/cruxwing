@@ -50,42 +50,42 @@ public enum ConnectorProbeReport {
     /// текст ошибки сервиса.
     public static func render(_ outcome: Outcome, token: String) -> String {
         var lines: [String] = []
-        lines.append("Сервис: \(outcome.service)")
+        lines.append("Service: \(outcome.service)")
 
         if let request = outcome.request {
             let method = request.httpMethod ?? "GET"
             let address = request.url?.absoluteString ?? "—"
-            lines.append("Запрос: \(method) \(address)")
+            lines.append("Request: \(method) \(address)")
             let headers = (request.allHTTPHeaderFields ?? [:]).sorted { $0.key < $1.key }
             for (name, value) in headers {
                 let shown = secretHeaders.contains(name.lowercased()) ? "***" : value
                 lines.append("  \(name): \(shown)")
             }
             if let body = request.httpBody, let text = String(data: body, encoding: .utf8) {
-                lines.append("Тело: \(text)")
+                lines.append("Body: \(text)")
             }
         } else {
-            lines.append("Запрос: не отправлялся")
+            lines.append("Request: never sent")
         }
 
         if let status = outcome.status {
-            lines.append("Ответ: \(status)")
+            lines.append("Response: \(status)")
         }
         if let rows = outcome.rows {
             // Ноль строк — тоже результат, и он отличается от «форму не узнали».
             // Разница ровно та, ради которой заведено правило «пустая выдача
             // только знакомой формы».
-            lines.append("Форма узнана, строк: \(rows)")
+            lines.append("Shape recognised, rows: \(rows)")
             if let title = outcome.firstTitle, !title.isEmpty {
-                lines.append("Заголовок первой строки прочитан: \(shape(of: title))")
+                lines.append("First row title read: \(shape(of: title))")
             }
         }
         if let failure = outcome.failure {
-            lines.append("Не получилось: \(failure)")
+            lines.append("Failed: \(failure)")
         }
 
         lines.append("")
-        lines.append("Токен в этот вывод не попадает — можно прикладывать к пулл-реквесту.")
+        lines.append("The token never reaches this output — it is safe to attach to a pull request.")
 
         return scrub(lines.joined(separator: "\n"), token: token)
     }
@@ -112,12 +112,12 @@ public enum ConnectorProbeReport {
         let latin = letters.contains { ($0.value >= 0x41 && $0.value <= 0x7A) }
         let alphabet: String
         switch (cyrillic, latin) {
-        case (true, true):  alphabet = "кириллица и латиница"
-        case (true, false): alphabet = "кириллица"
-        case (false, true): alphabet = "латиница"
-        default:            alphabet = "без букв"
+        case (true, true):  alphabet = "Cyrillic and Latin"
+        case (true, false): alphabet = "Cyrillic"
+        case (false, true): alphabet = "Latin"
+        default:            alphabet = "no letters"
         }
-        return "\(title.count) знаков, \(alphabet)"
+        return "\(title.count) characters, \(alphabet)"
     }
 
     /// Последняя защита: замена по самому значению токена.

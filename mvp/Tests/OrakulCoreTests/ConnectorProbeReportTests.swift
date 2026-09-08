@@ -39,7 +39,7 @@ struct ConnectorProbeReportTests {
         #expect(text.contains("Authorization: ***"))
         // И полезное осталось: без запроса и ответа отчёт не нужен.
         #expect(text.contains("/api/v1/repos/issues/search"))
-        #expect(text.contains("Форма узнана, строк: 3"))
+        #expect(text.contains("Shape recognised, rows: 3"))
     }
 
     @Test("ключ внутри адреса тоже вычищается")
@@ -81,7 +81,7 @@ struct ConnectorProbeReportTests {
 
         let text = ConnectorProbeReport.render(outcome, token: Self.token)
         #expect(!text.contains(Self.token), "сервис вернул ключ, и он уехал в отчёт:\n\(text)")
-        #expect(text.contains("Не получилось"))
+        #expect(text.contains("Failed"))
     }
 
     @Test("токен из двух половин вычищается по частям")
@@ -142,16 +142,16 @@ struct ConnectorProbeReportTests {
         // Мейнтейнеру нужен не текст, а то, что прочитано ТО поле: строка
         // непустая, такой-то длины и такой-то азбукой.
         let text = report(firstTitle: "Пересмотр тарифов")
-        #expect(text.contains("Заголовок первой строки прочитан"))
-        #expect(text.contains("17 знаков"))
-        #expect(text.contains("кириллица"))
+        #expect(text.contains("First row title read"))
+        #expect(text.contains("17 characters"))
+        #expect(text.contains("Cyrillic"))
     }
 
     @Test("азбука различается — она и отличает прочитанное от подставленного")
     func theAlphabetIsTold() {
-        #expect(ConnectorProbeReport.shape(of: "Fix export").contains("латиница"))
-        #expect(ConnectorProbeReport.shape(of: "Починить export").contains("кириллица и латиница"))
-        #expect(ConnectorProbeReport.shape(of: "#7 — 42").contains("без букв"))
+        #expect(ConnectorProbeReport.shape(of: "Fix export").contains("Latin"))
+        #expect(ConnectorProbeReport.shape(of: "Починить export").contains("Cyrillic and Latin"))
+        #expect(ConnectorProbeReport.shape(of: "#7 — 42").contains("no letters"))
     }
 
     @Test("заголовок нигде не печатается напрямую")
@@ -179,7 +179,7 @@ struct ConnectorProbeReportTests {
     func anEmptyAnswerIsUnchanged() {
         // Ноль строк — тоже результат, и он отличается от «форму не узнали».
         let text = report(firstTitle: nil)
-        #expect(text.contains("Форма узнана, строк: 3"))
+        #expect(text.contains("Shape recognised, rows: 3"))
         #expect(!text.contains("Заголовок первой строки"))
     }
 }
