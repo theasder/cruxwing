@@ -93,7 +93,7 @@ struct MeetingAttendeeTests {
         // counterparties. This must not drop the event.
         let parsed = parse([[
             "id": "solo",
-            "summary": "Фокус",
+            "summary": "Focus",
             "start": ["dateTime": rfc3339(now.addingTimeInterval(600))],
         ]])
         #expect(parsed.count == 1)

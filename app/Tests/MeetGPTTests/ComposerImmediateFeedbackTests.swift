@@ -110,13 +110,13 @@ struct ComposerImmediateFeedbackTests {
         #expect(state.clarifying)
         let inspected = try ResponseView().environmentObject(state).inspect()
         #expect(throws: Never.self) {
-            try inspected.find(viewWithAccessibilityLabel: "Вы спросили: \(prompt)")
+            try inspected.find(viewWithAccessibilityLabel: "You asked: \(prompt)")
         }
         #expect(throws: Never.self) {
             try inspected.find(text: "The prior answer remains readable.")
         }
         #expect(throws: Never.self) {
-            try inspected.find(text: "Уточняю вопрос…")
+            try inspected.find(text: "Refining the question…")
         }
 
         for _ in 0..<500 {
@@ -172,7 +172,7 @@ struct ComposerImmediateFeedbackTests {
         #expect(state.submittedPromptPreview == replacement)
         let inspected = try ResponseView().environmentObject(state).inspect()
         #expect(throws: Never.self) {
-            try inspected.find(viewWithAccessibilityLabel: "Вы спросили: \(replacement)")
+            try inspected.find(viewWithAccessibilityLabel: "You asked: \(replacement)")
         }
 
         for _ in 0..<2_000 {

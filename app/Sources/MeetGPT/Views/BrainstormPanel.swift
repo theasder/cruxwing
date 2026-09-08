@@ -896,7 +896,7 @@ struct SuggestionCard: View {
                     Label("Спросить", systemImage: "arrow.up.circle")
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))
-                .help("Отправить ассистенту")
+                .help("Send to the assistant")
             }
         }
         .padding(Space.s)

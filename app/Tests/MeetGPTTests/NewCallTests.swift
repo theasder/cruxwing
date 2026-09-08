@@ -5,7 +5,7 @@ import Testing
 /// Leaving a past call for a fresh one, and saying something useful when the
 /// backend cannot be reached.
 @MainActor
-@Suite("Новый звонок")
+@Suite("New call")
 struct NewCallTests {
 
     private func loadedState() -> AppState {

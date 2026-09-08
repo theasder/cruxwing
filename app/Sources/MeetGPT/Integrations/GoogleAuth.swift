@@ -21,7 +21,7 @@ enum GoogleService: String, CaseIterable, Identifiable {
         case .docs:     return "Docs"
         case .sheets:   return "Sheets"
         case .slides:   return "Slides"
-        case .forms:    return "Forms + ответы"
+        case .forms:    return "Forms + responses"
         case .drive:    return "Drive"
         }
     }

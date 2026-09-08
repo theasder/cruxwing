@@ -79,7 +79,7 @@ struct SidebarViewTests {
             try inspected.find(viewWithAccessibilityIdentifier: "history-storage-warning")
         }
         #expect(throws: (any Error).self) {
-            try inspected.find(text: "Сохранённых звонков пока нет. Импортируйте звонок из Fireflies, чтобы поискать в нём слепые зоны.")
+            try inspected.find(text: "No saved calls yet. Import one from Fireflies to look for blind spots in it.")
         }
     }
 }

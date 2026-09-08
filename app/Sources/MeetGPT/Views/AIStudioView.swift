@@ -518,7 +518,7 @@ private struct AskComposer: View {
                 if state.attaching && !attachmentFeedback.hasImportingMedia {
                     HStack(spacing: Space.xs) {
                         ProgressView().controlSize(.small).scaleEffect(0.7)
-                        Text("Расшифровываю…").font(Typo.caption).foregroundStyle(Theme.inkTertiary)
+                        Text("Transcribing…").font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                     }
                 }
             }
@@ -566,7 +566,7 @@ private struct AskComposer: View {
         }
         switch state.dictation.state {
         case .listening:    return "Слушаю — нажмите ещё раз, чтобы остановить"
-        case .transcribing: return "Расшифровываю…"
+        case .transcribing: return "Transcribing…"
         default:            return "Спросите что угодно, приложите файл или начните с подсказки…"
         }
     }
@@ -729,7 +729,7 @@ struct ComposerAttachmentStatusChip: View {
     private var status: String {
         switch item.phase {
         case .importing:
-            if item.kind == .audio || item.kind == .video { return "Расшифровываю…" }
+            if item.kind == .audio || item.kind == .video { return "Transcribing…" }
             return item.kind == .folder ? "Строю индекс…" : "Загружаю…"
         case .ready:
             return "Done"

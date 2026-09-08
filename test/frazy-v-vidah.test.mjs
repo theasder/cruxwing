@@ -72,7 +72,7 @@ function englishPhrases() {
 // A ceiling, not a promise of zero: the migration to English runs screen by
 // screen. Equality on purpose — a ceiling nobody lowers stops meaning anything,
 // and a new Russian phrase has to be explained just as much as a missed one.
-const RUSSIAN_PHRASES_LEFT = 252;
+const RUSSIAN_PHRASES_LEFT = 190;
 
 test('the Russian phrases left on screen only ever shrink', () => {
   const left = englishPhrases();

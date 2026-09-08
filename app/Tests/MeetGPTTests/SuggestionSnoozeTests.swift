@@ -77,7 +77,7 @@ struct SuggestionSnoozeTests {
 
         state.resetForNewRecording()
         state.mergeSuggestions([
-            Suggestion(title: "Missing owner", detail: "Новый звонок", kind: .missingInfo),
+            Suggestion(title: "Missing owner", detail: "New call", kind: .missingInfo),
         ])
         #expect(state.suggestions.map(\.title) == ["Missing owner"])
     }

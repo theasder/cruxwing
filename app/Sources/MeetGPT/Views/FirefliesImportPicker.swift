@@ -30,7 +30,7 @@ struct FirefliesImportPicker: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Импорт из Fireflies")
+                Text("Import from Fireflies")
                     .font(.system(size: 14, weight: .semibold))
                 Text("Расшифровка откроется как сохранённый звонок — можно искать слепые зоны и задавать вопросы.")
                     .font(.system(size: 11))

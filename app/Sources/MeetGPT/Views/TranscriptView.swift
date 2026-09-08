@@ -39,7 +39,7 @@ struct TranscriptView: View {
                     })
                 .overlay(alignment: .bottomTrailing) {
                     if !followsLatest {
-                        JumpToLatestButton(accessibilityLabel: "К последним строкам") {
+                        JumpToLatestButton(accessibilityLabel: "To the latest lines") {
                             followsLatest = true
                         }
                         .padding(Space.l)
@@ -57,21 +57,21 @@ struct TranscriptView: View {
                 }
                 .animation(Motion.spring, value: state.hasTranscriptSelection)
                 // The AppKit context menu cannot reach AppState directly, so the
-                // "Спросить об этом" item posts and the view forwards it.
+                // "Ask about this" item posts and the view forwards it.
                 .onReceive(NotificationCenter.default.publisher(for: .transcriptAskAboutSelection)) { _ in
                     state.askAboutTranscriptSelection()
                 }
             }
         }
-        .alert("Переименовать говорящего", isPresented: Binding(
+        .alert("Rename the speaker", isPresented: Binding(
             get: { renamingSpeaker != nil },
             set: { if !$0 { renamingSpeaker = nil } }
         )) {
             TextField("Name", text: $renameText)
-            Button("Переименовать") { applyRename() }
+            Button("Rename") { applyRename() }
             Button("Cancel", role: .cancel) { renamingSpeaker = nil }
         } message: {
-            Text("Каждая строка «\(renamingSpeaker ?? "")» получит это имя — и в транскрипте, и в том, что видит ИИ.")
+            Text("Каждая строка «\(renamingSpeaker ?? "")» will take this name — in the transcript and in what the AI sees.")
         }
     }
 
@@ -122,10 +122,10 @@ private struct TranscriptSelectionBar: View {
 
     var body: some View {
         HStack(spacing: Space.m) {
-            Text("Выделенное")
+            Text("Selection")
                 .font(Typo.callout)
                 .foregroundStyle(Theme.inkSecondary)
-            Button("Спросить об этом", action: onAsk)
+            Button("Ask about this", action: onAsk)
                 .buttonStyle(PrimaryButtonStyle())
             Button {
                 onClear()
@@ -134,7 +134,7 @@ private struct TranscriptSelectionBar: View {
                     .font(.system(size: 10, weight: .bold))
             }
             .buttonStyle(IconButtonStyle(size: 20))
-            .accessibilityLabel("Снять выделение")
+            .accessibilityLabel("Clear the selection")
         }
         .padding(.horizontal, Space.l)
         .padding(.vertical, Space.s)
@@ -216,15 +216,15 @@ private struct TranscriptRow: View {
             TapGesture().modifiers(.shift).onEnded { onSelect(true) }
         )
         .contextMenu {
-            Button("Спросить об этой реплике") { onSelect(false); onAskAbout() }
+            Button("Ask about this line") { onSelect(false); onAskAbout() }
             if isSelected {
-                Button("Спросить о выделенном") { onAskAbout() }
+                Button("Ask about the selection") { onAskAbout() }
             }
             Divider()
-            Button(isSelected ? "Снять выделение со строки" : "Выделить строку") { onSelect(false) }
+            Button(isSelected ? "Deselect the line" : "Select the line") { onSelect(false) }
             if let speaker = entry.speaker {
                 Divider()
-                Button("Переименовать «\(speaker)»…") { onRenameSpeaker(speaker) }
+                Button("Rename «\(speaker)»…") { onRenameSpeaker(speaker) }
             }
         }
         .animation(Motion.quick, value: isSelected)
@@ -274,7 +274,7 @@ private struct TranscribingRow: View {
                 .fill(Theme.recordRed.opacity(0.4))
                 .frame(width: 2.5, height: 16)
             BreathingDots(tint: Theme.recordRed)
-            Text("Расшифровываю…")
+            Text("Transcribing…")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
             Spacer()
@@ -307,22 +307,22 @@ private struct TranscriptEmptyState: View {
         guard recording else {
             return Presentation(
                 symbol: "waveform", tint: Theme.accent, soft: Theme.accentSoft,
-                title: "Пока ничего не записано",
-                detail: "Нажмите «Начать запись», чтобы писать звук собеседников и микрофон.",
+                title: "Nothing recorded yet",
+                detail: "Press «Start recording» to capture the other party's audio and your microphone.",
                 showDots: false)
         }
         switch transcription {
         case .preparing:
             return Presentation(
                 symbol: "arrow.down.circle", tint: Theme.accent, soft: Theme.accentSoft,
-                title: "Готовлю модель на устройстве",
-                detail: "При первом запуске один раз скачается модель распознавания речи (~150 МБ). Это займёт минуту — дальше расшифровка идёт сразу и никуда не уходит с вашего компьютера.",
+                title: "Preparing the on-device model",
+                detail: "On the first run the speech recognition model downloads once (~150 MB). It takes a minute — after that transcription starts immediately and never leaves your computer.",
                 showDots: true)
         case .failed(let message):
             return Presentation(
                 symbol: "exclamationmark.triangle", tint: Theme.recordRed, soft: Theme.dangerSoft,
-                title: "Расшифровка недоступна",
-                detail: "\(message)\n\nПроверьте соединение или смените движок расшифровки в настройках (Deepgram / Whisper API).",
+                title: "Transcription unavailable",
+                detail: "\(message)\n\nCheck the connection, or change the transcription engine in settings (Deepgram / Whisper API).",
                 showDots: false)
         case .idle, .ready:
             // «Строки появятся по ходу разговора» — обещание, верное ровно
@@ -332,14 +332,14 @@ private struct TranscriptEmptyState: View {
             if let trouble = audioTrouble {
                 return Presentation(
                     symbol: "exclamationmark.triangle", tint: Theme.amber, soft: Theme.dangerSoft,
-                    title: "Звука нет",
+                    title: "No audio",
                     detail: trouble,
                     showDots: false)
             }
             return Presentation(
                 symbol: "ear", tint: Theme.recordRed, soft: Theme.dangerSoft,
-                title: "Слушаю",
-                detail: "Строки транскрипта появятся здесь по ходу разговора.",
+                title: "Listening",
+                detail: "Transcript lines appear here as the conversation goes.",
                 showDots: true)
         }
     }

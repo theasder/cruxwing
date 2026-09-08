@@ -145,7 +145,7 @@ struct ResponseView: View {
                 }
                 .overlay(alignment: .bottomTrailing) {
                     if !followsLatest {
-                        JumpToLatestButton(accessibilityLabel: "К последнему ответу") {
+                        JumpToLatestButton(accessibilityLabel: "To the latest answer") {
                             pendingAutomaticScroll?.cancel()
                             followsLatest = true
                             lastAutomaticScrollAt = nil
@@ -203,10 +203,10 @@ struct ResponseView: View {
                     .foregroundStyle(Theme.accent)
             }
             VStack(spacing: Space.xs) {
-                Text("Спросить ассистента")
+                Text("Ask the assistant")
                     .font(Typo.headline)
                     .foregroundStyle(Theme.ink)
-                Text("Выберите подсказку выше — разговор превратится в повестку, задачи, ответы и прочее.")
+                Text("Pick a prompt above — the conversation turns into an agenda, tasks, answers and more.")
                     .font(Typo.callout)
                     .foregroundStyle(Theme.inkSecondary)
                     .multilineTextAlignment(.center)
@@ -229,7 +229,7 @@ struct ResponseView: View {
         } else if state.clarifying {
             HStack(spacing: Space.s) {
                 BreathingDots()
-                Text("Уточняю вопрос…")
+                Text("Refining the question…")
                     .font(Typo.callout)
                     .foregroundStyle(Theme.inkTertiary)
             }
@@ -253,12 +253,12 @@ private struct AnswerActionsRow: View {
             if !state.answerActions.isEmpty {
                 VStack(alignment: .leading, spacing: Space.s) {
                     // When the answer IS a list of things to do, a generic
-                    // "Сделать" underneath reads as unrelated furniture. Naming
+                    // "Run" underneath reads as unrelated furniture. Naming
                     // the connection attaches the button to the list above it.
                     SectionLabel(AnswerChecklist.actionGroupTitle(
                         forAnswer: state.aiResponse,
                         hasTaskAction: state.answerActions.contains { $0.createsTask })
-                        ?? "Сделать")
+                        ?? "Run")
                     FlowLayout(spacing: Space.s, lineSpacing: Space.s) {
                         ForEach(state.answerActions) { action in
                             actionChip(action)
@@ -270,7 +270,7 @@ private struct AnswerActionsRow: View {
             // else's system, so it gets its own group rather than sitting next
             // to an irreversible CRM write.
             VStack(alignment: .leading, spacing: Space.s) {
-                SectionLabel("Сохранить как")
+                SectionLabel("Save as")
                 FlowLayout(spacing: Space.s, lineSpacing: Space.s) {
                     ForEach(state.availableDocumentExports) { export in
                         exportChip(export)
@@ -334,7 +334,7 @@ private struct AnswerActionsRow: View {
         .buttonStyle(.plain)
         .disabled(running || blocked)
         .opacity(blocked ? 0.5 : 1)
-        .help("Сохранить ответ, его запрос и слепые зоны как \(export.title).")
+        .help("Save the answer, its request and the blind spots as \(export.title).")
     }
 
     private func actionChip(_ action: AnswerActionPlanner.Action) -> some View {
@@ -371,7 +371,7 @@ private struct AssistantPromptBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text("Вы спросили")
+            Text("You asked")
                 .font(Typo.caption.weight(.semibold))
                 .foregroundStyle(Theme.inkSecondary)
             Text(prompt)
@@ -387,7 +387,7 @@ private struct AssistantPromptBlock: View {
             style: .continuous
         ))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Вы спросили: \(prompt)")
+        .accessibilityLabel("You asked: \(prompt)")
     }
 }
 
@@ -409,7 +409,7 @@ private struct ArchivedExchangeBlock: View {
             // prompt left the previous answer with no way to act on it.
             if !exchange.answerActions.isEmpty {
                 VStack(alignment: .leading, spacing: Space.s) {
-                    SectionLabel("Сделать")
+                    SectionLabel("Run")
                     FlowLayout(spacing: Space.s, lineSpacing: Space.s) {
                         ForEach(exchange.answerActions) { action in
                             Text(action.title)
@@ -421,7 +421,7 @@ private struct ArchivedExchangeBlock: View {
                                 )
                                 .foregroundStyle(Theme.inkSecondary)
                                 .help(action.rationale)
-                                .accessibilityLabel("\(action.title), из более раннего ответа")
+                                .accessibilityLabel("\(action.title), from an earlier answer")
                         }
                     }
                 }
@@ -446,7 +446,7 @@ private struct FollowUpPromptsBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("Уточнить")
+            SectionLabel("Refine")
             FlowLayout(spacing: Space.s, lineSpacing: Space.s) {
                 ForEach(prompts) { prompt in
                     PromptChip(
@@ -624,7 +624,7 @@ struct WorkflowTracePanel: View {
             return [
                 WorkflowStep(
                     id: 0,
-                    label: "Готовлю ход работы",
+                    label: "Preparing the workflow",
                     status: .running,
                     app: Self.localApp
                 )
@@ -644,10 +644,10 @@ struct WorkflowTracePanel: View {
             HStack(spacing: Space.xs) {
                 Image(systemName: expanded ? "chevron.down" : "chevron.right")
                     .font(.system(size: 9, weight: .bold))
-                Text(streaming ? "Workflow" : "Как получился этот ответ")
+                Text(streaming ? "Workflow" : "How this answer was made")
                     .font(Typo.caption.weight(.semibold))
                 Spacer(minLength: 0)
-                Text("\(completedCount)/\(displaySteps.count) готово")
+                Text("\(completedCount)/\(displaySteps.count) done")
                     .font(Typo.caption.monospacedDigit())
                     .foregroundStyle(Theme.inkTertiary)
             }
@@ -655,8 +655,8 @@ struct WorkflowTracePanel: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(expanded ? "Свернуть ход работы" : "Развернуть ход работы")
-        .accessibilityValue("шагов готово: \(completedCount) из \(displaySteps.count)")
+        .accessibilityLabel(expanded ? "Collapse the workflow" : "Expand the workflow")
+        .accessibilityValue("steps done: \(completedCount) of \(displaySteps.count)")
     }
 
     private func workflowRow(_ step: WorkflowStep) -> some View {
@@ -779,7 +779,7 @@ private struct AnswerFeedbackRow: View {
                 ratingButton(.unhelpful, filled: "hand.thumbsdown.fill", hollow: "hand.thumbsdown")
 
                 if current != nil {
-                    Button(exchange.feedback?.note == nil ? "Добавить заметку" : "Изменить заметку") {
+                    Button(exchange.feedback?.note == nil ? "Add a note" : "Edit the note") {
                         note = exchange.feedback?.note ?? ""
                         writingNote.toggle()
                     }
@@ -799,7 +799,7 @@ private struct AnswerFeedbackRow: View {
 
             if writingNote {
                 HStack(spacing: Space.xs) {
-                    TextField("Что было не так — или что помогло?", text: $note, axis: .vertical)
+                    TextField("What went wrong — or what helped?", text: $note, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 11))
                         .lineLimit(1...4)
@@ -826,8 +826,8 @@ private struct AnswerFeedbackRow: View {
                 .foregroundStyle(selected ? Theme.accentText : Theme.inkTertiary)
         }
         .buttonStyle(.plain)
-        .help(rating == .helpful ? "Этот ответ помог" : "Этот ответ мимо")
-        .accessibilityLabel(rating == .helpful ? "Отметить ответ полезным" : "Отметить ответ бесполезным")
+        .help(rating == .helpful ? "This answer helped" : "This answer missed")
+        .accessibilityLabel(rating == .helpful ? "Mark the answer useful" : "Mark the answer useless")
     }
 
     private func saveNote() {

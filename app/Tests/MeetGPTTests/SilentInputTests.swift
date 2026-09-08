@@ -61,7 +61,7 @@ import Foundation
                 "вид не читает признак — человек снова увидит только «Слушаю»")
         #expect(source.contains("detail: trouble"),
                 "заголовок есть, а слова предупреждения до экрана не доходят")
-        #expect(source.contains("Звука нет"), "у предупреждения нет заголовка на экране")
+        #expect(source.contains("No audio"), "у предупреждения нет заголовка на экране")
 
         let state = AppState(llm: MockLLMGateway(response: ""))
         #expect(state.audioTrouble == nil, "предупреждение горит до начала записи")

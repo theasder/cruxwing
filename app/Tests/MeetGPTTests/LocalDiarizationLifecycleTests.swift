@@ -191,7 +191,7 @@ struct LocalDiarizationLifecycleTests {
             return [SpeakerSegment(speakerID: "late", startSeconds: 0, endSeconds: 20)]
         }
         let restored = SavedSession(
-            id: UUID(), title: "История", startedAt: start, savedAt: start,
+            id: UUID(), title: "History", startedAt: start, savedAt: start,
             goal: "", entries: [TranscriptEntry(
                 source: .system, text: "сохранённая строка", timestamp: start)],
             aiResponse: "", digest: "")

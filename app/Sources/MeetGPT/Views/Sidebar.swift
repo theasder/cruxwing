@@ -176,15 +176,15 @@ struct NewCallButton: View {
                 HStack(spacing: Space.s) {
                     Image(systemName: "square.and.pencil")
                         .font(.system(size: 12, weight: .semibold))
-                    Text("Новый звонок")
+                    Text("New call")
                     Spacer(minLength: 0)
                 }
             }
             .buttonStyle(QuietButtonStyle(prominent: true))
             .frame(maxWidth: .infinity, alignment: .leading)
-            .help("Выйти из звонка — он останется в истории, рабочая область очистится")
-            .accessibilityLabel("Новый звонок")
-            .accessibilityHint("Закрывает звонок, открытый из истории, и очищает рабочую область")
+            .help("Leave the call — it stays in the history, and the workspace is cleared")
+            .accessibilityLabel("New call")
+            .accessibilityHint("Closes a call opened from the history and clears the workspace")
             .transition(.opacity)
         }
     }
@@ -212,7 +212,7 @@ private struct HistorySection: View {
                 || state.historyStorageWarning != nil {
             VStack(alignment: .leading, spacing: Space.s) {
                 HStack(spacing: Space.xs) {
-                    SectionLabel("История")
+                    SectionLabel("History")
                     Spacer()
                     // Opening a call from History used to be a one-way door: the
                     // only way back to a blank workspace was starting a
@@ -224,9 +224,9 @@ private struct HistorySection: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(state.canStartNewCall ? Theme.accentText : Theme.inkTertiary)
-                    .help("Начать новый звонок — текущий сперва уйдёт в историю")
+                    .help("Start a new call — the current one goes to the history first")
                     .disabled(!state.canStartNewCall)
-                    .accessibilityLabel("Новый звонок")
+                    .accessibilityLabel("New call")
                     // Next to New call: both answer "give me a different
                     // meeting to work on", one from this Mac and one from
                     // Fireflies.
@@ -240,10 +240,10 @@ private struct HistorySection: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(Theme.accentText)
-                        .help("Импортировать звонок из Fireflies — транскрипт откроется здесь, "
-                              + "готов для поиска слепых зон и вопросов")
-                        .accessibilityLabel("Импорт из Fireflies")
-                        .accessibilityHint("Выберите звонок из Fireflies — он откроется как сохранённый")
+                        .help("Import a call from Fireflies — the transcript opens here, "
+                              + "ready for blind spots and questions")
+                        .accessibilityLabel("Import from Fireflies")
+                        .accessibilityHint("Choose a call from Fireflies — it opens as a saved one")
                     }
                     Button { confirmClear = true } label: {
                         Image(systemName: "trash")
@@ -251,12 +251,12 @@ private struct HistorySection: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(Theme.inkTertiary)
-                    .help("Удалить все сохранённые звонки")
+                    .help("Delete every saved call")
                     .disabled(state.isRecording)
-                    .accessibilityLabel("Очистить историю")
+                    .accessibilityLabel("Clear the history")
                 }
                 if state.savedSessions.isEmpty && state.historyStorageWarning == nil {
-                    Text("Сохранённых звонков пока нет. Импортируйте звонок из Fireflies, чтобы поискать в нём слепые зоны.")
+                    Text("No saved calls yet. Import one from Fireflies to look for blind spots in it.")
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -279,12 +279,12 @@ private struct HistorySection: View {
                 FirefliesImportPicker(isPresented: $showFirefliesPicker)
                     .environmentObject(state)
             }
-            .confirmationDialog("Удалить всю историю?", isPresented: $confirmClear) {
-                Button("Удалить все звонки: \(state.savedSessions.count)",
+            .confirmationDialog("Delete the whole history?", isPresented: $confirmClear) {
+                Button("Delete all calls: \(state.savedSessions.count)",
                        role: .destructive) { state.clearAllHistory() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Все сохранённые звонки на этом компьютере будут удалены навсегда. Отменить это нельзя.")
+                Text("Every call saved on this computer will be deleted permanently. This cannot be undone.")
             }
         }
     }
@@ -325,8 +325,8 @@ private struct HistoryRow: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
-            .help("Удалить сохранённый звонок")
-            .accessibilityLabel("Удалить \(session.displayTitle)")
+            .help("Delete the saved call")
+            .accessibilityLabel("Delete \(session.displayTitle)")
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, Space.xs)
@@ -336,7 +336,7 @@ private struct HistoryRow: View {
         .onTapGesture { if !disabled { onOpen() } }
         .onHover { hovering = $0 }
         .opacity(disabled ? 0.5 : 1)
-        .help(disabled ? "Остановите запись, чтобы открыть сохранённый звонок" : "Открыть звонок")
+        .help(disabled ? "Stop the recording to open a saved call" : "Open the call")
         .animation(Motion.quick, value: hovering)
     }
 }
@@ -353,7 +353,7 @@ private struct LedgerSection: View {
         if state.ledgerConfigured {
             VStack(alignment: .leading, spacing: Space.s) {
                 HStack(spacing: Space.s) {
-                    SectionLabel("Журнал решений")
+                    SectionLabel("Decision log")
                     Spacer()
                     if state.ledgerLoading {
                         ProgressView().controlSize(.small).scaleEffect(0.6)
@@ -364,11 +364,11 @@ private struct LedgerSection: View {
                             Image(systemName: "arrow.clockwise").font(.system(size: 9, weight: .semibold))
                         }
                         .buttonStyle(IconButtonStyle(size: 18))
-                        .help("Обновить журнал решений")
+                        .help("Refresh the decision log")
                     }
                 }
                 if state.ledgerDecisions.isEmpty {
-                    Text("Решения, отмеченные 📌, появятся здесь.")
+                    Text("Decisions marked with 📌 appear here.")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                 } else {
@@ -450,7 +450,7 @@ struct SidebarFooter: View {
                 }
                 .buttonStyle(IconButtonStyle())
                 .accessibilityLabel("Sign in")
-                .help("Войти в аккаунт")
+                .help("Sign in")
             }
         }
     }
@@ -465,8 +465,8 @@ struct SidebarFooter: View {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(IconButtonStyle())
-            .accessibilityLabel("Настройки")
-            .help("Настройки (⌘,)")
+            .accessibilityLabel("Settings")
+            .help("Settings (⌘,)")
         } else {
             Button {
                 NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
@@ -474,8 +474,8 @@ struct SidebarFooter: View {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(IconButtonStyle())
-            .accessibilityLabel("Настройки")
-            .help("Настройки (⌘,)")
+            .accessibilityLabel("Settings")
+            .help("Settings (⌘,)")
         }
     }
 
@@ -508,10 +508,10 @@ struct SidebarFooter: View {
         switch state.status {
         case .idle: return "Done"
         case .starting: return "Starting…"
-        case .recording: return "Идёт запись"
-        case .paused: return "Пауза"
-        case .stopping: return "Останавливаю…"
-        case .error: return "Нужно вмешаться"
+        case .recording: return "Recording"
+        case .paused: return "Paused"
+        case .stopping: return "Stopping…"
+        case .error: return "Needs attention"
         }
     }
 }

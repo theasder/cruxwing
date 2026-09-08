@@ -89,7 +89,7 @@ struct LocalDiarizationControlsTests {
                     "postcall.localDiarization.run")
             }
 
-            try idle.find(button: "Подписать говорящих").tap()
+            try idle.find(button: "Label the speakers").tap()
             #expect(state.localDiarizationRunning)
             #expect(await probe.nextCount() == 3)
 

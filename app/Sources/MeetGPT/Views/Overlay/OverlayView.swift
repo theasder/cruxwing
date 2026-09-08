@@ -70,14 +70,14 @@ struct OverlayView: View {
             }
             .buttonStyle(IconButtonStyle(size: 22))
             .disabled(state.isBusy)
-            .accessibilityLabel(state.isRecording ? "Остановить запись" : "Начать запись")
-            .help(state.isRecording ? "Остановить запись" : "Начать запись")
+            .accessibilityLabel(state.isRecording ? "Stop recording" : "Start recording")
+            .help(state.isRecording ? "Stop recording" : "Start recording")
             Button(action: onClose) {
                 Image(systemName: "xmark")
             }
             .buttonStyle(IconButtonStyle(size: 20))
-            .accessibilityLabel("Скрыть плашку")
-            .help("Скрыть плашку")
+            .accessibilityLabel("Hide the banner")
+            .help("Hide the banner")
         }
     }
 }
@@ -132,7 +132,7 @@ private struct OverlaySuggestionRow: View {
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
             .accessibilityLabel("Спросить ассистента об этой подсказке")
-            .help("Отправить ассистенту")
+            .help("Send to the assistant")
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
             }

@@ -618,9 +618,10 @@ describe('ROADMAP', () => {
       }
     }
     assert.ok(literals.size > 100, `выборка вышла в ${literals.size} строк — замер не тот`);
-    const english = [...literals].filter((s) => !/[а-яё]/i.test(s));
-    assert.ok(english.length <= promised,
-      `строк без кириллицы стало ${english.length}, а §6.4 обещает не больше ${promised}`);
+    // Reversed with the product: §6.4 now pins how much Russian is left.
+    const russian = [...literals].filter((s) => /[а-яё]/i.test(s));
+    assert.ok(russian.length <= promised,
+      `строк с кириллицей стало ${russian.length}, а §6.4 обещает не больше ${promised}`);
   });
 
   test('§2.1 names the verification lanes without a volatile test counter', () => {

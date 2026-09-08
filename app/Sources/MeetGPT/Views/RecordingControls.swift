@@ -41,7 +41,7 @@ struct RecordPill: View {
         .keyboardShortcut("r", modifiers: [.command])
         .animation(Motion.spring, value: state.status)
         .animation(Motion.quick, value: hovering)
-        .help(state.isSessionLive ? "Остановить и оформить (⌘R)" : "Начать запись (⌘R)")
+        .help(state.isSessionLive ? "Stop and write it up (⌘R)" : "Start recording (⌘R)")
     }
 
     private var isRecording: Bool { state.status == .recording }
@@ -72,13 +72,13 @@ struct RecordPill: View {
 
     private var label: String {
         switch state.status {
-        case .idle:     return "Начать запись"
+        case .idle:     return "Start recording"
         case .starting: return "Starting…"
-        case .recording: return "Стоп"
+        case .recording: return "Stop"
         // Stop still means finish-and-write-up from paused; resume is a
         // separate control, so this button never carries two meanings.
-        case .paused:   return "Стоп"
-        case .stopping: return "Останавливаю…"
+        case .paused:   return "Stop"
+        case .stopping: return "Stopping…"
         case .error:    return "Again"
         }
     }
@@ -135,9 +135,9 @@ struct PauseResumeButton: View {
             .onHover { hovering = $0 }
             .keyboardShortcut("p", modifiers: [.command, .shift])
             .help(state.isPaused
-                  ? "Продолжить (⇧⌘P) — звонок и транскрипт сохраняются"
-                  : "Пауза (⇧⌘P) — запись останавливается, звонок не заканчивается")
-            .accessibilityLabel(state.isPaused ? "Продолжить запись" : "Поставить запись на паузу")
+                  ? "Resume (⇧⌘P) — the call and transcript are kept"
+                  : "Pause (⇧⌘P) — recording stops, the call does not end")
+            .accessibilityLabel(state.isPaused ? "Resume recording" : "Pause the recording")
             .accessibilityIdentifier("recording.pauseResume")
         }
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Sidebar "Фокус" section: unique upcoming reminders and active alerts.
+/// Sidebar "Focus" section: unique upcoming reminders and active alerts.
 /// Recommendations live only in Co-pilot so users never see duplicate cards.
 struct FocusSection: View {
     @EnvironmentObject var state: AppState
@@ -11,7 +11,7 @@ struct FocusSection: View {
         if !items.isEmpty || !hidden.isEmpty || state.appliedMeetingContext != nil {
             VStack(alignment: .leading, spacing: Space.s) {
                 HStack(spacing: Space.s) {
-                    SectionLabel("Фокус")
+                    SectionLabel("Focus")
                     Spacer()
                     if !items.isEmpty {
                         Text("\(items.count)")
@@ -60,8 +60,8 @@ struct FocusSection: View {
 }
 
 /// Shown right after a Focus row is tapped. Dismissal is not the same as undo:
-/// keeping the context is the common case, so "Оставить" simply retires the banner
-/// while "Отменить" reverses every field the tap rewrote and hides the meeting —
+/// keeping the context is the common case, so "Keep" simply retires the banner
+/// while "Cancel" reverses every field the tap rewrote and hides the meeting —
 /// an accidental tap almost always means "not this one".
 private struct AppliedMeetingBanner: View {
     let fileName: String
@@ -80,15 +80,15 @@ private struct AppliedMeetingBanner: View {
                     .lineLimit(1)
                 Spacer(minLength: 0)
             }
-            Text("Загружено в контекст этого звонка.")
+            Text("Loaded into this call's context.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkSecondary)
             HStack(spacing: Space.s) {
-                Button("Отменить", action: onUndo)
+                Button("Cancel", action: onUndo)
                     .buttonStyle(.plain)
                     .font(Typo.caption.weight(.semibold))
                     .foregroundStyle(Theme.accentText)
-                Button("Оставить", action: onKeep)
+                Button("Keep", action: onKeep)
                     .buttonStyle(.plain)
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
@@ -118,7 +118,7 @@ private struct HiddenMeetingsDisclosure: View {
                 HStack(spacing: Space.xs) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
                         .font(.system(size: 8, weight: .bold))
-                    Text("скрыто: \(meetings.count)")
+                    Text("hidden: \(meetings.count)")
                         .font(Typo.caption)
                 }
                 .foregroundStyle(Theme.inkTertiary)
@@ -141,7 +141,7 @@ private struct HiddenMeetingsDisclosure: View {
                     .padding(.leading, Space.m)
                 }
                 if meetings.count > 1 {
-                    Button("Показать все", action: onRestoreAll)
+                    Button("Show all", action: onRestoreAll)
                         .buttonStyle(.plain)
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
@@ -220,8 +220,8 @@ private struct FocusRow: View {
                 }
                 .buttonStyle(IconButtonStyle(size: 16))
                 .opacity(hovering ? 1 : 0)
-                .accessibilityLabel("Скрыть \(item.title)")
-                .help("Убрать отсюда — в календаре звонок останется")
+                .accessibilityLabel("Hide \(item.title)")
+                .help("Remove it from here — the call stays in the calendar")
             }
         }
         .padding(Space.s)
@@ -243,9 +243,9 @@ private struct FocusRow: View {
         case .alert:    return "Hide"
         case .reminder:
             return item.meetingID == nil
-                ? "Ближайший звонок"
-                : "Подставить название, повестку и участников в контекст звонка"
-        default:        return "Отправить ассистенту"
+                ? "Next call"
+                : "Put the title, agenda and participants into the call's context"
+        default:        return "Send to the assistant"
         }
     }
 }
@@ -289,6 +289,6 @@ struct FocusBriefLines: View {
         .padding(.trailing, Space.s)
         .padding(.bottom, 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Кратко: " + brief.focusLines.map(\.text).joined(separator: ". "))
+        .accessibilityLabel("In brief: " + brief.focusLines.map(\.text).joined(separator: ". "))
     }
 }

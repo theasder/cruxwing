@@ -141,7 +141,7 @@ struct PromptBudgetBarViewTests {
         #expect(throws: (any Error).self) { try inspected.find(text: "Sheets") }
         #expect(throws: Never.self) {
             try inspected.find(viewWithAccessibilityLabel:
-                "Google, connected, Calendar, Docs, Sheets, Slides, Forms + ответы, Drive")
+                "Google, connected, Calendar, Docs, Sheets, Slides, Forms + responses, Drive")
         }
     }
 

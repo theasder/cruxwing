@@ -193,7 +193,7 @@ private struct MandatoryInformationOverlay: View {
         ZStack {
             Color.black.opacity(0.32).ignoresSafeArea()
             VStack(alignment: .leading, spacing: Space.m) {
-                Label("Нужны данные", systemImage: "exclamationmark.shield.fill")
+                Label("Data needed", systemImage: "exclamationmark.shield.fill")
                     .font(Typo.headline)
                     .foregroundStyle(Theme.ink)
                 Text(notice.message)
@@ -221,7 +221,7 @@ private struct MandatoryInformationOverlay: View {
             )
             .softShadow()
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Обязательные сведения")
+            .accessibilityLabel("Required details")
         }
         .transition(.opacity)
         .zIndex(100)
@@ -287,9 +287,9 @@ private struct MeetingColumn: View {
                         .foregroundStyle(Theme.inkSecondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    Button("Использовать") { state.acceptSuggestedMeetingTitle() }
+                    Button("Use") { state.acceptSuggestedMeetingTitle() }
                         .buttonStyle(QuietButtonStyle(prominent: true))
-                        .help("Назвать звонок предложенным заголовком")
+                        .help("Name the call with the suggested title")
                     Button { state.dismissSuggestedMeetingTitle() } label: {
                         Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
                     }
@@ -328,8 +328,8 @@ private struct MeetingColumn: View {
             }
             .buttonStyle(IconButtonStyle(size: 22))
             .disabled(state.diarizing || state.enhancingTranscript)
-            .help("Скачать транскрипт текстовым файлом")
-            .accessibilityLabel("Скачать транскрипт")
+            .help("Download the transcript as a text file")
+            .accessibilityLabel("Download the transcript")
         }
     }
 
@@ -339,7 +339,7 @@ private struct MeetingColumn: View {
             date: state.sessionDate,
             entries: state.transcript)
         let panel = NSSavePanel()
-        panel.title = "Скачать транскрипт"
+        panel.title = "Download the transcript"
         panel.prompt = "Save"
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
@@ -352,7 +352,7 @@ private struct MeetingColumn: View {
         do {
             try text.data(using: .utf8)?.write(to: url, options: .atomic)
         } catch {
-            state.lastError = "Не удалось сохранить транскрипт: \(error.localizedDescription)"
+            state.lastError = "Could not save the transcript: \(error.localizedDescription)"
         }
     }
 
@@ -361,7 +361,7 @@ private struct MeetingColumn: View {
         if state.enhancingTranscript {
             HStack(spacing: Space.xs) {
                 BreathingDots(tint: Theme.accent)
-                Text("Дополняю из Fireflies…")
+                Text("Enriching from Fireflies…")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkSecondary)
             }
@@ -370,12 +370,12 @@ private struct MeetingColumn: View {
                 HStack(spacing: Space.s) {
                     ProgressView(value: state.localDiarizationProgress)
                         .frame(width: 48)
-                        .accessibilityLabel("Ход определения говорящих")
+                        .accessibilityLabel("Speaker identification progress")
                         .accessibilityIdentifier(
                             "postcall.localDiarization.progress")
                     Text(state.localDiarizationProgress < 0.2
-                         ? "Готовлю локальную модель…"
-                         : "Разделяю голоса на этом Mac…")
+                         ? "Preparing the local model…"
+                         : "Separating voices on this Mac…")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -387,7 +387,7 @@ private struct MeetingColumn: View {
         } else if state.diarizing {
             HStack(spacing: Space.xs) {
                 BreathingDots(tint: Theme.accent)
-                Text("Определяю говорящих…")
+                Text("Identifying speakers…")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkSecondary)
             }
@@ -398,11 +398,11 @@ private struct MeetingColumn: View {
                         Label("Enrich from Fireflies", systemImage: "flame")
                     }
                     .buttonStyle(QuietButtonStyle(prominent: true))
-                    .help("Свести локальную расшифровку с транскриптом Fireflies и вычистить моделью")
+                    .help("Reconcile the local transcript with the Fireflies one and clean it up with the model")
                 }
                 if state.canRetranscribeLocally {
                     Button { state.retranscribeLocallyNow() } label: {
-                        Label(state.localRetranscribing ? "Re-transcribing…" : "Расшифровать заново на устройстве",
+                        Label(state.localRetranscribing ? "Re-transcribing…" : "Transcribe again on this device",
                               systemImage: "waveform.badge.magnifyingglass")
                     }
                     .buttonStyle(QuietButtonStyle(prominent: false))
@@ -442,11 +442,11 @@ private struct MeetingColumn: View {
                             expectedRemoteSpeakerCount:
                                 postCallRemoteSpeakerCount)
                     } label: {
-                        Label("Подписать говорящих", systemImage: "person.2.wave.2")
+                        Label("Label the speakers", systemImage: "person.2.wave.2")
                     }
                     .buttonStyle(QuietButtonStyle(prominent: false))
-                    .help("Определяет выбранное число голосов по сохранённой дорожке на этом Mac. Аудио никуда не отправляется, голосовые отпечатки не сохраняются, кредиты не тратятся. Метки сохраняются только в локальной истории этого звонка на этом Mac. Бета — проверьте их перед отправкой.")
-                    .accessibilityLabel("Определить говорящих на этом Mac")
+                    .help("Identifies the chosen number of voices from the saved track on this Mac. No audio is sent anywhere, no voiceprints are stored, and no credits are spent. Labels are saved only in this call's local history on this Mac. Beta — check them before sending them anywhere.")
+                    .accessibilityLabel("Identify speakers on this Mac")
                     .accessibilityIdentifier("postcall.localDiarization.run")
                 }
                 if state.canDiarize {
@@ -457,7 +457,7 @@ private struct MeetingColumn: View {
                         // measured against human references this replaces the
                         // remote-side transcript with one 57% more accurate on
                         // work calls, and more on accented speech.
-                        Label("Улучшить транскрипт", systemImage: "wand.and.stars")
+                        Label("Improve the transcript", systemImage: "wand.and.stars")
                     }
                     // Not prominent while a free Fireflies merge is pending:
                     // Fireflies recorded the same meeting and its merge is
@@ -531,7 +531,7 @@ private struct TranscriptionPerformanceBanner: View {
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: Space.s)
             if notice.action == .useDeepgram {
-                Button("Использовать Deepgram в следующей записи") {
+                Button("Use Deepgram for the next recording") {
                     state.useRecommendedDeepgramForNextRecording()
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))
@@ -543,7 +543,7 @@ private struct TranscriptionPerformanceBanner: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(Theme.inkSecondary)
-            .accessibilityLabel("Скрыть совет о производительности")
+            .accessibilityLabel("Hide the performance tip")
         }
         .padding(Space.m)
         .background(Theme.accentSoft, in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
@@ -557,7 +557,7 @@ private struct MeetingTitleField: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        TextField("", text: $title, prompt: Text("Звонок без названия").foregroundColor(Theme.inkTertiary))
+        TextField("", text: $title, prompt: Text("Untitled call").foregroundColor(Theme.inkTertiary))
             .textFieldStyle(.plain)
             .font(Typo.displayL)
             .foregroundStyle(Theme.ink)
@@ -592,8 +592,8 @@ private struct ErrorToast: View {
                     Image(systemName: "xmark")
                 }
                 .buttonStyle(IconButtonStyle(size: 22))
-                .accessibilityLabel("Скрыть ошибку")
-                .help("Скрыть ошибку")
+                .accessibilityLabel("Hide the error")
+                .help("Hide the error")
             }
             .padding(.horizontal, Space.l)
             .padding(.vertical, Space.m)
