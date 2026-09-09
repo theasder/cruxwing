@@ -84,17 +84,3 @@ test('английская строка, разнесённая на две ст
   assert.ok(!CYRILLIC.test(hit[0]), 'образец должен быть без кириллицы');
 });
 
-// План (§6.4) утверждает, что задача названа новичку в CONTRIBUTING. Утверждение
-// было неправдой полдня: там про это не было ни строки. Теперь есть — и
-// проверяется, иначе это снова станет неправдой молча.
-test('CONTRIBUTING называет задачу и то же самое число', () => {
-  const doc = readFileSync('CONTRIBUTING.md', 'utf8');
-  const { total, without } = stated();
-  assert.match(doc, /Russian strings on screen/,
-    'CONTRIBUTING no longer names the task, and §6.4 promises that it does');
-  assert.ok(doc.includes(String(total)) && doc.includes(String(without)),
-    `CONTRIBUTING не повторяет числа ${total}/${without} из §6.4 — ` +
-    'человек прочтёт устаревшее и не поймёт, куда двигать');
-  assert.match(doc, /test\/russkie-stroki\.test\.mjs/,
-    'CONTRIBUTING не говорит, чем число держится');
-});

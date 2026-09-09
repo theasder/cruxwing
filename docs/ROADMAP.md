@@ -862,8 +862,13 @@ Four more counters track the same migration from different angles, each pinned
 in its own guard: phrases on screen (`test/frazy-v-vidah.test.mjs`), error
 messages (`test/oshibki-po-russki.test.mjs`), the properties a view prints
 (`test/vidimye-stroki-vne-vidov.test.mjs`) and the whole on-screen set
-(`RussianCopyTests.remainingRussianOnScreen`). Translate a screen, lower every
-number it moves in the same commit.
+(`RussianCopyTests.remainingRussianOnScreen`). All four reached zero on the same
+day; they stay pinned at it, so a Russian string coming back is a red suite
+rather than a discovery months later.
+
+The migration is finished, so `CONTRIBUTING.md` no longer advertises it as a
+newcomer task: pointing a first-time contributor at an empty work list is worse
+than pointing them at nothing.
 
 What the previous direction achieved is kept here because it explains the shape
 of the code: the count of non-Cyrillic strings had been driven from 44 to 23,

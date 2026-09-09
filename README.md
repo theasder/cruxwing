@@ -3,11 +3,17 @@
 A call assistant that answers "what did we decide?" with a quote from the call
 where it was said. On your own computer, free.
 
-**This repository is the Russian-speech edition.** The whole application — system
-audio capture with no bot, on-device transcription, search across your own calls.
-The interface, the command line and the system prompts are in Russian, and the
-lexicon is built for Russian technical speech; the documentation is in English.
-Its own identity (`ai.orakul.desktop`). All three test suites run in CI.
+The whole application — system audio capture with no bot, on-device
+transcription, search across your own calls. The interface, the command line, the
+system prompts and the documentation are in English. Its own identity
+(`ai.orakul.desktop`). All three test suites run in CI.
+
+**Languages.** Transcription is offered in English, Russian, Spanish, French,
+German, Portuguese, Italian, Dutch, Hindi and Japanese, plus an automatic mode
+that follows the conversation. Search is a separate question and the answer is
+narrower: it matches whole words in any of them, and folds word endings only in
+Russian, whose morphology the index was built for. In English "pricing" finds the
+line and "pricings" does not — see [Why it is built this way](#why-it-is-built-this-way).
 
 ```
 record a call   →   transcribe   →   fix the terms    →  to archive  →  search
@@ -89,8 +95,9 @@ Looks like a typo — the archive has «Pricing».
 ```
 
 The word is not substituted silently: replacing the question means answering a
-different one. A miss in the inflection needs no hint — "pricings" is found as
-it is, because search strips endings on its own.
+different one. Note the limit while you are here: ending-folding is Russian-only,
+so "pricings" is *not* found by this English archive — it is a different word to
+the index, and the honest refusal is what you get.
 
 A call can be deleted by the start of its identifier, like a git commit:
 `orakul delete 49290B26`. A prefix shorter than four characters is refused, and
@@ -210,33 +217,32 @@ if let hit = store.index().search("what did we decide about pricing").first {
 
 ## Why it is built this way
 
-**Search is lexical, not semantic.** In the English-language version, embedding
-search failed to find a call *by its title*: two phrasings out of three came back
-empty, because cosine similarity between sentences rewards topical likeness while
-a question about a title asks about a name. On top of that, the system sentence
-model on macOS is English-language and answers Russian text with a meaningless
-vector. So what is here is honest lexical search with Russian morphology: it
-understands cases, it does not understand synonyms. A question about "цены" will
-not find a call where people said "тарифы", and there is a separate test for that.
+**Search is lexical, not semantic.** Embedding search was tried and dropped: it
+failed to find a call *by its title* in two phrasings out of three, because cosine
+similarity between sentences rewards topical likeness while a question about a
+title asks about a name. So what is here is lexical search — it matches the words
+that were said, and it does not understand synonyms. A question about "prices"
+will not find a call where people said "pricing", and there is a separate test for
+that. The answer is always a line from the transcript, which is the whole point:
+an answer you cannot check against what was said is the thing this product exists
+to avoid.
 
-Morphology is not "cases in general" but a list of endings, and it had a hole.
-The class of words ending in "-ние" (обновление, подключение, решение,
-тестирование, согласование) was findable in no case but the nominative:
-"развёртывание" was trimmed to "развёртыван" while "развёртыванием" became
-"развёртывани". Two different stems for one word — that is, an honest "never
-discussed" about something that was discussed. Fixed on 14 August; the analysis
-is in `docs/RESEARCH-AND-PLAN.md`, §6.7. The same section states what ending
-trimming cannot and will not do: verbs are not reduced across aspect,
-"выкатываем" will not be found by "выкатить".
+**Ending-folding exists for Russian only, and that is a real limit, not a
+placeholder.** The index was built for Russian morphology, where a word appears in
+six cases and matching only the exact form would miss most of what was said.
+English needs no such folding to be useful, and does not get it: "pricing" finds
+the line, "pricings" and "prices" do not. Stemming English is not free — an
+over-eager stemmer merges words that mean different things and produces confident
+answers from the wrong line, which is worse here than a refusal. Until it is
+measured on real calls rather than assumed, the honest behaviour is the one that
+ships.
 
-**The lexicon fixes the transcript afterwards rather than hinting beforehand.**
-Measured on live Russian speech: three engines disagreed on 29% of terms, and
-every disputed one turned out to be code-switching — "прод", "промпт", "API",
-"джейлбрейк". And they disagree not in hearing but in alphabet: Whisper writes
-`Prompt`, Parakeet writes "Промпт". A cross-alphabet lexicon raised agreement
-from 71% to 89%. A decoder hint does not solve this problem and is capable of
-deleting speech: on an English corpus such a glossary drove the model to WER 0.95
-with 2757 omissions.
+Stop words are the other half, and they are per-language for the same reason. A
+question carries freight — "when is the office party" is three function words and
+two real ones — and a list that covers only one language turns the freight into
+search terms. That is not theoretical: with the Russian-only list in place, that
+exact question matched "Who **is** doing it" on the word "is" and answered with a
+quote instead of the refusal.
 
 **Recording, transcription, archive and search are computed on the device.** The
 network appears only because of a choice you made: a question to your chosen
@@ -248,8 +254,7 @@ request are described in [SECURITY.md](SECURITY.md).
 
 | Module | What it does |
 |---|---|
-| `RecallIndex` | Search across your own calls: Russian stems, rare words weigh more, a match in the title counts double |
-| `RussianLexicon` | The canonical spelling of terms, including cross-alphabet (`prod` → "прод", "апи" → `API`) |
+| `RecallIndex` | Search across your own calls: whole-word matching, rare words weigh more, a match in the title counts double |
 | `SessionStore` | The on-disk archive: one file per call, atomic writes, a corrupt file does not bring down the rest |
 | `MeetingPipeline` | The end-to-end path from sound to archive; the transcriber is plugged in from outside |
 | `ExternalTranscriber` | Transcription by someone else's engine: 16 kHz WAV, `{file}` substitution, engine errors arrive intact |
@@ -276,64 +281,6 @@ not merely built in a `swift:6.0` container on every pull request: a full
 permissions under root) are pinned by separate Linux branches, with explicit skip
 reasons where root makes an honest check of a refusal impossible. The analysis is
 in [`docs/ROADMAP.md`](docs/ROADMAP.md), §6.1.
-
-## What is still missing
-
-- a recognition model of our own: Cruxwing uses the one you already have
-  (`ExternalTranscriber`) and does not ship gigabytes of weights;
-- universal history import from call services. Audio from Telemost, VK Teams,
-  SaluteJazz, TrueConf and Jitsi is taken by system capture — you can record
-  ongoing calls today; Jitsi is detected by window/application, TrueConf by a
-  running client and microphone. For the past, Telemost has no enumeration, VK
-  Teams has no calls in its Bot API, TrueConf's exact methods depend on a
-  particular server's API, Jitsi recording lives in the owner's Jibri/JaaS
-  infrastructure, and SaluteJazz requires a backend to issue a token — which
-  Cruxwing does not have by design. The analysis of each is in
-  `docs/RESEARCH-AND-PLAN.md`, §11;
-- a Pyrus connector: its API has no text search over tasks, only a registry of a
-  particular form. This is not about timing — it is how the API is built;
-- knowledge-base connectors: Yandex Wiki's public documentation has page
-  retrieval by address but no text search; for Teamly we found no public API
-  description (details in `docs/RESEARCH-AND-PLAN.md`, §2.1);
-- a Windows version: audio capture there is its own thing (WASAPI), and it has
-  not been written.
-
-The order in which this is worked through, and what blocks each item, is in
-[`docs/ROADMAP.md`](docs/ROADMAP.md) (in English, as is `RESEARCH-AND-PLAN`).
-The connector queue is there too: for each service it says not "when" but what
-exactly is unknown and what would unblock it.
-
-Connectors to Russian trackers — Yandex Tracker, Kaiten, YouGile and WEEEK — are
-already here: connect by token under "Settings → Connected apps", in the
-first block. They work in both directions: Cruxwing queries them during a call when
-it has been given a goal, and files tasks from the outcome — provided you say
-where to put them (a queue in Yandex, a board in Kaiten, a column in YouGile, a
-project in WEEEK).
-
-Bitrix24 connects as well, but differently — by a webhook whose key sits directly
-in the address. And an honest caveat: it is **built from the documentation, not
-verified against a live portal**, because we have no portal. Bitrix answers
-HTTP 200 and puts the error in the body, so a revoked webhook can look like
-"nothing found"; we do handle that branch, but on a fabricated response. The
-analysis is in `docs/RESEARCH-AND-PLAN.md`, §2.0.1; if you have a portal, help us
-check it: issue [#1](https://github.com/theasder/cruxwing/issues/1).
-
-Telegram supergroups connect through a separate bot. The Bot API does not hand
-over old history, so Cruxwing receives and locally indexes only new messages from
-explicitly named supergroups after connecting. The token stays in the Keychain,
-the bot sends nothing, and on disconnection the accumulated archive is deleted.
-
-How to build a closed integration build, grant testers minimal rights and then
-revoke access is described in
-[`app/docs/TESTER-INTEGRATIONS.md`](app/docs/TESTER-INTEGRATIONS.md). Working keys
-are not committed to a branch or a fork.
-
-About the two folders. `mvp/` holds the first version, written from scratch: the
-command line, the search core and the lexicon, without system audio capture. The
-quick start above goes through it because it builds in a minute and can be seen
-whole. `app/` holds the application: audio capture, on-device transcription,
-connectors, the installer. Everything below about integrations, keys and plans is
-about `app/`.
 
 ## Your own provider key
 

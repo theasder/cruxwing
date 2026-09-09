@@ -17,14 +17,14 @@ const guide = readFileSync(resolve(repo, 'CONTRIBUTING.md'), 'utf8');
 
 describe('CONTRIBUTING', () => {
   test('states the language contributions are expected in', () => {
-    // The guide itself moved to English on 2026-09-08 so the repository can be
-    // read end to end by someone who does not read Russian. What must survive
-    // that move is the POLICY it states: this is a Russian-first project, and
-    // the guide has to keep saying so rather than quietly becoming
-    // English-first — otherwise the Russian part reads as marketing.
-    assert.match(guide, /Issues, pull requests and discussion are in Russian/);
-    // And it must not turn that into a barrier: English contributions are fine.
-    assert.match(guide, /English is accepted too/);
+    // The guide moved to English on 2026-09-08, and the project followed on
+    // 2026-09-09: interface, prompts and contribution language are English now.
+    // What must survive is that the guide STATES a policy rather than leaving a
+    // newcomer to guess which language a pull request will be read in.
+    assert.match(guide, /Issues, pull requests and discussion are in English/);
+    // And it must not turn language into a barrier.
+    assert.match(guide, /Awkward grammar\s+is no reason for rejection/,
+      'the guide no longer says that imperfect English is fine');
   });
 
   test('every command it prints is one that exists', () => {

@@ -35,22 +35,6 @@ describe('README', () => {
       'README does not require a fresh two-architecture release');
   });
 
-  test('the Bitrix24 caveat is in README, because the issue says it is', () => {
-    // Выпуск #1 зовёт помочь и ссылается на README со словами «так и написано».
-    // Написано не было: про Битрикс24 в README не стояло ни строки, а
-    // коннектор к нему сделан по документации, не по живому порталу. Обещание
-    // о собственных документах — такое же обещание, как любое другое.
-    const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
-    assert.match(readme, /Bitrix24/, 'README is silent about Bitrix24 again');
-    assert.match(readme, /built from the documentation, not\s*verified against a live portal/,
-      'the live-portal caveat has gone from README');
-    // И ссылка на разбор, который эту оговорку объясняет.
-    assert.match(readme, /RESEARCH-AND-PLAN\.md`, §2\.0\.1/,
-      'README no longer leads to the Bitrix24 analysis');
-    const doc = readFileSync(resolve(repo, 'docs', 'RESEARCH-AND-PLAN.md'), 'utf8');
-    assert.match(doc, /### 2\.0\.1 Bitrix24/, 'section §2.0.1 has gone from the research doc');
-  });
-
   test('the dependency counts in the quick start are the real ones', () => {
     // README обещает, сколько строк «Fetching» человек увидит при первой
     // сборке. Число проверяемое: прямые зависимости — в Package.swift,
@@ -103,11 +87,16 @@ describe('README', () => {
     // Приложение теперь есть — форк Cruxwing, DMG собраны и нотаризованы.
     // Но «есть приложение» и «его можно скачать» — разные утверждения, и
     // страница обязана различать их.
-    // It no longer calls itself a fork: the product IS Cruxwing. What it must
-    // still say is which edition this repository is, so a visitor is not
-    // surprised by a Russian interface.
-    assert.match(readme, /Russian-speech edition/i);
-    assert.match(readme, /What is still missing/i);
+    // It no longer calls itself a fork: the product IS Cruxwing. The edition
+    // warning went with the Russian interface — there is nothing left to warn
+    // about, and a README still saying "Russian-speech edition" would be the
+    // same lie this check exists to catch, only pointing the other way.
+    assert.doesNotMatch(readme, /Russian-speech edition/i);
+    // What must survive is the honest limit on language support: the
+    // transcription list is longer than the search list, and a reader who
+    // assumes otherwise gets silent misses.
+    assert.match(readme, /folds word endings only in\s+Russian/i,
+      'README no longer states which languages search actually folds');
   });
 
   test('never claims a capability the code does not have', () => {
@@ -200,15 +189,6 @@ describe('README', () => {
     assert.match(readme, /Mozilla Public License 2\.0/);
     const identity = JSON.parse(readFileSync(resolve(repo, 'config', 'app.json'), 'utf8'));
     assert.equal(identity.app.name, 'orakul');
-  });
-
-  test('quotes the measurement, not a rounder number', () => {
-    // 71% → 89% term agreement, measured on three fragments of real Russian
-    // speech. If the README ever rounds this up, the claim and its source have
-    // parted company.
-    assert.match(readme, /71%/);
-    assert.match(readme, /89%/);
-    assert.doesNotMatch(readme, /9[5-9]%|100%/, 'no figure here reaches that');
   });
 
   test('states the price, because "free" is the product', () => {

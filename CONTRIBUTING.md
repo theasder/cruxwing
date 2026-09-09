@@ -1,9 +1,75 @@
 # How to take part
 
-In Russian. Issues, pull requests and discussion are in Russian, and that is not
-a formality: the project exists because a Russian-speaking developer has to
-explain their problem in someone else's language in someone else's tracker.
-English is accepted too — nobody will turn you away.
+In English. Issues, pull requests and discussion are in English. Awkward grammar
+is no reason for rejection, and a question that is unclear in substance is a
+reason to ask again, not to close — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## Adding a connector
+
+Often a connector is a JSON file rather than Swift. Put the answers to four
+questions — method, address, search parameter, response shape — into
+`mvp/Sources/OrakulCore/Resources/connectors/<service>.json`, and a shared engine
+runs them: the deadline, distinguishable errors, and the rule that an unfamiliar
+response is a refusal rather than an empty result all come for free.
+
+```json
+{
+  "id": "service", "title": "Service",
+  "docs": "https://link/to/the/method/in/the/vendor/reference",
+  "verifiedOn": "2026-08-18",
+  "request": {
+    "method": "GET", "path": "/api/v1/search",
+    "query":   [{ "name": "q", "value": "{query}" },
+                { "name": "limit", "value": "{limit}" }],
+    "headers": [{ "name": "Authorization", "value": "Bearer {token}" }],
+    "body": null
+  },
+  "response": {
+    "list": ["data"], "title": ["title"], "author": ["user_id"],
+    "context": null, "key": [], "state": ["state"]
+  }
+}
+```
+
+Two fields are mandatory and the manifest will not load without them: `docs`, and
+a parameter or body carrying `{query}` or `{queryWords}`.
+
+The substitutions the engine knows:
+
+| Substitution | What it carries |
+|---|---|
+| `{query}` | the person's words, as typed |
+| `{queryWords}` | the same words with the characters that would be read as another system's search syntax stripped out |
+| `{limit}` | how many rows to ask for |
+| `{token}` | the key from the Keychain |
+| `{basic}` | the key encoded for HTTP Basic, so nobody encodes it by hand |
+| `{tokenHead}` / `{tokenTail}` | the two halves of a `head:tail` key, for services that want them in different headers |
+| `{page}` / `{perPage}` | position and page size, for enumeration |
+
+Use `{queryWords}` whenever the service parses its search parameter as a
+*language* rather than a string — Slack, Mattermost, Trello, BookStack,
+Rocket.Chat and Jira all do. A question assembled from speech contains ordinary
+punctuation, and a colon in it will be read as an instruction. There is no error
+for this: the answer simply comes back about something else, and the person reads
+a confident "nothing found".
+
+**The secret travels in a header**, even where the vendor's usual way is
+`?key=…&token=…`. A full address is written into proxy logs, the service's own
+access log and error reports, and outlives a revoked key. A manifest with
+`{token}` or `{basic}` in the path or in query parameters will not load.
+
+If a service has no search by word, a bounded enumeration is accepted instead —
+`scan`, with `pages`, `perPage`, the fields to `match` on our side, and where the
+service reports `more` and `total`. The engine allows no more than ten pages, and
+returns coverage with the results, so the person sees "not found among the last
+500 of 40,000" rather than "nothing found". Those are different answers.
+
+Some services cannot be described this way at all — a dictionary instead of a
+list, a nested body, authorization assembled from two halves. Those are written
+in code; `mvp/Sources/OrakulCore/WorkMessengers.swift` is the model, and
+`mvp/Sources/OrakulCore/WesternTrackers.swift` shows a cloud service, which is
+never asked for an address: one host for everybody belongs in code, because an
+extra settings field is an extra typo the person will blame on their token.
 
 ## Quick start
 
@@ -50,276 +116,6 @@ and that was discovered after six minutes of building arm64.
 The installer build does this itself (`app/build.sh`); an ordinary build does not:
 cleaning costs two minutes, and there is no reason to pay them on every edit.
 
-## What gets into the project fastest
-
-1. **Russian strings on screen.** A task with a known number, and the direction
-   reversed on 2026-09-09: the interface is moving to English. Of the 437 strings
-   a person reads in `app/Sources/MeetGPT/Views` and `Onboarding`, 0 still carry
-   a Cyrillic letter. That is a ceiling, not a work list: it may only fall, and
-   `test/russkie-stroki.test.mjs` holds it to equality, so a new Russian string
-   has to be explained exactly as much as a missed one. Vendor names stay as their
-   owners spell them — «Пачка», «Яндекс Трекер» — and so does the language engine
-   underneath (`RecallIndex`'s stopwords, `RussianLexicon`, the injection phrases
-   the guards match on): it reads Russian speech, and translating it would stop
-   the product working. Pick a screen, translate it, and lower the number in
-   §6.4 in the same commit.
-
-   The number is held by `test/russkie-stroki.test.mjs`, and held in both
-   directions: if it grows the suite is red, if it shrinks it is red too, because
-   the ceiling has to be lowered in the plan (`docs/ROADMAP.md`, §6.4). Do not take
-   the documented `grep` one-liner from the plan as the check: it is line-based and
-   cannot see a call split across two lines.
-
-2. **A connector to a Russian service.** This is the main shortage and the main
-   reason orakul is a separate product at all. Bitrix24 was connected on
-   2026-08-13, but from the documentation rather than against a live portal — if
-   you have a portal, the most valuable thing right now is one command from §2.0.1
-   of the plan and an answer on whether search works. The sweep of the list is
-   finished and the census is in §2.0.3 of the plan: five connected, three not,
-   with a named reason for every "not". **Megaplan is ruled out** (no long-lived
-   key, sign-in is by login and password), **Aspro.Cloud** is waiting for a
-   description of its task-list method with a search parameter and a response
-   shape. Find it and that is a day's work, and it is needed. WEEEK was connected
-   after its public API reference was published.
-
-   If a service is self-hosted, a live check does not depend on an account:
-   `bash scripts/zhivaya-proba.sh gitea` brings the service up in a container,
-   fills it with tasks, searches, and deletes the container. Gitea and Redmine were
-   verified that way; adding your own service there is a useful change too.
-
-   The secret travels in a **header**, even when the service's standard way is
-   `?key=…&token=…`. The address is written in full into proxy logs, into the
-   service's own access log and into error reports, and lives there longer than a
-   revoked key does. Trello is exactly that case: the OAuth header was used. A
-   manifest with `{token}` or `{basic}` in the path or in query parameters simply
-   will not load.
-
-   The model is `mvp/Sources/OrakulCore/RussianTrackers.swift`, and the blueprint
-   with the reasoning behind every decision is `docs/RESEARCH-AND-PLAN.md`, §2.2.
-
-   It is easier to start from the "Новый коннектор" form (New issue → Новый
-   коннектор): it asks exactly the four things on which a service passes or fails —
-   method, address, search parameter, response shape. If you cannot find one of
-   them in the vendor's reference, open the issue anyway and write what is missing:
-   that is how Yandex Wiki and Teamly were closed, and it is written down so nobody
-   searches a second time.
-
-   **Often a connector is a JSON file, not a Swift file.** The answers to those
-   same four questions go into
-   `mvp/Sources/OrakulCore/Resources/connectors/<service>.json`, and a shared
-   engine executes them: the deadline, distinguishable errors and the rule
-   "an unfamiliar response is a refusal, not an empty result" come for free. Gitea,
-   GitLab, Redmine, Outline, Pachca, Plane, GitFlic and BookStack are described
-   this way — you can look at them as models. Plane and GitFlic differ: they have
-   no search by word, and they show an enumeration with a bound (see `scan` below).
-   BookStack shows something else — `stripTags`: it highlights the match inside the
-   text, and a `<strong>` in a hint read aloud during a call is not wanted. Wiki.js
-   shows how to describe GraphQL: the whole query sits in the body and a refusal
-   arrives with code 200, so the service's words are taken from `errors[0].message`
-   (a number may appear in the path — that is a step into an array). Nextcloud
-   shows what to do about Basic: `{basic}` encodes the token as base64, and a person
-   writes "name:application password" on one line without encoding anything by
-   hand. Trello shows how to hand a service two values: the secret stays the token,
-   while the non-secret application key is declared in `parameters` and travels in
-   the header with it.
-
-   **A cloud service is not asked for an address.** If the service is one and the
-   same for everybody (`api.linear.app`, `api.trello.com`), the address is written
-   in code next to the enumeration rather than in a settings field: an extra field
-   is an extra typo, and the person will look for the cause in their own token.
-   Such connectors live in `WesternTrackers.swift`.
-
-   ```json
-   {
-     "id": "сервис", "title": "Сервис",
-     "docs": "https://ссылка/на/метод/в/документации/вендора",
-     "verifiedOn": "2026-08-18",
-     "request": {
-       "method": "GET", "path": "/api/v1/search",
-       "query":   [{ "name": "q", "value": "{query}" },
-                   { "name": "limit", "value": "{limit}" }],
-       "headers": [{ "name": "Authorization", "value": "Bearer {token}" }],
-       "body": null
-     },
-     "response": {
-       "list": ["data"], "title": ["title"], "author": ["user_id"],
-       "context": null, "key": [], "state": ["state"]
-     }
-   }
-   ```
-
-   Substitutions: `{query}` is the person's word, `{limit}` how many rows we ask
-   for, `{token}` the key from the Keychain. Paths (`["document","title"]`) read
-   nested fields. The body is a string template if search goes by `POST`, as in
-   Outline; quotes inside the word are escaped automatically.
-
-   **`{queryWords}` instead of `{query}` — if the service's search parameter is a
-   LANGUAGE rather than a string.** In Slack, Mattermost, Trello, BookStack,
-   Rocket.Chat and Jira it is parsed as an expression: `in:`, `from:`, `@member`,
-   `[tag=value]`, and in Rocket.Chat regular expressions as well. The question is
-   assembled from speech on a call, and an ordinary Russian colon — "Сроки: до
-   пятницы" — will be read by the service as an INSTRUCTION. There will be no error
-   about it: the answer comes back about something else, and the person sees a
-   confident "nothing found". `{queryWords}` strips the characters that break
-   another system's search language and keeps the words. If the parameter is
-   literal, use `{query}`, and it must not be translated without checking: that is
-   verified separately.
-
-   A key made of two halves separated by a colon (`mail:key`) arrives as
-   `{tokenHead}` and `{tokenTail}` — they go into different headers, as in
-   Rocket.Chat — or as `{basic}`, if the service accepts only Basic. For
-   enumeration there are `{page}` and `{perPage}`.
-
-   Two fields are mandatory, and without them the manifest will not load: `docs`,
-   and a parameter (or body) carrying `{query}` or `{queryWords}`.
-
-   Two more are optional but telling. `liveCheckedOn` is the date the description
-   was verified against a WORKING service rather than from documentation; the list
-   in the roadmap marks such services, and the mark is taken from this field rather
-   than from words in a note. `stemSuffix` is the character a service uses for
-   "the word starts with". A connector's third question goes as a stem ("тарифы" →
-   "тариф"), because someone else's database holds "тарифами"; for a service that
-   compares whole words a stem gives nothing, and there a character is needed. Set
-   it only if the vendor documents it AND you have checked: in Mattermost "тариф*"
-   finds things, in BookStack it finds zero — measured on live installations.
-
-   **If the service has no search by word.** Since 2026-08-18 that is not a death
-   sentence (roadmap, §7.2). A task list is accepted — but only as a declared list,
-   and the code checks all three conditions, not your word for them:
-
-   ```json
-   "scan": {
-     "pages": 5, "perPage": 100,
-     "page":  [{ "name": "cursor", "value": "{perPage}:{page}:0" },
-               { "name": "per_page", "value": "{perPage}" }],
-     "match": [["name"], ["description"]],
-     "more":  ["next_page_results"],
-     "total": ["total_count"]
-   }
-   ```
-
-   `pages` × `perPage` is the bound for one question; the engine will not allow
-   more than ten pages. `match` are the fields the word is searched in on our side;
-   an empty list means "a list instead of a search", and the manifest will not
-   load. `more` is where the service says there is more to come; without it the end
-   of the list is determined by a short page. `total` is where it names the full
-   size.
-
-   Why `total`: the engine returns coverage alongside the results, and the person
-   sees not "nothing found" but "not found among the last 500 of 40,000". Those are
-   different answers. If the list ended before the bound, it says so, and then the
-   answer is complete.
-
-   **If the address needs more than a host.** In Plane the project number sits
-   inside the path. Such fields are declared, and a person fills them in:
-
-   ```json
-   "parameters": [{ "name": "project", "title": "Проект", "example": "550e8400-…" }]
-   ```
-
-   A substitution nobody declared will not load the manifest: `{project}` would
-   travel into the address as literal characters, the service would answer 404, and
-   the person would read that as a breakage rather than an unfilled setting.
-
-   What a manifest cannot describe — and that is fine: Mattermost returns messages
-   as a dictionary, Zulip requires Basic authorization from two halves, Matrix a
-   nested body, Bitrix24 keeps the key in the path. Such services are written in
-   code; the model is `WorkMessengers.swift`.
-
-   **A domain lexicon pack.** There may be any number of packs: any `*.json` in
-   `mvp/Sources/OrakulCore/Resources/lexicon/` is picked up on load. The format is
-   the same as `base.json`, and there are two rules between packs, both checked at
-   load time:
-
-   - one word cannot be fixed differently in two packs. Otherwise the one whose
-     filename comes first alphabetically wins — that is, the fix depends on a
-     filename;
-   - a word your pack fixes must not appear in another pack's `ordinary` list.
-     Those lists are accumulated refusals ("агент" is an insurance agent), and
-     overriding them silently is not allowed. If you think a refusal is wrong, that
-     is a separate conversation and a separate change.
-
-   Tool names (`infrastructure`) are not subject to the second rule: they work only
-   for search, and "редис" has to stay a vegetable in a transcript.
-
-   And the main thing: a pack is a claim about what people in such a role actually
-   say. It is verified against a corpus (below), not composed from memory.
-
-   **If you want to help with the speech corpus.** The most valuable thing missing
-   is recordings of Russian technical speech with transcripts (roadmap, §6.3). A
-   corpus is a folder with a `corpus.json`:
-
-   ```json
-   {"items": [
-     {"id": "doklad-1", "genre": "talk", "consent": "public",
-      "source": "https://example.com/доклад", "seconds": 900,
-      "reference": "doklad-1.reference.txt",
-      "engines": {"whisper-large": "doklad-1.whisper.txt"}}
-   ]}
-   ```
-
-   `genre` is a talk or a call; they must not be added into one figure, because a
-   talk is read more evenly. `consent` is the basis on which you hold the
-   recording: `public` for a published talk, `participants` for a call with the
-   participants' consent. Recordings without an answer to that question are not
-   accepted — other people's voices are on a call. `reference` is a
-   human-annotated transcript; without it only engine disagreement is computed,
-   with it a real WER.
-
-   Check before sending: `bash scripts/corpus-check.sh /path/to/folder`.
-
-   **How to show a connector works without showing the token.** The check runs
-   against a live service — which means only someone with an account there can do
-   it, while the change has to be accepted by someone who has no account. A
-   document is needed between you:
-
-   ```bash
-   ORAKUL_TOKEN=… ORAKUL_HOST=… orakul спросить <сервис> тарифы
-   ```
-
-   The report shows what went to the server and what it answered: method and
-   address, headers, response code, whether the shape was recognised and how many
-   rows arrived. The token is scrubbed out of it — by header name, by value, by the
-   halves of a composite key, and by percent-encoding if the key travelled into the
-   address. This is pinned by the `ConnectorProbeReportTests` suite, and what is
-   checked there is the leak rather than the output format: this text will be pasted
-   into a public pull request.
-
-   **The title of a found task does not reach the report** — since 2026-08-20.
-   Previously the first row of the result was printed in full, that is, a real task
-   from your tracker. Now its length and alphabet are printed ("17 characters,
-   Cyrillic"): enough to see that the RIGHT field was read, not enough to read your
-   task.
-
-   Re-read the report before sending anyway. The request body remains: it holds the
-   word you searched for, and for some services the address of your project too.
-   Nobody can scrub that for you — we removed what we printed ourselves, not what
-   you typed in.
-3. **Words the lexicon is missing.** `RussianLexicon` fixes a transcript after
-   recognition, and its table was assembled from a single measurement. A term that
-   is misheard on your calls is a ready-made row for it.
-
-   This too is data, not Swift:
-   `mvp/Sources/OrakulCore/Resources/lexicon/base.json`. Acronyms (`acronyms`) are
-   written in capital Latin letters, loanwords (`loanwords`) in Cyrillic: a
-   transcript of a Russian call where half the words are Latin reads as foreign.
-
-   Three rules are checked when a pack loads, not at review:
-
-   - **words of the language are not taken.** "Агент" is an insurance agent,
-     "ветка" is a tree branch. Fixing such a word spoils a normal phrase, so the
-     `ordinary` list holds them, and an attempt to add one from there fails the
-     load;
-   - **no duplicates.** Two canonical forms for one word mean the result depends on
-     traversal order;
-   - **the alphabet matches the half.** `АПИ` among acronyms or `prod` among
-     loanwords fixes a word in the wrong direction — exactly the engine
-     disagreement the lexicon was written for.
-
-   A refusal arrives with an explanation, not an error code. If your word ran into
-   one, write about it in an issue: the `ordinary` list is extended by precisely
-   such cases, and a refusal written down once saves the next person the same
-   evening.
 ## Rules that other people's pull requests break against
 
 **Do not claim what does not exist.** A "Connect" button for a service with no
