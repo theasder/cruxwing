@@ -12,7 +12,7 @@ enum SpeakerAssignment {
 
     static let defaultLineDuration: TimeInterval = 4
     static let localSpeakerLabel = "You"
-    static let remoteSpeakerLabelPrefix = "Спикер "
+    static let remoteSpeakerLabelPrefix = "Speaker "
 
     private static func normalizedID(_ id: String) -> String? {
         let value = id.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -20,7 +20,7 @@ enum SpeakerAssignment {
     }
 
     /// Model cluster IDs are arbitrary and can change between runs. Number by
-    /// first audible appearance so a rerun has predictable Спикер 2/3 labels.
+    /// first audible appearance so a rerun has predictable Speaker 2/3 labels.
     static func canonicalLabels(
         for segments: [SpeakerSegment],
         startingAt firstSpeakerNumber: Int = 1

@@ -33,7 +33,7 @@ struct LocalSpeakerLabelsTests {
             segments: [segment("A", 0, 10), segment("B", 10, 20)],
             to: [entry("first", at: 2), entry("second", at: 12)],
             sessionStart: start)
-        #expect(out.map(\.speaker) == ["Спикер 1", "Спикер 2"])
+        #expect(out.map(\.speaker) == ["Speaker 1", "Speaker 2"])
     }
 
     @Test("overlapping speech follows whoever holds the line longest")
@@ -42,7 +42,7 @@ struct LocalSpeakerLabelsTests {
             segments: [segment("B", 9, 10.4), segment("A", 10.4, 16)],
             to: [entry("long sentence", at: 10)],
             sessionStart: start, lineDuration: 5)
-        #expect(out.first?.speaker == "Спикер 2")
+        #expect(out.first?.speaker == "Speaker 2")
     }
 
     @Test("the microphone track stays anonymous without explicit private mode")
@@ -69,7 +69,7 @@ struct LocalSpeakerLabelsTests {
             segments: [segment("speaker_93", 8, 12), segment("cluster-z", 0, 5)],
             to: [entry("one", at: 1), entry("two", at: 8)],
             sessionStart: start)
-        #expect(out.map(\.speaker) == ["Спикер 1", "Спикер 2"])
+        #expect(out.map(\.speaker) == ["Speaker 1", "Speaker 2"])
     }
 
     @Test("equal first appearances use the raw ID as a stable tie break")
@@ -77,8 +77,8 @@ struct LocalSpeakerLabelsTests {
         let labels = SpeakerAssignment.canonicalLabels(for: [
             segment("z", 0, 5), segment("a", 0, 5),
         ])
-        #expect(labels["a"] == "Спикер 1")
-        #expect(labels["z"] == "Спикер 2")
+        #expect(labels["a"] == "Speaker 1")
+        #expect(labels["z"] == "Speaker 2")
     }
 
     @Test("the known local user is reserved and remote voices start at 2")
@@ -93,7 +93,7 @@ struct LocalSpeakerLabelsTests {
             sessionStart: start,
             firstRemoteSpeakerNumber: 2,
             localSpeakerLabel: "You")
-        #expect(out.map(\.speaker) == ["You", "Спикер 2", "Спикер 3"])
+        #expect(out.map(\.speaker) == ["You", "Speaker 2", "Speaker 3"])
     }
 
     @Test("separate turns from one voice have their overlap summed")
@@ -107,7 +107,7 @@ struct LocalSpeakerLabelsTests {
             to: [entry("split", at: 10)],
             sessionStart: start,
             lineDuration: 4.1)
-        #expect(out.first?.speaker == "Спикер 1")
+        #expect(out.first?.speaker == "Speaker 1")
     }
 
     @Test("duplicate model windows are unioned instead of double-counted")
@@ -120,7 +120,7 @@ struct LocalSpeakerLabelsTests {
             ],
             to: [entry("B holds more", at: 10)],
             sessionStart: start)
-        #expect(out.first?.speaker == "Спикер 2")
+        #expect(out.first?.speaker == "Speaker 2")
     }
 
     @Test("existing real names and cloud labels are never overwritten")
@@ -138,8 +138,8 @@ struct LocalSpeakerLabelsTests {
     @Test("rerunning with fewer voices clears stale local numeric labels")
     func shrinkingCountClearsUnmatchedLocalLabel() {
         let previous = [
-            entry("matched", at: 1, speaker: "Спикер 2"),
-            entry("unmatched", at: 12, speaker: "Спикер 3"),
+            entry("matched", at: 1, speaker: "Speaker 2"),
+            entry("unmatched", at: 12, speaker: "Speaker 3"),
             entry("reviewed", at: 18, speaker: "Майя"),
         ]
         let out = SpeakerAssignment.apply(
@@ -148,7 +148,7 @@ struct LocalSpeakerLabelsTests {
             sessionStart: start,
             firstRemoteSpeakerNumber: 2,
             localSpeakerLabel: "You")
-        #expect(out.map(\.speaker) == ["Спикер 2", nil, "Майя"])
+        #expect(out.map(\.speaker) == ["Speaker 2", nil, "Майя"])
     }
 
     @Test("malformed segments cannot create a speaker")
@@ -177,7 +177,7 @@ struct LocalSpeakerLabelsTests {
             ],
             to: [entry("opening", at: 0)],
             sessionStart: start)
-        #expect(out.first?.speaker == "Спикер 1")
+        #expect(out.first?.speaker == "Speaker 1")
     }
 
     @Test("nothing else about an entry changes")

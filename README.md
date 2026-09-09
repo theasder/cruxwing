@@ -44,15 +44,15 @@ To publish, cut both DMGs from a single commit and check them with
 # git clone https://github.com/theasder/cruxwing.git cruxwing
 cd mvp && swift build -c release
 
-cat > расшифровка.txt <<'TXT'
-Аня: По тарифам — что решили в итоге?
-Борис: Годовой не трогаем до декабря, месячный поднимаем на пятнадцать процентов.
-Аня: Кто делает?
-Борис: Я, к пятнице выкачу в биллинг.
+cat > transcript.txt <<'TXT'
+Anna: On pricing — what did we decide in the end?
+Boris: We leave the annual plan alone until December, and raise the monthly one by fifteen per cent.
+Anna: Who is doing it?
+Boris: Me, I will ship it to billing by Friday.
 TXT
 
-.build/release/orakul add расшифровка.txt "Планёрка по тарифам"
-.build/release/orakul search что решили по тарифам
+.build/release/orakul add transcript.txt "Pricing standup"
+.build/release/orakul search what did we decide about pricing
 ```
 
 The command line lives in `mvp/`, the application in `app/`. This used to say
@@ -60,10 +60,10 @@ The command line lives in `mvp/`, the application in `app/`. This used to say
 no `.build/release/orakul` there.
 
 ```
-Added: «Планёрка по тарифам» (27AE25B5-…)
-«Планёрка по тарифам», 12 August 2026
-    Аня: По тарифам — что решили в итоге
-    Борис: Годовой не трогаем до декабря, месячный поднимаем на пятнадцать процентов.
+Added: «Pricing standup» (27AE25B5-…)
+«Pricing standup», 12 August 2026
+    Anna: On pricing — what did we decide in the end
+    Boris: We leave the annual plan alone until December, and raise the monthly one by fifteen per cent.
 ```
 
 The date is the day the call was added. Search is lexical: it returns the line
@@ -74,23 +74,23 @@ Ask about something the calls never covered and you get a refusal, not an
 invention:
 
 ```
-$ orakul search когда корпоратив
+$ orakul search when is the office party
 The saved calls did not discuss this. I will not invent an answer.
 ```
 
 It tells a typo apart from an absent conversation. Search is lexicon-based, and
-"тарифф" with an extra letter matches nothing — but answering "never discussed"
+"pricinng" with an extra letter matches nothing — but answering "never discussed"
 to that would pass sentence on a topic that was in fact discussed:
 
 ```
-$ orakul search тарифф
+$ orakul search pricinng
 The saved calls did not discuss this. I will not invent an answer.
-Looks like a typo — the archive has «тарифам».
+Looks like a typo — the archive has «Pricing».
 ```
 
 The word is not substituted silently: replacing the question means answering a
-different one. A miss in the inflection needs no hint — "тарифя" is found as it
-is, because search strips endings on its own.
+different one. A miss in the inflection needs no hint — "pricings" is found as
+it is, because search strips endings on its own.
 
 A call can be deleted by the start of its identifier, like a git commit:
 `orakul delete 49290B26`. A prefix shorter than four characters is refused, and
@@ -166,8 +166,8 @@ your own program, substituting the path for `{file}`:
 
 ```bash
 export ORAKUL_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {file}"
-orakul transcribe звонок.wav "Планёрка по тарифам"
-orakul search что решили по тарифам
+orakul transcribe call.wav "Pricing standup"
+orakul search what did we decide about pricing
 ```
 
 A 16 kHz WAV is required. If the rate differs, Cruxwing will not resample it
@@ -179,11 +179,11 @@ no longer "running it in five minutes".
 
 ### Private speaker labels · Beta
 
-In the application, choose the local engine and turn on "Определять говорящих на
-этом Mac" before the call starts. After stopping, give the number of other
-voices, from one to four, and press "Подписать говорящих". The microphone is
-labelled "Вы", the remaining voices "Спикер 2", "Спикер 3" and onward in order of
-first appearance. The number can be corrected and processing run again.
+In the application, choose the local engine and turn on "Identify speakers on
+this Mac" before the call starts. After stopping, give the number of other
+voices, from one to four, and press "Label the speakers". The microphone is
+labelled "You", the remaining voices "Speaker 2", "Speaker 3" and onward in order
+of first appearance. The number can be corrected and processing run again.
 
 The first run downloads about 34 MB of models. Audio and embeddings stay on the
 Mac, voice prints are not saved; labels are written only to this call's local
@@ -198,13 +198,13 @@ import OrakulCore
 
 let store = SessionStore(root: URL(fileURLWithPath: "/tmp/orakul"))
 try store.save(.init(id: "s1",
-                     title: "Планёрка по тарифам",
+                     title: "Pricing standup",
                      date: "2026-07-24",
-                     digest: "Решили перейти на оплату за использование."))
+                     digest: "We decided to move to usage-based billing."))
 
-if let hit = store.index().search("что решили по тарифам").first {
+if let hit = store.index().search("what did we decide about pricing").first {
     print(hit.session.title, "—", hit.excerpt)
-    // Планёрка по тарифам — Решили перейти на оплату за использование
+    // Pricing standup — We decided to move to usage-based billing.
 }
 ```
 
@@ -304,7 +304,7 @@ The connector queue is there too: for each service it says not "when" but what
 exactly is unknown and what would unblock it.
 
 Connectors to Russian trackers — Yandex Tracker, Kaiten, YouGile and WEEEK — are
-already here: connect by token under "Настройки → Подключённые приложения", in the
+already here: connect by token under "Settings → Connected apps", in the
 first block. They work in both directions: Cruxwing queries them during a call when
 it has been given a goal, and files tasks from the outcome — provided you say
 where to put them (a queue in Yandex, a board in Kaiten, a column in YouGile, a
@@ -338,7 +338,7 @@ about `app/`.
 ## Your own provider key
 
 Keys are deliberately not baked into the finished installers, so model answers run
-on your key: "Настройки → ИИ → Ключи провайдеров". The key lives in the Keychain
+on your key: "Settings → AI → Provider keys". The key lives in the Keychain
 and survives a restart; spending goes through your contract with the provider —
 Cruxwing does not stand in that chain.
 
@@ -374,7 +374,7 @@ on your key and are paid under your contract with the provider; Cruxwing takes n
 money and is not an intermediary in that request.
 
 In the application this means: every model in the catalogue is open, not two out
-of twelve; there is no pricing screen; there is no "Тариф" row in settings. The
+of twelve; there is no pricing screen; there is no "Plan" row in settings. The
 plan machinery inside still compiles as Cruxwing compatibility, but the direct
 BYOK path keeps no local product statistics and limits no requests by hours,
 credits or cycles. Structurally isolating the remaining types is a P1 before

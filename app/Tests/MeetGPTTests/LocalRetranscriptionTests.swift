@@ -258,7 +258,7 @@ struct LocalRetranscriptionTests {
             if !state.hasScheduledLocalDiarization { break }
             await Task.yield()
         }
-        #expect(state.transcript.first?.speaker == "Спикер 2")
+        #expect(state.transcript.first?.speaker == "Speaker 2")
         #expect(state.localDiarizationNote?.contains("Speakers identified") == true)
 
         state.retranscribeLocallyNow()

@@ -67,6 +67,33 @@ public struct RecallIndex: Sendable {
         // по шуму: эти слова встречаются в каждом втором звонке.
         "это", "этому", "этим", "этих", "там", "тут", "туда", "оттуда",
         "нам", "вам", "нами", "вами", "себя", "свои", "своё", "свой",
+
+        // The same job in English, and for the same measured reason. The
+        // product now answers in English, and a natural question carries the
+        // same freight: «when is the office party» kept "when", "is" and "the"
+        // as search words, matched "the" in an unrelated line, and answered
+        // with a quote instead of the refusal. That is the one failure this
+        // product cannot afford — a confident answer where the honest reply is
+        // "the calls did not discuss this".
+        //
+        // Single letters ("a", "I") need no entry: the filter below already
+        // drops anything shorter than two characters.
+        "the", "and", "but", "for", "not", "you", "are", "was", "were", "been",
+        "his", "her", "its", "our", "their", "them", "they", "this", "that",
+        "these", "those", "there", "here", "what", "which", "who", "whom",
+        "whose", "when", "where", "why", "how", "all", "any", "some", "such",
+        "with", "from", "into", "onto", "over", "under", "about", "after",
+        "before", "between", "during", "than", "then", "also", "just", "only",
+        "very", "much", "many", "more", "most", "less", "least", "own", "same",
+        "can", "will", "would", "should", "could", "may", "might", "must",
+        "shall", "have", "has", "had", "having", "does", "did", "doing",
+        "done", "get", "got", "let", "put", "say", "said", "see", "one", "two",
+        "yes", "out", "off", "now", "yet", "too", "way", "back", "down", "up",
+        // The two-letter ones matter most and are the easiest to forget: the
+        // first pass here omitted "is", and «when is the office party» matched
+        // "Who is doing it" — the false hit this list exists to prevent.
+        "is", "am", "be", "of", "to", "in", "on", "at", "it", "as", "or", "if",
+        "we", "he", "me", "my", "us", "do", "by", "an", "so", "no", "us", "ok",
     ]
 
     /// Окончания, отсекаемые для сравнения основ, от длинного к короткому —

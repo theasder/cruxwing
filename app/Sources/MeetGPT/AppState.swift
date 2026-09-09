@@ -10779,7 +10779,7 @@ final class AppState: ObservableObject {
     }
 
     /// Manual Beta action. `Вы` owns slot 1 because the microphone track is
-    /// already known; remote clusters are stable Спикер 2...5 by first
+    /// already known; remote clusters are stable Speaker 2...5 by first
     /// appearance. Paused or mixed-route PCM is refused rather than shifted
     /// onto the wrong transcript rows.
     var canLabelSpeakersLocally: Bool {

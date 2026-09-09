@@ -26,7 +26,7 @@ struct AskDoesNotBlockTests {
             let entries = (0..<40).map { line in
                 TranscriptEntry(id: UUID(), source: .system,
                                 text: "Строка \(line) обсуждения про тарифы и что это значит для квартала.",
-                                timestamp: started, speaker: "Спикер\(line % 4)")
+                                timestamp: started, speaker: "Speaker\(line % 4)")
             }
             try store.save(SavedSession(
                 id: UUID(), title: "Синк \(index)", startedAt: started, savedAt: started,

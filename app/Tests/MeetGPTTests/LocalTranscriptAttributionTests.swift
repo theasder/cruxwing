@@ -106,25 +106,25 @@ struct LocalTranscriptAttributionTests {
                 speaker: "You", transcriptionEngine: .local),
             TranscriptEntry(
                 source: .system, text: "Я пришлю правки.",
-                timestamp: base.addingTimeInterval(2), speaker: "Спикер 2",
+                timestamp: base.addingTimeInterval(2), speaker: "Speaker 2",
                 transcriptionEngine: .local),
         ]
 
         let rendered = TranscriptTextRenderer.render(
             entries: entries, provisional: [], appearance: nil)
-        #expect(rendered.segments.map(\.speaker) == ["You", "Спикер 2"])
+        #expect(rendered.segments.map(\.speaker) == ["You", "Speaker 2"])
         #expect(rendered.attributed.string.contains("You"))
-        #expect(rendered.attributed.string.contains("Спикер 2"))
+        #expect(rendered.attributed.string.contains("Speaker 2"))
 
         let prompt = SystemInstructions.formatEntries(entries)
         #expect(prompt.contains("][audio] You: Я проверю договор."))
-        #expect(prompt.contains("][audio] Спикер 2: Я пришлю правки."))
+        #expect(prompt.contains("][audio] Speaker 2: Я пришлю правки."))
 
         let exported = TranscriptExporter.plainText(
             title: "Локальный звонок", date: base, entries: entries,
             timeZone: TimeZone(secondsFromGMT: 0)!)
         #expect(exported.contains("You: Я проверю договор."))
-        #expect(exported.contains("Спикер 2: Я пришлю правки."))
+        #expect(exported.contains("Speaker 2: Я пришлю правки."))
 
         let saved = SavedSession(
             id: UUID(), title: "Локальный звонок", startedAt: base, savedAt: base,
@@ -132,7 +132,7 @@ struct LocalTranscriptAttributionTests {
             aiResponse: "", digest: "")
         let decoded = try JSONDecoder().decode(
             SavedSession.self, from: JSONEncoder().encode(saved))
-        #expect(decoded.entries.map(\.speaker) == ["You", "Спикер 2"])
+        #expect(decoded.entries.map(\.speaker) == ["You", "Speaker 2"])
     }
 }
 

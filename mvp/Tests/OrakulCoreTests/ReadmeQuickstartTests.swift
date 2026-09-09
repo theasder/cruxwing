@@ -78,7 +78,7 @@ struct ReadmeQuickstartTests {
         let readme = try Self.readme
         let transcript = try #require(Self.transcript(from: readme),
                                       "в README пропал heredoc с расшифровкой")
-        #expect(transcript.contains("Аня:"), "в примере расшифровки не осталось реплик")
+        #expect(transcript.contains("Anna:"), "в примере расшифровки не осталось реплик")
 
         let add = try #require(Self.arguments(from: readme, command: "add"),
                                "в README нет команды «добавить»")
@@ -129,7 +129,7 @@ struct ReadmeQuickstartTests {
         // потому что она и есть обещание продукта: ответ чужими словами.
         let quoted = try #require(
             readme.split(separator: "\n", omittingEmptySubsequences: false)
-                .first(where: { $0.hasPrefix("    Аня:") })?
+                .first(where: { $0.hasPrefix("    Anna:") })?
                 .trimmingCharacters(in: .whitespaces),
             "README больше не показывает найденную строку")
         #expect(output.contains(quoted),

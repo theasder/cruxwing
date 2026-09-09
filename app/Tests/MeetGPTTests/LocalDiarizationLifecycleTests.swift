@@ -79,7 +79,7 @@ struct LocalDiarizationLifecycleTests {
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 2)
         try await waitUntilFinished(state)
 
-        #expect(state.transcript.map(\.speaker) == ["You", "Спикер 2", "Спикер 3"])
+        #expect(state.transcript.map(\.speaker) == ["You", "Speaker 2", "Speaker 3"])
         #expect(state.localDiarizationNote?.contains("Beta") == true)
         #expect(state.localDiarizationNote?.contains("check the") == true)
         #expect(state.retainedAudioSampleCountForTesting == 16_000 * 21,
@@ -101,11 +101,11 @@ struct LocalDiarizationLifecycleTests {
 
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 2)
         try await waitUntilFinished(state)
-        #expect(state.transcript.last?.speaker == "Спикер 3")
+        #expect(state.transcript.last?.speaker == "Speaker 3")
 
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 1)
         try await waitUntilFinished(state)
-        #expect(state.transcript.map(\.speaker) == ["You", "Спикер 2", nil])
+        #expect(state.transcript.map(\.speaker) == ["You", "Speaker 2", nil])
         #expect(state.retainedAudioSampleCountForTesting == 16_000 * 21)
     }
 
@@ -235,7 +235,7 @@ struct LocalDiarizationLifecycleTests {
             source: .system,
             text: "outside retained prefix",
             timestamp: start.addingTimeInterval(20.5),
-            speaker: "Спикер 4",
+            speaker: "Speaker 4",
             transcriptionEngine: .local))
         state.localDiarizationRunnerOverride = { _, _, _ in
             [SpeakerSegment(speakerID: "remote", startSeconds: 0, endSeconds: 20)]
@@ -246,7 +246,7 @@ struct LocalDiarizationLifecycleTests {
 
         #expect(state.localDiarizationNote?.contains("fully saved part") == true)
         #expect(state.localDiarizationNote?.contains("later lines were left unchanged") == true)
-        #expect(state.transcript.last?.speaker == "Спикер 4")
+        #expect(state.transcript.last?.speaker == "Speaker 4")
     }
 
     @Test("pause discontinuity releases PCM and refuses aligned labels")
