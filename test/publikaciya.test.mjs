@@ -11,7 +11,6 @@ import { join } from 'node:path';
 
 const PUBLIC = 'public';
 const FLOW = '.github/workflows/pages.yml';
-const OWN_DOMAIN = 'theasder.github.io';
 
 function publishedPages() {
   const pages = [];
@@ -42,13 +41,19 @@ test('на сайт не уезжает страница другого прод
     'Либо исключите каталог в pages.yml, либо перепишите страницу под cruxwing.');
 });
 
-test('canonical публикуемой страницы указывает на свой же адрес', () => {
-  const foreign = publishedPages()
+test('публикуемая страница не объявляет canonical', () => {
+  // Раньше здесь сверялся домен: canonical, уводящий на чужой сайт, отдаёт
+  // поисковику чужую страницу вместо нашей, а если её там нет — 404.
+  // Опубликованный адрес убран из репозитория 2026-09-09, и сверять больше
+  // не с чем. Без canonical страница ссылается сама на себя — верное
+  // поведение по умолчанию; появившийся canonical означает, что кто-то решил,
+  // куда поисковику вести читателя, и такое решение стоит строки.
+  const declared = publishedPages()
     .map((path) => [path, canonical(readFileSync(path, 'utf8'))])
-    .filter(([, href]) => href && !href.includes(OWN_DOMAIN));
-  assert.deepEqual(foreign, [],
-    `canonical уводит на чужой домен: ${foreign.map((f) => f.join(' -> ')).join(', ')}. ` +
-    'Поисковик отдаст чужую страницу вместо нашей, а если её там нет — 404.');
+    .filter(([, href]) => Boolean(href));
+  assert.deepEqual(declared, [],
+    `страница объявляет canonical: ${declared.map((f) => f.join(' -> ')).join(', ')}. ` +
+    'Назовите адрес осознанно или уберите тег.');
 });
 
 test('публикация не держится на списке скрытых каталогов', () => {

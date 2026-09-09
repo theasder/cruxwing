@@ -195,8 +195,8 @@ simply older than it. So publishing this copy on the cruxwing site would announc
 a canonical pointing at an address that does not exist — on top of it being
 another product's page with prices.
 
-`https://theasder.github.io/cruxwing/ru/` returns 404 only because the commits
-carrying that page are unpushed — thirty-nine of them by 2026-08-18, up from two.
+The Russian page returned 404 only because the commits carrying it were unpushed
+— thirty-nine of them by 2026-08-18, up from two.
 Workflow `pages.yml` fires on any change under `public/**`, so the first `push`
 would publish a pricing page on the site of a product that has no prices.
 
@@ -217,8 +217,11 @@ remain open and remain the owner's:
 3. rewrite it for cruxwing: no prices, own identity, own `canonical`.
 
 **The check that stops it returning** is `test/publikaciya.test.mjs`: no page in
-the *published* set may carry «Cruxwing» in its title or a `canonical` off
-`theasder.github.io`. It reads the exclusion list out of `pages.yml` rather than
+the *published* set may carry a parent product's name in its title, and none may
+declare a `canonical` at all — the published address was removed from the
+repository on 2026-09-09, and a page that names one again is somebody deciding
+where search engines should send readers, which is a decision worth a line. It
+reads the exclusion list out of `pages.yml` rather than
 keeping its own, because two lists of exclusions drift and drift silently. Mention
 count is deliberately not the test — `public/index.html` names Cruxwing eight
 times as attribution and is the right page. Removing the exclusion turns the

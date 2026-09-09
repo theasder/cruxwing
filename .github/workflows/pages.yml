@@ -61,10 +61,16 @@ jobs:
 
       - name: Убедиться, что отдаётся тот же сайт
         env:
-          EXPECTED_PAGE_URL: https://theasder.github.io/cruxwing/
+          # Собирается из имени репозитория, а не пишется строкой: адрес
+          # публикации убран из репозитория 2026-09-09, и второй его экземпляр
+          # здесь разошёлся бы с первым молча. Проверка остаётся — «выложено
+          # не туда» обязано падать, а не печататься в журнал.
+          OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
           DEPLOYED_PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         run: |
           set -euo pipefail
+          EXPECTED_PAGE_URL="https://${OWNER}.github.io/${REPO_NAME}/"
           if [ "$DEPLOYED_PAGE_URL" != "$EXPECTED_PAGE_URL" ]; then
             echo "Отказ: Pages вернул неожиданный адрес $DEPLOYED_PAGE_URL" >&2
             exit 1

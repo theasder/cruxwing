@@ -36,9 +36,8 @@ package has no dependencies, so `npm install` is not needed; `.nvmrc` pins the
 same Node 22 that CI uses (Node 20 is the minimum).
 
 **Nothing here is downloadable yet, and the reason is provenance rather than
-naming.** Measured 2026-09-08: the repository is `github.com/theasder/cruxwing`,
-<https://cruxwing.ai> answers 200, and GitHub Pages answers 200 at
-<https://theasder.github.io/cruxwing/>. What has not been resolved is the
+naming.** Measured 2026-09-08: the repository is `github.com/theasder/cruxwing`
+and <https://cruxwing.ai> answers 200. What has not been resolved is the
 historical `v0.1.0`: it predates this branch and fails its artifact-provenance
 check, so the old release is not passed off as the current one.
 

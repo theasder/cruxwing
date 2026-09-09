@@ -377,17 +377,6 @@ describe('open-source furniture', () => {
         'шаг не умеет падать — «выложено» ничего не значит');
     });
 
-    test('адрес на странице — тот же, куда её выкладывают', () => {
-      const page = readFileSync(resolve(here, '..', 'public', 'index.html'), 'utf8');
-      const canonical = /<link rel="canonical" href="([^"]+)"/.exec(page);
-      assert.ok(canonical, 'на странице нет канонического адреса');
-      const text = readFileSync(flow, 'utf8');
-      const host = new URL(canonical[1]).host;
-      assert.ok(text.includes(host),
-        `страница называет себя ${host}, а выкладывается не туда`);
-      const og = /<meta property="og:url" content="([^"]+)"/.exec(page);
-      assert.equal(og?.[1], canonical[1], 'og:url и canonical разошлись');
-    });
   });
 
   describe('правила поведения', () => {
