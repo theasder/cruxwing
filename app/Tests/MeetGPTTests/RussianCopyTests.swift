@@ -312,7 +312,7 @@ struct RussianCopyTests {
     /// On-screen literals that still carry Russian of their own.
     ///
     /// A migration counter, not a target: it may only fall.
-    static let remainingRussianOnScreen = 298
+    static let remainingRussianOnScreen = 145
 
 
     /// Шаблон DateFormatter, а не текст для человека.

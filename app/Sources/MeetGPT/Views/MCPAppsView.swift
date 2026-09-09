@@ -23,10 +23,10 @@ struct MCPAppsSection: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.inkTertiary)
-                TextField("", text: $search, prompt: Text("Поиск приложений — например «jira», «crm», «тикеты»"))
+                TextField("", text: $search, prompt: Text("Search applications — for example «jira», «crm», «tickets»"))
                     .textFieldStyle(.plain)
                     .font(Typo.callout)
-                    .accessibilityLabel("Поиск по приложениям")
+                    .accessibilityLabel("Search applications")
                     .accessibilityIdentifier("settings.connected.search")
                 if !search.isEmpty {
                     Button { search = "" } label: {
@@ -35,7 +35,7 @@ struct MCPAppsSection: View {
                             .foregroundStyle(Theme.inkTertiary)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Очистить поиск")
+                    .accessibilityLabel("Clear the search")
                     .accessibilityIdentifier("settings.connected.search.clear")
                 }
             }
@@ -49,7 +49,7 @@ struct MCPAppsSection: View {
             if visibleServers.isEmpty {
                 // A dead end is worse than a suggestion: every MCP server is
                 // connectable here whether or not it is in the catalog.
-                Text("По запросу «\(search)» ничего нет. Если у сервиса есть MCP-сервер, добавьте его ниже.")
+                Text("Nothing matches «\(search)». If the service has an MCP server, add it below.")
                     .font(Typo.callout)
                     .foregroundStyle(Theme.inkTertiary)
                     .padding(.vertical, Space.s)
@@ -58,7 +58,7 @@ struct MCPAppsSection: View {
                 Button {
                     showAddCustom = true
                 } label: {
-                    Label("Добавить свой сервер…", systemImage: "plus")
+                    Label("Add your own server…", systemImage: "plus")
                 }
                 .buttonStyle(QuietButtonStyle())
                 .accessibilityIdentifier("settings.connected.add-custom")
@@ -81,10 +81,10 @@ private struct MCPServerRow: View {
         case .connected(let count):
             let workflows = appState.promptWorkflowCount(using: "mcp:\(server.id)")
             return workflows > 0
-                ? "\(count) инструментов · сценариев готово: \(workflows)"
-                : "\(count) инструментов · подходящих сценариев нет"
+                ? "\(count) tools · \(workflows) workflows ready"
+                : "\(count) tools · no matching workflows"
         case .connecting:           return nil
-        case .disconnecting:        return "Завершаю отключение…"
+        case .disconnecting:        return "Finishing the disconnect…"
         case .failed(let message):  return message
         case .disconnected:         return mcp.isAuthorized(server.id) ? "authorized" : nil
         }
@@ -102,7 +102,7 @@ private struct MCPServerRow: View {
                 case .connecting:
                     ProgressView()
                         .controlSize(.small).scaleEffect(0.7)
-                        .accessibilityLabel("Подключаю \(server.name)")
+                        .accessibilityLabel("Connecting \(server.name)")
                         .accessibilityIdentifier("settings.connected.provider.\(server.id).progress")
                     // Reconnect already has a persisted grant. The only
                     // race-safe stop available today is a real disconnect,
@@ -117,7 +117,7 @@ private struct MCPServerRow: View {
                 case .disconnecting:
                     ProgressView()
                         .controlSize(.small).scaleEffect(0.7)
-                        .accessibilityLabel("Отключаю \(server.name)")
+                        .accessibilityLabel("Disconnecting \(server.name)")
                         .accessibilityIdentifier(
                             "settings.connected.provider.\(server.id).disconnecting")
                 case .connected:
@@ -139,9 +139,9 @@ private struct MCPServerRow: View {
                         Image(systemName: "trash")
                     }
                     .buttonStyle(IconButtonStyle(size: 20))
-                    .accessibilityLabel("Убрать свой сервер")
+                    .accessibilityLabel("Remove your server")
                     .accessibilityIdentifier("settings.connected.provider.\(server.id).remove")
-                    .help("Убрать свой сервер")
+                    .help("Remove your server")
                 }
             }
             if let statusText {
@@ -192,24 +192,24 @@ private struct MCPAddServerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Label("Добавить MCP-сервер", systemImage: "puzzlepiece.extension")
+            Label("Add an MCP server", systemImage: "puzzlepiece.extension")
                 .font(Typo.title).foregroundStyle(Theme.ink)
-            Text("Вставьте адрес Streamable HTTP любого MCP-сервера (https). orakul подключается обычным OAuth — ключи не нужны, если сервер поддерживает dynamic client registration.")
+            Text("Paste the Streamable HTTP address of any MCP server (https). orakul connects with ordinary OAuth — no keys are needed if the server supports dynamic client registration.")
                 .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
-            TextField("", text: $name, prompt: Text("Название — например HubSpot"))
+            TextField("", text: $name, prompt: Text("A name — for example HubSpot"))
                 .textFieldStyle(.plain).padding(Space.m)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-                .accessibilityLabel("Имя своего сервера")
+                .accessibilityLabel("Your server's name")
                 .accessibilityIdentifier("settings.connected.custom.name")
             TextField("", text: $urlString, prompt: Text("https://mcp.example.com/mcp"))
                 .textFieldStyle(.plain).padding(Space.m)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-                .accessibilityLabel("Адрес своего сервера")
+                .accessibilityLabel("Your server's address")
                 .accessibilityIdentifier("settings.connected.custom.url")
             if invalid {
-                Text("Введите имя и корректный адрес https://")
+                Text("Enter a name and a valid https:// address")
                     .font(Typo.caption).foregroundStyle(Theme.recordRed)
                     .accessibilityIdentifier("settings.connected.custom.error")
             }
@@ -258,11 +258,11 @@ struct MCPImportSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Label("Импорт из подключённого приложения", systemImage: "app.connected.to.app.below.fill")
+            Label("Import from a connected application", systemImage: "app.connected.to.app.below.fill")
                 .font(Typo.title).foregroundStyle(Theme.ink)
 
             Picker("App", selection: $serverID) {
-                Text("Выбрать…").tag("")
+                Text("Choose…").tag("")
                 ForEach(mcp.servers) { server in
                     Text(server.name).tag(server.id)
                 }
@@ -280,7 +280,7 @@ struct MCPImportSheet: View {
             if let server {
                 if mcp.isConnected(server.id) {
                     Picker("Tool", selection: $toolName) {
-                        Text("Выбрать…").tag("")
+                        Text("Choose…").tag("")
                         ForEach(tools, id: \.name) { tool in
                             Text(tool.name).tag(tool.name)
                         }
@@ -296,12 +296,12 @@ struct MCPImportSheet: View {
                         .textFieldStyle(.plain).padding(Space.m)
                         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-                        .accessibilityLabel("Запрос на импорт")
+                        .accessibilityLabel("Import request")
                         .accessibilityIdentifier("connected-import.query")
                 } else if case .connecting = mcp.state(of: server.id) {
                     HStack(spacing: Space.s) {
                         ProgressView().controlSize(.small)
-                        Text("Подключаюсь к \(server.name)… (может открыться браузер)")
+                        Text("Connecting to \(server.name)… (a browser may open)")
                             .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                     }
                 } else if case .failed(let message) = mcp.state(of: server.id) {
@@ -329,7 +329,7 @@ struct MCPImportSheet: View {
 
     private var queryPrompt: String {
         guard let tool = selectedTool else { return "query" }
-        return Self.stringArgumentKey(for: tool) ?? "у этого инструмента нет текстового поля"
+        return Self.stringArgumentKey(for: tool) ?? "this tool has no text field"
     }
 
     private func run() {
@@ -346,7 +346,7 @@ struct MCPImportSheet: View {
                 let text = try await mcp.callImportToolText(
                     server: server, tool: tool, arguments: arguments)
                 guard !text.isEmpty else {
-                    errorText = "\(tool.name) ответил без текста."
+                    errorText = "\(tool.name) answered with no text."
                     running = false
                     return
                 }

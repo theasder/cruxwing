@@ -227,7 +227,7 @@ struct ComposerImmediateFeedbackTests {
             try importingChip.inspect().find(text: "customer-roadmap.pdf")
         }
         #expect(throws: Never.self) {
-            try importingChip.inspect().find(text: "Загружаю…")
+            try importingChip.inspect().find(text: "Loading…")
         }
 
         let context = ImportedContextFile(
@@ -256,9 +256,9 @@ struct ComposerImmediateFeedbackTests {
         #expect(feedback.items[0].phase == .importing)
         let indexing = ComposerAttachmentStatusChip(
             item: feedback.items[0], onRemove: {})
-        #expect(throws: Never.self) { try indexing.inspect().find(text: "Строю индекс…") }
+        #expect(throws: Never.self) { try indexing.inspect().find(text: "Building the index…") }
         #expect(throws: Never.self) {
-            try indexing.inspect().find(viewWithAccessibilityLabel: "Отменить customer-project")
+            try indexing.inspect().find(viewWithAccessibilityLabel: "Cancel customer-project")
         }
 
         let folder = ContextFolder(
@@ -275,9 +275,9 @@ struct ComposerImmediateFeedbackTests {
         #expect(throws: Never.self) { try persistent.inspect().find(text: "customer-project") }
         // «в индексе: 1», а не «1 indexed»: строка переведена 2026-08-17 вместе
         // с остальными английскими остатками в Views/ (ROADMAP, §6.4).
-        #expect(throws: Never.self) { try persistent.inspect().find(text: "в индексе: 1") }
+        #expect(throws: Never.self) { try persistent.inspect().find(text: "indexed: 1") }
         #expect(throws: Never.self) {
-            try persistent.inspect().find(viewWithAccessibilityLabel: "Убрать папку customer-project")
+            try persistent.inspect().find(viewWithAccessibilityLabel: "Remove the folder customer-project")
         }
     }
 
@@ -293,9 +293,9 @@ struct ComposerImmediateFeedbackTests {
         #expect(feedback.items.count == 1)
         #expect(feedback.items[0].phase == .failed)
         let chip = ComposerAttachmentStatusChip(item: feedback.items[0], onRemove: {})
-        #expect(throws: Never.self) { try chip.inspect().find(text: "Импорт не удался") }
+        #expect(throws: Never.self) { try chip.inspect().find(text: "Import failed") }
         #expect(throws: Never.self) {
-            try chip.inspect().find(viewWithAccessibilityLabel: "Убрать unreadable")
+            try chip.inspect().find(viewWithAccessibilityLabel: "Remove unreadable")
         }
     }
 

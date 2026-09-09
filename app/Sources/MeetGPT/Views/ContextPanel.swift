@@ -8,11 +8,11 @@ enum SourceKind: Int, Identifiable {
 
     var title: String {
         switch self {
-        case .doc:    return "Документ Google"
-        case .sheet:  return "Таблица Google"
-        case .slide:  return "Презентация Google"
-        case .form:   return "Форма Google и ответы"
-        case .notion: return "Страница Notion"
+        case .doc:    return "Google Doc"
+        case .sheet:  return "Google Sheet"
+        case .slide:  return "Google Slides"
+        case .form:   return "Google Form and responses"
+        case .notion: return "Notion page"
         }
     }
     var placeholder: String {
@@ -71,7 +71,7 @@ struct ContextSection: View {
             // exist. The token/credit rail under the prompts is where input size
             // actually matters.
             HStack(spacing: Space.s) {
-                SectionLabel("Контекст")
+                SectionLabel("Context")
                 Spacer()
                 if state.totalContextChars > 0 {
                     Button { state.clearAllContext() } label: {
@@ -79,8 +79,8 @@ struct ContextSection: View {
                             .font(.system(size: 11))
                     }
                     .buttonStyle(IconButtonStyle(size: 18))
-                    .help("Очистить весь контекст — файлы и заметки")
-                    .accessibilityLabel("Очистить контекст")
+                    .help("Clear the whole context — files and notes")
+                    .accessibilityLabel("Clear the context")
                 }
             }
 
@@ -131,7 +131,7 @@ struct ContextSection: View {
             case .success(let urls):
                 Task { await state.importContext(from: urls) }
             case .failure(let error):
-                state.lastError = "Не удалось загрузить: \(error.localizedDescription)"
+                state.lastError = "Could not load: \(error.localizedDescription)"
             }
         }
         .fileImporter(isPresented: $showFolderImporter,
@@ -142,7 +142,7 @@ struct ContextSection: View {
                 guard let url = urls.first else { return }
                 Task { await state.attachContextFolder(url: url) }
             case .failure(let error):
-                state.lastError = "Не удалось подключить папку: \(error.localizedDescription)"
+                state.lastError = "Could not attach the folder: \(error.localizedDescription)"
             }
         }
         .sheet(item: $promptKind) { kind in SourcePromptSheet(kind: kind) }
@@ -152,14 +152,14 @@ struct ContextSection: View {
 
     private var addSourceMenu: some View {
         Menu {
-            Button { showImporter = true } label: { Label("Файлы…", systemImage: "paperclip") }
-            Button { showFolderImporter = true } label: { Label("Папка…", systemImage: "folder.badge.plus") }
-            Button { promptKind = .doc } label: { Label("Google Документ…", systemImage: "doc.richtext") }
-            Button { promptKind = .sheet } label: { Label("Google Таблица…", systemImage: "tablecells") }
-            Button { promptKind = .slide } label: { Label("Google Презентация…", systemImage: "rectangle.on.rectangle.angled") }
-            Button { promptKind = .form } label: { Label("Google Форма + ответы…", systemImage: "list.bullet.clipboard") }
-            Button { promptKind = .notion } label: { Label("Страница Notion…", systemImage: "note.text") }
-            Button { showMCPImport = true } label: { Label("Подключённое приложение…", systemImage: "app.connected.to.app.below.fill") }
+            Button { showImporter = true } label: { Label("Files…", systemImage: "paperclip") }
+            Button { showFolderImporter = true } label: { Label("Folder…", systemImage: "folder.badge.plus") }
+            Button { promptKind = .doc } label: { Label("Google Doc…", systemImage: "doc.richtext") }
+            Button { promptKind = .sheet } label: { Label("Google Sheet…", systemImage: "tablecells") }
+            Button { promptKind = .slide } label: { Label("Google Slides…", systemImage: "rectangle.on.rectangle.angled") }
+            Button { promptKind = .form } label: { Label("Google Form + responses…", systemImage: "list.bullet.clipboard") }
+            Button { promptKind = .notion } label: { Label("Notion page…", systemImage: "note.text") }
+            Button { showMCPImport = true } label: { Label("Connected application…", systemImage: "app.connected.to.app.below.fill") }
             if mcp.prefersMCP("fireflies") || state.googleConnected {
                 Divider()
             }
@@ -167,8 +167,8 @@ struct ContextSection: View {
                 Button { Task { await state.importAndEnhanceWithFireflies() } } label: {
                     Label(
                         state.transcript.isEmpty
-                            ? "Последний транскрипт из Fireflies"
-                            : "Fireflies + улучшить транскрипт",
+                            ? "The latest Fireflies transcript"
+                            : "Fireflies + improve the transcript",
                         systemImage: "flame"
                     )
                 }
@@ -178,7 +178,7 @@ struct ContextSection: View {
             }
             if state.googleConnected {
                 Button { Task { await state.pullAgenda() } } label: {
-                    Label("Повестка из календаря", systemImage: "calendar")
+                    Label("Agenda from the calendar", systemImage: "calendar")
                 }
                 .disabled(state.calendarImporting)
             }
@@ -194,19 +194,19 @@ struct ContextSection: View {
     @ViewBuilder
     private var setsMenu: some View {
         Menu {
-            Button("Сохранить текущее как набор…") { showSaveSet = true }
+            Button("Save the current set…") { showSaveSet = true }
                 .disabled(state.totalContextChars == 0)
             if !state.contextSets.isEmpty {
                 Divider()
                 ForEach(state.contextSets) { set in
                     Menu("\(set.name) · \(set.sourceCount)") {
-                        Button("Применить") { state.applyContextSet(id: set.id) }
-                        Button("Удалить", role: .destructive) { state.deleteContextSet(id: set.id) }
+                        Button("Apply") { state.applyContextSet(id: set.id) }
+                        Button("Delete", role: .destructive) { state.deleteContextSet(id: set.id) }
                     }
                 }
             }
         } label: {
-            Label("Наборы", systemImage: "square.stack.3d.up")
+            Label("Sets", systemImage: "square.stack.3d.up")
         }
         .menuStyle(.button)
         .buttonStyle(QuietButtonStyle())
@@ -229,24 +229,24 @@ private struct SourcePromptSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Label("Приложить: \(kind.title)", systemImage: kind.systemImage)
+            Label("Attach: \(kind.title)", systemImage: kind.systemImage)
                 .font(Typo.title)
                 .foregroundStyle(Theme.ink)
-            Text("Вставьте ссылку — её текст станет источником контекста.")
+            Text("Paste a link — its text becomes a context source.")
                 .font(Typo.callout)
                 .foregroundStyle(Theme.inkSecondary)
             if kind == .notion, !notionViaMCP {
-                Text("Сначала подключите Notion: «Настройки → Рабочие приложения» (один клик, без ключей).")
+                Text("Connect Notion first: «Settings → Work applications» (one click, no keys).")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.accentText)
             }
             if let service = kind.googleService, !state.googleHasService(service) {
-                Text("Сначала подключите Google Workspace в настройках с доступом к \(service.label).")
+                Text("Connect Google Workspace in settings first, with access to \(service.label).")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.accentText)
             }
             if kind == .form {
-                Text("Будут прочитаны вопросы и ответы этой формы. Ответы могут содержать персональные данные; импортируйте только форму, к которой у вас есть право доступа.")
+                Text("This reads the form's questions and responses. Responses can contain personal data; import only a form you have the right to access.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -307,13 +307,13 @@ private struct SaveSetSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Label("Сохранить набор контекста", systemImage: "square.stack.3d.up")
+            Label("Save the context set", systemImage: "square.stack.3d.up")
                 .font(Typo.title)
                 .foregroundStyle(Theme.ink)
-            Text("Сохранить нынешние файлы и заметки набором, который можно приложить к другому звонку.")
+            Text("Save the current files and notes as a set you can attach to another call.")
                 .font(Typo.callout)
                 .foregroundStyle(Theme.inkSecondary)
-            TextField("", text: $name, prompt: Text("например, еженедельный созвон Acme"))
+            TextField("", text: $name, prompt: Text("for example, the weekly Acme call"))
                 .textFieldStyle(.plain)
                 .padding(Space.m)
                 .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
@@ -355,7 +355,7 @@ private struct FileChip: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.4)
-            .accessibilityLabel("Убрать \(file.name)")
+            .accessibilityLabel("Remove \(file.name)")
             .help("Remove")
         }
         .padding(.horizontal, Space.s)
@@ -409,16 +409,16 @@ private struct FolderChip: View {
             .buttonStyle(IconButtonStyle(size: 18))
             .disabled(busy)
             .opacity(hovering ? 1 : 0.4)
-            .accessibilityLabel("Обновить \(folder.name)")
-            .help("Перечитать папку")
+            .accessibilityLabel("Refresh \(folder.name)")
+            .help("Re-read the folder")
             Button(action: onRemove) {
                 Image(systemName: "xmark")
                     .font(.system(size: 9, weight: .bold))
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.4)
-            .accessibilityLabel("Отвязать \(folder.name)")
-            .help("Отвязать")
+            .accessibilityLabel("Detach \(folder.name)")
+            .help("Detach")
         }
         .padding(.horizontal, Space.s)
         .padding(.vertical, 6)
@@ -453,7 +453,7 @@ private struct NotesField: View {
                 .focused($focused)
 
             if text.isEmpty {
-                Text("Повестка, прошлые решения, справки, ссылки…")
+                Text("Agenda, past decisions, references, links…")
                     .font(Typo.callout)
                     .foregroundStyle(Theme.inkTertiary)
                     .padding(.top, Space.m)

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// The prompt chip cloud — built-in Quick Prompts plus the user's own custom
-/// prompts, then a "Новый" chip to add one. Custom chips carry an edit/delete
+/// prompts, then a "New" chip to add one. Custom chips carry an edit/delete
 /// context menu. Disabled (dimmed) while a response streams.
 struct QuickPromptsBar: View {
     @EnvironmentObject var state: AppState
@@ -116,7 +116,7 @@ struct PromptChip: View {
             Button { onEdit() } label: { Label("Edit", systemImage: "pencil") }
         }
         if let onDelete {
-            Button(role: .destructive) { onDelete() } label: { Label("Удалить", systemImage: "trash") }
+            Button(role: .destructive) { onDelete() } label: { Label("Delete", systemImage: "trash") }
         }
     }
 
@@ -132,7 +132,7 @@ private struct NewPromptChip: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Image(systemName: "plus").font(.system(size: 11, weight: .bold))
-                Text("Новый").font(Typo.callout.weight(.medium))
+                Text("New").font(Typo.callout.weight(.medium))
             }
             .foregroundStyle(hovering ? Theme.accentText : Theme.inkSecondary)
             .padding(.horizontal, Space.m)
@@ -146,7 +146,7 @@ private struct NewPromptChip: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help("Создать свою подсказку")
+        .help("Create your own prompt")
         .animation(Motion.quick, value: hovering)
     }
 }
@@ -177,8 +177,8 @@ private struct FoldToggleChip: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .help(expanded ? "Показать меньше подсказок" : "Показать все подсказки")
-        .accessibilityLabel(expanded ? "Показать меньше подсказок" : "Показать ещё \(hiddenCount) кнопок")
+        .help(expanded ? "Show fewer prompts" : "Show all prompts")
+        .accessibilityLabel(expanded ? "Show fewer prompts" : "Show \(hiddenCount) more buttons")
         .animation(Motion.quick, value: hovering)
     }
 }
@@ -213,7 +213,7 @@ struct PromptEditorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
-            Text(draft.isNew ? "Новая подсказка" : "Изменить подсказку")
+            Text(draft.isNew ? "New prompt" : "Edit the prompt")
                 .font(Typo.title)
                 .foregroundStyle(Theme.ink)
 
@@ -226,7 +226,7 @@ struct PromptEditorView: View {
                     .frame(width: 44, height: 36)
                     .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-                TextField("Название, например «Написать письмо по итогам»", text: $draft.title)
+                TextField("A name, for example «Write the follow-up email»", text: $draft.title)
                     .textFieldStyle(.plain)
                     .font(Typo.body)
                     .foregroundStyle(Theme.ink)
@@ -237,7 +237,7 @@ struct PromptEditorView: View {
             }
 
             VStack(alignment: .leading, spacing: Space.xs) {
-                SectionLabel("Промпт")
+                SectionLabel("Prompt")
                 TextEditor(text: $draft.prompt)
                     .font(Typo.body)
                     .foregroundStyle(Theme.ink)
@@ -246,7 +246,7 @@ struct PromptEditorView: View {
                     .frame(minHeight: 150, maxHeight: 240)
                     .background(Theme.surfaceSunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(Theme.hairline, lineWidth: 1))
-                Text("Уходит вместе с транскриптом звонка и вашим контекстом. Можно ссылаться на «транскрипт», «прошлые заметки», участников.")
+                Text("It is sent together with the call transcript and your context. You can refer to «the transcript», «past notes» and the participants.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                 Label(state.workflowSummary(for: previewPrompt),
@@ -260,7 +260,7 @@ struct PromptEditorView: View {
                 Spacer()
                 Button("Cancel") { dismiss() }
                     .buttonStyle(QuietButtonStyle())
-                Button("Сохранить промпт") {
+                Button("Save the prompt") {
                     state.saveCustomPrompt(.custom(id: draft.id, icon: draft.icon, title: draft.title, prompt: draft.prompt))
                     dismiss()
                 }

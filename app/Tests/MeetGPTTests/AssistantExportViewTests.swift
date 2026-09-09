@@ -22,7 +22,7 @@ struct AssistantExportViewTests {
         // no route to Word at all. They are now one share menu.
         #expect(throws: Never.self) {
             try view(state: state).inspect().find(
-                viewWithAccessibilityLabel: "Поделиться ответом")
+                viewWithAccessibilityLabel: "Share the answer")
         }
     }
 
@@ -31,7 +31,7 @@ struct AssistantExportViewTests {
         let state = AppState(llm: MockLLMGateway(response: ""))
         #expect(throws: (any Error).self) {
             try view(state: state).inspect().find(
-                viewWithAccessibilityLabel: "Поделиться ответом")
+                viewWithAccessibilityLabel: "Share the answer")
         }
     }
 
@@ -47,7 +47,7 @@ struct AssistantExportViewTests {
         #expect(!state.canExportAssistantAnswer)
         #expect(throws: Never.self) {
             try view(state: state).inspect().find(
-                viewWithAccessibilityLabel: "Поделиться ответом")
+                viewWithAccessibilityLabel: "Share the answer")
         }
 
         state.aiStreaming = false

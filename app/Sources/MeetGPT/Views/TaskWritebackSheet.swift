@@ -42,7 +42,7 @@ struct TaskWritebackSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.l) {
             HStack {
-                Label("Отправить задачи в трекер", systemImage: "arrow.up.forward.app")
+                Label("Send tasks to the tracker", systemImage: "arrow.up.forward.app")
                     .font(Typo.title).foregroundStyle(Theme.ink)
                 Spacer()
                 Button("Done") { dismiss() }.buttonStyle(QuietButtonStyle())
@@ -180,7 +180,7 @@ private struct TaskRow: View {
         case .done:
             Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.speakerYou)
         default:
-            Button("Создать", action: onFile)
+            Button("Create", action: onFile)
                 .buttonStyle(QuietButtonStyle())
                 .disabled(!canFile)
                 .accessibilityLabel("Завести задачу: \(item.task)")

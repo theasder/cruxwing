@@ -8480,9 +8480,9 @@ final class AppState: ObservableObject {
                 for: document.title, date: document.exportedAt)
 
             let panel = NSSavePanel()
-            panel.title = "Выгрузить ответ ассистента"
-            panel.message = "Сохранит в документ Word ответ, исходный запрос, слепые зоны и заголовок, придуманный моделью."
-            panel.prompt = "Выгрузить"
+            panel.title = "Export the assistant's answer"
+            panel.message = "Saves the answer, the original request, the blind spots and the model's own title into a Word document."
+            panel.prompt = "Export"
             panel.canCreateDirectories = true
             panel.isExtensionHidden = false
             if let docx = UTType(filenameExtension: "docx") {

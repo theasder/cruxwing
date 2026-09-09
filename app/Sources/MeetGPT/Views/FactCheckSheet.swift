@@ -16,7 +16,7 @@ struct FactCheckSheet: View {
                 Spacer()
                 Button("Done") { dismiss() }.buttonStyle(QuietButtonStyle())
             }
-            Text("Утверждения со звонка, проверенные только по тому контексту, который вы приложили.")
+            Text("Claims from the call, checked only against the context you attached.")
                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
 
             // Явное согласие на веб — на каждый запрос отдельно. Эта кнопка —
@@ -34,14 +34,14 @@ struct FactCheckSheet: View {
                     Button {
                         state.runFactCheck(searchWeb: true)
                     } label: {
-                        Label("Проверить в вебе", systemImage: "globe")
+                        Label("Check on the web", systemImage: "globe")
                     }
                     .buttonStyle(QuietButtonStyle())
                     .disabled(state.factChecking)
-                    .help("Перепроверит спорные утверждения поиском в вебе — их запросы уйдут поисковому провайдеру.")
+                    .help("Re-checks the disputed claims with a web search — those queries go to the search provider.")
                     if let search = state.factCheckSearch {
                         if search.ran == true {
-                            Text("Просмотрено источников в сети: \(search.sources?.count ?? 0)")
+                            Text("Web sources looked through: \(search.sources?.count ?? 0)")
                                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         } else if let reason = search.reason, !reason.isEmpty {
                             Text(reason)
@@ -57,14 +57,14 @@ struct FactCheckSheet: View {
             if state.factChecking && state.factClaims.isEmpty {
                 centered {
                     ProgressView()
-                    Text("Сверяю с вашим контекстом…")
+                    Text("Checking against your context…")
                         .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 }
             } else if let error = state.factCheckError, state.factClaims.isEmpty {
                 centered {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 26)).foregroundStyle(Theme.danger)
-                    Text("Проверка фактов не удалась")
+                    Text("The fact check failed")
                         .font(Typo.callout.weight(.medium)).foregroundStyle(Theme.ink)
                     Text(error)
                         .font(Typo.caption).foregroundStyle(Theme.inkSecondary)
@@ -77,7 +77,7 @@ struct FactCheckSheet: View {
                 centered {
                     Image(systemName: "text.magnifyingglass")
                         .font(.system(size: 26)).foregroundStyle(Theme.inkTertiary)
-                    Text("Проверяемых утверждений пока нет.")
+                    Text("No checkable claims yet.")
                         .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 }
             } else {
@@ -90,7 +90,7 @@ struct FactCheckSheet: View {
                         if let sources = state.factCheckSearch?.sources,
                            state.factCheckSearch?.ran == true, !sources.isEmpty {
                             VStack(alignment: .leading, spacing: Space.xs) {
-                                Text("ИСТОЧНИКИ В ВЕБЕ")
+                                Text("WEB SOURCES")
                                     .font(Typo.label).tracking(0.5)
                                     .foregroundStyle(Theme.inkTertiary)
                                 ForEach(Array(sources.prefix(5).enumerated()), id: \.offset) { _, source in
@@ -151,10 +151,10 @@ private struct FactClaimRow: View {
                         // page" is a weaker epistemic state than "verified
                         // against a document you attached", and the reader must
                         // be able to tell which one they are trusting.
-                        Label("Веб", systemImage: "globe")
+                        Label("Web", systemImage: "globe")
                             .font(Typo.label)
                             .foregroundStyle(Theme.inkTertiary)
-                            .help("Проверено по найденной странице в сети, а не по вашему контексту")
+                            .help("Checked against a page found on the web, not against your context")
                     }
                     if let confidence = claim.confidence {
                         Text(confidence.label)
@@ -163,7 +163,7 @@ private struct FactClaimRow: View {
                             .padding(.horizontal, Space.s).padding(.vertical, 1)
                             .background(Theme.canvas, in: Capsule())
                             .overlay(Capsule().strokeBorder(Theme.hairline, lineWidth: 1))
-                            .help("Насколько твёрд вывод при таких доводах")
+                            .help("How firm the conclusion is on this evidence")
                     }
                     Spacer()
                 }
@@ -202,7 +202,7 @@ private struct FactClaimRow: View {
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                        .help("Спросите это, чтобы подтвердить или опровергнуть утверждение")
+                        .help("Ask this to confirm or refute the claim")
                 }
             }
         }

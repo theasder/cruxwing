@@ -24,7 +24,7 @@ struct PaneLayout: Equatable, Codable {
             switch self {
             case .sidebar: return "Боковая панель"
             case .transcript: return "Transcript"
-            case .assistant: return "Ассистент"
+            case .assistant: return "Assistant"
             }
         }
     }

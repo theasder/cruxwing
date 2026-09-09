@@ -22,7 +22,7 @@ struct TaskWritebackSheetTests {
             .environmentObject(MCPConnectionManager())
         let sut = try view.inspect()
 
-        #expect(throws: Never.self) { try sut.find(text: "Отправить задачи в трекер") }
+        #expect(throws: Never.self) { try sut.find(text: "Send tasks to the tracker") }
         #expect(throws: Never.self) { try sut.find(text: "Ship the beta") }
         #expect(throws: Never.self) { try sut.find(text: "Write the RFC") }
         // Владелец теперь идёт строкой внутри общего описания, а не отдельным

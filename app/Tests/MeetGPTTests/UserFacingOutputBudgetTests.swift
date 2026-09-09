@@ -70,7 +70,7 @@ struct UserFacingOutputBudgetTests {
         let gateway = UserFacingBudgetGateway(response: "A complete visible answer.")
         let state = AppState(llm: gateway)
         state.setAutomaticProviderRequestsEnabled(true)
-        state.transcript = [TranscriptEntry(source: .mic, text: "Контекст")]
+        state.transcript = [TranscriptEntry(source: .mic, text: "Context")]
         state.runPrompt(.custom(icon: "✨", title: "Test", prompt: "Answer fully"))
         await settle(state)
 

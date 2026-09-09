@@ -105,7 +105,7 @@ struct NoBackendPromisesTests {
 
         #expect(throws: (any Error).self,
                 "кнопка обещает веб-поиск, хотя сервера нет") {
-            try rendered.find(button: "Проверить в вебе")
+            try rendered.find(button: "Check on the web")
         }
     }
 

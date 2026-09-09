@@ -4,7 +4,7 @@ import AppKit
 /// Settings body for the token connectors + the channel watcher.
 ///
 /// Two tiers: a status list of the token connectors (configured in `mac/.env`,
-/// read-only at runtime) and an elevated "Слежу за каналом" card whose enable
+/// read-only at runtime) and an elevated "Watching the channel" card whose enable
 /// switch + keyword rules ARE editable live (UserDefaults-backed).
 struct TeamSourcesView: View {
     @ObservedObject private var watcher = TeamWatcher.shared
@@ -47,7 +47,7 @@ struct TeamSourcesView: View {
             HStack(spacing: Space.s) {
                 StatusDot(color: watcher.isRunning ? Theme.recordRed : Theme.inkTertiary,
                           live: watcher.isRunning, size: 8)
-                Text("Слежу за каналом")
+                Text("Watching the channel")
                     .font(Typo.headline)
                     .foregroundStyle(Theme.ink)
                 if watcher.isRunning {
@@ -70,13 +70,13 @@ struct TeamSourcesView: View {
 
             // Keyword rules — the trigger set the watcher scans for.
             VStack(alignment: .leading, spacing: Space.s) {
-                Text("ПРАВИЛА ПО СЛОВАМ")
+                Text("KEYWORD RULES")
                     .font(Typo.label)
                     .foregroundStyle(Theme.inkTertiary)
                     .kerning(0.4)
 
                 if keywords.isEmpty {
-                    Text("Правил пока нет — добавьте слово, чтобы отмечать.")
+                    Text("No rules yet — add a word to start flagging.")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                 } else {
@@ -98,11 +98,11 @@ struct TeamSourcesView: View {
                 Button {
                     revealAuditLog()
                 } label: {
-                    Label("Журнал доступа", systemImage: "doc.text.magnifyingglass")
+                    Label("Access log", systemImage: "doc.text.magnifyingglass")
                         .font(Typo.caption.weight(.medium))
                 }
                 .buttonStyle(QuietButtonStyle())
-                .help("Показать team-watch.log в Finder")
+                .help("Show team-watch.log in Finder")
             }
         }
         .padding(Space.m)
@@ -116,7 +116,7 @@ struct TeamSourcesView: View {
             Image(systemName: "plus.circle.fill")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.inkTertiary)
-            TextField("", text: $draft, prompt: Text("добавьте правило — например инцидент, простой, утечка"))
+            TextField("", text: $draft, prompt: Text("add a rule — for example incident, outage, leak"))
                 .textFieldStyle(.plain)
                 .font(Typo.callout)
                 .onSubmit(addDraft)
@@ -128,12 +128,12 @@ struct TeamSourcesView: View {
 
     private var watcherStatusLine: String {
         if !watcher.isRunning {
-            if !watchEnabled { return "Выключено — включите переключатель, чтобы начать следить." }
-            return "Добавьте хотя бы одно ключевое слово."
+            if !watchEnabled { return "Off — flip the switch to start watching." }
+            return "Add at least one keyword."
         }
         return hasWatchableChannels
-            ? "Просматривает выбранные каналы раз в минуту."
-            : "Работает, но не выбрано ни одного канала для просмотра."
+            ? "Checks the selected channels once a minute."
+            : "Running, but no channel is selected to watch."
     }
 
     // MARK: - Actions
@@ -218,8 +218,8 @@ private struct ConnectorRow: View {
         switch service {
         case .slack:
             let n = channelCount ?? 0
-            return n == 0 ? "Подключено · каналы не выбраны" : "Connected · \(n) channel\(n == 1 ? "" : "s") watched"
-        case .confluence: return "Подключено · поиск по страницам"
+            return n == 0 ? "Connected · no channels selected" : "Connected · \(n) channel\(n == 1 ? "" : "s") watched"
+        case .confluence: return "Connected · page search"
         }
     }
 }
@@ -241,7 +241,7 @@ private struct StatusPill: View {
 private struct CountBadge: View {
     let count: Int
     var body: some View {
-        Text("отмечено: \(count)")
+        Text("flagged: \(count)")
             .font(Typo.label)
             .foregroundStyle(Theme.accentText)
             .padding(.horizontal, Space.s)
@@ -256,11 +256,11 @@ private struct AutoAckBadge: View {
         HStack(spacing: Space.xs) {
             Image(systemName: on ? "arrowshape.turn.up.left.fill" : "arrowshape.turn.up.left")
                 .font(.system(size: 10))
-            Text(on ? "Автоответ включён" : "Автоответ выключен")
+            Text(on ? "Auto-reply on" : "Auto-reply off")
                 .font(Typo.caption.weight(.medium))
         }
         .foregroundStyle(on ? Theme.accentText : Theme.inkTertiary)
-        .help("Автоматически отвечать в канал при совпадении.")
+        .help("Reply in the channel automatically on a match.")
     }
 }
 
@@ -283,7 +283,7 @@ private struct KeywordChip: View {
                     .foregroundStyle(hovering ? Theme.danger : Theme.inkTertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Убрать \(word)")
+            .accessibilityLabel("Remove \(word)")
         }
         .padding(.leading, Space.s)
         .padding(.trailing, Space.xs)

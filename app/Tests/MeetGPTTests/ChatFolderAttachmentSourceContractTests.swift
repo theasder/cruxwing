@@ -26,7 +26,7 @@ struct ChatFolderAttachmentSourceContractTests {
         #expect(source.contains("case .folder: return [.folder]"))
         #expect(source.contains("allowsMultipleSelection: attachKind != .folder"))
         #expect(source.contains("await state.attachContextFolder(url: url)"))
-        #expect(source.contains("Строю индекс…"))
+        #expect(source.contains("Building the index…"))
     }
 
     @Test("standing folder chips render from AppState and can be removed")
