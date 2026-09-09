@@ -63,7 +63,7 @@ import Foundation
         let message = TranscriptEnhancementError.invented(2).errorDescription ?? ""
         #expect(message.contains("2"))
         #expect(message.contains("Fireflies"))
-        #expect(message.contains("оставлена как была"),
+        #expect(message.contains("was left as it was"),
                 "человек должен знать, что его запись не тронули")
     }
 

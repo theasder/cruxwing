@@ -71,7 +71,7 @@ struct TranscriptView: View {
             Button("Rename") { applyRename() }
             Button("Cancel", role: .cancel) { renamingSpeaker = nil }
         } message: {
-            Text("Каждая строка «\(renamingSpeaker ?? "")» will take this name — in the transcript and in what the AI sees.")
+            Text("Every line from «\(renamingSpeaker ?? "")» will take this name — in the transcript and in what the AI sees.")
         }
     }
 

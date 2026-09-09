@@ -8,7 +8,7 @@ actor TelegramMessageArchive {
         let fileURL: URL
 
         var errorDescription: String? {
-            "Архив Telegram и его резервную копию не удалось прочитать: \(fileURL.path)"
+            "Neither the Telegram archive nor its backup could be read: \(fileURL.path)"
         }
     }
 

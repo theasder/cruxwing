@@ -44,9 +44,9 @@ struct ServerFallbackTranscriptionTests {
 
     @Test("причина отказа названа своими словами: ограничение, вход, недоступность")
     func reasons() {
-        #expect(ServerFallbackTranscription.reason(for: capError(429)).contains("ограничению"))
-        #expect(ServerFallbackTranscription.reason(for: capError(401)).contains("Вход не подтверждён"))
-        #expect(ServerFallbackTranscription.reason(for: capError(503)).contains("недоступен"))
+        #expect(ServerFallbackTranscription.reason(for: capError(429)).contains("refused on a limit"))
+        #expect(ServerFallbackTranscription.reason(for: capError(401)).contains("sign-in was not confirmed"))
+        #expect(ServerFallbackTranscription.reason(for: capError(503)).contains("is unavailable"))
     }
 
     @Test("degraded state is per-instance and sticky, and notifies exactly once")
@@ -69,6 +69,6 @@ struct ServerFallbackTranscriptionTests {
         _ = try await wrapper.transcribe(wav: Data([0x52]))
         #expect(fallback.calls == 2)
         #expect(notices.count == 1)
-        #expect(notices[0].contains("на вашем компьютере"))
+        #expect(notices[0].contains("on your computer"))
     }
 }

@@ -17,9 +17,9 @@ final class LoopbackRedirectServer: @unchecked Sendable {
         case cancelled
         var errorDescription: String? {
             switch self {
-            case .portBusy: return "Порт для входа занят — попробуйте подключиться ещё раз."
-            case .timeout:  return "Время входа истекло. Попробуйте ещё раз."
-            case .cancelled: return "Вход отменён."
+            case .portBusy: return "The sign-in port is busy — try connecting again."
+            case .timeout:  return "The sign-in timed out. Try again."
+            case .cancelled: return "Sign-in cancelled."
             }
         }
     }
@@ -138,7 +138,7 @@ final class LoopbackRedirectServer: @unchecked Sendable {
         }
         respond(connection, status: "200 OK",
                 body: "<html><body style=\"font-family:-apple-system;padding:2em\">" +
-                      "<h2>orakul подключён.</h2><p>Эту вкладку можно закрыть и вернуться в приложение.</p></body></html>")
+                      "<h2>orakul is connected.</h2><p>You can close this tab and return to the application.</p></body></html>")
         finish(.success(url))
     }
 

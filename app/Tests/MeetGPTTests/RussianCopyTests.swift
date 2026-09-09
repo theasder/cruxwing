@@ -312,7 +312,7 @@ struct RussianCopyTests {
     /// On-screen literals that still carry Russian of their own.
     ///
     /// A migration counter, not a target: it may only fall.
-    static let remainingRussianOnScreen = 121
+    static let remainingRussianOnScreen = 97
 
 
     /// Шаблон DateFormatter, а не текст для человека.
@@ -383,8 +383,8 @@ struct RussianCopyTests {
     /// оставались «Start recording», «Incoming call — Zoom», «Blind spot» и
     /// «Starts in 5 min (…) — open Cruxwing to record», где вдобавок стоит имя
     /// другого продукта.
-    @Test("уведомления написаны по-русски и называют наш продукт")
-    func notificationsAreRussian() throws {
+    @Test("notifications are translated and name our product")
+    func notificationsAreTranslated() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/MeetGPT/Detection")
@@ -415,16 +415,12 @@ struct RussianCopyTests {
                     checked += 1
                     #expect(!part.contains("Cruxwing"),
                             "в уведомлении имя другого продукта: \(part)")
-                    guard part.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive])
-                            == nil else { continue }
-                    let words = part.components(separatedBy: CharacterSet.letters.inverted)
-                        .filter { $0.count > 2 }
-                    if words.count >= 2 { english.append(part) }
+                    if Self.hasOwnRussian(part) { english.append(part) }
                 }
             }
         }
         #expect(checked > 3, "проверено всего \(checked) строк — смотрим не туда")
-        #expect(english.isEmpty, "по-английски в уведомлениях: \(english.joined(separator: " | "))")
+        #expect(english.isEmpty, "still Russian in notifications: \(english.joined(separator: " | "))")
     }
 
     /// Разрешения и вход — те же слова, что уведомления, только в другом
@@ -447,8 +443,8 @@ struct RussianCopyTests {
         #"Packed connector facts:\n\(packed)"#,
     ]
 
-    @Test("разрешения и вход объясняются по-русски и без чужого имени")
-    func permissionAndSignInCopyIsRussian() throws {
+    @Test("permissions and sign-in are explained without another product's name")
+    func permissionAndSignInCopyIsTranslated() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/MeetGPT/AppState.swift")
@@ -510,12 +506,9 @@ struct RussianCopyTests {
                         .enumerated().filter({ $0.offset % 2 == 1 }).map({ String($0.element) }) {
                         guard part.count > 14 else { continue }
                         checked += 1
-                        guard part.range(of: "[а-яё]", options: [.regularExpression,
-                                                                 .caseInsensitive]) == nil
-                        else { continue }
-                        let words = part.components(separatedBy: CharacterSet.letters.inverted)
-                            .filter { $0.count > 2 }
-                        if words.count >= 3 { english.append("\(url.lastPathComponent): \(part)") }
+                        if Self.hasOwnRussian(part) {
+                            english.append("\(url.lastPathComponent): \(part)")
+                        }
                     }
                 }
             }

@@ -93,14 +93,14 @@ enum AssistantAnswerTitle {
         let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               !trimmed.hasPrefix("Prompt unavailable for this older saved answer") else {
-            return "Ответ orakul"
+            return "orakul's answer"
         }
         let firstLine = trimmed.components(separatedBy: .newlines).first ?? trimmed
         let words = firstLine
             .trimmingCharacters(in: CharacterSet(charactersIn: "#*_\"'“”‘’ .?!:;,-–—"))
             .split(whereSeparator: \.isWhitespace)
         let candidate = words.prefix(8).joined(separator: " ")
-        return candidate.isEmpty ? "Ответ orakul" : String(candidate.prefix(100))
+        return candidate.isEmpty ? "orakul's answer" : String(candidate.prefix(100))
     }
 }
 
@@ -119,9 +119,9 @@ enum AssistantDOCXExporter {
         var errorDescription: String? {
             switch self {
             case .archiveTooLarge:
-                return "Документ Word слишком велик, чтобы его собрать."
+                return "The Word document is too large to assemble."
             case .tooManyParts:
-                return "В документе Word слишком много частей."
+                return "The Word document has too many parts."
             }
         }
     }
@@ -143,7 +143,7 @@ enum AssistantDOCXExporter {
             value = String(value.prefix(80))
                 .trimmingCharacters(in: CharacterSet(charactersIn: " ."))
         }
-        if value.isEmpty { value = "Ответ orakul" }
+        if value.isEmpty { value = "orakul's answer" }
         // Elegant, sortable, collision-free: append the export date with an
         // em-dash ("Project Falcon Budget Review — 2026-07-23.docx"). No date
         // keeps the bare name (callers that don't need dating, and tests).

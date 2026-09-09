@@ -249,17 +249,17 @@ enum TranscriptEnhancementError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .emptyFireflies:
-            return "Fireflies вернул пустую расшифровку."
+            return "Fireflies returned an empty transcript."
         case .emptyWhisper:
-            return "На этом компьютере ещё нет расшифровки, которую можно уточнить."
+            return "There is no transcript on this computer yet to refine."
         case .unparseable(let detail):
-            return "Не удалось свести расшифровки (\(detail))."
+            return "Could not reconcile the transcripts (\(detail))."
         case .summaryOnly(let summary):
             return summary
             case .invented(let count):
-                return "Сведение добавило \(count) строк, которых нет ни в записи с этого компьютера, ни в расшифровке Fireflies. Запись встречи оставлена как была."
+                return "Reconciling added \(count) lines that appear neither in this computer's recording nor in the Fireflies transcript. The meeting record was left as it was."
         case .busy:
-            return "Уточнение расшифровки уже идёт."
+            return "A transcript refinement is already running."
         }
     }
 }

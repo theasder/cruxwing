@@ -44,8 +44,8 @@ struct LocalNotesFolder {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Выбрать"
-        panel.message = "Папка с заметками — Obsidian или любой каталог с файлами .md"
+        panel.prompt = "Choose"
+        panel.message = "A notes folder — Obsidian, or any directory of .md files"
         guard panel.runModal() == .OK, let url = panel.url else { return false }
         return remember(url)
     }

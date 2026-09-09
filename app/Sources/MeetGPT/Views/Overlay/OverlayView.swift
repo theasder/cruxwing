@@ -26,8 +26,8 @@ struct OverlayView: View {
 
             if latest.isEmpty {
                 Text(state.isRecording
-                     ? (goal.isEmpty ? "Задайте цель в orakul, чтобы подсказки шли по ходу звонка." : "Ищу слепые зоны…")
-                     : "Запись не идёт.")
+                     ? (goal.isEmpty ? "Set a goal in orakul so hints arrive as the call goes." : "Looking for blind spots…")
+                     : "Not recording.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
             } else {
@@ -131,7 +131,7 @@ private struct OverlaySuggestionRow: View {
             }
             .buttonStyle(IconButtonStyle(size: 18))
             .opacity(hovering ? 1 : 0.35)
-            .accessibilityLabel("Спросить ассистента об этой подсказке")
+            .accessibilityLabel("Ask the assistant about this hint")
             .help("Send to the assistant")
             Button(action: onDismiss) {
                 Image(systemName: "xmark")

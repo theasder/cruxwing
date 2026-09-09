@@ -87,9 +87,9 @@ enum ContextImporter {
 
         var errorDescription: String? {
             switch self {
-            case .empty:               return "В файле не нашлось читаемого текста."
-            case .unreadable(let e):   return "Не удалось прочитать файл: \(e)"
-            case .unsupported(let e):  return "Файлы такого вида не поддерживаются: .\(e)"
+            case .empty:               return "No readable text was found in the file."
+            case .unreadable(let e):   return "Could not read the file: \(e)"
+            case .unsupported(let e):  return "Files of this kind are not supported: .\(e)"
             }
         }
     }
@@ -153,7 +153,7 @@ enum ContextImporter {
     /// Latin-1 остаётся последним — для честно западного файла.
     private static func extractPlainText(url: URL) throws -> String {
         guard let data = try? Data(contentsOf: url) else {
-            throw ImportError.unreadable("не удалось прочитать файл")
+            throw ImportError.unreadable("could not read the file")
         }
         if let text = TranscriptFile.decode(data) { return text }
         if let latin = String(data: data, encoding: .isoLatin1),

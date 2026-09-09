@@ -130,7 +130,7 @@ enum StructuredButtonError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unparseable(let detail):
-            return "Не удалось собрать разметку из ответа модели (\(detail))."
+            return "Could not assemble the markup from the model's answer (\(detail))."
         }
     }
 }

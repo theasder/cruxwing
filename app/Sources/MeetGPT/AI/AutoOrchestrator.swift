@@ -283,9 +283,9 @@ final class AutoOrchestrator: LLMGateway {
                 "\($0.provider.label) (\($0.category.rawValue))"
             }.joined(separator: ", ")
             if outputStarted {
-                return "Ответ модели оборвался уже после начала, поэтому повторно он не запрашивался. Пробовали: \(summary)."
+                return "The model's answer broke off after it had started, so it was not requested again. Tried: \(summary)."
             }
-            return "Настроенные провайдеры не смогли выполнить запрос. Пробовали: \(summary)."
+            return "The configured providers could not complete the request. Tried: \(summary)."
         }
     }
 

@@ -22,7 +22,7 @@ enum TranscriptExporter {
 
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         var lines: [String] = [
-            cleanTitle.isEmpty ? "Транскрипт звонка" : cleanTitle,
+            cleanTitle.isEmpty ? "Call transcript" : cleanTitle,
             day.string(from: date),
             "",
         ]

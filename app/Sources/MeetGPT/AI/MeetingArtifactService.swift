@@ -113,9 +113,9 @@ enum MeetingArtifactError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .emptyTranscript:
-            return "Расшифровки пока нет — собирать не из чего."
+            return "There is no transcript yet — nothing to assemble from."
         case .unparseable(let detail):
-            return "Не удалось собрать документ из ответа модели (\(detail))."
+            return "Could not assemble a document from the model's answer (\(detail))."
         }
     }
 }

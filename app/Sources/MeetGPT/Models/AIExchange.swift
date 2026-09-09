@@ -9,7 +9,7 @@
 /// Старый префикс остаётся в списке навсегда: он лежит в уже сохранённых
 /// звонках, и их читают.
 enum AnswerFailure {
-    static let prefixes = ["Ошибка:", "Error:"]
+    static let prefixes = ["Error:", "Error:"]
 
     static func looksLikeFailure(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

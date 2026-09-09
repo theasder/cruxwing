@@ -144,7 +144,7 @@ struct RussianTrackerGroundingTests {
         // ранжирование опирается на слова из задач.
         let query = ConnectorProbeStrategy.query(goal: "сроки", serverID: "kaiten")
         #expect(query.contains("сроки"))
-        #expect(query.contains("открытые задачи"))
+        #expect(query.contains("open issues"))
         #expect(ConnectorProbeStrategy.probe(forTracker: "kaiten") != nil)
         #expect(ConnectorProbeStrategy.probe(forTracker: "notion") == nil,
                 "не трекер, а MCP-сервер со своей подсказкой")

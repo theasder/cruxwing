@@ -6,7 +6,7 @@ enum LocalFinalPassError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .voicedWindowProducedNoText(let index):
-            return "Уточнение на этом компьютере не дало текста для участка с речью № \(index + 1). Живая расшифровка was kept."
+            return "Refinement on this computer produced no text for speech segment no. \(index + 1). The live transcript was kept."
         }
     }
 }

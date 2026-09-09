@@ -38,7 +38,7 @@ struct TaskWritebackSheetTests {
         }
         // No connected tracker → the connect hint, not a filed state.
         #expect(throws: Never.self) {
-            try sut.find(textWhere: { s, _ in s.contains("Подключите трекер в «Настройки") })
+            try sut.find(textWhere: { s, _ in s.contains("Connect a tracker under Settings") })
         }
     }
 
@@ -46,7 +46,7 @@ struct TaskWritebackSheetTests {
     func fileDisabledWithoutTracker() throws {
         let view = TaskWritebackSheet(tasks: [item("Do the thing")])
             .environmentObject(MCPConnectionManager())
-        let button = try view.inspect().find(viewWithAccessibilityLabel: "Завести задачу: Do the thing")
+        let button = try view.inspect().find(viewWithAccessibilityLabel: "Create the task: Do the thing")
         #expect(try button.button().isDisabled())
     }
 }

@@ -16,8 +16,8 @@ import Foundation
     @Test("ноль буферов после отсрочки — это поломка, и о ней говорят")
     func noBuffersIsTrouble() {
         let message = AudioChunkBuffer.trouble(buffersIn: 0, secondsListening: 25)
-        #expect(message?.contains("Звук не поступает") == true)
-        #expect(message?.contains("другим приложением") == true,
+        #expect(message?.contains("No audio is arriving") == true)
+        #expect(message?.contains("another application is holding the device") == true,
                 "не назван самый частый случай — устройство занято соседом")
     }
 

@@ -309,7 +309,7 @@ extension MCPConnectionManager {
         // как схема у сервиса могла просто смениться.
         guard let meetings = FirefliesPastCalls.parsedMeetingList(text) else {
             throw MCPConnectionError.toolFailed(
-                list.name, "не удалось разобрать список встреч Fireflies")
+                list.name, "could not parse the Fireflies meeting list")
         }
         return meetings
     }

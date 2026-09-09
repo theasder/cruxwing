@@ -45,8 +45,8 @@ enum CalendarError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .http(let code): return "Google Календарь ответил \(code)."
-        case .noEvent:        return "Рядом с текущим временем встреч в календаре нет."
+        case .http(let code): return "Google Calendar answered \(code)."
+        case .noEvent:        return "There are no calendar meetings near the current time."
         }
     }
 }

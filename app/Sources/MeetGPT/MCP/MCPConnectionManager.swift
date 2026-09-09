@@ -1058,13 +1058,13 @@ enum MCPConnectionError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConnected(let name, let detail):
-            return "Не удалось подключиться к \(name)\(detail.map { ": \($0)" } ?? "")."
+            return "Could not connect to \(name)\(detail.map { ": \($0)" } ?? "")."
         case .toolFailed(let tool, let message):
-            return "\(tool): не выполнено — \(message)"
+            return "\(tool): not completed — \(message)"
         case .unsafeImportTool(let tool):
-            return "\(tool) может изменить данные в подключённом приложении и не доступен для переноса одним нажатием."
+            return "\(tool) can change data in the connected application, so it is not available for one-click transfer."
         case .reviewedConnectionChanged(let name):
-            return "Учётная запись \(name) изменилась после проверки действия. Откройте действие заново, чтобы подтвердить, куда оно уйдёт."
+            return "The \(name) account changed after the action was checked. Open the action again to confirm where it goes."
         }
     }
 }

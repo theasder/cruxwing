@@ -25,7 +25,7 @@ struct LocalTranscriptAttributionTests {
         let rendered = TranscriptTextRenderer.render(
             entries: entries, provisional: [], appearance: nil)
         #expect(!rendered.attributed.string.contains("You"))
-        #expect(!rendered.attributed.string.contains("Собеседник"))
+        #expect(!rendered.attributed.string.contains("Other party"))
         #expect(rendered.segments.allSatisfy { $0.speaker == nil })
 
         // Anonymous does not mean unusable: body ranges and exact quotes stay

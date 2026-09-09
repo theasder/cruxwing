@@ -1020,7 +1020,7 @@ struct PromptBudgetDetails: View {
                             .font(Typo.caption.weight(.semibold))
                             .foregroundStyle(Theme.inkSecondary)
                         Spacer()
-                        Text("осталось \(remaining) из \(allowance)\(creditUsagePhase == .stale ? " · по последней проверке" : "")")
+                        Text("\(remaining) of \(allowance) left\(creditUsagePhase == .stale ? " · as of the last check" : "")")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkSecondary)
                             .monospacedDigit()

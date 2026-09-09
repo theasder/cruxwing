@@ -32,7 +32,7 @@ struct FirefliesImportPicker: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Import from Fireflies")
                     .font(.system(size: 14, weight: .semibold))
-                Text("Расшифровка откроется как сохранённый звонок — можно искать слепые зоны и задавать вопросы.")
+                Text("The transcript opens as a saved call — you can look for blind spots and ask questions.")
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.inkTertiary)
             }
@@ -45,7 +45,7 @@ struct FirefliesImportPicker: View {
     private var loading: some View {
         HStack(spacing: Space.s) {
             ProgressView().controlSize(.small)
-            Text("Загружаю звонки из Fireflies…")
+            Text("Loading calls from Fireflies…")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.inkSecondary)
             Spacer()
@@ -145,8 +145,8 @@ private struct MeetingRow: View {
         .buttonStyle(.plain)
         .disabled(disabled)
         .onHover { hovering = $0 && !disabled }
-        .help("Загрузить этот звонок и открыть его")
+        .help("Load this call and open it")
         .accessibilityLabel("\(meeting.displayTitle). \(subtitle)")
-        .accessibilityHint("Загрузит звонок из Fireflies и откроет как сохранённый")
+        .accessibilityHint("Loads a call from Fireflies and opens it as a saved one")
     }
 }

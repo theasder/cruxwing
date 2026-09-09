@@ -27,11 +27,11 @@ final class ServerWhisperTranscription: TranscriptionService {
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !base.isEmpty else {
             throw NSError(domain: "OrakulWhisper", code: 503,
-                          userInfo: [NSLocalizedDescriptionKey: "Серверному Whisper нужен BACKEND_URL, а в этой сборке его нет."])
+                          userInfo: [NSLocalizedDescriptionKey: "Server Whisper needs BACKEND_URL, and this build has none."])
         }
         guard let token = await tokenProvider(), !token.isEmpty else {
             throw NSError(domain: "OrakulWhisper", code: 401,
-                          userInfo: [NSLocalizedDescriptionKey: "Войдите, чтобы расшифровывать через Whisper large-v3 на сервере."])
+                          userInfo: [NSLocalizedDescriptionKey: "Sign in to transcribe with Whisper large-v3 on the server."])
         }
         guard wav.count <= 25 * 1024 * 1024 else {
             throw NSError(domain: "OrakulWhisper", code: 413,
@@ -41,7 +41,7 @@ final class ServerWhisperTranscription: TranscriptionService {
         let root = base.hasSuffix("/") ? String(base.dropLast()) : base
         guard let url = URL(string: "\(root)/api/transcribe") else {
             throw NSError(domain: "OrakulWhisper", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "BACKEND_URL для серверного Whisper указан неверно."])
+                          userInfo: [NSLocalizedDescriptionKey: "The BACKEND_URL for server Whisper is wrong."])
         }
 
         let boundary = "orakul-\(UUID().uuidString)"
@@ -72,7 +72,7 @@ final class ServerWhisperTranscription: TranscriptionService {
                 ?? "HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)"
             throw NSError(domain: "OrakulWhisper",
                           code: (response as? HTTPURLResponse)?.statusCode ?? -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Серверный Whisper: \(message)"])
+                          userInfo: [NSLocalizedDescriptionKey: "Server Whisper: \(message)"])
         }
 
         struct TranscriptionResponse: Decodable { let text: String }

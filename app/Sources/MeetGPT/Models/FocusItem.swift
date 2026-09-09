@@ -68,7 +68,7 @@ enum FocusRanking {
         // Reactive alert — an active error needs attention now.
         if let alert, !alert.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             items.append(FocusItem(id: "alert", kind: .alert,
-                                   title: "Требует внимания", detail: alert,
+                                   title: "Needs attention", detail: alert,
                                    score: 1000, suggestionID: nil))
         }
 

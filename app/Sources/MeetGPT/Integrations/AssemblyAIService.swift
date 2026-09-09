@@ -16,11 +16,11 @@ enum AssemblyAIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingKey:       return "Разделение по говорящим в этой сборке недоступно."
-        case .badURL:           return "Неверный адрес AssemblyAI."
-        case .http(let code):   return "AssemblyAI ответил \(code)."
+        case .missingKey:       return "Speaker separation is unavailable in this build."
+        case .badURL:           return "Invalid AssemblyAI address."
+        case .http(let code):   return "AssemblyAI answered \(code)."
         case .failed(let m):    return "AssemblyAI: \(m)"
-        case .timedOut:         return "AssemblyAI не успел расшифровать за отведённое время."
+        case .timedOut:         return "AssemblyAI did not finish transcribing in the time allowed."
         }
     }
 }

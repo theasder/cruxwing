@@ -221,10 +221,10 @@ struct RESTClientTests {
                 presentationID: "deck-1", accessToken: "slides-token",
                 session: RESTMockURLProtocol.session())
             #expect(out.title == "Project Atlas")
-            #expect(out.text.contains("Слайд 1"))
+            #expect(out.text.contains("Slide 1"))
             #expect(out.text.contains("Launch plan"))
             #expect(out.text.contains("Owner\tMira"))
-            #expect(out.text.contains("Заметки докладчика"))
+            #expect(out.text.contains("Speaker notes"))
             #expect(out.text.contains("Confirm launch date with legal."))
             #expect(!out.text.contains("PRIVATE FOOTER"))
             let request = try #require(RESTMockURLProtocol.requests.first)

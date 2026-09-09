@@ -39,9 +39,9 @@ enum GoogleSlidesService {
             let notes = speakerNotes(
                 from: notesPage?["pageElements"] as? [[String: Any]] ?? [])
 
-            var parts = ["Слайд \(offset + 1)"]
+            var parts = ["Slide \(offset + 1)"]
             if !visible.isEmpty { parts.append(visible) }
-            if !notes.isEmpty { parts.append("Заметки докладчика:\n\(notes)") }
+            if !notes.isEmpty { parts.append("Speaker notes:\n\(notes)") }
             // Preserve slide boundaries even for image-only slides so the next
             // slide's words are never silently joined to the previous one.
             sections.append(parts.joined(separator: "\n"))

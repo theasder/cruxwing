@@ -35,8 +35,8 @@ enum TeamService: String, CaseIterable, Identifiable {
     /// сделал бы подсказку неверной. Переводится только то, что вокруг них.
     var configHint: String {
         switch self {
-        case .slack:      return "SLACK_BOT_TOKEN (и SLACK_CHANNEL_IDS)"
-        case .confluence: return "CONFLUENCE_SITE + CONFLUENCE_EMAIL + CONFLUENCE_TOKEN — или подключите Atlassian в «Подключённых приложениях»"
+        case .slack:      return "SLACK_BOT_TOKEN (and SLACK_CHANNEL_IDS)"
+        case .confluence: return "CONFLUENCE_SITE + CONFLUENCE_EMAIL + CONFLUENCE_TOKEN — or connect Atlassian under Connected apps"
         }
     }
 }

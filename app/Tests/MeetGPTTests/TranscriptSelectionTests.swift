@@ -247,7 +247,7 @@ struct TranscriptTextSelectionTests {
         ]
         let rendered = render(entries)
         #expect(rendered.segments[0].speaker == "You")
-        #expect(rendered.segments[1].speaker == "Собеседник")
+        #expect(rendered.segments[1].speaker == "Other party")
     }
 
     @Test("in-progress speech is rendered but never quotable")

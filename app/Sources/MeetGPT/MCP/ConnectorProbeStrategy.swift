@@ -130,8 +130,8 @@ enum ConnectorProbeStrategy: Sendable {
     /// звонков, и ответ тоже нужен русский. Инструкция на другом языке — это
     /// лишний перевод в середине рассуждения.
     static let trackerProbe = Probe(
-        queryHint: "открытые задачи, что уже в работе, недавние баги по обсуждаемому",
-        readFor: "не заведена ли уже задача на то, что обещают на звонке, и нет ли задачи, которая этому противоречит — особенно если у неё другой владелец или срок",
+        queryHint: "open issues, what is already in progress, recent bugs about what is being discussed",
+        readFor: "whether an issue already exists for what is being promised on the call, and whether one contradicts it — especially if it has a different owner or due date",
         strongFor: [.engineering, .product, .standup, .strategy])
 
     static func probe(forServerID id: String) -> Probe? { byServerID[id] }

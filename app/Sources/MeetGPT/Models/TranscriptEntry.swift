@@ -47,7 +47,7 @@ struct TranscriptEntry: Identifiable, Equatable, Codable {
             return named
         }
         guard transcriptionEngine != .local else { return nil }
-        return source == .mic ? "You" : "Собеседник"
+        return source == .mic ? "You" : "Other party"
     }
 
     func recordingEngineIfMissing(_ engine: TranscriptionEngine?) -> TranscriptEntry {

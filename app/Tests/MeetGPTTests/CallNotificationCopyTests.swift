@@ -15,8 +15,8 @@ struct CallNotificationCopyTests {
     @Test("Active-call prompt names the source and asks to record")
     func callPromptDelineatesActiveCall() {
         let text = CallNotifier.callPromptText(source: "Zoom")
-        #expect(text.title == "Звонок в Zoom")
-        #expect(text.body == "orakul может записать этот звонок. Записывать?")
+        #expect(text.title == "A call in Zoom")
+        #expect(text.body == "orakul can record this call. Record it?")
         #expect(!text.body.contains("Cruxwing"), "в уведомлении имя другого продукта")
     }
 
@@ -25,11 +25,11 @@ struct CallNotificationCopyTests {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let text = MeetingReminderScheduler.reminderText(
             title: "Weekly Sync", start: start, minutesBefore: 5)
-        #expect(text.title == "Скоро звонок: Weekly Sync")
+        #expect(text.title == "Call soon: Weekly Sync")
         // Время в скобках не проверяется: его формат зависит от языка системы,
         // на которой идёт прогон.
-        #expect(text.body.contains("Начало через 5 мин"))
-        #expect(text.body.contains("откройте orakul"))
+        #expect(text.body.contains("Starts in 5 min"))
+        #expect(text.body.contains("open orakul"))
         #expect(!text.body.contains("Cruxwing"), "в напоминании имя другого продукта")
     }
 
@@ -41,8 +41,8 @@ struct CallNotificationCopyTests {
         let reminder = MeetingReminderScheduler.reminderText(
             title: "Google Meet", start: Date(), minutesBefore: 2)
         #expect(call.title != reminder.title)
-        #expect(call.title.localizedCaseInsensitiveContains("звонок в"))
-        #expect(reminder.title.localizedCaseInsensitiveContains("скоро звонок"))
+        #expect(call.title.localizedCaseInsensitiveContains("a call in"))
+        #expect(reminder.title.localizedCaseInsensitiveContains("call soon"))
     }
 
     @Test("Reminder lead time is clamped to at least one minute")
@@ -51,6 +51,6 @@ struct CallNotificationCopyTests {
         // текст не должен обещать «Начало через 0 мин».
         let text = MeetingReminderScheduler.reminderText(
             title: "Standup", start: Date(), minutesBefore: 0)
-        #expect(text.body.contains("Начало через 1 мин"))
+        #expect(text.body.contains("Starts in 1 min"))
     }
 }

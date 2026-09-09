@@ -22,7 +22,7 @@ struct PaneLayout: Equatable, Codable {
         /// user reads, not for the type that renders it.
         var title: String {
             switch self {
-            case .sidebar: return "Боковая панель"
+            case .sidebar: return "Sidebar"
             case .transcript: return "Transcript"
             case .assistant: return "Assistant"
             }

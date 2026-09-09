@@ -79,9 +79,9 @@ enum ContextFolderScanner {
         var errorDescription: String? {
             switch self {
             case .unresolvable:
-                return "Папка больше недоступна — приложите её заново, чтобы выдать доступ."
+                return "The folder is no longer reachable — attach it again to grant access."
             case .notReadable(let detail):
-                return "Не удалось прочитать папку: \(detail)"
+                return "Could not read the folder: \(detail)"
             }
         }
     }

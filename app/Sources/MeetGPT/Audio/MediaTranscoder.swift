@@ -8,9 +8,9 @@ enum MediaTranscoderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noAudioTrack:       return "В этом файле нет звуковой дорожки."
-        case .emptyAudio:         return "Звуковую дорожку не удалось раскодировать."
-        case .readFailed(let m):  return "Не удалось прочитать файл: \(m)"
+        case .noAudioTrack:       return "This file has no audio track."
+        case .emptyAudio:         return "The audio track could not be decoded."
+        case .readFailed(let m):  return "Could not read the file: \(m)"
         }
     }
 }

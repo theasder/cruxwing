@@ -35,7 +35,7 @@ struct RenderedRussianTests {
     /// ceiling nobody lowers stops meaning anything, and a new Russian string
     /// has to be explained exactly as much as a missed one.
     static let settingsTabsRussian: [SettingsTab: Int] = [
-        .general: 3, .transcription: 4, .connectedApps: 4,
+        .transcription: 1,
     ]
     static let firstRunRussian = 0
     static let mainWindowRussian = 0

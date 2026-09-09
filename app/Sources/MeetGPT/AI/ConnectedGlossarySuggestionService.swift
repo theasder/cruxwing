@@ -36,7 +36,7 @@ enum ConnectedGlossarySuggestionError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .timeout:
-            return "Подключённое приложение не ответило вовремя. Попробуйте, когда оно будет доступно."
+            return "The connected application did not answer in time. Try again when it is available."
         }
     }
 }

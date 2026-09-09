@@ -52,15 +52,15 @@ enum LocalWhisperModel {
     /// is 11% fewer errors, not "about a third". And `medium` is not worth
     /// offering — it buys 0.008 WER over small for 2.4x the time.
     static let options: [Option] = [
-        .init(id: "base",     title: "Быстрая",
-              caption: "Наименьшая задержка, самая лёгкая загрузка (~145 MB). Лучший выбор для Intel. Заметно слабее на терминах: узнаёт около половины там, где старшие модели узнают три четверти.",
+        .init(id: "base",     title: "Fast",
+              caption: "The lowest latency and the smallest download (~145 MB). The best choice on Intel. Noticeably weaker on terminology: it recognises about half where the larger models recognise three quarters.",
               approxDownload: "~145 MB"),
         .init(id: "small",    title: "Medium",
-              caption: "Ошибок примерно на 19% меньше, чем у быстрой, и заметно лучше с именами и жаргоном; на Apple Silicon всё ещё успевает вживую (~480 MB).",
+              caption: "About 19% fewer errors than the fast one, and noticeably better with names and jargon; on Apple Silicon it still keeps up live (~480 MB).",
               approxDownload: "~480 MB"),
-        .init(id: largeVariant, title: "Самая точная",
-              caption: "На терминах выигрывает с запасом — три четверти против двух третей у средней — и ошибается примерно на 8% реже. Самая тяжёлая (~1,5 ГБ).",
-              approxDownload: "~1,5 ГБ"),
+        .init(id: largeVariant, title: "The most accurate",
+              caption: "It wins comfortably on terminology — three quarters against two thirds for the middle one — and errs about 8% less often. The heaviest (~1.5 GB).",
+              approxDownload: "~1.5 GB"),
     ]
 
     /// Size of the model THIS Mac will actually download, for onboarding copy.

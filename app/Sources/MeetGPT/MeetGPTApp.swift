@@ -112,7 +112,7 @@ struct MeetGPTApp: App {
             // ONE keystroke to get the answer plainly, and a shortcut nobody can
             // find in a menu is not discoverable enough to count.
             CommandGroup(after: .textEditing) {
-                Button("Дальше ответить прямо") { state.answerPlainlyNext() }
+                Button("Answer directly next") { state.answerPlainlyNext() }
                     .keyboardShortcut("a", modifiers: [.command, .shift])
                     .disabled(!state.socraticModeEnabled || state.socraticBrokenOut)
             }

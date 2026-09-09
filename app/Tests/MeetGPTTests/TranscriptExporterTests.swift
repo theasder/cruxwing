@@ -39,8 +39,8 @@ struct TranscriptExporterTests {
         ]
         let out = TranscriptExporter.plainText(title: "  ", date: at((10, 0, 0)),
                                                entries: entries, timeZone: tz)
-        #expect(out.hasPrefix("Транскрипт звонка\n"))
-        #expect(out.contains("Собеседник: Remote speaking."))
+        #expect(out.hasPrefix("Call transcript\n"))
+        #expect(out.contains("Other party: Remote speaking."))
         #expect(!out.contains("10:00:03"))   // whitespace-only entry skipped
     }
 

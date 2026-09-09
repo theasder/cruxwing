@@ -30,11 +30,11 @@ enum GoogleDriveWriter {
         var errorDescription: String? {
             switch self {
             case let .http(code, message):
-                return "Google ответил \(code): \(message)"
+                return "Google answered \(code): \(message)"
             case .malformedResponse:
-                return "Ответ Google не удалось прочитать."
+                return "Google's response could not be read."
             case .notOurFile:
-                return "orakul может менять только те файлы, которые сам создал."
+                return "orakul can change only the files it created itself."
             }
         }
     }

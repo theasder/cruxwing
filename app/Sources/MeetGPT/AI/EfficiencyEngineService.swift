@@ -95,11 +95,11 @@ enum EfficiencyEngineService {
         var errorDescription: String? {
             switch self {
             case .notConfigured:
-                return "Для напоминаний нужен сервер — задайте BACKEND_URL."
+                return "Reminders need a server — set BACKEND_URL."
             case .http(let code, let message):
-                return message.isEmpty ? "Напоминание не отправилось (\(code))." : message
+                return message.isEmpty ? "The reminder was not sent (\(code))." : message
             case .malformed:
-                return "Ответ по напоминанию пришёл в нечитаемом виде."
+                return "The reminder response arrived unreadable."
             }
         }
     }

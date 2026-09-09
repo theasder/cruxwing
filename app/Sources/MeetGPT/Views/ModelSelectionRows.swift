@@ -22,16 +22,16 @@ struct ModelSelectionRows: View {
     /// premium Auto path can convene the mixed US+international council.
     private var councilNote: String? {
         if let level = OrchestrationLevel.from(selection: provider) {
-            return "Совет моделей · \(level.label): \(level.memberModelIDs.count) моделей отвечают параллельно — \(level.blurb) — потом ответы сводятся в один. Длинный запрос стоит дороже у провайдера."
+            return "Council of models · \(level.label): \(level.memberModelIDs.count) models answer in parallel — \(level.blurb) — and their answers are then merged into one. A long request costs more at the provider."
         }
         switch provider {
         case LLMCatalog.councilUS:
-            return "Совет моделей · США: параллельно спрашиваются настроенные американские провайдеры (OpenAI, Anthropic, Google), ответы сводятся в один. Данные остаются у американских компаний."
+            return "Council of models · USA: the configured American providers (OpenAI, Anthropic, Google) are asked in parallel and their answers merged into one. The data stays with American companies."
         case LLMCatalog.councilCN:
             return "Council of models · China: the configured Chinese providers (DeepSeek, Qwen, Zhipu, Moonshot) are asked in parallel. The call's content goes to them."
         default:
             if provider == LLMCatalog.autoID, tier == .premium {
-                return "На самых сложных запросах «Авто» может собрать совет из моделей США и Китая. Выберите «Совет моделей · США», чтобы данные уходили только американским провайдерам."
+                return "On the hardest requests «Auto» may assemble a council from both American and Chinese models. Choose «Council of models · USA» to keep the data with American providers only."
             }
             return nil
         }

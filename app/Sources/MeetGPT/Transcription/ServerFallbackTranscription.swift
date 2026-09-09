@@ -62,12 +62,12 @@ final class ServerFallbackTranscription: TranscriptionService {
     static func reason(for error: Error) -> String {
         let ns = error as NSError
         if ns.domain == "OrakulWhisper", ns.code == 429 {
-            return "Сервер отказал по ограничению — этот звонок расшифровывается на вашем компьютере."
+            return "The server refused on a limit — this call is being transcribed on your computer."
         }
         if ns.domain == "OrakulWhisper", ns.code == 401 {
-            return "Вход не подтверждён — этот звонок расшифровывается на вашем компьютере."
+            return "The sign-in was not confirmed — this call is being transcribed on your computer."
         }
-        return "Серверный Whisper недоступен — этот звонок расшифровывается на вашем компьютере."
+        return "Server Whisper is unavailable — this call is being transcribed on your computer."
     }
 
     // MARK: forwarded lifecycle (the heavy resources live in the fallback)

@@ -260,7 +260,7 @@ struct ConnectedWriteCommitDispatchTests {
         #expect(state.runningAnswerAction == nil)
         #expect(state.answerActionResult == nil)
         #expect(state.lastError ==
-            "Учётная запись HubSpot изменилась после проверки действия. Откройте действие заново, чтобы подтвердить, куда оно уйдёт.")
+            "The HubSpot account changed after the action was checked. Open the action again to confirm where it goes.")
     }
 
     @Test("an account change between tracker items prevents every remaining write")
@@ -307,6 +307,6 @@ struct ConnectedWriteCommitDispatchTests {
         #expect(state.answerActionResult ==
             "Created 1 of 2 in Linear. Failed: Create the rollout issue")
         #expect(state.lastError ==
-            "Учётная запись Linear изменилась после проверки действия. Откройте действие заново, чтобы подтвердить, куда оно уйдёт.")
+            "The Linear account changed after the action was checked. Open the action again to confirm where it goes.")
     }
 }

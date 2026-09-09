@@ -100,7 +100,7 @@ final class TeamWatcher: ObservableObject {
                                       // видно всем, включая владельца сервиса.
                                       // Стояло чужое имя продукта, и
                                       // по-английски — в русской переписке.
-                                      text: "⚑ orakul: замечено слово «\(keyword)» — команда уведомлена.")
+                                      text: "⚑ orakul: the word «\(keyword)» was spotted — the team was notified.")
         }
     }
 

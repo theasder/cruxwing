@@ -273,8 +273,8 @@ final class AudioChunkBuffer {
                         graceSeconds: TimeInterval = 20) -> String? {
         guard secondsListening >= graceSeconds else { return nil }
         guard buffersIn == 0 else { return nil }
-        return "Звук не поступает. Проверьте, не занято ли устройство другим приложением "
-             + "и не отозвано ли разрешение на запись."
+        return "No audio is arriving. Check whether another application is holding the device "
+             + "and whether the recording permission was revoked."
     }
 
     /// Сколько буферов пришло от устройства — для проверки выше.

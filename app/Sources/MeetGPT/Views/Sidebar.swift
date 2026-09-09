@@ -440,7 +440,7 @@ struct SidebarFooter: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .accessibilityLabel("Аккаунт: \(state.wheesprEmail ?? "вход выполнен")")
+                .accessibilityLabel("Account: \(state.wheesprEmail ?? "signed in")")
                 .help(state.wheesprEmail ?? "Account")
             } else {
                 Button {

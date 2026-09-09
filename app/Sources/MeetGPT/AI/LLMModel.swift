@@ -60,7 +60,7 @@ enum LLMProvider: String, Codable, CaseIterable {
     /// моделью, которой сервис не знает.
     var secondaryPrompt: String? {
         switch self {
-        case .yandexGPT: return "идентификатор каталога, например b1g12345678"
+        case .yandexGPT: return "the folder id, for example b1g12345678"
         default:         return nil
         }
     }
@@ -125,13 +125,13 @@ enum LLMProvider: String, Codable, CaseIterable {
     var keyConsoleHint: String {
         switch self {
         case .deepSeek:  return "platform.deepseek.com → API keys"
-        case .qwen:      return "modelstudio.console.aliyun.com → API-KEY (регион Сингапур)"
-        case .zhipu:     return "z.ai → ключи API"
+        case .qwen:      return "modelstudio.console.aliyun.com → API-KEY (Singapore region)"
+        case .zhipu:     return "z.ai → API keys"
         case .moonshot:  return "platform.moonshot.ai → API keys"
         case .openAI:    return "platform.openai.com → API keys"
         case .anthropic: return "console.anthropic.com → API keys"
         case .google:    return "aistudio.google.com → Get API key"
-        case .yandexGPT: return "console.yandex.cloud → сервисный аккаунт, API-ключ; там же идентификатор каталога"
+        case .yandexGPT: return "console.yandex.cloud → service account, API key; the folder id is there too"
         }
     }
 

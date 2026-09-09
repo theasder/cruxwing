@@ -211,8 +211,8 @@ final class DeepgramStreamer {
 
     private func finishOpen(authHeader: String, isReconnect: Bool) {
         guard let url = Self.buildURL(language: language, diarize: diarize, keyterms: keyterms) else {
-            onTerminalFailure?("Не удалось собрать адрес Deepgram — проверьте настройки распознавания.")
-            onError?("Не удалось собрать адрес Deepgram — проверьте настройки распознавания.")
+            onTerminalFailure?("Could not assemble the Deepgram address — check the recognition settings.")
+            onError?("Could not assemble the Deepgram address — check the recognition settings.")
             return
         }
         var request = URLRequest(url: url)
@@ -364,7 +364,7 @@ final class DeepgramStreamer {
         // reconnected socket.
         onInterim?("")
         if attempt == Self.notifyAfterAttempts {
-            onError?("Переподключаемся к Deepgram…")
+            onError?("Reconnecting to Deepgram…")
         }
         scheduleReconnect(attempt: attempt)
     }
@@ -459,7 +459,7 @@ final class DeepgramStreamer {
         // A failed WebSocket upgrade exposes the HTTP status. Bad BYOK auth is
         // terminal: reconnecting cannot repair the user's rejected key.
         if let http = socket.response as? HTTPURLResponse, http.statusCode == 401 || http.statusCode == 403 {
-            let message = "Ключ не принят. Проверьте его в «Настройки → Подключённые приложения»."
+            let message = "The key was refused. Check it under Settings → Connected apps."
             onTerminalFailure?(message)
             onError?(message)
             finish()

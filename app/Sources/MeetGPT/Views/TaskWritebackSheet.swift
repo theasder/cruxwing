@@ -50,14 +50,14 @@ struct TaskWritebackSheet: View {
 
             if targets.isEmpty {
                 Label {
-                    Text("Подключите трекер в «Настройки → Подключённые приложения», чтобы заводить задачи. Российским трекерам нужно указать, куда класть задачу: очередь, доску или колонку. Задача создаётся только когда вы нажмёте «Создать».")
+                    Text("Connect a tracker under Settings → Connected apps to create tasks. Russian trackers need to be told where the task goes: a queue, a board or a column. A task is created only when you press «Create».")
                         .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } icon: {
                     Image(systemName: "link.badge.plus").foregroundStyle(Theme.accent)
                 }
             } else {
-                Picker("Трекер", selection: $selectedServerID) {
+                Picker("Tracker", selection: $selectedServerID) {
                     ForEach(targets) { target in
                         Text(target.name).tag(String?.some(target.id))
                     }
@@ -101,7 +101,7 @@ struct TaskWritebackSheet: View {
                     states[index] = .done(TaskWriteback.outcome(of: result))
                 case .russian(let service):
                     guard let client = mcp.trackerStore.client(for: service, http: mcp.trackerHTTP) else {
-                        states[index] = .failed("Трекер не настроен")
+                        states[index] = .failed("Tracker not configured")
                         return
                     }
                     // То же тело, что уходит по пути MCP, и то же, что человек
@@ -114,7 +114,7 @@ struct TaskWritebackSheet: View {
                         title: item.task, description: TaskWriteback.describe(item))
                     // Показываем ключ, а не «готово»: по нему задачу можно
                     // найти, и он же доказывает, что она действительно создана.
-                    states[index] = .done("Создана \(issue.key)")
+                    states[index] = .done("Created \(issue.key)")
                 }
             } catch {
                 states[index] = .failed(error.localizedDescription)
@@ -183,7 +183,7 @@ private struct TaskRow: View {
             Button("Create", action: onFile)
                 .buttonStyle(QuietButtonStyle())
                 .disabled(!canFile)
-                .accessibilityLabel("Завести задачу: \(item.task)")
+                .accessibilityLabel("Create the task: \(item.task)")
         }
     }
 }

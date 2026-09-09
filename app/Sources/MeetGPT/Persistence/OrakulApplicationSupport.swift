@@ -15,8 +15,8 @@ enum OrakulApplicationSupport {
         var errorDescription: String? {
             switch self {
             case .applicationSupportUnavailable:
-                return "macOS не предоставила пользовательский каталог Application Support; "
-                    + "Orakul не перенаправляет личные данные во временную папку."
+                return "macOS provided no user Application Support directory; "
+                    + "Orakul does not redirect personal data into a temporary folder."
             }
         }
     }
