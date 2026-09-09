@@ -299,15 +299,10 @@ a council of models, retry, or fall back to another provider in global Auto. A
 global pause and muting an individual application forbid reading it, and the
 answer names the sources it used or rejected.
 
-**YandexGPT** comes first: the only path on which data stays in Russia. Besides a
-key it needs a catalogue identifier (`b1g…`), otherwise the request goes out with
-a model the service does not know. It is chosen for where data is stored, not for
-strength: across twelve practical tasks the domestic models won none
-(`docs/RESEARCH-AND-PLAN.md`, §3).
-
-Then come the ones that are cheaper and answer Russian confidently enough
-(DeepSeek, Qwen, GLM, Kimi), then OpenAI, Anthropic, Google. Beside each one it
-says where to get a key.
+OpenAI, Anthropic and Google come first, then the cheaper models that answer
+confidently enough for most work — DeepSeek, Qwen, GLM, Kimi. Beside each one the
+settings screen says where to get a key. Nothing is locked: every model in the
+catalogue is selectable, and "Auto" picks one per request if you would rather not.
 
 GigaChat is not connected: in its public documentation neither the token issuance
 address nor the root certificate requirement is consistent — the same rule that
