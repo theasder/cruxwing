@@ -59,8 +59,8 @@ the next step is capturing which neighbour wrote what, not another guess.
 
 | Layer | Connected | Where in code |
 |---|---|---|
-| Russian trackers | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
-| Work messengers | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, **Matrix / Element** | `WorkMessengers.swift` |
+| Russian trackers — **no longer offered** (2026-09-09), the code still works | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
+| Work messengers (Пачка **no longer offered**, code still works) | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, **Matrix / Element** | `WorkMessengers.swift` |
 | Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Self-hosted Jira | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
 | Western trackers, own connector | Linear, Trello | `WesternTrackers.swift` |

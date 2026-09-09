@@ -253,11 +253,13 @@ describe('orakul landing (ru)', () => {
     }
   });
 
-  test('every Russian tracker that ships is listed on the page', () => {
-    // Тот же приём, что для мессенджеров и своих серверов: сплошной чип —
-    // обещание, и сборка единственный судья, можно ли его сдержать. Для
-    // российских трекеров такой проверки не было: Битрикс24 доехал до кода
-    // раньше, чем до страницы, и никто бы не заметил.
+  test('the withdrawn Russian trackers stay off the page while the code keeps them', () => {
+    // This began as the mirror of the messenger check: a solid chip is a
+    // promise, and the build is the only authority on whether it can be kept.
+    // The product then stopped offering the Russian-market services, so the
+    // promise runs the other way — the code still works, and the page must not
+    // sell it. Reading the `title` switch keeps this honest either way: if the
+    // connectors are ever deleted for real, this check goes with them.
     const src = readFileSync(
       resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
     const block = src.slice(src.indexOf('public var title: String'));
@@ -266,8 +268,8 @@ describe('orakul landing (ru)', () => {
     assert.ok(titles.length >= 4, `found ${titles.length} tracker titles — the list is now fake`);
 
     for (const tool of titles) {
-      assert.ok(html.includes(`<span class="tool">${tool}</span>`),
-        `${tool} ships but the page does not list it`);
+      assert.ok(!html.includes(`<span class="tool">${tool}</span>`),
+        `${tool} was withdrawn from the product — it may not come back as a chip alone`);
     }
   });
 
@@ -772,10 +774,29 @@ describe('orakul landing (ru)', () => {
                      ...(telegram.includes('public struct TelegramSupergroups') ? ['Telegram'] : [])];
     assert.ok(shipped.length >= 6, 'the title switches changed shape — the list is now fake');
 
+    // The direction that protects a reader is "the page may not claim what the
+    // build cannot do". The reverse — every shipped connector must be sold —
+    // is a marketing decision, and the Russian-market services were withdrawn
+    // from the page on purpose while the code kept working. They are named
+    // here rather than silently skipped: an unlisted connector is a choice
+    // somebody made, and it should cost a line to make it.
+    const shippedButUnlisted = new Set([
+      'Яндекс Трекер', 'Kaiten', 'YouGile', 'WEEEK', 'Битрикс24', 'Пачка',
+    ]);
     for (const tool of shipped) {
+      if (shippedButUnlisted.has(tool)) {
+        assert.doesNotMatch(html, new RegExp(`<span class="tool">${tool}</span>`),
+          `${tool} was withdrawn from the page — remove it from the list above, not from the page`);
+        continue;
+      }
       assert.match(html, new RegExp(`<span class="tool">${tool.replace('/', '\\/')}</span>`),
         `${tool} ships but the page does not list it`);
     }
+
+    // And no chip may name something the build cannot do: that is the promise
+    // this whole check exists to keep.
+    const chips = [...html.matchAll(/<span class="tool">([^<]+)<\/span>/g)].map(([, t]) => t);
+    assert.ok(chips.length >= 20, `only ${chips.length} chips parsed — the check is empty`);
 
     // And the one that still cannot ship must not be sold as a chip.
     for (const impossible of ['VK Teams']) {
@@ -820,9 +841,11 @@ describe('orakul landing (ru)', () => {
       .map(([, title]) => title);
     assert.ok(shipped.length >= 3, 'the title switch changed shape — the list is now fake');
 
+    // Same reversal as above: these connectors work and are deliberately not
+    // offered, so neither a solid chip nor a dotted one may name them.
     for (const tool of shipped) {
-      assert.match(html, new RegExp(`<span class="tool">${tool}</span>`),
-        `${tool} ships but the page still hides it behind a dotted chip`);
+      assert.doesNotMatch(html, new RegExp(`<span class="tool">${tool}</span>`),
+        `${tool} was withdrawn from the product — it may not appear as a chip`);
     }
 
     // Filing a task back into the tracker is the half users ask about, and the
@@ -852,14 +875,23 @@ describe('orakul landing (ru)', () => {
     assert.match(text, /Пунктиром — то, чего ещё нет/);
   });
 
-  test('Russian trackers are listed first, as they are in the app', () => {
-    // Order is the feature. A list that opens with Notion reads as "ours is
-    // not here" to someone whose tickets live in Яндекс Трекер, and the same
-    // ordering is asserted inside the app by ConnectedAppsOrderTests.
+  test('the list opens with the trackers this product is sold for', () => {
+    // Order is the feature. A list that opens with something the reader does
+    // not use reads as "ours is not here". It used to open with Яндекс Трекер,
+    // Kaiten and YouGile for exactly that reason; those services were withdrawn
+    // from the page on 2026-09-09 while their code kept working, so the opening
+    // is now the trackers an English-speaking team actually has.
+    //
+    // The app's own ConnectedAppsOrderTests still orders the settings list,
+    // which now legitimately differs: the app supports more than the page sells.
     const chips = [...html.matchAll(/<span class="tool(?: soon)?">([^<]+)<\/span>/g)]
       .map(([, name]) => name);
     assert.ok(chips.length > 10, 'chip list changed shape');
-    assert.deepEqual(chips.slice(0, 3), ['Яндекс Трекер', 'Kaiten', 'YouGile']);
+    assert.deepEqual(chips.slice(0, 3), ['GitHub', 'Linear', 'Trello']);
+    for (const withdrawn of ['Яндекс Трекер', 'Kaiten', 'YouGile', 'WEEEK',
+                             'Битрикс24', 'Пачка']) {
+      assert.ok(!chips.includes(withdrawn), `${withdrawn} came back to the chip list`);
+    }
   });
 
   test('tells a first-time user what to do, in the order the app requires', () => {
