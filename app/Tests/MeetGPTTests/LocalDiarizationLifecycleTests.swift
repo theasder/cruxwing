@@ -80,8 +80,8 @@ struct LocalDiarizationLifecycleTests {
         try await waitUntilFinished(state)
 
         #expect(state.transcript.map(\.speaker) == ["You", "Спикер 2", "Спикер 3"])
-        #expect(state.localDiarizationNote?.contains("Бета") == true)
-        #expect(state.localDiarizationNote?.contains("проверьте") == true)
+        #expect(state.localDiarizationNote?.contains("Beta") == true)
+        #expect(state.localDiarizationNote?.contains("check the") == true)
         #expect(state.retainedAudioSampleCountForTesting == 16_000 * 21,
                 "PCM remains available for a count correction and rerun")
     }
@@ -128,7 +128,7 @@ struct LocalDiarizationLifecycleTests {
         #expect(state.transcript == original)
         #expect(!state.localDiarizationRunning)
         #expect(!state.diarizing)
-        #expect(state.localDiarizationNote?.contains("отменено") == true)
+        #expect(state.localDiarizationNote?.contains("cancelled") == true)
     }
 
     @Test("cancelling without a private run does not clear cloud busy state")
@@ -244,8 +244,8 @@ struct LocalDiarizationLifecycleTests {
         state.labelSpeakersLocallyNow(expectedRemoteSpeakerCount: 1)
         try await waitUntilFinished(state)
 
-        #expect(state.localDiarizationNote?.contains("полностью сохранённая часть") == true)
-        #expect(state.localDiarizationNote?.contains("поздние строки не изменены") == true)
+        #expect(state.localDiarizationNote?.contains("fully saved part") == true)
+        #expect(state.localDiarizationNote?.contains("later lines were left unchanged") == true)
         #expect(state.transcript.last?.speaker == "Спикер 4")
     }
 

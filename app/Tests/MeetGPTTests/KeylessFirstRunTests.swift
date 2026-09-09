@@ -22,7 +22,7 @@ struct KeylessFirstRunTests {
                 "не назван экран, где вставляют ключ: \(message)")
         #expect(message.contains("DeepSeek"), "не сказано, какого провайдера ключ")
         // И не советует того, чего в продукте нет.
-        #expect(!message.lowercased().contains("войдите"),
+        #expect(!message.lowercased().contains("sign in"),
                 "совет войти в аккаунт: сервера у orakul нет")
         #expect(!message.contains("managed"), "английский остаток из Cruxwing")
     }

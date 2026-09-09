@@ -15,22 +15,23 @@ struct DiarizeDestinationTests {
     func namesBackendForServerPath() {
         let destination = AppState.diarizeDestination(onServer: true)
 
-        #expect(destination.contains("сервер"))
+        #expect(destination.contains("server"))
         // Must not claim AssemblyAI on the path that does not use it. This is
         // the bug: the UI named AssemblyAI unconditionally.
         #expect(!destination.contains("AssemblyAI"))
     }
 
-    // Строка подставляется в русское предложение, и до 2026-08-20 давала смесь
-    // языков: «запись уйдёт в AssemblyAI with your own key». Счётчик английских
-    // строк (§6.4) этого не видел — он считает Views и Onboarding, а собирается
-    // текст в AppState.
-    @Test("обе ветки говорят по-русски")
-    func bothPathsSpeakRussian() {
+    // The fragment is substituted into a whole sentence, and before 2026-08-20
+    // it produced a mix of languages: «запись уйдёт в AssemblyAI with your own
+    // key». The §6.4 counter never saw it — that one counts Views and
+    // Onboarding, and this text is assembled in AppState. The direction has
+    // since reversed, so the check reads the other way and keeps the same job.
+    @Test("both branches speak one language")
+    func bothPathsSpeakOneLanguage() {
         for onServer in [true, false] {
             let destination = AppState.diarizeDestination(onServer: onServer)
-            #expect(destination.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) != nil,
-                    "по-английски внутри русского предупреждения: «\(destination)»")
+            #expect(destination.range(of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                    "Russian inside an English warning: «\(destination)»")
         }
     }
 

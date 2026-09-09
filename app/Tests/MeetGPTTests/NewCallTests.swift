@@ -130,7 +130,7 @@ struct BackendErrorMessageTests {
     func passesThroughOtherErrors() {
         struct Odd: LocalizedError { var errorDescription: String? { "Model refused the request." } }
         let message = state().explain(Odd())
-        #expect(message == "Ошибка: Система ответила: Model refused the request.")
+        #expect(message == "Error: The system replied: Model refused the request.")
     }
 
     @Test("every explanation still reads as an error")

@@ -17,15 +17,15 @@ import Foundation
     @Test("граница названа числом прочитанного и потолком")
     func theBoundNamesWhatWasRead() {
         let text = AppState.googleBound(read: 3)
-        #expect(text.contains("прочитано документов — 3"))
-        #expect(text.contains("больше трёх"))
-        #expect(text.contains("началом"), "про обрезку текста не сказано")
-        #expect(text.contains("не значит, что на Диске этого нет"))
+        #expect(text.contains("3 documents read"))
+        #expect(text.contains("no more than three"))
+        #expect(text.contains("from the beginning"), "про обрезку текста не сказано")
+        #expect(text.contains("does not mean it is absent from Drive"))
     }
 
     @Test("ноль прочитанного — тоже число, и оно называется")
     func zeroIsStated() {
-        #expect(AppState.googleBound(read: 0).contains("прочитано документов — 0"))
+        #expect(AppState.googleBound(read: 0).contains("0 documents read"))
     }
 
     @Test("граница едет обоими путями — и с находками, и без")

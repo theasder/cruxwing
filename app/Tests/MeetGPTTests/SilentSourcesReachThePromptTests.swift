@@ -31,8 +31,8 @@ import OrakulCore
         let snippet = try #require(
             await MCPConnectionManager.silentSourcesSnippet(since: started, health: health))
         #expect(snippet.text.contains("redmine"))
-        #expect(snippet.text.contains("Не ответили на этот вопрос"))
-        #expect(snippet.text.contains("не значит, что там ничего нет"))
+        #expect(snippet.text.contains("Did not answer this question"))
+        #expect(snippet.text.contains("does not mean there is nothing there"))
     }
 
     @Test("вчерашний отказ в сегодняшний ответ не едет")

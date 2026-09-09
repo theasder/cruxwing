@@ -63,10 +63,10 @@ struct TaskWritebackTests {
         let full = TaskWriteback.describe(item("Ship the beta", owner: "Alex",
                                                due: "Friday", doneCheck: "deployed to prod",
                                                sourceRef: "10:32 decision"))
-        #expect(full.contains("Владелец: Alex"))
-        #expect(full.contains("Срок: Friday"))
-        #expect(full.contains("Готово, когда: deployed to prod"))
-        #expect(full.contains("Источник: 10:32 decision"))
+        #expect(full.contains("Owner: Alex"))
+        #expect(full.contains("Due: Friday"))
+        #expect(full.contains("Done when: deployed to prod"))
+        #expect(full.contains("Source: 10:32 decision"))
         #expect(full.contains("orakul"))
 
         // Placeholder markers never become written values.
@@ -84,7 +84,7 @@ struct TaskWritebackTests {
                                                 extra: ["teamId": .string("TEAM-1")])
         #expect(args?["title"] == .string("Fix onboarding"))
         // description folded from metadata.
-        if case .string(let desc)? = args?["description"] { #expect(desc.contains("Владелец: Sam")) }
+        if case .string(let desc)? = args?["description"] { #expect(desc.contains("Owner: Sam")) }
         else { Issue.record("expected a description arg") }
         // caller context merged in.
         #expect(args?["teamId"] == .string("TEAM-1"))
@@ -137,7 +137,7 @@ struct TaskWritebackTests {
         #expect(task["name"] == .string("Ship onboarding"))
         #expect(task["project_id"] == .string("project-in-task"))
         if case .string(let description)? = task["description"] {
-            #expect(description.contains("Владелец: Sam"))
+            #expect(description.contains("Owner: Sam"))
         } else {
             Issue.record("expected nested Asana description")
         }

@@ -18,16 +18,16 @@ import OrakulCore
     func theFloorIsADate() {
         let floor = Date(timeIntervalSince1970: 1_770_000_000)   // 2026-02-02
         let text = MCPConnectionManager.telegramBound(from: floor)
-        #expect(text.contains("Охват Telegram"))
+        #expect(text.contains("Telegram coverage"))
         #expect(text.contains("2026"))
-        #expect(text.contains("Более ранняя переписка Bot API недоступна"))
+        #expect(text.contains("not available through the Bot API"))
     }
 
     @Test("пустой архив говорит, что он пуст, а не молчит")
     func anEmptyArchiveSaysSo() {
         let text = MCPConnectionManager.telegramBound(from: nil)
-        #expect(text.contains("архив пуст"))
-        #expect(text.contains("Более ранняя переписка Bot API недоступна"))
+        #expect(text.contains("the archive is empty"))
+        #expect(text.contains("not available through the Bot API"))
     }
 
     @Test("граница едет и вместе с находками")

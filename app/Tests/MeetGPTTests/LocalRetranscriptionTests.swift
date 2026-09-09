@@ -259,7 +259,7 @@ struct LocalRetranscriptionTests {
             await Task.yield()
         }
         #expect(state.transcript.first?.speaker == "Спикер 2")
-        #expect(state.localDiarizationNote?.contains("Говорящие определены") == true)
+        #expect(state.localDiarizationNote?.contains("Speakers identified") == true)
 
         state.retranscribeLocallyNow()
         for _ in 0..<10_000 {

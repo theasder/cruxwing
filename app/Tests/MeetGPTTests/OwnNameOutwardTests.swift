@@ -111,7 +111,7 @@ struct OwnNameOutwardTests {
             of: "Tests/MeetGPTTests/OwnNameOutwardTests.swift",
             with: "Sources/MeetGPT/AppState.swift")
         let code = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
-        #expect(code.contains("\"Со звонка в orakul\""),
+        #expect(code.contains("\"From a call in orakul\""),
                 "запасное название задачи снова не наше или не по-русски")
     }
 }

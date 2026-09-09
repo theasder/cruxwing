@@ -121,17 +121,17 @@ enum GoogleAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingClientID: return "Добавьте GOOGLE_CLIENT_ID от настольного клиента Google OAuth и соберите orakul заново."
-        case .missingClientSecret: return "Добавьте GOOGLE_CLIENT_SECRET от того же настольного клиента Google OAuth и соберите orakul заново."
-        case .badClientID:     return "Это не похоже на идентификатор клиента Google OAuth."
-        case .noServicesSelected: return "Выберите хотя бы одну службу Google Workspace перед подключением."
-        case .cancelled:       return "Вход через Google отменён."
-        case .noCode:          return "Google не вернул код авторизации."
-        case .stateMismatch:   return "Вход через Google не удалось подтвердить (не сошлось состояние). Попробуйте ещё раз."
+        case .missingClientID: return "Add the GOOGLE_CLIENT_ID of a Google OAuth desktop client and build orakul again."
+        case .missingClientSecret: return "Add the GOOGLE_CLIENT_SECRET of the same Google OAuth desktop client and build orakul again."
+        case .badClientID:     return "That does not look like a Google OAuth client id."
+        case .noServicesSelected: return "Choose at least one Google Workspace service before connecting."
+        case .cancelled:       return "Google sign-in cancelled."
+        case .noCode:          return "Google returned no authorisation code."
+        case .stateMismatch:   return "The Google sign-in could not be confirmed (the state did not match). Try again."
         case .server(let code, let desc):
-            return desc.map { "Google: \($0)" } ?? "Ошибка входа через Google: \(code)"
-        case .http(let code):  return "Вход через Google ответил \(code)."
-        case .notConnected:    return "Сначала подключите Google Workspace."
+            return desc.map { "Google: \($0)" } ?? "Google sign-in error: \(code)"
+        case .http(let code):  return "The Google sign-in answered \(code)."
+        case .notConnected:    return "Connect Google Workspace first."
         }
     }
 }

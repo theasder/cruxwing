@@ -571,11 +571,11 @@ final class AppState: ObservableObject {
         var errorDescription: String? {
             switch self {
             case .noAnswer:
-                return "Экспортировать нечего: ответа пока нет."
+                return "There is nothing to export: no answer yet."
             case .answerStillStreaming:
-                return "Ответ ещё пишется — дождитесь конца и повторите."
+                return "The answer is still being written — wait for it to finish and try again."
             case .answerChanged:
-                return "Пока придумывалось название, ответ успел смениться. Повторите экспорт."
+                return "The answer changed while the title was being written. Export it again."
             }
         }
     }
@@ -1674,9 +1674,9 @@ final class AppState: ObservableObject {
         var message: String {
             switch self {
             case .sessionMissingAtLaunch:
-                return "Вход в аккаунт слетел. Подключённые приложения это не затронуло. Войдите снова, если нужна синхронизация; запись и поиск по звонкам работают и без входа."
+                return "The account sign-in was lost. Connected applications are unaffected. Sign in again if you need sync; recording and call search work without it."
             case .expired:
-                return "Вход в аккаунт истёк. Войдите снова, если нужна синхронизация; запись и поиск по звонкам работают и без входа."
+                return "The account sign-in expired. Sign in again if you need sync; recording and call search work without it."
             }
         }
     }
@@ -1688,7 +1688,7 @@ final class AppState: ObservableObject {
 
         var message: String {
             guard let email, !email.isEmpty else { return reason.message }
-            return "\(reason.message) Последний вход — \(email)."
+            return "\(reason.message) Last signed in as \(email)."
         }
     }
 
@@ -2012,7 +2012,7 @@ final class AppState: ObservableObject {
     var tierStatus: String {
         Config.managedUsageLimitsEnabled
             ? TierPolicy.status(stats: UsageTracker.stats, tier: currentTier)
-            : "Все возможности · лимита Orakul нет"
+            : "Everything available · no Orakul limit"
     }
 
     var tariffAllowance: TariffAllowance { TariffAllowance.forTier(currentTier) }
@@ -2339,7 +2339,7 @@ final class AppState: ObservableObject {
         //
         // Счётчик английских строк (§6.4) сюда не смотрит: он считает Views и
         // Onboarding, а это AppState. Текст для человека собирается и здесь.
-        onServer ? "сервер расшифровки, указанный в сборке" : "AssemblyAI по вашему ключу"
+        onServer ? "the transcription server named in this build" : "AssemblyAI on your own key"
     }
 
     var canDiarize: Bool {
@@ -2690,7 +2690,7 @@ final class AppState: ObservableObject {
             guard !snippets.isEmpty else {
                 connectedGlossarySuggestionStatus = .empty
                 connectedGlossarySuggestionMessage =
-                    "В подключённых приложениях не нашлось имён и терминов, которые стоило бы разобрать."
+                    "The connected applications held no names or terms worth reviewing."
                 return
             }
 
@@ -2731,7 +2731,7 @@ final class AppState: ObservableObject {
             guard let result, !result.suggestions.isEmpty else {
                 connectedGlossarySuggestionStatus = .empty
                 connectedGlossarySuggestionMessage =
-                    "Ничего нового сверх вашего словаря не нашлось."
+                    "Nothing new beyond your own glossary was found."
                 return
             }
             connectedGlossarySuggestions = result.suggestions
@@ -3082,8 +3082,8 @@ final class AppState: ObservableObject {
     func workflowSummary(for prompt: QuickPrompt) -> String {
         let sources = promptWorkflowSources[prompt.id] ?? designWorkflow(for: prompt).sources
         let names = sources.map(\.name)
-        if names.isEmpty { return "Источники: расшифровка → \(workflowAIApp.name)" }
-        return "Источники: \(names.joined(separator: " · ")) → \(workflowAIApp.name)"
+        if names.isEmpty { return "Sources: transcript → \(workflowAIApp.name)" }
+        return "Sources: \(names.joined(separator: " · ")) → \(workflowAIApp.name)"
     }
 
     func promptWorkflowCount(using sourceID: String) -> Int {
@@ -4509,8 +4509,8 @@ final class AppState: ObservableObject {
 
     private static func historyWarning(for unreadable: [String]) -> String? {
         guard !unreadable.isEmpty else { return nil }
-        return "История открылась не полностью: проблемных записей — "
-            + "\(unreadable.count). Файлы оставлены на месте."
+        return "The history did not open in full: records with problems — "
+            + "\(unreadable.count). The files were left where they are."
     }
 
     private func reloadSavedSessions() {
@@ -4761,7 +4761,7 @@ final class AppState: ObservableObject {
     /// у английской — английский. Наше дело — не выдавать его за наш текст и
     /// не оставлять человека один на один со строкой без подлежащего.
     static func systemSaid(_ error: Error) -> String {
-        "Система ответила: \(error.localizedDescription)"
+        "The system replied: \(error.localizedDescription)"
     }
 
     /// Turn a failed request into something the user can act on.
@@ -4778,15 +4778,15 @@ final class AppState: ObservableObject {
             .notConnectedToInternet, .timedOut, .dnsLookupFailed
         ]
         guard let urlError, connectionFailed.contains(urlError.code) else {
-            return "Ошибка: \(Self.systemSaid(error))"
+            return "Error: \(Self.systemSaid(error))"
         }
 
         let host = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard Config.llmViaBackend, !host.isEmpty else {
-            return "Ошибка: \(Self.systemSaid(error))"
+            return "Error: \(Self.systemSaid(error))"
         }
         if urlError.code == .notConnectedToInternet {
-            return "Ошибка: нет сети, а ответы модели идут через сервер — без сети он недоступен."
+            return "Error: there is no network, and model answers go through the server, which is unreachable without one."
         }
         return """
         Ошибка: не достучались до сервера `\(host)`.
@@ -6733,7 +6733,7 @@ final class AppState: ObservableObject {
     private func reportFolderSkips(_ folder: ContextFolder) {
         guard !folder.skipped.isEmpty else { return }
         lastError = "«\(folder.name)»: \(folder.files.count) files attached; "
-            + "не вошло — \(folder.skipped.count) (не хватило места)."
+            + "\(folder.skipped.count) did not fit (out of room)."
     }
 
     private static let contextFoldersKey = "context.folders"
@@ -6771,7 +6771,7 @@ final class AppState: ObservableObject {
         }
         persistContextFolders()
         if !lost.isEmpty {
-            lastError = "Lost access to \(lost.joined(separator: ", ")) — подключите заново, чтобы выдать его снова."
+            lastError = "Lost access to \(lost.joined(separator: ", ")) — reconnect it to grant that again."
         }
     }
 
@@ -8273,9 +8273,9 @@ final class AppState: ObservableObject {
                 // reads as a crash even when it worked. Show the link if the
                 // result carries one; otherwise a plain sentence.
                 if let url = Self.firstHTTPSURL(in: result) {
-                    answerActionResult = "Создано в \(destinationName) — \(url.absoluteString)"
+                    answerActionResult = "Created in \(destinationName) — \(url.absoluteString)"
                 } else {
-                    answerActionResult = "Готово — \(destinationName) принял."
+                    answerActionResult = "Done — \(destinationName) accepted it."
                 }
             }
         } catch {
@@ -8406,7 +8406,7 @@ final class AppState: ObservableObject {
         // Заголовок уезжает в чужой трекер как название задачи. Он был
         // английским и назывался чужим продуктом — в Jira у человека
         // появлялась строка «From a Cruxwing meeting».
-        return prompt.isEmpty ? "Со звонка в orakul" : String(prompt.prefix(120))
+        return prompt.isEmpty ? "From a call in orakul" : String(prompt.prefix(120))
     }
 
     // MARK: - Save the answer as a document
@@ -8494,7 +8494,7 @@ final class AppState: ObservableObject {
 
             guard panel.runModal() == .OK, let url = panel.url else { return }
             try data.write(to: url, options: .atomic)
-            answerActionResult = "Сохранено: \(url.lastPathComponent)."
+            answerActionResult = "Saved: \(url.lastPathComponent)."
         } catch {
             lastError = "The export to Word failed: \(error.localizedDescription)"
         }
@@ -8948,12 +8948,12 @@ final class AppState: ObservableObject {
 
     private static func validationFooter(repaired: Bool, downgraded: Int) -> String {
         if downgraded > 0 {
-            return "\n\n_⚠️ Понижено подробностей без опоры в расшифровке: \(downgraded). Цитата снята._"
+            return "\n\n_⚠️ Details downgraded for lack of grounding in the transcript: \(downgraded). The quote was removed._"
         }
         if repaired {
-            return "\n\n_✓ Сверено с расшифровкой (после одной правки)._"
+            return "\n\n_✓ Checked against the transcript (after one correction)._"
         }
-        return "\n\n_✓ Сверено с расшифровкой._"
+        return "\n\n_✓ Checked against the transcript._"
     }
 
     /// The per-button pipeline: (1) ground from the button's connected work-apps
@@ -9476,9 +9476,9 @@ final class AppState: ObservableObject {
     /// значит оставить ответ, построенный на трёх документах, с видом ответа по
     /// всему Диску.
     nonisolated static func googleBound(read: Int) -> String {
-        "Охват Google: прочитано документов — \(read), больше трёх за вопрос "
-            + "не запрашивается, и текст каждого берётся началом. "
-            + "Отсутствие здесь не значит, что на Диске этого нет."
+        "Google coverage: \(read) documents read, no more than three per question "
+            + "is requested, and each one is read from the beginning. "
+            + "Absence here does not mean it is absent from Drive."
     }
 
     private func googleGroundingSnippets(services: Set<GoogleService>,
@@ -9557,7 +9557,7 @@ final class AppState: ObservableObject {
             mic = await Permissions.requestMicrophone()
         }
         if mic != .granted {
-            let msg = "Нет доступа к микрофону. Откройте «Системные настройки → Конфиденциальность и безопасность → Микрофон», разрешите orakul, потом закройте приложение и откройте заново."
+            let msg = "No microphone access. Open System Settings → Privacy & Security → Microphone, allow orakul, then quit the application and open it again."
             lastError = msg
             status = .error(msg)
             return
@@ -9575,7 +9575,7 @@ final class AppState: ObservableObject {
             _ = Permissions.requestScreenRecording()
         }
         if await Permissions.screenRecordingAuthorized() == false {
-            let msg = "Чтобы слышать собеседников, нужна запись экрана. Откройте «Системные настройки → Конфиденциальность и безопасность → Запись экрана», включите orakul, потом закройте приложение и откройте заново. Если orakul уже в списке, но доступа всё равно нет, — уберите его, перезапустите и добавьте снова."
+            let msg = "Hearing the other party needs screen recording. Open System Settings → Privacy & Security → Screen Recording, enable orakul, then quit the application and open it again. If orakul is already in the list and still has no access, remove it, restart, and add it again."
             lastError = msg
             status = .error(msg)
             return
@@ -9857,7 +9857,7 @@ final class AppState: ObservableObject {
             stopTicking()
             audioMeter.reset()
             provisional.removeAll()
-            let msg = "Не удалось начать запись. \(Self.systemSaid(error))"
+            let msg = "Could not start recording. \(Self.systemSaid(error))"
             lastError = msg
             status = .error(msg)
         }
@@ -10274,7 +10274,7 @@ final class AppState: ObservableObject {
             // transcript is left exactly as it was.
             if result.isPartial {
                 transcriptEnhanceNote =
-                    "\(result.summary) · подмешано частично — расшифровка не менялась"
+                    "\(result.summary) · merged only in part — the transcript was not changed"
             } else {
                 transcript = result.entries
                 localDiarizationNote = nil
@@ -10293,7 +10293,7 @@ final class AppState: ObservableObject {
             // The model summarised what changed but its entry list was
             // unusable. That summary is still the useful half of the answer —
             // show it instead of an error full of broken JSON.
-            transcriptEnhanceNote = "\(summary) · расшифровка не менялась"
+            transcriptEnhanceNote = "\(summary) · the transcript was not changed"
             lastError = nil
             return true
         } catch {
@@ -10471,7 +10471,7 @@ final class AppState: ObservableObject {
         localDiarizationProgress = 0
         if wasRunning { diarizing = false }
         if showNotice, wasRunning {
-            localDiarizationNote = "Определение говорящих отменено."
+            localDiarizationNote = "Speaker identification cancelled."
         }
         if !showNotice { localDiarizationNote = nil }
     }
@@ -10892,7 +10892,7 @@ final class AppState: ObservableObject {
             let found = SpeakerAssignment.distinctSpeakers(in: segments)
             guard found > 0 else {
                 localDiarizationNote =
-                    "Речь собеседников недостаточно ясна. Транскрипт не изменён."
+                    "The other party's speech is not clear enough. The transcript was not changed."
                 return
             }
             let labeled = SpeakerAssignment.apply(
@@ -10911,10 +10911,10 @@ final class AppState: ObservableObject {
             }
             persistCurrentSession()
             let resultNote = found == expectedRemoteSpeakerCount
-                ? "Говорящие определены на этом Mac. Бета — проверьте имена перед отправкой."
-                : "Найдено голосов: \(found) из \(expectedRemoteSpeakerCount). Бета — проверьте метки или запустите снова с другим числом."
+                ? "Speakers identified on this Mac. Beta — check the names before sending them anywhere."
+                : "Found \(found) voices of \(expectedRemoteSpeakerCount). Beta — check the labels, or run it again with a different number."
             localDiarizationNote = resultNote + (audio.wasTruncated
-                ? " Подписана только полностью сохранённая часть; поздние строки не изменены."
+                ? " Only the fully saved part was labelled; later lines were left unchanged."
                 : "")
             devCallDiagnostics.record(
                 event: "local_diarization",
@@ -10930,7 +10930,7 @@ final class AppState: ObservableObject {
             guard localDiarizationRunID == runID,
                   localDiarizationRevision == requestedRevision else { return }
             localDiarizationNote =
-                "Не удалось определить говорящих на этом Mac. Транскрипт не изменён."
+                "Could not identify the speakers on this Mac. The transcript was not changed."
             Log.general.error(
                 "local diarization skipped — \(error.localizedDescription)")
         }
@@ -11506,7 +11506,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "Расшифровка на компьютере не поспевает. Следующую запись orakul расшифрует моделью \(LocalWhisperModel.title(for: recommended)) (\(recommended)) вместо \(current). Звук при этом остаётся на этом компьютере.",
+                message: "Transcription on this computer is falling behind. orakul will transcribe the next recording with \(LocalWhisperModel.title(for: recommended)) (\(recommended)) instead of \(current). The audio still stays on this computer.",
                 action: .none
             )
         case .coolerLocalModel(let current, let recommended):
@@ -11515,7 +11515,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "Компьютер греется на расшифровке. Следующую запись orakul расшифрует более лёгкой моделью \(LocalWhisperModel.title(for: recommended)) (\(recommended)), чтобы не грелся. Звук при этом остаётся на этом компьютере.",
+                message: "The computer is heating up on transcription. orakul will transcribe the next recording with the lighter \(LocalWhisperModel.title(for: recommended)) (\(recommended)) to keep it cool. The audio still stays on this computer.",
                 action: .none
             )
         case .offerDeepgram:

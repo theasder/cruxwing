@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Two rules shape the layout. It must be answerable in one glance and two
 /// clicks, because anything slower is worse than being answered wrongly and
-/// correcting. And "Всё равно ответить" is always present and never buried — a card
+/// correcting. And "Answer anyway" is always present and never buried — a card
 /// that can trap the user into answering a question they do not care about is a
 /// card they will learn to resent.
 struct ClarificationCard: View {
@@ -40,7 +40,7 @@ struct ClarificationCard: View {
             Image(systemName: "questionmark.bubble")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.accentText)
-            SectionLabel("Прежде чем отвечу")
+            SectionLabel("Before I answer")
             Spacer(minLength: 0)
         }
     }
@@ -59,7 +59,7 @@ struct ClarificationCard: View {
                     .padding(.vertical, Space.xxs)
                     .background(Theme.accentSoft, in: Capsule())
                 if question.multiSelect {
-                    Text("любой на выбор")
+                    Text("any of these")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                 }
@@ -125,7 +125,7 @@ struct ClarificationCard: View {
             Image(systemName: "pencil")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(Theme.inkTertiary)
-            TextField("Свой вариант…", text: otherBinding(for: question))
+            TextField("Your own…", text: otherBinding(for: question))
                 .textFieldStyle(.plain)
                 .font(Typo.body)
                 .foregroundStyle(Theme.ink)
@@ -143,11 +143,11 @@ struct ClarificationCard: View {
 
     private var actions: some View {
         HStack(spacing: Space.s) {
-            Button("Всё равно ответить", action: onSkip)
+            Button("Answer anyway", action: onSkip)
                 .buttonStyle(QuietButtonStyle())
-                .help("Пропустить вопросы и ответить на исходный запрос как есть.")
+                .help("Skip the questions and answer the original request as it stands.")
             Spacer(minLength: 0)
-            Button(anyAnswered ? "Continue" : "Продолжить без ответа", action: submit)
+            Button(anyAnswered ? "Continue" : "Continue without answering", action: submit)
                 .buttonStyle(PrimaryButtonStyle())
                 .keyboardShortcut(.return, modifiers: [.command])
         }

@@ -41,7 +41,7 @@ enum GoogleFormsService {
         var sections: [String] = []
         if let description, !description.isEmpty { sections.append(description) }
         if !questions.isEmpty {
-            sections.append("Вопросы:\n" + questions.enumerated().map {
+            sections.append("Questions:\n" + questions.enumerated().map {
                 "\($0.offset + 1). \($0.element.title)"
             }.joined(separator: "\n"))
         }
@@ -133,7 +133,7 @@ enum GoogleFormsService {
                let question = questionItem["question"] as? [String: Any],
                let id = question["questionId"] as? String {
                 questions.append(Question(
-                    id: id, title: itemTitle.flatMap { $0.isEmpty ? nil : $0 } ?? "Вопрос"))
+                    id: id, title: itemTitle.flatMap { $0.isEmpty ? nil : $0 } ?? "Question"))
             }
             if let group = item["questionGroupItem"] as? [String: Any],
                let rows = group["questions"] as? [[String: Any]] {
@@ -141,8 +141,8 @@ enum GoogleFormsService {
                     guard let id = row["questionId"] as? String else { continue }
                     let rowTitle = ((row["rowQuestion"] as? [String: Any])?["title"] as? String)?
                         .trimmingCharacters(in: .whitespacesAndNewlines)
-                    let fallback = itemTitle.map { "\($0) — строка \(offset + 1)" }
-                        ?? "Вопрос \(offset + 1)"
+                    let fallback = itemTitle.map { "\($0) — row \(offset + 1)" }
+                        ?? "Question \(offset + 1)"
                     questions.append(Question(
                         id: id, title: rowTitle.flatMap { $0.isEmpty ? nil : $0 } ?? fallback))
                 }
@@ -154,12 +154,12 @@ enum GoogleFormsService {
     private static func renderResponses(
         _ responses: [[String: Any]], questions: [Question]
     ) -> String {
-        guard !responses.isEmpty else { return "Ответы: нет доступных ответов." }
+        guard !responses.isEmpty else { return "Responses: none available." }
         let knownIDs = Set(questions.map(\.id))
-        var blocks: [String] = ["Ответы (загружено: \(responses.count)):" ]
+        var blocks: [String] = ["Responses (\(responses.count) loaded):" ]
 
         for (offset, response) in responses.enumerated() {
-            var header = "Ответ \(offset + 1)"
+            var header = "Response \(offset + 1)"
             if let submitted = (response["lastSubmittedTime"] as? String)
                 ?? (response["createTime"] as? String) {
                 header += " · \(submitted)"
@@ -178,7 +178,7 @@ enum GoogleFormsService {
             for id in answers.keys.sorted() where !knownIDs.contains(id) {
                 guard let answer = answers[id] as? [String: Any],
                       let value = answerText(answer), !value.isEmpty else { continue }
-                lines.append("Вопрос: \(value)")
+                lines.append("Question: \(value)")
             }
             blocks.append(lines.joined(separator: "\n"))
         }

@@ -37,7 +37,7 @@ function assignments(property) {
 }
 
 // A ceiling that may only fall, like the one in §6.4.
-const RUSSIAN_SHOWN_LEFT = 8;
+const RUSSIAN_SHOWN_LEFT = 0;
 
 test('the Russian left in shown properties only ever shrinks', () => {
   const russian = [];

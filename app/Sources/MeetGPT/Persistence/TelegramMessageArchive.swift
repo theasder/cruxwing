@@ -165,7 +165,7 @@ actor TelegramMessageArchive {
     func search(_ query: String, allowedChatIDs: Set<Int64>, limit: Int = 10) -> [Hit] {
         let allowed = snapshot.messages.filter { allowedChatIDs.contains($0.chatID) }
         let sessions = allowed.map { message -> RecallIndex.Session in
-            let topic = message.topicID.map { " · тема \($0)" } ?? ""
+            let topic = message.topicID.map { " · topic \($0)" } ?? ""
             let author = message.author.map { "[\($0)] " } ?? ""
             return RecallIndex.Session(
                 id: Self.key(for: message),

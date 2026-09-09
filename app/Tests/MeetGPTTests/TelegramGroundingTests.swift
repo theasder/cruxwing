@@ -86,7 +86,7 @@ struct TelegramGroundingTests {
         #expect(telegram?.serverName == "Telegram")
         #expect(telegram?.toolName == "local_archive_search")
         #expect(telegram?.text.contains("Новый тариф запускаем в пятницу") == true)
-        #expect(telegram?.text.contains("[Запуск · тема 3]") == true)
+        #expect(telegram?.text.contains("[Запуск · topic 3]") == true)
     }
 
     @Test("ошибка удаления архива сохраняет Keychain-настройку и архив")

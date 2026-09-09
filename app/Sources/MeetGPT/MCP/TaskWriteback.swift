@@ -48,8 +48,8 @@ enum TaskWriteback {
     static func outcome(of response: String) -> String {
         let trimmed = response.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            return "Отправлено, но сервис ничего не ответил — подтверждения нет. "
-                 + "Проверьте в трекере."
+            return "Sent, but the service answered nothing — there is no confirmation. "
+                 + "Check it in the tracker."
         }
         return String(trimmed.prefix(160))
     }
@@ -59,14 +59,14 @@ enum TaskWriteback {
     static func describe(_ item: TasksArtifact.Item) -> String {
         var lines: [String] = []
         if let owner = item.owner, !owner.contains("[OWNER?]"), !owner.isEmpty {
-            lines.append("Владелец: \(owner)")
+            lines.append("Owner: \(owner)")
         }
         if let due = item.due, !due.contains("[DUE?]"), !due.isEmpty {
-            lines.append("Срок: \(due)")
+            lines.append("Due: \(due)")
         }
-        if let check = item.doneCheck, !check.isEmpty { lines.append("Готово, когда: \(check)") }
-        if let ref = item.sourceRef, !ref.isEmpty { lines.append("Источник: \(ref)") }
-        lines.append("Заведено со звонка в orakul.")
+        if let check = item.doneCheck, !check.isEmpty { lines.append("Done when: \(check)") }
+        if let ref = item.sourceRef, !ref.isEmpty { lines.append("Source: \(ref)") }
+        lines.append("Created from a call in orakul.")
         return lines.joined(separator: "\n")
     }
 

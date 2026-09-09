@@ -842,7 +842,7 @@ consent a condition of entry rather than a promise.
 
 The direction reversed on 2026-09-09: the product is being read by people who do
 not read Russian, so the interface moves to English and the counter moves with
-it. Measured that day: of 437 string literals in `Views/` and `Onboarding/`, 19
+it. Measured that day: of 437 string literals in `Views/` and `Onboarding/`, 10
 still carry a Cyrillic letter. That is a **ceiling, not a work list**: it may
 only fall, and `test/russkie-stroki.test.mjs` holds it to equality so that a new
 Russian string has to be explained exactly as much as a missed one.

@@ -35,10 +35,10 @@ struct AnswerActionConfirmSheet: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Theme.amber)
             VStack(alignment: .leading, spacing: Space.xxs) {
-                Text("В тексте, на котором построено это предложение, кто-то обращался к модели")
+                Text("Somebody addressed the model inside the text this suggestion was built from")
                     .font(Typo.callout)
-                Text("Найдено: «\(signal.matched)». Это не значит, что предложение плохое, — "
-                     + "но прочитайте поля внимательнее, чем обычно.")
+                Text("Found: «\(signal.matched)». That does not make the suggestion bad — "
+                     + "but read the fields more carefully than usual.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -92,7 +92,7 @@ struct AnswerActionConfirmSheet: View {
                 .fixedSize(horizontal: false, vertical: true)
             // Name the destination plainly — the user is authorising a write to
             // a system other people can see.
-            Text("Запишет в \(pending.action.serverName) · \(pending.action.toolName)")
+            Text("Writes to \(pending.action.serverName) · \(pending.action.toolName)")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
         }
@@ -102,7 +102,7 @@ struct AnswerActionConfirmSheet: View {
     /// when three were wanted is the failure this prevents.
     private var itemList: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            SectionLabel("будет создано записей: \(remainingItems.count)")
+            SectionLabel("\(remainingItems.count) records will be created")
             ForEach(items, id: \.task) { item in
                 let isExcluded = excluded.contains(item.task)
                 HStack(alignment: .top, spacing: Space.s) {
@@ -147,7 +147,7 @@ struct AnswerActionConfirmSheet: View {
                         .padding(Space.xs)
                         .background(Theme.surfaceSunken,
                                     in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
-                        .accessibilityLabel("\(key) — куда записать")
+                        .accessibilityLabel("\(key) — where to write it")
                         .accessibilityIdentifier("connected-write.field.\(key)")
                 }
             }
@@ -157,8 +157,8 @@ struct AnswerActionConfirmSheet: View {
     private var footer: some View {
         HStack(spacing: Space.s) {
             Text(pending.action.isProposed
-                 ? "Предложено к этому ответу"
-                 : "Подобрано среди действий \(pending.action.serverName)")
+                 ? "Suggested for this answer"
+                 : "Chosen among \(pending.action.serverName) actions")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
             Spacer()

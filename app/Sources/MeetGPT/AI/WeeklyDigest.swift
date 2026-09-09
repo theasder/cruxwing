@@ -100,7 +100,7 @@ enum WeeklyDigest {
             .prefix(maxDecisions)
 
         if !decisions.isEmpty {
-            lines.append("\n## Решения")
+            lines.append("\n## Decisions")
             for decision in decisions {
                 // An investor update reports the company, not the org chart —
                 // so no meeting attribution and, with it, no names.

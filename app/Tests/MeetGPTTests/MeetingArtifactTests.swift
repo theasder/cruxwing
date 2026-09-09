@@ -190,10 +190,10 @@ struct MeetingArtifactTests {
         """.utf8))
         let markdown = minutes.markdown
 
-        #expect(markdown.contains("**Дата:** 2026-08-06"))
-        #expect(markdown.contains("**Участники:** Ana, Bo"))
-        #expect(markdown.contains("## Решения"))
-        #expect(markdown.contains("## Задачи"))
+        #expect(markdown.contains("**Date:** 2026-08-06"))
+        #expect(markdown.contains("**Participants:** Ana, Bo"))
+        #expect(markdown.contains("## Decisions"))
+        #expect(markdown.contains("## Tasks"))
         #expect(markdown.contains("- Send the contract — **Maria** (due Friday)"))
         // Absent sections leave no empty headings behind.
         #expect(!markdown.contains("## Discussion"))
@@ -230,7 +230,7 @@ struct TasksArtifactCSVTests {
         {"items":[{"task":"Draft the pricing page","owner":"Ana","due":"Friday"}]}
         """)
         let lines = artifact.csv.components(separatedBy: "\n")
-        #expect(lines[0] == "Задача,Владелец,Срок,Проверка,Зависимость,Источник,Заведено")
+        #expect(lines[0] == "Task,Owner,Due,Check,Dependency,Source,Created")
         #expect(lines[1].hasPrefix("Draft the pricing page,Ana,Friday"))
         #expect(lines[1].hasSuffix("no"), "an untracked item says so")
     }

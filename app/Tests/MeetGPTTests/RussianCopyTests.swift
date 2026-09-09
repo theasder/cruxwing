@@ -312,7 +312,7 @@ struct RussianCopyTests {
     /// On-screen literals that still carry Russian of their own.
     ///
     /// A migration counter, not a target: it may only fall.
-    static let remainingRussianOnScreen = 145
+    static let remainingRussianOnScreen = 121
 
 
     /// Шаблон DateFormatter, а не текст для человека.
@@ -468,14 +468,12 @@ struct RussianCopyTests {
             guard text.count > 20, text.contains(" ") else { continue }
             checked += 1
             guard !Self.notForPeople.contains(text) else { continue }
-            if text.contains("Cruxwing") { problems.append("чужое имя: \(text)") }
-            if text.lowercased().contains("credits") { problems.append("кредиты: \(text)") }
-            let cyrillic = text.range(of: "[а-яё]", options: [.regularExpression, .caseInsensitive])
-            if cyrillic == nil {
-                let words = text.components(separatedBy: CharacterSet.letters.inverted)
-                    .filter { $0.count > 2 }
-                if words.count >= 4 { problems.append("по-английски: \(text)") }
-            }
+            if text.contains("Cruxwing") { problems.append("another product's name: \(text)") }
+            if text.lowercased().contains("credits") { problems.append("credits: \(text)") }
+            // Reversed with the product: what is flagged now is Russian left in
+            // a failure message, which is the worst place to find it — a person
+            // reads it at the least convenient moment.
+            if Self.hasOwnRussian(text) { problems.append("still Russian: \(text)") }
         }
         #expect(checked > 5, "проверено всего \(checked) строк — смотрим не туда")
         #expect(problems.isEmpty, "\(problems.joined(separator: " | "))")
@@ -485,8 +483,8 @@ struct RussianCopyTests {
     /// человека мало, но он самый неприятный — приходит, когда что-то не
     /// работает. По-английски оставались «No display available for capture» и
     /// «Invalid API key (check Settings → Integrations)».
-    @Test("отказы в остальных папках тоже по-русски")
-    func failuresElsewhereAreRussian() throws {
+    @Test("failures in the other folders are translated too")
+    func failuresElsewhereAreTranslated() throws {
         let base = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/MeetGPT")

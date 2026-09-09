@@ -268,7 +268,7 @@ struct SessionStoreTests {
 
         let state = AppState(llm: MockLLMGateway(response: ""), sessionStore: store)
         #expect(state.savedSessions.isEmpty)
-        #expect(state.historyStorageWarning?.contains("не полностью") == true)
+        #expect(state.historyStorageWarning?.contains("did not open in full") == true)
     }
 
     @Test("listing failure is not reported as a legitimately empty archive")

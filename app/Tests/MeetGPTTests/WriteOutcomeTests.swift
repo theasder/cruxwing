@@ -19,8 +19,8 @@ import Foundation
     func silenceIsNotSuccess() {
         let text = TaskWriteback.outcome(of: "   \n  ")
         #expect(!text.contains("создана"), "пустой ответ прочитан как успех: \(text)")
-        #expect(text.contains("подтверждения нет"))
-        #expect(text.contains("Проверьте в трекере"), "человеку не сказано, что делать")
+        #expect(text.contains("there is no confirmation"))
+        #expect(text.contains("Check it in the tracker"), "человеку не сказано, что делать")
     }
 
     @Test("слова сервиса доходят как есть")

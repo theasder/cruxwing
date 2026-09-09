@@ -57,9 +57,9 @@ extension MCPConnectionManager {
         let list = fresh.map { "\($0.service) — \(VendorText.forPerson($0.words))" }
             .joined(separator: "; ")
         return GroundingSnippet(
-            serverName: "Источники", toolName: "health",
-            text: "Не ответили на этот вопрос: \(list). "
-                + "Их молчание не значит, что там ничего нет.",
+            serverName: "Sources", toolName: "health",
+            text: "Did not answer this question: \(list). "
+                + "Their silence does not mean there is nothing there.",
             sourceID: "health:silent",
             readFor: ConnectorProbeStrategy.trackerProbe.readFor)
     }
@@ -112,14 +112,14 @@ extension MCPConnectionManager {
     /// что до этой даты источник слеп.
     nonisolated static func telegramBound(from floor: Date?) -> String {
         guard let floor else {
-            return "Охват Telegram: архив пуст — бот подключён, но сообщений с тех пор не приходило. "
-                + "Более ранняя переписка Bot API недоступна."
+            return "Telegram coverage: the archive is empty — the bot is connected, but no messages have arrived since. "
+                + "Earlier conversation is not available through the Bot API."
         }
         let formatter = DateFormatter()
         formatter.locale = DisplayFormatting.locale
         formatter.dateFormat = "d MMMM yyyy"
-        return "Охват Telegram: архив с \(formatter.string(from: floor)). "
-            + "Более ранняя переписка Bot API недоступна, поэтому её отсутствие здесь ничего не значит."
+        return "Telegram coverage: archived since \(formatter.string(from: floor)). "
+            + "Earlier conversation is not available through the Bot API, so its absence here means nothing."
     }
 
 
@@ -631,7 +631,7 @@ extension MCPConnectionManager {
                             readFor: ConnectorProbeStrategy.trackerProbe.readFor))
                     }
                     let text = hits.map { hit in
-                        let topic = hit.message.topicID.map { " · тема \($0)" } ?? ""
+                        let topic = hit.message.topicID.map { " · topic \($0)" } ?? ""
                         let author = hit.message.author.map { "[\($0)] " } ?? ""
                         return "[\(hit.message.chatTitle)\(topic)] \(author)\(hit.message.text)"
                     }
@@ -787,7 +787,7 @@ extension MCPConnectionManager {
                     // к непустой выдаче.
                     guard !found.hits.isEmpty else {
                         return (index, Self.boundedEmptySnippet(
-                            serverName: "Заметки", sourceID: "notes-local",
+                            serverName: "Notes", sourceID: "notes-local",
                             note: found.coverage.note(.folder)))
                     }
                     var text = found.hits.prefix(10)
@@ -801,7 +801,7 @@ extension MCPConnectionManager {
                         text += "\n(\(note))"
                     }
                     return (index, GroundingSnippet(
-                        serverName: "Заметки", toolName: "search",
+                        serverName: "Notes", toolName: "search",
                         text: text.prefix(maxCharsPerSource).description,
                         sourceID: "notes-local",
                         readFor: ConnectorProbeStrategy.trackerProbe.readFor))

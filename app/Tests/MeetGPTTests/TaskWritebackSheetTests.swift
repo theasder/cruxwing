@@ -30,11 +30,11 @@ struct TaskWritebackSheetTests {
         // той же функцией, что тело запроса. Проверяется прежнее — владельца
         // человек видит, — но искать надо в той форме, в которой он есть.
         #expect(throws: Never.self) {
-            try sut.find(textWhere: { s, _ in s.contains("Владелец: Alex") })
+            try sut.find(textWhere: { s, _ in s.contains("Owner: Alex") })
         }
         // И то, что раньше уезжало, не показавшись.
         #expect(throws: Never.self) {
-            try sut.find(textWhere: { s, _ in s.contains("Заведено со звонка в orakul") })
+            try sut.find(textWhere: { s, _ in s.contains("Created from a call in orakul") })
         }
         // No connected tracker → the connect hint, not a filed state.
         #expect(throws: Never.self) {

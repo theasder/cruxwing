@@ -84,7 +84,7 @@ function englishErrorMessages() {
 }
 
 // A ceiling that may only fall, like the one in §6.4.
-const RUSSIAN_ERRORS_LEFT = 67;
+const RUSSIAN_ERRORS_LEFT = 54;
 
 test('the Russian left in error messages only ever shrinks', () => {
   const left = englishErrorMessages();

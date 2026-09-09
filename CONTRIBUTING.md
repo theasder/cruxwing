@@ -54,7 +54,7 @@ cleaning costs two minutes, and there is no reason to pay them on every edit.
 
 1. **Russian strings on screen.** A task with a known number, and the direction
    reversed on 2026-09-09: the interface is moving to English. Of the 437 strings
-   a person reads in `app/Sources/MeetGPT/Views` and `Onboarding`, 19 still carry
+   a person reads in `app/Sources/MeetGPT/Views` and `Onboarding`, 10 still carry
    a Cyrillic letter. That is a ceiling, not a work list: it may only fall, and
    `test/russkie-stroki.test.mjs` holds it to equality, so a new Russian string
    has to be explained exactly as much as a missed one. Vendor names stay as their
