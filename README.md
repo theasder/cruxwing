@@ -386,11 +386,10 @@ Issues and pull requests are in Russian. What is needed most, and the rules unde
 which it is accepted, are written in [CONTRIBUTING.md](CONTRIBUTING.md); the
 shortest of those rules is: do not claim what does not exist.
 
-Once the repository's canonical name is restored, you will be able to start from a
-ready task — the label
-["первая правка"](https://github.com/theasder/cruxwing/labels/%D0%BF%D0%B5%D1%80%D0%B2%D0%B0%D1%8F%20%D0%BF%D1%80%D0%B0%D0%B2%D0%BA%D0%B0):
+You can start from a ready task — the label
+["good first issue"](https://github.com/theasder/cruxwing/labels/good%20first%20issue):
 it holds work that can be done without understanding the whole project. The label
-["нужен доступ"](https://github.com/theasder/cruxwing/labels/%D0%BD%D1%83%D0%B6%D0%B5%D0%BD%20%D0%B4%D0%BE%D1%81%D1%82%D1%83%D0%BF)
+["needs access"](https://github.com/theasder/cruxwing/labels/needs%20access)
 is the opposite: the work is blocked not by code but by an account or a portal we
 do not have. If you have such access, that will be the most useful change of all.
 

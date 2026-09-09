@@ -1,4 +1,4 @@
-# Снят 2026-08-18 командой scripts/snimok-metok.sh — руками не править.
+# Снят 2026-09-09 командой scripts/snimok-metok.sh — руками не править.
 # Метки, которые есть в репозитории на самом деле.
 accessibility
 bug
@@ -10,6 +10,7 @@ help wanted
 invalid
 question
 wontfix
-нужен доступ
-первая правка
-ошибка
+needs access
+dependencies
+github_actions
+swift_package_manager

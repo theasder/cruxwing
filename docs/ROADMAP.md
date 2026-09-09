@@ -26,7 +26,7 @@ State: v1, 2026-08-17.
 |---|---|---|
 | Public since | 2026-08-13 | `gh repo view theasder/orakul --json createdAt` |
 | Stars and forks | 0 and 0 | same |
-| Open issues | 3, all «нужен доступ» and «первая правка» | `gh issue list` |
+| Open issues | 3, all «needs access» and «good first issue» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | As of 2026-08-17 it served «orakul.ai — звонок, который можно спросить» | historical `curl` |
 | Page and doc checks | `npm test`; the runner reports the current total | root CI |
@@ -347,9 +347,13 @@ clear task, not for code.
   another one: «does Kaiten work for you on an own domain». Today such a
   question has nowhere to live but issues, where it looks like breakage. Still
   open: it is a repository setting, not a file.
-- **Labels — checked 2026-08-17, they are real.** `первая правка` and
-  `нужен доступ` exist as repository labels (`gh label list`), not as one-off
-  strings on three issues.
+- **Labels — checked 2026-09-09, they are real and now English.** `good first
+  issue` and `needs access` exist as repository labels (`gh label list`), not as
+  one-off strings on three issues. The Russian ones were removed the same day:
+  `первая правка` duplicated `good first issue`, so its single issue was moved to
+  the English label first; `ошибка` duplicated `bug` and carried none. The bug
+  form declared `ошибка` and had to move with it — GitHub drops an unknown label
+  silently, which is the failure `.github/metki.txt` exists to catch, and did.
 
   **The declared-but-missing one is fixed — 2026-08-18.** `oshibka.yml` carried
   `labels: ["ошибка"]` against a repository that only had `bug`. GitHub drops an
@@ -392,8 +396,8 @@ more useful: a door. "What is still missing" tells a reader what is absent, and
 CONTRIBUTING tells them the rules, but neither hands them a task they could start
 today.
 
-README now points at two labels. `первая правка` is what can be done without
-understanding the whole project. `нужен доступ` is the opposite and is the more
+README now points at two labels. `good first issue` is what can be done without
+understanding the whole project. `needs access` is the opposite and is the more
 honest of the two: the work is blocked not by code but by an account or a portal
 we do not have, so a reader who *has* that access is holding the most valuable
 patch in the queue.

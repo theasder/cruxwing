@@ -8,7 +8,7 @@
 # `Sources/MeetGPT` и различает их.
 name: Ошибка
 description: Что-то работает не так, как написано
-labels: ["ошибка"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
