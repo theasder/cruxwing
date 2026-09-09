@@ -122,7 +122,7 @@ private struct SetupRow: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(title): \(done ? "сделано" : "не сделано")")
+        .accessibilityLabel("\(title): \(done ? "done" : "not done")")
     }
 }
 
