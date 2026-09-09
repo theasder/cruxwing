@@ -89,7 +89,7 @@ describe('то, что получает клонирующий', () => {
     }
 
     // Каталоги, а не только манифесты: пустой `Sources` собирается в пустоту.
-    for (const dir of ['mvp/Sources/OrakulCore', 'mvp/Sources/orakul',
+    for (const dir of ['mvp/Sources/CruxwingCore', 'mvp/Sources/cruxwing',
                        'app/Sources/MeetGPT', 'test']) {
       const count = [...inGit].filter((f) => f.startsWith(dir + '/')).length;
       assert.ok(count > 0, `в клоне пусто: ${dir}`);

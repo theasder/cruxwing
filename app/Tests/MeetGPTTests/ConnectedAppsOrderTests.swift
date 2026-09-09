@@ -3,7 +3,7 @@ import SwiftUI
 import Testing
 import ViewInspector
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// «Подключённые приложения»: российские трекеры стоят первыми.
 ///

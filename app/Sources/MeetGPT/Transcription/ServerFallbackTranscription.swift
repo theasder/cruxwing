@@ -55,16 +55,16 @@ final class ServerFallbackTranscription: TranscriptionService {
     static func shouldFallback(on error: Error) -> Bool {
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain { return true }
-        guard ns.domain == "OrakulWhisper" else { return false }
+        guard ns.domain == "CruxwingWhisper" else { return false }
         return ns.code == 429 || ns.code == 401 || ns.code >= 500 || ns.code == -1
     }
 
     static func reason(for error: Error) -> String {
         let ns = error as NSError
-        if ns.domain == "OrakulWhisper", ns.code == 429 {
+        if ns.domain == "CruxwingWhisper", ns.code == 429 {
             return "The server refused on a limit — this call is being transcribed on your computer."
         }
-        if ns.domain == "OrakulWhisper", ns.code == 401 {
+        if ns.domain == "CruxwingWhisper", ns.code == 401 {
             return "The sign-in was not confirmed — this call is being transcribed on your computer."
         }
         return "Server Whisper is unavailable — this call is being transcribed on your computer."

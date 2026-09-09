@@ -14,12 +14,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="${1:-$ROOT/app/dist}"
 OUT="${2:-}"
-TEMPLATE="$ROOT/packaging/homebrew/orakul.rb.template"
+TEMPLATE="$ROOT/packaging/homebrew/cruxwing.rb.template"
 
 [ -f "$TEMPLATE" ] || { echo "!! нет шаблона $TEMPLATE" >&2; exit 2; }
 
-ARM="$DIST/orakul-AppleSilicon.dmg"
-INTEL="$DIST/orakul-Intel.dmg"
+ARM="$DIST/cruxwing-AppleSilicon.dmg"
+INTEL="$DIST/cruxwing-Intel.dmg"
 for image in "$ARM" "$INTEL"; do
     # Отсутствующий образ — не повод выпустить каст на один процессор: человек
     # с другим получит «нет такого файла» после установки, а не до.

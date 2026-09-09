@@ -17,7 +17,7 @@ jwt = gql(login)["data"]["authentication"]["login"]["jwt"]
 # выключенном проходит, а сам ключ отвечает отказом — выглядит как поломка
 # коннектора, хотя коннектор ни при чём.
 gql('mutation { authentication { setApiState(enabled: true) { responseResult { succeeded } } } }', jwt)
-key = gql('mutation { authentication { createApiKey(name:"orakul", expiration:"1y", '
+key = gql('mutation { authentication { createApiKey(name:"cruxwing", expiration:"1y", '
           'fullAccess:true) { key } } }', jwt)["data"]["authentication"]["createApiKey"]["key"]
 
 # Локаль ru у Wiki.js не установлена, и страница с ней не создаётся вовсе:

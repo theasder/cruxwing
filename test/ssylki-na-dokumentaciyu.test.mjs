@@ -13,7 +13,7 @@ import { resolve, join } from 'node:path';
 // Живость ссылок проверяет scripts/proverka-ssylok.py, и НЕ здесь: чужие сайты
 // переезжают и падают, а красный набор от чужого сбоя учит не верить набору.
 // Здесь проверяется то, что от чужой сети не зависит.
-const DIR = 'mvp/Sources/OrakulCore/Resources/connectors';
+const DIR = 'mvp/Sources/CruxwingCore/Resources/connectors';
 
 const manifests = readdirSync(DIR)
   .filter((f) => f.endsWith('.json'))

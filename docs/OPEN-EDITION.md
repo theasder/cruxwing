@@ -32,7 +32,7 @@ quote — is already in it.
 `MeetingPipeline`, `TranscriptFile`, `TranscriptCleanup`, `SessionStore`,
 `RecallIndex`, `RecallAnswer`, `SearchCoverage`, `RussianLexicon`, `LexiconPack`,
 `CP1251`, `InvisibleText`, `SpeechCorpus`, `SpeechEval`, `CommandLineApp`,
-`LocalNotes`, `PromptCatalog`. Plus the `OrakulApp` shell and the command line.
+`LocalNotes`, `PromptCatalog`. Plus the `CruxwingApp` shell and the command line.
 
 **Not included (18 files):** the whole connector family — `ConnectorAddress`,
 `ConnectorCache`, `ConnectorCaseMemory`, `ConnectorHealth`, `ConnectorManifest`,
@@ -77,8 +77,8 @@ distinguish in the first version of this document:
 
 | File | Was | Became |
 |---|---|---|
-| `Sources/orakul/main.swift` | the `ask` command in full | removed, brackets rebalanced |
-| `CommandLineApp.swift` | the help text, the service list, three connector environment variables | removed; `ORAKUL_ENGINE` kept — that one is transcription |
+| `Sources/cruxwing/main.swift` | the `ask` command in full | removed, brackets rebalanced |
+| `CommandLineApp.swift` | the help text, the service list, three connector environment variables | removed; `CRUXWING_ENGINE` kept — that one is transcription |
 | `LexiconPack.swift` | a comment referring to `ManifestConnector` | rewritten without the type name |
 | `InvisibleText.swift` | a comment referring to `VendorText` | the same |
 
@@ -112,15 +112,15 @@ types in the output: zero.
 ## Verified: it builds and passes tests
 
 **Swift 6.0.3 on Linux, 28 August.** The toolchain was installed in the environment
-specifically for this check — the `OrakulCore` core is declared platform-independent,
+specifically for this check — the `CruxwingCore` core is declared platform-independent,
 and that turned out to be true, so it can be built and run somewhere other than a
 Mac.
 
-- `swift build --target OrakulCore` — **builds**, 18 files.
-- `swift build` — **builds in full**, including the `orakul` executable.
+- `swift build --target CruxwingCore` — **builds**, 18 files.
+- `swift build` — **builds in full**, including the `cruxwing` executable.
 - `swift test` — **300 tests pass**.
 - The binary runs and prints a trimmed help text: no `ask` command, no
-  connector environment variables, `ORAKUL_ENGINE` in place.
+  connector environment variables, `CRUXWING_ENGINE` in place.
 
 **Five breakages that only a real run found, and not one of which was caught by the
 content checks:**
@@ -146,7 +146,7 @@ content checks:**
 
 ## What is still unverified and needs a Mac
 
-The shell. `OrakulApp` is declared under `#if os(macOS)` and by definition does not
+The shell. `CruxwingApp` is declared under `#if os(macOS)` and by definition does not
 build on Linux: SwiftUI, ScreenCaptureKit, the microphone. Everything verified above
 is the core, the command line and the tests. Audio capture and the window **have
 been built by nobody**.
@@ -161,7 +161,7 @@ Both have to be resolved before publication, because both hit the first impressi
   application and the command line; the language engine underneath — stemming,
   lexicon, stop words, the injection phrases the guards match on — stays Russian,
   because it reads Russian speech.
-- ~~The binary is called `orakul` while the brand is Cruxwing.~~ **Done 28 August.**
+- ~~The binary is called `cruxwing` while the brand is Cruxwing.~~ **Done 28 August.**
 
 ## The rename to Cruxwing
 
@@ -169,17 +169,17 @@ The owner's decision: one name, as in BD-032. The generator does the rename, ove
 the output tree like the other edits: `mvp/` keeps its own identity until the
 sources are renamed separately and deliberately.
 
-What changes: the package `Orakul` → `Cruxwing`, the targets `OrakulCore` →
-`CruxwingCore` and `OrakulApp` → `CruxwingApp`, the executable `orakul` →
+What changes: the package `Cruxwing` → `Cruxwing`, the targets `CruxwingCore` →
+`CruxwingCore` and `CruxwingApp` → `CruxwingApp`, the executable `cruxwing` →
 `cruxwing`, the test target, directory and file names, every `import`, the
-environment variables `ORAKUL_*` → `CRUXWING_*`, the bundle identifier
-`ai.orakul.desktop` → `ai.cruxwing.desktop`, and the product name in the copy.
+environment variables `CRUXWING_*` → `CRUXWING_*`, the bundle identifier
+`ai.cruxwing.desktop` → `ai.cruxwing.desktop`, and the product name in the copy.
 
 Two details this breaks on if done carelessly:
 
-- **Replacement order runs from long to short.** Otherwise `OrakulCore` first
-  becomes `CruxwingCore` under the `Orakul` → `Cruxwing` rule, and the rule for
-  `OrakulCore` never fires.
+- **Replacement order runs from long to short.** Otherwise `CruxwingCore` first
+  becomes `CruxwingCore` under the `Cruxwing` → `Cruxwing` rule, and the rule for
+  `CruxwingCore` never fires.
 - **Directories and filenames carry the name too.** SwiftPM finds a target by its
   directory: a renamed target with an unrenamed directory simply does not build.
 - **`LICENSE` is not rewritten.** It is verbatim legal text; its absence from the
@@ -187,7 +187,7 @@ Two details this breaks on if done carelessly:
 
 **Verified after the rename:** `swift build` builds, `swift test` — **300 tests
 pass**, the `cruxwing` binary runs. Not one occurrence of
-`orakul`/`Orakul`/`ORAKUL` is left in the output. The suite "one product word on
+`cruxwing`/`Cruxwing`/`CRUXWING` is left in the output. The suite "one product word on
 every surface" fired separately — that is what it was written for.
 
 **The identifiers do not collide:** the commercial application is

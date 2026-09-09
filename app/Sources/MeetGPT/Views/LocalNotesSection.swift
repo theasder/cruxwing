@@ -1,5 +1,5 @@
 import SwiftUI
-import OrakulCore
+import CruxwingCore
 
 /// Настройки → «Подключённые приложения»: заметки в папке на этом компьютере.
 ///

@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 /// Durable local search index for messages delivered by Telegram after setup.
 /// The bot token never enters this file; it remains in Keychain.
@@ -29,7 +29,7 @@ actor TelegramMessageArchive {
     }
 
     static let shared: TelegramMessageArchive = {
-        TelegramMessageArchive(fileURL: OrakulApplicationSupport.telegramArchiveURL)
+        TelegramMessageArchive(fileURL: CruxwingApplicationSupport.telegramArchiveURL)
     }()
 
     private let fileURL: URL
@@ -48,7 +48,7 @@ actor TelegramMessageArchive {
              try FileManager.default.removeItem(at: $0)
          },
          synchronizeDirectory: @escaping @Sendable (URL) throws -> Void = {
-             try OrakulAtomicFile.synchronizeDirectory($0)
+             try CruxwingAtomicFile.synchronizeDirectory($0)
          }) {
         self.fileURL = fileURL
         self.directoryContents = directoryContents
@@ -56,7 +56,7 @@ actor TelegramMessageArchive {
         self.synchronizeDirectory = synchronizeDirectory
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let candidates = OrakulAtomicFile.readableCandidates(for: fileURL)
+        let candidates = CruxwingAtomicFile.readableCandidates(for: fileURL)
         for candidate in candidates {
             if let data = try? Data(contentsOf: candidate),
                let saved = try? decoder.decode(Snapshot.self, from: data) {
@@ -183,7 +183,7 @@ actor TelegramMessageArchive {
     }
 
     func reset() throws {
-        _ = try OrakulAtomicFile.erase(
+        _ = try CruxwingAtomicFile.erase(
             fileURL,
             directoryContents: directoryContents,
             removeItem: removeItem,
@@ -194,7 +194,7 @@ actor TelegramMessageArchive {
         loadError = nil
     }
 
-    private func persist(recoveryPolicy explicitPolicy: OrakulAtomicFile.RecoveryPolicy? = nil) throws {
+    private func persist(recoveryPolicy explicitPolicy: CruxwingAtomicFile.RecoveryPolicy? = nil) throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.sortedKeys]
@@ -202,7 +202,7 @@ actor TelegramMessageArchive {
         // damaged after this actor was initialized; backing it up at that point
         // would destroy the only readable recovery copy.
         let policy = explicitPolicy ?? recoveryPolicyForOrdinaryWrite()
-        try OrakulAtomicFile.write(
+        try CruxwingAtomicFile.write(
             encoder.encode(snapshot),
             to: fileURL,
             recoveryPolicy: policy,
@@ -211,11 +211,11 @@ actor TelegramMessageArchive {
         loadError = nil
     }
 
-    private func recoveryPolicyForOrdinaryWrite() -> OrakulAtomicFile.RecoveryPolicy {
+    private func recoveryPolicyForOrdinaryWrite() -> CruxwingAtomicFile.RecoveryPolicy {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let recovery = OrakulAtomicFile.recoveryURL(for: fileURL).standardizedFileURL
-        for candidate in OrakulAtomicFile.readableCandidates(for: fileURL) {
+        let recovery = CruxwingAtomicFile.recoveryURL(for: fileURL).standardizedFileURL
+        for candidate in CruxwingAtomicFile.readableCandidates(for: fileURL) {
             guard let data = try? Data(contentsOf: candidate),
                   (try? decoder.decode(Snapshot.self, from: data)) != nil else {
                 continue

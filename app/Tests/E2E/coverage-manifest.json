@@ -594,7 +594,7 @@
       "proof": [
         {
           "path": "videotest.sh",
-          "contains": "send ai.orakul.desktop.livetest.runPrompt id \"whattoask\""
+          "contains": "send ai.cruxwing.desktop.livetest.runPrompt id \"whattoask\""
         },
         {
           "path": "videotest.sh",
@@ -1612,7 +1612,7 @@
         },
         {
           "path": "videotest.sh",
-          "contains": "send ai.orakul.desktop.livetest.restoreSettings finishRun true"
+          "contains": "send ai.cruxwing.desktop.livetest.restoreSettings finishRun true"
         },
         {
           "path": "videotest.sh",
@@ -2670,7 +2670,7 @@
         },
         {
           "path": "Sources/MeetGPT/Dev/LiveTestHooks.swift",
-          "contains": "ai.orakul.desktop.livetest.glossarySuggestions"
+          "contains": "ai.cruxwing.desktop.livetest.glossarySuggestions"
         },
         {
           "path": "videotest.sh",

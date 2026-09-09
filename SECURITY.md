@@ -15,12 +15,12 @@ removed. A technical map of the boundaries is in
 
 ## What leaves the machine
 
-The public DIST build has no configured first-party Orakul backend. `app/build.sh`
+The public DIST build has no configured first-party Cruxwing backend. `app/build.sh`
 stops if a non-empty address ends up in the `Secrets.swift` that is actually
 compiled, and `Config` does not substitute another product's address. That is a
 verifiable configuration boundary, not a network sandbox: the inherited backend,
 account, paywall API and plan types still compile and remain P1 debt to remove or
-isolate. A direct BYOK launch, meanwhile, does not read an old Orakul account
+isolate. A direct BYOK launch, meanwhile, does not read an old Cruxwing account
 session from the Keychain and does not subscribe to managed-session notifications.
 
 The real classes of outbound traffic are these:
@@ -36,7 +36,7 @@ The real classes of outbound traffic are these:
    transcript, attached notes and documents, the dialogue history and the selected
    results from connected services. Full context mode can send considerably more of
    the transcript. The shared toggle for automatic AI requests is off on a new
-   installation. While it is off, Orakul does not run the model for the goal, the
+   installation. While it is off, Cruxwing does not run the model for the goal, the
    title, a background summary or checks, and does not add passes for
    clarifications, follow-up questions or suggested actions to an explicit
    question; automatic LLM consolidation of Fireflies does not run either. If the
@@ -47,7 +47,7 @@ The real classes of outbound traffic are these:
    obeys the shared connected-applications toggle and each application's
    individual mute; the sources used and rejected are named in the answer itself.
    The secret filter is on by default, but it is a heuristic, not a DLP guarantee.
-   In direct BYOK mode Orakul does not sell credits, does not count local product
+   In direct BYOK mode Cruxwing does not sell credits, does not count local product
    activity, and does not cut requests off at an inherited monthly limit. Billing,
    rate limits and quotas are applied by the chosen provider to the user's own
    account.
@@ -75,7 +75,7 @@ The real classes of outbound traffic are these:
 
 The public app target does not compile first-party analytics, the feedback
 uploader, StoreKit purchases, checkout, promo codes or the anonymous device trial;
-the privacy manifest declares zero collection by the Orakul developer and no
+the privacy manifest declares zero collection by the Cruxwing developer and no
 tracking. That does not mean the chosen external provider stores nothing: its
 processing, logs, training, region and deletion periods are governed by your
 contract with it.
@@ -98,7 +98,7 @@ erasure. Video and screenshots are not requested: macOS needs the "Screen
 Recording" permission for system audio via ScreenCaptureKit.
 
 The application's persistent files live in
-`~/Library/Application Support/ai.orakul.desktop`:
+`~/Library/Application Support/ai.cruxwing.desktop`:
 
 - `Sessions/*.json` — unencrypted transcripts, answers and model history, the
   digest, attached text and notes, prompts and the results of working passes.
@@ -154,7 +154,7 @@ wherever they chose and may end up in their iCloud, backup or corporate sync,
 already outside this boundary.
 
 The inherited directory `~/Library/Application Support/MeetGPT` may have held
-another product's data, so Orakul does not read or import it automatically: without
+another product's data, so Cruxwing does not read or import it automatically: without
 an explicit choice by the user, the owner of such transcripts and messages cannot
 be determined reliably.
 
@@ -178,8 +178,8 @@ tab, once enabled and verified, is the channel.
 
 What helps get to the bottom of it faster:
 
-* the version — `OrakulSourceHash` and `OrakulCommit` from
-  `orakul.app/Contents/Info.plist`;
+* the version — `CruxwingSourceHash` and `CruxwingCommit` from
+  `cruxwing.app/Contents/Info.plist`;
 * macOS and the processor (Apple Silicon or Intel);
 * what happens and how to reproduce it.
 
@@ -204,11 +204,11 @@ weights, and the application asking for the macOS permissions it needs.
 ## Check it yourself
 
 ```bash
-bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg app/dist/orakul-Intel.dmg
+bash scripts/audit-dmg.sh app/dist/cruxwing-AppleSilicon.dmg app/dist/cruxwing-Intel.dmg
 cd app && swift test                      # the runner prints the current count itself
 ```
 
-`audit-dmg.sh` ties the signature to the bundle id `ai.orakul.desktop` and the
+`audit-dmg.sh` ties the signature to the bundle id `ai.cruxwing.desktop` and the
 publisher's TeamIdentifier from `config/app.json`, checks Gatekeeper, the attached
 notarization ticket and the architecture of each image. It then compares the full
 SHA-256 and commit from the DMG's self-report against the current tree. That last
@@ -220,6 +220,6 @@ code as the application:
 
 ```bash
 cd app
-ORAKUL_PROBE_SERVICE=mattermost ORAKUL_PROBE_TOKEN=… \
-ORAKUL_PROBE_HOST=chat.company.ru swift test --filter LiveConnectorProbe
+CRUXWING_PROBE_SERVICE=mattermost CRUXWING_PROBE_TOKEN=… \
+CRUXWING_PROBE_HOST=chat.company.ru swift test --filter LiveConnectorProbe
 ```

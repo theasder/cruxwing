@@ -23,14 +23,14 @@ import urllib.error
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CONNECTORS = ROOT / "mvp/Sources/OrakulCore/Resources/connectors"
+CONNECTORS = ROOT / "mvp/Sources/CruxwingCore/Resources/connectors"
 
 
 def check(url: str) -> tuple[bool, str]:
     # Якорь отбрасываем: сервер о нём не знает, а «#tag/...» — это указание
     # браузеру, куда прокрутить.
     request = urllib.request.Request(url.split("#")[0], method="GET",
-                                     headers={"User-Agent": "orakul/0"})
+                                     headers={"User-Agent": "cruxwing/0"})
     try:
         with urllib.request.urlopen(request, timeout=20,
                                     context=ssl.create_default_context()) as response:

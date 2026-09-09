@@ -3,7 +3,7 @@
 #
 #   bash verify-evidence.sh
 #
-# This is an optional compatibility harness, not the standalone Orakul test
+# This is an optional compatibility harness, not the standalone Cruxwing test
 # command. It requires an explicit checkout of the private/independently
 # versioned Cruxwing API; normal public verification is `swift test` here plus
 # `npm test` at the repository root. Why a script and not a README paragraph:
@@ -55,7 +55,7 @@ mkdir -p coverage
 
 if [ -z "$API_ROOT" ] || [ ! -d "$API_ROOT" ]; then
     echo "error: this optional cross-repository verifier requires CRUXWING_API_ROOT" >&2
-    echo "normal Orakul checks are: (cd app && swift test), (cd mvp && swift test), npm test" >&2
+    echo "normal Cruxwing checks are: (cd app && swift test), (cd mvp && swift test), npm test" >&2
     exit 1
 fi
 

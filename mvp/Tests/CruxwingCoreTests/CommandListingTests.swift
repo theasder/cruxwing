@@ -1,0 +1,76 @@
+import Foundation
+import Testing
+@testable import CruxwingCore
+
+/// Список команд в подсказке — единственное, откуда человек узнаёт, что
+/// продукт умеет. Команды при этом разбираются в двух местах: обычные — в
+/// ядре, а `записать` и `спросить` — в исполняемом файле, потому что им нужны
+/// микрофон и настоящая сеть.
+///
+/// Так и разъехалось: `cruxwing записать` — запись звонка с микрофона, то есть
+/// главное действие продукта, — была реализована и не названа в подсказке
+/// вовсе. Шесть команд из семи.
+@Suite("Список команд")
+struct CommandListingTests {
+
+    private func source(_ relative: String) throws -> String {
+        // #filePath → …/mvp/Tests/CruxwingCoreTests/CommandListingTests.swift
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return try String(contentsOf: root.appendingPathComponent(relative), encoding: .utf8)
+    }
+
+    /// Имена команд из строк вида `cruxwing <имя>` в подсказке.
+    private var listed: Set<String> {
+        let usage = CommandLineApp.usage
+        var names: Set<String> = []
+        for line in usage.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("cruxwing ") else { continue }
+            let word = trimmed.dropFirst("cruxwing ".count)
+                .prefix { $0.isLetter }
+            if word.count > 2 { names.insert(String(word)) }
+        }
+        return names
+    }
+
+    /// Имена из `case "…"` в обоих разборах.
+    private func dispatched() throws -> Set<String> {
+        var names: Set<String> = []
+        for file in ["Sources/CruxwingCore/CommandLineApp.swift", "Sources/cruxwing/main.swift"] {
+            for line in try source(file).split(separator: "\n") {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard trimmed.hasPrefix("case \"") else { continue }
+                for part in trimmed.split(separator: "\"").enumerated()
+                    .filter({ $0.offset % 2 == 1 }).map({ String($0.element) })
+                where part.allSatisfy({ $0.isLetter }) && part.count > 2 {
+                    names.insert(part)
+                }
+            }
+        }
+        return names
+    }
+
+    @Test("каждая команда из подсказки где-то разбирается")
+    func everyListedCommandExists() throws {
+        let handled = try dispatched()
+        #expect(handled.count > 4, "разбор не прочитался: \(handled)")
+        let missing = listed.subtracting(handled)
+        #expect(missing.isEmpty, "обещаны в подсказке, но не разбираются: \(missing.sorted())")
+    }
+
+    @Test("каждая команда названа в подсказке")
+    func everyCommandIsListed() throws {
+        // Русские синонимы (`добавить`, `найти`, `помощь`) в подсказке не нужны:
+        // справка называет английские имена, а синонимы остаются разобранными
+        // ради тех, кто уже печатает их по памяти.
+        let synonyms: Set<String> = ["добавить", "записать", "расшифровать", "найти",
+                                     "список", "удалить", "спросить", "корпус",
+                                     "помощь", "find"]
+        let handled = try dispatched().subtracting(synonyms)
+        #expect(handled.count > 4, "разбор не прочитался: \(handled)")
+        let undocumented = handled.subtracting(listed).subtracting(["help"])
+        #expect(undocumented.isEmpty,
+                "реализованы, но не названы в подсказке: \(undocumented.sorted())")
+    }
+}

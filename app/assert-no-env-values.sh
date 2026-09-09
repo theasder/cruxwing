@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# assert-no-env-values.sh <orakul.app | binary> [.env]
+# assert-no-env-values.sh <cruxwing.app | binary> [.env]
 #
 # Ищет в СОБРАННОМ файле сами значения из .env — не по форме имени и не по форме
 # ключа, а дословно.
@@ -18,7 +18,7 @@
 # показывает секрет в журнале сборки, открывает ту самую дыру, которую ищет.
 set -euo pipefail
 
-TARGET="${1:?usage: assert-no-env-values.sh <orakul.app|binary> [.env]}"
+TARGET="${1:?usage: assert-no-env-values.sh <cruxwing.app|binary> [.env]}"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="${2:-$ROOT/.env}"
 

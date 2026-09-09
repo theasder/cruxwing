@@ -160,7 +160,7 @@ enum GoogleFileExport {
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let collapsed = cleaned.replacingOccurrences(of: "  ", with: " ")
-        if collapsed.isEmpty { return "orakul export" }
+        if collapsed.isEmpty { return "cruxwing export" }
         return String(collapsed.prefix(120))
     }
 }

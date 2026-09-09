@@ -25,7 +25,7 @@ checkout_git() {
     local checkout_root="$1"
     shift
     # A caller may use GIT_INDEX_FILE to verify a prospective release tree.
-    # That index belongs to the Orakul repository, never to SwiftPM's nested
+    # That index belongs to the Cruxwing repository, never to SwiftPM's nested
     # checkout repositories.
     env -u GIT_INDEX_FILE git -C "$checkout_root" "$@"
 }

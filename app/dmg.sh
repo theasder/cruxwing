@@ -2,8 +2,8 @@
 # Build the classic drag-to-Applications disk image from an already-notarized
 # app bundle, then sign, notarize and staple the IMAGE itself.
 #
-#   ./dmg.sh            # arm64 (orakul.app       -> dist/orakul-AppleSilicon.dmg)
-#   ./dmg.sh x86_64     # intel (orakul-Intel.app -> dist/orakul-Intel.dmg, внутри orakul.app)
+#   ./dmg.sh            # arm64 (cruxwing.app       -> dist/cruxwing-AppleSilicon.dmg)
+#   ./dmg.sh x86_64     # intel (cruxwing-Intel.app -> dist/cruxwing-Intel.dmg, внутри cruxwing.app)
 #
 # Why a DMG when notarize.sh already produces a working zip:
 #
@@ -25,24 +25,24 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 ARCH="${1:-${MEETGPT_ARCH:-arm64}}"
 case "$ARCH" in
-    x86_64) APP_BASENAME="orakul-Intel"; PUBLISH_NAME="orakul-Intel" ;;
-    arm64|native) APP_BASENAME="orakul"; PUBLISH_NAME="orakul-AppleSilicon" ;;
+    x86_64) APP_BASENAME="cruxwing-Intel"; PUBLISH_NAME="cruxwing-Intel" ;;
+    arm64|native) APP_BASENAME="cruxwing"; PUBLISH_NAME="cruxwing-AppleSilicon" ;;
     *) echo "!! unsupported arch '$ARCH' (use arm64 or x86_64)" >&2; exit 2 ;;
 esac
 
 APP="$ROOT/build/$APP_BASENAME.app"
 DIST="$ROOT/dist"
 DMG="$DIST/$PUBLISH_NAME.dmg"
-VOLNAME="orakul"
+VOLNAME="cruxwing"
 # Имя, под которым приложение уезжает к человеку, — одно на обе архитектуры.
 #
 # В build/ имена обязаны различаться, иначе вторая сборка затрёт первую. Но это
 # различие протекало в образ: с Intel-диска в «Программы» переносился
-# `orakul-Intel.app`. В доке подписано «orakul-Intel», в Spotlight — тоже, а
+# `cruxwing-Intel.app`. В доке подписано «cruxwing-Intel», в Spotlight — тоже, а
 # главное, для macOS это другое приложение: разрешения на микрофон и запись
 # экрана, выданные одному, к другому не относятся. Разрядность видна в имени
 # файла образа ($PUBLISH_NAME) — там она и нужна.
-SHIP_NAME="orakul"
+SHIP_NAME="cruxwing"
 
 [ -d "$APP" ] || { echo "!! no app at $APP — run ./notarize.sh first" >&2; exit 2; }
 
@@ -55,15 +55,15 @@ if ! /usr/bin/xcrun stapler validate "$APP" >/dev/null 2>&1; then
     exit 1
 fi
 
-NOTARY_PROFILE="${NOTARY_PROFILE:-orakul-notary}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-cruxwing-notary}"
 SIGN_ID="${NOTARY_SIGN_ID:-$(security find-identity -v -p codesigning 2>/dev/null \
     | grep 'Developer ID Application' | head -1 | sed 's/.*"\(.*\)"/\1/')}"
 [ -n "$SIGN_ID" ] || { echo "!! no Developer ID Application identity found" >&2; exit 1; }
 
 mkdir -p "$DIST"
 
-# A stale mount of a previous run leaves a "/Volumes/orakul" ghost, macOS
-# mounts the new image as "orakul 1", and the AppleScript below — addressed
+# A stale mount of a previous run leaves a "/Volumes/cruxwing" ghost, macOS
+# mounts the new image as "cruxwing 1", and the AppleScript below — addressed
 # by VOLUME name — styles the wrong (old) disk: Finder error -10006, unstyled
 # image. Only image-backed volumes are detached; a real disk that happens to
 # share the name is not ours to eject.
@@ -75,7 +75,7 @@ while IFS= read -r VOL; do
     fi
 done < <(ls -d "/Volumes/$VOLNAME" "/Volumes/$VOLNAME "* 2>/dev/null)
 
-STAGE="$(mktemp -d /tmp/orakul-dmg.XXXXXX)"
+STAGE="$(mktemp -d /tmp/cruxwing-dmg.XXXXXX)"
 echo ">> staging $SHIP_NAME.app (из $APP_BASENAME.app)"
 /usr/bin/ditto "$APP" "$STAGE/$SHIP_NAME.app"
 # The other half of the gesture: without this symlink the window has nowhere to
@@ -148,7 +148,7 @@ func text(_ s: String, _ size: CGFloat, _ y: CGFloat, _ alpha: CGFloat, bold: Bo
 }
 // Это окно человек видит при каждой установке. До сих пор оно было на
 // английском и звало перенести родительский продукт — чужое имя в чужом языке.
-text("Перенесите orakul в «Программы»", 17, CGFloat(bh) - 92, 0.95, bold: true)
+text("Перенесите cruxwing в «Программы»", 17, CGFloat(bh) - 92, 0.95, bold: true)
 text("Запуск из «Программ» сохраняет выданные разрешения", 12, 58, 0.6)
 text("на запись экрана и микрофон.", 12, 40, 0.6)
 
@@ -170,7 +170,7 @@ rm -f "$DMG"
 # Build read-WRITE first: Finder can only record window geometry, icon positions
 # and the background onto a mounted, writable volume. The compressed read-only
 # image is produced from it afterwards.
-RW="$STAGE/../orakul-rw-$$.dmg"
+RW="$STAGE/../cruxwing-rw-$$.dmg"
 rm -f "$RW"
 /usr/bin/hdiutil create -volname "$VOLNAME" -srcfolder "$STAGE" \
     -ov -format UDRW -quiet "$RW"
@@ -178,9 +178,9 @@ MOUNT="$(/usr/bin/hdiutil attach -readwrite -noverify -noautoopen "$RW" \
     | grep -o '/Volumes/.*' | head -1)"
 [ -n "$MOUNT" ] || { echo "!! could not mount the staging image" >&2; exit 1; }
 # Finder спрашивают о томе по имени, и это имя берётся у самого тома, а не из
-# $VOLNAME. Если одноимённый том уже примонтирован, macOS даёт новому «orakul 1»,
-# и обращение к disk "orakul" уходит в чужой том или, чаще, в никуда:
-# «Can't get disk "orakul"» (-1728). Оформление молча не применялось, и образ
+# $VOLNAME. Если одноимённый том уже примонтирован, macOS даёт новому «cruxwing 1»,
+# и обращение к disk "cruxwing" уходит в чужой том или, чаще, в никуда:
+# «Can't get disk "cruxwing"» (-1728). Оформление молча не применялось, и образ
 # уезжал без фона — оба раза до этой правки.
 VOL_ACTUAL="$(basename "$MOUNT")"
 
@@ -191,7 +191,7 @@ VOL_ACTUAL="$(basename "$MOUNT")"
 #
 # С повторами, потому что чаще всего это гонка, а не отказ. Том уже
 # примонтирован, `hdiutil` вернул путь, но Finder о нём ещё не знает и отвечает
-# «Can't get disk "orakul"» (-1728). Из двух архитектур подряд так падала то
+# «Can't get disk "cruxwing"» (-1728). Из двух архитектур подряд так падала то
 # одна, то другая — и образ уезжал без фона. Секунда паузы это закрывает;
 # три попытки на случай, если Finder занят.
 echo ">> arranging the window"
@@ -257,4 +257,4 @@ rm -rf "$STAGE"
 
 echo ">> done: $DMG"
 echo "   arch: $ARCH"
-echo "   Открыть, перенести orakul в «Программы», запускать оттуда."
+echo "   Открыть, перенести cruxwing в «Программы», запускать оттуда."

@@ -34,7 +34,7 @@ enum GoogleDriveWriter {
             case .malformedResponse:
                 return "Google's response could not be read."
             case .notOurFile:
-                return "orakul can change only the files it created itself."
+                return "cruxwing can change only the files it created itself."
             }
         }
     }
@@ -50,7 +50,7 @@ enum GoogleDriveWriter {
     static func createSpreadsheet(title: String,
                                   table: GoogleFileExport.Table,
                                   accessToken: String,
-                                  session: URLSession = OrakulNetworkIdentity.shared) async throws -> CreatedFile {
+                                  session: URLSession = CruxwingNetworkIdentity.shared) async throws -> CreatedFile {
         let rows = table.values.map { row in
             ["values": row.map { ["userEnteredValue": ["stringValue": $0]] }]
         }
@@ -82,7 +82,7 @@ enum GoogleDriveWriter {
     static func trashFile(fileID: String,
                           createdByUs: Bool,
                           accessToken: String,
-                          session: URLSession = OrakulNetworkIdentity.shared) async throws {
+                          session: URLSession = CruxwingNetworkIdentity.shared) async throws {
         guard createdByUs, !fileID.isEmpty else { throw WriteError.notOurFile }
         var request = URLRequest(url: URL(string:
             "https://www.googleapis.com/drive/v3/files/\(fileID)")!)

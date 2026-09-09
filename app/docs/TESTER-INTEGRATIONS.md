@@ -65,7 +65,7 @@ Building the artifact without installing into `/Applications`:
 
 ```sh
 MEETGPT_NO_INSTALL=1 ./build.sh
-open "$PWD/build/orakul.app"
+open "$PWD/build/cruxwing.app"
 ```
 
 An ordinary distribution build with `MEETGPT_DIST=1` deliberately scrubs those
@@ -120,12 +120,12 @@ The limitations are substantial:
   begins after connecting and fills up while the application receives updates;
 - only `supergroup` chats count, not private chats, ordinary groups or channels;
 - text and media captions are read, but the files themselves are not downloaded;
-- orakul does not send messages;
+- cruxwing does not send messages;
 - the allowlist applies both on receipt and in local search.
 
 The token and the allowlist live in the Keychain. The local archive is in the
 application's Application Support directory
-(`ai.orakul.desktop/Telegram/messages.json`) and does not contain the token. The
+(`ai.cruxwing.desktop/Telegram/messages.json`) and does not contain the token. The
 **Disconnect** button stops polling, deletes the Keychain entries and erases that
 archive. The former product's `MeetGPT` directory is not read or imported
 automatically.
@@ -160,7 +160,7 @@ The official contract:
    which is more widely available; `search_tasks` may depend on the workspace's
    plan.
 4. In the confirmed creation scenario choose Asana, review the task list, confirm
-   creation explicitly and find the result in the test workspace. orakul's settings
+   creation explicitly and find the result in the test workspace. cruxwing's settings
    have no separate fixed project choice: the permitted fields and the destination
    are determined by the live `create_tasks` schema and the Asana context.
 
@@ -273,7 +273,7 @@ endpoint must not be guessed: before such work the owner has to supply the URL o
 **their own TrueConf Server**, after which the contract and available methods are
 verified in that specific server's documentation at `<server-url>/api/v4/docs`.
 Only then can a read-only account be chosen and history implemented. Until that
-point there is nowhere — and no need — to enter a TrueConf server token in orakul.
+point there is nowhere — and no need — to enter a TrueConf server token in cruxwing.
 
 ## The shared acceptance checklist
 
@@ -299,7 +299,7 @@ point there is nowhere — and no need — to enter a TrueConf server token in o
 
 ## Revocation and cleanup after the test
 
-First press **Disconnect** on each integration in orakul. That deletes the local
+First press **Disconnect** on each integration in cruxwing. That deletes the local
 Keychain entries; for Google a best-effort revocation of the refresh token is
 additionally performed, and for Telegram the archive is erased. Then finish the
 cleanup at the vendor:
@@ -319,7 +319,7 @@ cleanup at the vendor:
 - **Google:** remove the application's access in the Google Account, remove the
   test users, delete the synthetic Sheets/Slides/Forms and rotate the Desktop
   client secret.
-- **Jitsi/TrueConf:** there are no keys; delete the test recordings from orakul. On
+- **Jitsi/TrueConf:** there are no keys; delete the test recordings from cruxwing. On
   a dedicated test Mac, remove the Screen Recording and Microphone permissions in
   System Settings if needed.
 

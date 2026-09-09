@@ -4,7 +4,7 @@ import Foundation
 import MCP
 import os
 import SwiftUI
-import OrakulCore
+import CruxwingCore
 
 /// Audio callbacks can arrive hundreds of times per second. Gate meter work on
 /// that callback thread so RMS calculation and MainActor publication happen at
@@ -1993,7 +1993,7 @@ final class AppState: ObservableObject {
         QuickPromptResolver.Configuration(
             tier: currentTier,
             connectorKeywords: connectedConnectorKeywords,
-            // Only the optional managed gateway has an Orakul credit pool.
+            // Only the optional managed gateway has an Cruxwing credit pool.
             hasComputeCredits: !Config.managedUsageLimitsEnabled
                 || copilotQuotaMessage == nil)
     }
@@ -2012,7 +2012,7 @@ final class AppState: ObservableObject {
     var tierStatus: String {
         Config.managedUsageLimitsEnabled
             ? TierPolicy.status(stats: UsageTracker.stats, tier: currentTier)
-            : "Everything available · no Orakul limit"
+            : "Everything available · no Cruxwing limit"
     }
 
     var tariffAllowance: TariffAllowance { TariffAllowance.forTier(currentTier) }
@@ -2306,7 +2306,7 @@ final class AppState: ObservableObject {
         providerKeys.hasTranscriptionKey(for: .assemblyAI)
     }
 
-    /// Public Orakul has no first-party transcription backend. Keep the
+    /// Public Cruxwing has no first-party transcription backend. Keep the
     /// compatibility property while inherited retention code is removed, but
     /// never make a server upload reachable at runtime.
     var canDiarizeOnServer: Bool {
@@ -2314,7 +2314,7 @@ final class AppState: ObservableObject {
     }
 
     /// Where the audio actually goes, for the explicit post-call button.
-    /// Public Orakul has one reachable destination: AssemblyAI under the user's
+    /// Public Cruxwing has one reachable destination: AssemblyAI under the user's
     /// own account.
     var diarizeDestination: String {
         Self.diarizeDestination(onServer: canDiarizeOnServer)
@@ -2330,8 +2330,8 @@ final class AppState: ObservableObject {
         // Строка подставляется в русское предупреждение («запись уйдёт в …»),
         // и до 2026-08-20 давала смесь языков: «уйдёт в AssemblyAI with your
         // own key». Ветка сервера при этом называла ДРУГОЙ ПРОДУКТ — Cruxwing,
-        // — то есть человеку, поставившему orakul, сообщали, что его звонок
-        // уходит туда, о чём он не просил. В собранном orakul эта ветка
+        // — то есть человеку, поставившему cruxwing, сообщали, что его звонок
+        // уходит туда, о чём он не просил. В собранном cruxwing эта ветка
         // недостижима: DIST-сборка отказывается печь адрес сервера (§2.3), а
         // без него `llmViaBackend` ложно. Недостижимая ветка — не повод
         // оставлять в ней чужое имя: достижимость меняется одной строкой в
@@ -3102,7 +3102,7 @@ final class AppState: ObservableObject {
         let selection = Config.selectedModelID
         let name: String
         if selection == LLMCatalog.autoID || selection.hasPrefix("orchestrate:") {
-            name = "orakul"
+            name = "cruxwing"
         } else if selection.hasPrefix("council:") {
             name = "AI Council"
         } else if selection.hasPrefix("auto:"),
@@ -3115,7 +3115,7 @@ final class AppState: ObservableObject {
     }
 
     private var workflowLocalApp: WorkflowApp {
-        WorkflowApp(id: "local:orakul", name: "orakul", symbol: "macbook", kind: .local)
+        WorkflowApp(id: "local:cruxwing", name: "cruxwing", symbol: "macbook", kind: .local)
     }
 
     private func workflowAIApp(for model: LLMModel) -> WorkflowApp {
@@ -3698,7 +3698,7 @@ final class AppState: ObservableObject {
     /// restore). Production uses .default throughout.
     private let notificationCenter: NotificationCenter
     /// Content-bearing diagnostics are inert unless a dev binary was launched
-    /// with the explicit nonce/root/ORAKUL_DEV_CALL_LOGS authorization.
+    /// with the explicit nonce/root/CRUXWING_DEV_CALL_LOGS authorization.
     private let devCallDiagnostics: DevCallDiagnostics
 
     /// Deterministic connected-tool seam. nil in production, where commits use
@@ -3868,7 +3868,7 @@ final class AppState: ObservableObject {
         if !Config.selectedModel.isAvailable(for: currentTier) {
             selectedModelID = LLMCatalog.defaultModel(for: currentTier).id
         }
-        // The public direct-BYOK build has no Orakul account. Do not even
+        // The public direct-BYOK build has no Cruxwing account. Do not even
         // subscribe to the inherited managed-session notification channel in
         // that mode; an old Keychain row must not re-enter the running app.
         if Config.llmViaBackend
@@ -3907,7 +3907,7 @@ final class AppState: ObservableObject {
             let managedAccountEnabled = Config.llmViaBackend
             task = Task.detached(priority: .userInitiated) {
                 let googleTokens = Config.loadGoogleTokens(from: store)
-                // Direct BYOK has no Orakul account. In particular, do not read
+                // Direct BYOK has no Cruxwing account. In particular, do not read
                 // or hydrate a stale session left by an older managed build.
                 let wheesprSession = managedAccountEnabled
                     ? Config.loadWheesprSession(from: store)
@@ -3992,7 +3992,7 @@ final class AppState: ObservableObject {
         callNotifier.configure()
         callNotifier.onStartRecording = { [weak self] in self?.startFromNotification() }
         callNotifier.onNotificationsDenied = { [weak self] in
-            self?.lastError = "Notifications for orakul are off. Turn them on in System Settings → Notifications to receive call reminders."
+            self?.lastError = "Notifications for cruxwing are off. Turn them on in System Settings → Notifications to receive call reminders."
         }
         callDetector.onCallDetected = { [weak self] appName in
             guard let self, !self.isRecording, !self.isBusy else { return }
@@ -8406,7 +8406,7 @@ final class AppState: ObservableObject {
         // Заголовок уезжает в чужой трекер как название задачи. Он был
         // английским и назывался чужим продуктом — в Jira у человека
         // появлялась строка «From a Cruxwing meeting».
-        return prompt.isEmpty ? "From a call in orakul" : String(prompt.prefix(120))
+        return prompt.isEmpty ? "From a call in cruxwing" : String(prompt.prefix(120))
     }
 
     // MARK: - Save the answer as a document
@@ -9557,7 +9557,7 @@ final class AppState: ObservableObject {
             mic = await Permissions.requestMicrophone()
         }
         if mic != .granted {
-            let msg = "No microphone access. Open System Settings → Privacy & Security → Microphone, allow orakul, then quit the application and open it again."
+            let msg = "No microphone access. Open System Settings → Privacy & Security → Microphone, allow cruxwing, then quit the application and open it again."
             lastError = msg
             status = .error(msg)
             return
@@ -9575,7 +9575,7 @@ final class AppState: ObservableObject {
             _ = Permissions.requestScreenRecording()
         }
         if await Permissions.screenRecordingAuthorized() == false {
-            let msg = "Hearing the other party needs screen recording. Open System Settings → Privacy & Security → Screen Recording, enable orakul, then quit the application and open it again. If orakul is already in the list and still has no access, remove it, restart, and add it again."
+            let msg = "Hearing the other party needs screen recording. Open System Settings → Privacy & Security → Screen Recording, enable cruxwing, then quit the application and open it again. If cruxwing is already in the list and still has no access, remove it, restart, and add it again."
             lastError = msg
             status = .error(msg)
             return
@@ -11506,7 +11506,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "Transcription on this computer is falling behind. orakul will transcribe the next recording with \(LocalWhisperModel.title(for: recommended)) (\(recommended)) instead of \(current). The audio still stays on this computer.",
+                message: "Transcription on this computer is falling behind. cruxwing will transcribe the next recording with \(LocalWhisperModel.title(for: recommended)) (\(recommended)) instead of \(current). The audio still stays on this computer.",
                 action: .none
             )
         case .coolerLocalModel(let current, let recommended):
@@ -11515,7 +11515,7 @@ final class AppState: ObservableObject {
             Config.localModelSelectionProvenance = .adaptive
             Config.localWhisperModel = recommended
             transcriptionPerformanceNotice = TranscriptionPerformanceNotice(
-                message: "The computer is heating up on transcription. orakul will transcribe the next recording with the lighter \(LocalWhisperModel.title(for: recommended)) (\(recommended)) to keep it cool. The audio still stays on this computer.",
+                message: "The computer is heating up on transcription. cruxwing will transcribe the next recording with the lighter \(LocalWhisperModel.title(for: recommended)) (\(recommended)) to keep it cool. The audio still stays on this computer.",
                 action: .none
             )
         case .offerDeepgram:
@@ -11557,7 +11557,7 @@ final class AppState: ObservableObject {
     /// on-device engine.
     ///
     /// Auth is strict runtime BYOK. The user-entered Keychain credential bills
-    /// their own Deepgram account; public Orakul never asks a first-party
+    /// their own Deepgram account; public Cruxwing never asks a first-party
     /// backend to mint a grant or meter the two audio tracks.
     private func startDeepgram(
         chunkSeconds: Double,

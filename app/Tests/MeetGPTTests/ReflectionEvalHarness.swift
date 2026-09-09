@@ -10,7 +10,7 @@ import Testing
 /// machine with no corpus (CI, a fresh checkout) stays green instead of
 /// reporting a perfect score over zero sessions.
 ///
-///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.orakul.desktop/Sessions" \
+///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.cruxwing.desktop/Sessions" \
 ///       swift test --filter ReflectionEvalHarness
 ///
 /// Nothing here calls a model. The corpus is the user's own history: every
@@ -30,7 +30,7 @@ struct ReflectionEvalHarness {
     /// A checked-in default makes this a regression gate rather than a report
     /// that can never fail. A corpus owner may tighten it for a particular run.
     private static var maximumRuleViolationRate: Double {
-        let raw = ProcessInfo.processInfo.environment["ORAKUL_REFLECTION_MAX_RULE_RATE"]
+        let raw = ProcessInfo.processInfo.environment["CRUXWING_REFLECTION_MAX_RULE_RATE"]
         guard let raw, let value = Double(raw), (0...1).contains(value) else { return 0.25 }
         return value
     }
@@ -39,7 +39,7 @@ struct ReflectionEvalHarness {
         "judge the recorded corpus and enforce the per-rule violation ceiling",
         .enabled(
             if: Self.hasCorpus,
-            "Set CRUXWING_EVAL_CORPUS to an Orakul Sessions directory to run this private-corpus eval."))
+            "Set CRUXWING_EVAL_CORPUS to an Cruxwing Sessions directory to run this private-corpus eval."))
     func evaluateCorpus() throws {
         let corpusRoot = try #require(Self.corpusRoot)
 

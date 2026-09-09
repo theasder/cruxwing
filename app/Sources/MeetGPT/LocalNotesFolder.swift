@@ -1,6 +1,6 @@
 import Foundation
 import AppKit
-import OrakulCore
+import CruxwingCore
 
 /// Папка с заметками, выбранная человеком.
 ///

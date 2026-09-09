@@ -24,7 +24,7 @@
       "source_sha256": "fd4232fa8ae704fadd92f57ebd698efe616e64a6d5fabcaafa45802347736965",
       "license": "MIT",
       "prompt_ids": ["commitments", "logdecision", "tasks", "unresolved"],
-      "rationale": "Meeting-note organization methodology with an explicit no-action-without-approval rule; unavailable workspace/tool directions are inert inside Orakul's untrusted-content wrapper."
+      "rationale": "Meeting-note organization methodology with an explicit no-action-without-approval rule; unavailable workspace/tool directions are inert inside Cruxwing's untrusted-content wrapper."
     },
     {
       "id": "challenge",

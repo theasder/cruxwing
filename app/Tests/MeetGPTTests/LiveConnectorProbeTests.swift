@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Проверка коннектора на живом сервисе — вашим токеном.
 ///
@@ -20,11 +20,11 @@ import OrakulCore
 /// переменных окружения набор пропускается. Токен нужен ваш, никуда не
 /// пишется и не печатается.
 ///
-///     ORAKUL_PROBE_SERVICE=mattermost \
-///     ORAKUL_PROBE_TOKEN=… \
-///     ORAKUL_PROBE_HOST=chat.company.ru \
-///     ORAKUL_PROBE_SCOPE=team-id \
-///     ORAKUL_PROBE_QUERY=тарифы \
+///     CRUXWING_PROBE_SERVICE=mattermost \
+///     CRUXWING_PROBE_TOKEN=… \
+///     CRUXWING_PROBE_HOST=chat.company.ru \
+///     CRUXWING_PROBE_SCOPE=team-id \
+///     CRUXWING_PROBE_QUERY=тарифы \
 ///     swift test --filter LiveConnectorProbe
 ///
 /// `SERVICE` — одно из: pachca, mattermost, rocketChat, zulip, slack, matrix,
@@ -33,34 +33,34 @@ import OrakulCore
 ///
 /// У Plane, GitFlic и Nextcloud, кроме токена и адреса, спрашиваются поля из
 /// манифеста:
-/// `ORAKUL_FIELD_workspace` и `ORAKUL_FIELD_project` у первого,
-/// `ORAKUL_FIELD_owner` и `ORAKUL_FIELD_project` у второго,
-/// `ORAKUL_FIELD_provider` у третьего. Без них проба скажет «не подключён», а
+/// `CRUXWING_FIELD_workspace` и `CRUXWING_FIELD_project` у первого,
+/// `CRUXWING_FIELD_owner` и `CRUXWING_FIELD_project` у второго,
+/// `CRUXWING_FIELD_provider` у третьего. Без них проба скажет «не подключён», а
 /// не уйдёт по адресу с подстановками.
 @Suite("Живая проверка коннектора")
 struct LiveConnectorProbeTests {
 
     private static var environment: [String: String] { ProcessInfo.processInfo.environment }
-    private static var isEnabled: Bool { environment["ORAKUL_PROBE_SERVICE"] != nil }
+    private static var isEnabled: Bool { environment["CRUXWING_PROBE_SERVICE"] != nil }
 
-    private var service: String { Self.environment["ORAKUL_PROBE_SERVICE"] ?? "" }
-    private var token: String { Self.environment["ORAKUL_PROBE_TOKEN"] ?? "" }
-    private var host: String? { Self.environment["ORAKUL_PROBE_HOST"] }
-    private var scope: String? { Self.environment["ORAKUL_PROBE_SCOPE"] }
-    private var query: String { Self.environment["ORAKUL_PROBE_QUERY"] ?? "тест" }
+    private var service: String { Self.environment["CRUXWING_PROBE_SERVICE"] ?? "" }
+    private var token: String { Self.environment["CRUXWING_PROBE_TOKEN"] ?? "" }
+    private var host: String? { Self.environment["CRUXWING_PROBE_HOST"] }
+    private var scope: String? { Self.environment["CRUXWING_PROBE_SCOPE"] }
+    private var query: String { Self.environment["CRUXWING_PROBE_QUERY"] ?? "тест" }
 
     @Test("коннектор отвечает на живом сервисе",
           .enabled(if: LiveConnectorProbeTests.isEnabled),
           .timeLimit(.minutes(1)))
     func probe() async throws {
-        try #require(!token.isEmpty, "ORAKUL_PROBE_TOKEN пуст — проверять нечем")
+        try #require(!token.isEmpty, "CRUXWING_PROBE_TOKEN пуст — проверять нечем")
 
         // Печатается ЧТО нашлось, а не токен: вывод теста легко попадает в
         // issue, и секрету там не место.
         if let messenger = WorkMessengers.Service(rawValue: service) {
             // Поле мессенджера едет ОБЛАСТЬЮ, и это ловушка для того, кто
             // пришёл сюда от трекеров: там поля задаются через
-            // `ORAKUL_FIELD_<имя>`, а здесь такая переменная молча ничего не
+            // `CRUXWING_FIELD_<имя>`, а здесь такая переменная молча ничего не
             // делала — сервис поднимался, наполнялся и отвечал «не настроено».
             // Наступил на это 2026-08-20 при первой пробе Mattermost.
             //
@@ -68,7 +68,7 @@ struct LiveConnectorProbeTests {
             let declared = ConnectorManifest.usable()
                 .first { $0.id == service }?.parameters?.first?.name
             let fromField = declared.flatMap {
-                Self.environment["ORAKUL_FIELD_\($0)"]
+                Self.environment["CRUXWING_FIELD_\($0)"]
             }
             let hits = try await WorkMessengers(service: messenger, token: token,
                                                 secondary: host, scope: fromField ?? scope,
@@ -98,7 +98,7 @@ struct LiveConnectorProbeTests {
             // Поля берутся из окружения по именам самого манифеста: второй
             // список здесь разъехался бы с первым на третьем сервисе.
             let values = tracker.fields.reduce(into: [String: String]()) { result, field in
-                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+                result[field.name] = ProcessInfo.processInfo.environment["CRUXWING_FIELD_\(field.name)"]
             }
             let outcome = try await SelfHostedTrackers(service: tracker, token: token,
                                                        host: host, values: values,
@@ -114,10 +114,10 @@ struct LiveConnectorProbeTests {
         }
 
         if let western = WesternTrackers.Service(rawValue: service) {
-            // Адрес не спрашивается: он известен заранее. ORAKUL_HOST для этих
+            // Адрес не спрашивается: он известен заранее. CRUXWING_HOST для этих
             // сервисов не нужен, и проба про него молчит намеренно.
             let values = western.fields.reduce(into: [String: String]()) { result, field in
-                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+                result[field.name] = ProcessInfo.processInfo.environment["CRUXWING_FIELD_\(field.name)"]
             }
             let items = try await WesternTrackers(service: western, token: token,
                                                   values: values,
@@ -131,7 +131,7 @@ struct LiveConnectorProbeTests {
 
         if let notes = TeamNotes.Service(rawValue: service) {
             let notesValues = notes.fields.reduce(into: [String: String]()) { result, field in
-                result[field.name] = ProcessInfo.processInfo.environment["ORAKUL_FIELD_\(field.name)"]
+                result[field.name] = ProcessInfo.processInfo.environment["CRUXWING_FIELD_\(field.name)"]
             }
             let hits = try await TeamNotes(service: notes, token: token, host: host,
                                            values: notesValues,

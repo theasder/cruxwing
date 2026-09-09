@@ -28,7 +28,7 @@ function cleanTreeGuardSource() {
 }
 
 test('DIST refuses dirty or unversioned source and the local override stays auditable', () => {
-  const root = mkdtempSync(join(tmpdir(), 'orakul-dist-provenance-'));
+  const root = mkdtempSync(join(tmpdir(), 'cruxwing-dist-provenance-'));
   const app = join(root, 'app');
   const sourceRoot = join(app, 'Sources', 'MeetGPT');
   mkdirSync(sourceRoot, { recursive: true });
@@ -42,7 +42,7 @@ test('DIST refuses dirty or unversioned source and the local override stays audi
     ].join('\n'));
     assert.equal(run('git', ['add', 'tracked.txt', '.gitignore'], { cwd: root }).status, 0);
     assert.equal(run('git', [
-      '-c', 'user.name=Orakul release test',
+      '-c', 'user.name=Cruxwing release test',
       '-c', 'user.email=release-test@invalid.example',
       'commit', '-qm', 'fixture',
     ], { cwd: root }).status, 0);
@@ -63,7 +63,7 @@ test('DIST refuses dirty or unversioned source and the local override stays audi
 
     const overridden = run('bash', ['-c', probe], {
       cwd: root,
-      env: { ...baseEnv, ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION: '1' },
+      env: { ...baseEnv, CRUXWING_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION: '1' },
     });
     assert.equal(overridden.status, 0, overridden.stderr);
     assert.match(overridden.stdout, /STATE=dirty-local-verification/);
@@ -105,7 +105,7 @@ test('DIST refuses dirty or unversioned source and the local override stays audi
       'untracked file in a compiled source root passed');
     const overriddenArtifact = run('bash', ['-c', probe], {
       cwd: root,
-      env: { ...baseEnv, ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION: '1' },
+      env: { ...baseEnv, CRUXWING_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION: '1' },
     });
     assert.notEqual(overriddenArtifact.status, 0,
       'the local override admitted an untracked artifact input');
@@ -122,7 +122,7 @@ test('DIST refuses dirty or unversioned source and the local override stays audi
 test('a dirty local-verification artifact cannot pass the DMG audit', () => {
   const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
   const audit = readFileSync(resolve(repo, 'scripts', 'audit-dmg.sh'), 'utf8');
-  assert.match(build, /OrakulTreeState string \$DIST_TREE_STATE/,
+  assert.match(build, /CruxwingTreeState string \$DIST_TREE_STATE/,
     'build.sh no longer stamps the verified worktree state');
   assert.match(audit, /\[ "\$stamped_tree_state" = "clean" \]/,
     'audit-dmg.sh no longer requires the clean-tree stamp');

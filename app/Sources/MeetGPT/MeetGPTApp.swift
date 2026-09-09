@@ -32,6 +32,10 @@ struct MeetGPTApp: App {
     @StateObject private var overlay = OverlayController()
 
     init() {
+        // Before anything reads a setting: take over the previous identity's
+        // preferences if this one has none. A person upgrading past the rename
+        // would otherwise meet first-run onboarding and a reset engine choice.
+        LegacyPreferences.adoptIfNeeded()
         // Apply the saved light/dark theme before any window appears.
         NSApplication.shared.appearance = Config.appAppearance.nsAppearance
         // Channel watcher (Team sources) — default-off, and runs only after the
@@ -53,7 +57,7 @@ struct MeetGPTApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("orakul", id: "main") {
+        WindowGroup("cruxwing", id: "main") {
             ContentView()
                 .environmentObject(state)
                 .environment(\.readingTextScale, state.readingTextScale)

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 @MainActor
@@ -11,7 +11,7 @@ struct TelegramGroundingTests {
     @Test("manager проверяет, сохраняет, запускает и полностью отключает Telegram")
     func managerOwnsConnectionLifecycle() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-telegram-lifecycle-\(UUID().uuidString)",
+            .appendingPathComponent("cruxwing-telegram-lifecycle-\(UUID().uuidString)",
                                     isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let archive = TelegramMessageArchive(
@@ -22,7 +22,7 @@ struct TelegramGroundingTests {
             telegramHTTP: { request in
                 let body: String
                 if request.url!.path.hasSuffix("/getMe") {
-                    body = #"{"ok":true,"result":{"id":44,"first_name":"Orakul","can_read_all_group_messages":true}}"#
+                    body = #"{"ok":true,"result":{"id":44,"first_name":"Cruxwing","can_read_all_group_messages":true}}"#
                 } else if request.url!.path.hasSuffix("/getWebhookInfo") {
                     body = #"{"ok":true,"result":{"url":""}}"#
                 } else if request.url!.path.hasSuffix("/getChat") {
@@ -53,7 +53,7 @@ struct TelegramGroundingTests {
     @Test("Keychain-настройка подключает локальный архив к grounding")
     func configuredArchiveGrounds() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-telegram-grounding-\(UUID().uuidString)",
+            .appendingPathComponent("cruxwing-telegram-grounding-\(UUID().uuidString)",
                                     isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let archive = TelegramMessageArchive(
@@ -92,7 +92,7 @@ struct TelegramGroundingTests {
     @Test("ошибка удаления архива сохраняет Keychain-настройку и архив")
     func failedEraseKeepsConnectionObservable() async throws {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-telegram-erase-failure-\(UUID().uuidString)",
+            .appendingPathComponent("cruxwing-telegram-erase-failure-\(UUID().uuidString)",
                                     isDirectory: true)
         defer { try? FileManager.default.removeItem(at: root) }
         let archive = TelegramMessageArchive(

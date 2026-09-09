@@ -6,7 +6,7 @@ enum GoogleSlidesService {
     static let maxTextCharacters = 80_000
 
     static func read(presentationID: String, accessToken: String,
-                     session: URLSession = OrakulNetworkIdentity.shared) async throws -> FetchedDocument {
+                     session: URLSession = CruxwingNetworkIdentity.shared) async throws -> FetchedDocument {
         guard let url = URL(string: "https://slides.googleapis.com/v1/presentations/\(presentationID)") else {
             throw LLMError.badResponse("Google Slides")
         }

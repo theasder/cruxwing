@@ -6,7 +6,7 @@ where it was said. On your own computer, free.
 The whole application — system audio capture with no bot, on-device
 transcription, search across your own calls. The interface, the command line, the
 system prompts and the documentation are in English. Its own identity
-(`ai.orakul.desktop`). All three test suites run in CI.
+(`ai.cruxwing.desktop`). All three test suites run in CI.
 
 **Languages.** Transcription is offered in English, Russian, Spanish, French,
 German, Portuguese, Italian, Dutch, Hindi and Japanese, plus an automatic mode
@@ -57,13 +57,13 @@ Anna: Who is doing it?
 Boris: Me, I will ship it to billing by Friday.
 TXT
 
-.build/release/orakul add transcript.txt "Pricing standup"
-.build/release/orakul search what did we decide about pricing
+.build/release/cruxwing add transcript.txt "Pricing standup"
+.build/release/cruxwing search what did we decide about pricing
 ```
 
 The command line lives in `mvp/`, the application in `app/`. This used to say
 `cd app`, and the very first command broke: `app/` builds `MeetGPT`, and there is
-no `.build/release/orakul` there.
+no `.build/release/cruxwing` there.
 
 ```
 Added: «Pricing standup» (27AE25B5-…)
@@ -80,7 +80,7 @@ Ask about something the calls never covered and you get a refusal, not an
 invention:
 
 ```
-$ orakul search when is the office party
+$ cruxwing search when is the office party
 The saved calls did not discuss this. I will not invent an answer.
 ```
 
@@ -89,7 +89,7 @@ It tells a typo apart from an absent conversation. Search is lexicon-based, and
 to that would pass sentence on a topic that was in fact discussed:
 
 ```
-$ orakul search pricinng
+$ cruxwing search pricinng
 The saved calls did not discuss this. I will not invent an answer.
 Looks like a typo — the archive has «Pricing».
 ```
@@ -100,7 +100,7 @@ so "pricings" is *not* found by this English archive — it is a different word 
 the index, and the honest refusal is what you get.
 
 A call can be deleted by the start of its identifier, like a git commit:
-`orakul delete 49290B26`. A prefix shorter than four characters is refused, and
+`cruxwing delete 49290B26`. A prefix shorter than four characters is refused, and
 if several calls match it, nothing is deleted and the list is shown. Deletion
 cannot be undone, so guessing is not allowed here.
 
@@ -118,8 +118,8 @@ Checking a connector against your own service, with the same code the
 application uses:
 
 ```bash
-ORAKUL_PROBE_SERVICE=mattermost ORAKUL_PROBE_TOKEN=… \
-ORAKUL_PROBE_HOST=chat.company.ru ORAKUL_PROBE_SCOPE=team-id \
+CRUXWING_PROBE_SERVICE=mattermost CRUXWING_PROBE_TOKEN=… \
+CRUXWING_PROBE_HOST=chat.company.ru CRUXWING_PROBE_SCOPE=team-id \
 bash scripts/test-filter.sh app LiveConnectorProbe
 ```
 
@@ -133,14 +133,14 @@ arm64 and x86_64. The fast single-architecture variant,
 `(cd app && MEETGPT_ARCH=arm64 ./notarize.sh && ./dmg.sh)`, leaves the second DMG
 at yesterday's build, and the check below will say so.
 To check both built or downloaded DMGs explicitly:
-`bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg app/dist/orakul-Intel.dmg`.
+`bash scripts/audit-dmg.sh app/dist/cruxwing-AppleSilicon.dmg app/dist/cruxwing-Intel.dmg`.
 The script verifies the signature and the attached notarization ticket, reads the
 full commit and the SHA-256 of sources, manifests, lockfile and packaging inputs
 out of each file, and compares them against the current tree. This is freshness
 diagnostics from the artifact's own self-report, not proof of a reproducible
 build: the stamp is reported by the DMG itself.
-A new public release must contain both files — `orakul-AppleSilicon.dmg` and
-`orakul-Intel.dmg` — from one commit, with a Developer ID signature and an Apple
+A new public release must contain both files — `cruxwing-AppleSilicon.dmg` and
+`cruxwing-Intel.dmg` — from one commit, with a Developer ID signature and an Apple
 notarization ticket. The stamp inside a DMG shows which source state that
 particular file belongs to; the historical `v0.1.0` does not match this tree and
 is deliberately rejected by the new check.
@@ -166,15 +166,15 @@ computes the sums over both images and prints the finished file. Cruxwing is not
 submitted to the main `homebrew-cask`: they require the project to be well known,
 and with zero stars there is nothing to argue about.
 To check for yourself: `spctl -a -vv -t open --context context:primary-signature
-orakul-AppleSilicon.dmg` should answer `accepted, source=Notarized Developer ID`.
+cruxwing-AppleSilicon.dmg` should answer `accepted, source=Notarized Developer ID`.
 
 If you already have whisper.cpp installed, transcription works too — Cruxwing runs
 your own program, substituting the path for `{file}`:
 
 ```bash
-export ORAKUL_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {file}"
-orakul transcribe call.wav "Pricing standup"
-orakul search what did we decide about pricing
+export CRUXWING_ENGINE="whisper-cli -m ~/models/ggml-large-v3.bin -l ru -otxt -f {file}"
+cruxwing transcribe call.wav "Pricing standup"
+cruxwing search what did we decide about pricing
 ```
 
 A 16 kHz WAV is required. If the rate differs, Cruxwing will not resample it
@@ -201,9 +201,9 @@ out.
 ### Seeing how search works
 
 ```swift
-import OrakulCore
+import CruxwingCore
 
-let store = SessionStore(root: URL(fileURLWithPath: "/tmp/orakul"))
+let store = SessionStore(root: URL(fileURLWithPath: "/tmp/cruxwing"))
 try store.save(.init(id: "s1",
                      title: "Pricing standup",
                      date: "2026-07-24",
@@ -262,7 +262,7 @@ request are described in [SECURITY.md](SECURITY.md).
 | `PromptCatalog` | Quick-action buttons, their text in JSON |
 
 The core knows nothing about SwiftUI, CoreML or ScreenCaptureKit. A Windows port
-costs exactly what lies outside `OrakulCore`: audio capture (WASAPI instead of
+costs exactly what lies outside `CruxwingCore`: audio capture (WASAPI instead of
 ScreenCaptureKit) and the shell.
 
 This is held in place by a test rather than by intent: `PortabilityTests` allows
@@ -348,7 +348,7 @@ tool for people who left forums where decisions are made in silence.
 
 You can check which code a Linux package was built from the same way as for
 macOS: the stamp is inside the file, not in the build log.
-`bash scripts/audit-package.sh orakul_0.1.0-179_arm64.deb` reads it and recomputes
+`bash scripts/audit-package.sh cruxwing_0.1.0-179_arm64.deb` reads it and recomputes
 the hash over the tree.
 
 **There is one maintainer here.** That is neither modesty nor an invitation to

@@ -15,7 +15,7 @@ import { stripComments } from './swift-source.mjs';
 // «Запись остаётся на вашем компьютере» — довод продукта, и он про это тоже.
 // Дальше правило спрашивается у каждого, кто пишет на диск, а не вспоминается.
 
-const ROOTS = ['app/Sources/MeetGPT', 'mvp/Sources/OrakulCore'];
+const ROOTS = ['app/Sources/MeetGPT', 'mvp/Sources/CruxwingCore'];
 
 // Пишущие, которым права задавать НЕ надо, и почему.
 const EXEMPT = {

@@ -13,13 +13,13 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-BIN="$(swift build --package-path mvp -c release --show-bin-path)/orakul"
+BIN="$(swift build --package-path mvp -c release --show-bin-path)/cruxwing"
 [ -x "$BIN" ] || { echo "нет собранной программы: $BIN"; exit 1; }
 
 WORK="$(mktemp -d)"
 cleanup() { rm -rf "$WORK"; }
 trap cleanup EXIT
-export ORAKUL_HOME="$WORK/архив"
+export CRUXWING_HOME="$WORK/архив"
 
 TRANSCRIPT="$WORK/расшифровка.txt"
 printf 'Аня: По тарифам решили поднять месячный на пятнадцать процентов.\nБорис: Я выкачу к пятнице.\n' > "$TRANSCRIPT"

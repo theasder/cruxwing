@@ -43,7 +43,7 @@ test('объяснение говорит о своём сервере, а не 
 // своей сети. HTTP при этом разрешён только на loopback этой же машины; LAN
 // не становится безопасным транспортом только потому, что он локальный.
 test('разрешение своей сети в коде и объяснение в plist — про одно и то же', () => {
-  const code = readFileSync('mvp/Sources/OrakulCore/ConnectorAddress.swift', 'utf8');
+  const code = readFileSync('mvp/Sources/CruxwingCore/ConnectorAddress.swift', 'utf8');
   assert.match(code, /isLoopback/, 'ConnectorAddress больше не различает loopback');
   assert.match(code, /scheme == "http" && isLoopback\(host\)/,
     'HTTP снова разрешён не только для loopback');

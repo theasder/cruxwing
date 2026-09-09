@@ -11,7 +11,7 @@ import { join } from 'node:path';
 // двадцатью утверждениями, — и все они числились пройденными.
 //
 // У Swift Testing для этого есть `.enabled(if:)`: пропуск виден в отчёте.
-const ROOTS = ['app/Tests/MeetGPTTests', 'mvp/Tests/OrakulCoreTests'];
+const ROOTS = ['app/Tests/MeetGPTTests', 'mvp/Tests/CruxwingCoreTests'];
 
 // Состояние СБОРКИ ИЛИ СРЕДЫ, а не подставленное в самом тесте: именно оно
 // делает проверку молчаливой на одной машине и говорящей на другой.

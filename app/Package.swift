@@ -21,7 +21,7 @@ let package = Package(
         // Test-only: inspect SwiftUI view hierarchies to assert view-logic
         // (conditional rendering, labels, disabled state) without a UI host.
         .package(url: "https://github.com/nalexn/ViewInspector.git", from: "0.9.0"),
-        // Портируемое ядро orakul: русский словарь, поиск по звонкам, архив.
+        // Портируемое ядро cruxwing: русский словарь, поиск по звонкам, архив.
         // Оно же — то, что переживёт порт на Windows: `PortabilityTests` не
         // пускает туда ничего, кроме Foundation.
         //
@@ -36,7 +36,7 @@ let package = Package(
                 .product(name: "MCP", package: "swift-sdk"),
                 .product(name: "WhisperKit", package: "WhisperKit"),
                 .product(name: "FluidAudio", package: "FluidAudio"),
-                .product(name: "OrakulCore", package: "mvp")
+                .product(name: "CruxwingCore", package: "mvp")
             ],
             path: "Sources/MeetGPT",
             // Vendored third-party Agent Skills (permissively licensed) copied

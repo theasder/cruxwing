@@ -1,0 +1,168 @@
+import Foundation
+
+/// Архив созвонов на диске.
+///
+/// Три решения, каждое из которых кому-то уже стоило данных:
+///
+/// 1. **Один файл на встречу.** Общий индекс удобнее ровно до первой
+///    повреждённой записи: тогда теряется весь архив, а не одна встреча.
+/// 2. **Атомарная запись.** Сначала во временный файл, потом переименование.
+///    Приложение, убитое посреди записи, оставляет целой старую версию, а не
+///    половину новой.
+/// 3. **Битый файл не останавливает загрузку.** Он пропускается и попадает в
+///    `skipped`, потому что «архив не открылся» — худший возможный ответ
+///    человеку, у которого там год работы.
+///
+/// Формат — читаемый человеком JSON: это его записи, и он должен иметь
+/// возможность посмотреть их без нашего приложения.
+public struct SessionStore: Sendable {
+
+    public let root: URL
+
+    public init(root: URL) {
+        self.root = root
+    }
+
+    public enum StoreError: Error, Equatable {
+        case identifierUnusableAsFilename(String)
+    }
+
+    /// Результат загрузки: что прочиталось и что не смогло.
+    public struct Archive: Sendable {
+        public let sessions: [RecallIndex.Session]
+        /// Имена файлов, которые не разобрались. Пустой список — норма;
+        /// непустой обязан быть виден, а не проглочен.
+        public let skipped: [String]
+    }
+
+    // MARK: - Запись
+
+    /// Сохраняет встречу. Идентификатор становится именем файла, поэтому он
+    /// проверяется: путь с «..» или косой чертой — это запись мимо архива.
+    public func save(_ session: RecallIndex.Session) throws {
+        guard isUsableAsFilename(session.id) else {
+            throw StoreError.identifierUnusableAsFilename(session.id)
+        }
+        // Права 0700 на каталоге и 0600 на файлах.
+        //
+        // Здесь лежат расшифровки целиком — то, ради чего продукт и говорит
+        // «запись остаётся на вашем компьютере». Про сеть это было правдой, а
+        // на самом компьютере файлы создавались обычными правами: их читал любой
+        // процесс под тем же пользователем. Довод «данные остаются у вас»
+        // означает и это тоже.
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true,
+                                                attributes: [.posixPermissions: 0o700])
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        let data = try encoder.encode(session)
+
+        // Временный файл рядом, а не в /tmp: переименование обязано остаться в
+        // пределах одной файловой системы, иначе это копирование, и атомарность
+        // теряется ровно там, где она нужна.
+        let destination = url(for: session.id)
+        let temporary = root.appendingPathComponent(".\(session.id).tmp")
+        // Права задаются при СОЗДАНИИ временного файла: он и станет постоянным
+        // после переименования. Поправить их следом значило бы оставить окно, в
+        // котором расшифровка лежит открытой, — короткое, но настоящее.
+        try? FileManager.default.removeItem(at: temporary)
+        // Сначала пустой файл с нужными правами, потом запись в него.
+        //
+        // Результат `createFile` намеренно не проверяется: если каталог закрыт,
+        // об этом скажет `write` — настоящей ошибкой системы, которую командная
+        // строка переводит человеку как «Нет прав на запись». Первая версия
+        // бросала здесь свою ошибку и подменяла причину; набор это поймал.
+        //
+        // Запись без `.atomic`: атомарность даёт переименование ниже, а
+        // `.atomic` создало бы ещё один файл со своими правами и стёрло эти.
+        _ = FileManager.default.createFile(atPath: temporary.path, contents: nil,
+                                           attributes: [.posixPermissions: 0o600])
+        try data.write(to: temporary)
+        // Замена — снятие старого файла и переименование, а не `replaceItemAt`.
+        // Причина не во вкусе: в swift-corelibs-foundation этот метод на
+        // повторном сохранении отвечает NSFileNoSuchFileError (код 4), то есть
+        // второй `cruxwing добавить` с тем же идентификатором на Linux падал бы, а
+        // на macOS работал. Найдено прогоном набора в `swift:6.0` 2026-08-17.
+        //
+        // Атомарность остаётся там, где она нужна: содержимое пишется целиком во
+        // временный файл и въезжает на место одним переименованием внутри той же
+        // файловой системы. Окно между удалением и переименованием есть, и это
+        // цена одинакового поведения на всех системах; данные в нём не теряются —
+        // они уже лежат рядом, во временном файле.
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        try FileManager.default.moveItem(at: temporary, to: destination)
+    }
+
+    /// Удаляет встречу. Возвращает false, если такой встречи не было.
+    ///
+    /// Раньше отсутствие файла молча считалось успехом, и команда печатала
+    /// «Удалено: <идентификатор>» про запись, которой никогда не существовало.
+    /// Для `cruxwing удалить $id && дальше` это означало, что опечатка в
+    /// идентификаторе не останавливает сценарий.
+    @discardableResult
+    public func delete(id: String) throws -> Bool {
+        let url = url(for: id)
+        guard FileManager.default.fileExists(atPath: url.path) else { return false }
+        try FileManager.default.removeItem(at: url)
+        return true
+    }
+
+    // MARK: - Чтение
+
+    /// Весь архив, свежие встречи первыми.
+    public func load() -> Archive {
+        let manager = FileManager.default
+        guard let names = try? manager.contentsOfDirectory(atPath: root.path) else {
+            // Каталога нет — архив и правда пуст: это первый запуск, и «искать
+            // пока негде» верно.
+            //
+            // Каталог есть, а прочитать его не вышло (права, битая файловая
+            // система) — это отказ. Сказать тут «архив пуст» значит уверенно
+            // сообщить, что звонков нет, тогда как они, возможно, лежат рядом
+            // и просто недоступны. Человек поверит и начнёт заново.
+            guard manager.fileExists(atPath: root.path) else {
+                return Archive(sessions: [], skipped: [])
+            }
+            return Archive(sessions: [], skipped: [root.lastPathComponent + "/"])
+        }
+
+        var sessions: [RecallIndex.Session] = []
+        var skipped: [String] = []
+        let decoder = JSONDecoder()
+
+        for name in names.sorted() where name.hasSuffix(".json") && !name.hasPrefix(".") {
+            let url = root.appendingPathComponent(name)
+            guard let data = try? Data(contentsOf: url),
+                  let session = try? decoder.decode(RecallIndex.Session.self, from: data) else {
+                skipped.append(name)
+                continue
+            }
+            sessions.append(session)
+        }
+
+        // По убыванию даты; при равных датах — по идентификатору, чтобы порядок
+        // не зависел от того, в каком виде файловая система вернула имена.
+        sessions.sort { $0.date != $1.date ? $0.date > $1.date : $0.id < $1.id }
+        return Archive(sessions: sessions, skipped: skipped)
+    }
+
+    /// Индекс поиска по всему архиву.
+    public func index() -> RecallIndex {
+        RecallIndex(sessions: load().sessions)
+    }
+
+    // MARK: - Внутреннее
+
+    func url(for id: String) -> URL {
+        root.appendingPathComponent("\(id).json")
+    }
+
+    /// Идентификатор, безопасный как имя файла.
+    func isUsableAsFilename(_ id: String) -> Bool {
+        guard !id.isEmpty, id.count <= 128, !id.hasPrefix(".") else { return false }
+        let forbidden = CharacterSet(charactersIn: "/\\:\0")
+        return id.rangeOfCharacter(from: forbidden) == nil
+    }
+}

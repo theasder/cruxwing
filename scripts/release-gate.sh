@@ -61,7 +61,7 @@ git show-ref --verify --quiet "$ref" || {
 object_type="$(git cat-file -t "$ref" 2>/dev/null || true)"
 if [ "$object_type" != "tag" ]; then
     echo "!! $tag — lightweight tag; для выпуска нужен аннотированный тег" >&2
-    echo "   Создайте его после review: git tag -a $tag -m 'orakul $tag'" >&2
+    echo "   Создайте его после review: git tag -a $tag -m 'cruxwing $tag'" >&2
     exit 1
 fi
 

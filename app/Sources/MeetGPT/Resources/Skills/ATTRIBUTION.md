@@ -1,6 +1,6 @@
 # Vendored Agent Skills — attribution and licenses
 
-Orakul ships exactly nine third-party Agent Skills as methodology data. Each
+Cruxwing ships exactly nine third-party Agent Skills as methodology data. Each
 `SKILL.md` has been individually reviewed for the built-in prompt scopes named
 in `runtime-allowlist.json`; there is no bundled catalog of unreviewed skills.
 All nine are MIT-licensed and remain copyright their original authors.
@@ -33,7 +33,7 @@ provenance, metadata, and runtime policy to describe the same exact set.
 | `alirezarezvani/claude-skills` | MIT | `LICENSE-MIT-alirezarezvani.txt` | [LICENSE at `f2bac0a`](https://github.com/alirezarezvani/claude-skills/blob/f2bac0a8f29b71846cc62d9d580249c2a3246030/LICENSE) |
 
 The manifest pins the exact SHA-256 digest of both full license files. The
-CycloneDX 1.6 SBOM at `Support/Legal/Orakul.cdx.json` records these nine data
+CycloneDX 1.6 SBOM at `Support/Legal/Cruxwing.cdx.json` records these nine data
 components separately from executable Swift packages and embedded library
 sources. `Support/Legal/MANIFEST.sha256` covers the SBOM and legal payload.
 

@@ -90,6 +90,6 @@ final class MeetingReminderScheduler {
         let clock = formatter.string(from: start)
         let lead = max(1, minutesBefore)   // mirrors the lead clamp in `sync`
         return ("Call soon: \(title)",
-                "Starts in \(lead) min (\(clock)) — open orakul to record it.")
+                "Starts in \(lead) min (\(clock)) — open cruxwing to record it.")
     }
 }

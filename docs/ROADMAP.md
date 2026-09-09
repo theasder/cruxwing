@@ -1,4 +1,4 @@
-# orakul — roadmap
+# cruxwing — roadmap
 
 ## 1. What this file is
 
@@ -28,7 +28,7 @@ State: v1, 2026-08-17.
 | Stars and forks | 0 and 0 | same |
 | Open issues | 1, «good first issue» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
-| Page | As of 2026-08-17 it served «orakul.ai — звонок, который можно спросить» | historical `curl` |
+| Page | As of 2026-08-17 it served «cruxwing.ai — звонок, который можно спросить» | historical `curl` |
 | Page and doc checks | `npm test`; the runner reports the current total | root CI |
 | App and core checks | `cd app && swift test`; `cd mvp && swift test` | macOS CI |
 | Full-run stability | one suite fails intermittently — see below | six consecutive full runs 2026-08-18 |
@@ -59,7 +59,7 @@ the next step is capturing which neighbour wrote what, not another guess.
 
 | Layer | Connected | Where in code |
 |---|---|---|
-| Russian trackers — **no longer offered** (2026-09-09), the code still works | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/OrakulCore/RussianTrackers.swift` |
+| Russian trackers — **no longer offered** (2026-09-09), the code still works | Яндекс Трекер, Kaiten, YouGile, WEEEK, Битрикс24 | `mvp/Sources/CruxwingCore/RussianTrackers.swift` |
 | Work messengers (Пачка **no longer offered**, code still works) | Пачка, **Mattermost**, **Rocket.Chat**, Slack, Zulip, **Matrix / Element** | `WorkMessengers.swift` |
 | Own servers: code and tasks | **GitLab**, **Gitea / Forgejo**, **Redmine**, **Plane**, GitFlic, Self-hosted Jira | `SelfHostedTrackers.swift` |
 | Notes and wikis | Outline, **BookStack**, **Wiki.js**, **Nextcloud** | `TeamNotes.swift` |
@@ -82,7 +82,7 @@ The MCP catalog holds six more descriptors: Asana, HubSpot, Affinity, Zoom,
 Gmail, Google Analytics. They need a **pre-registered** app, meaning credentials
 inside the build, and credentials stay out of shipped installers on purpose
 (`app/build.sh`: a dist build emits only explicitly named settings — §5.2; plan
-§9.1). So downloaded orakul has no such six buttons.
+§9.1). So downloaded cruxwing has no such six buttons.
 
 Not a defect — a consequence of the rule. What was a defect is §5.2: four
 credential names slipped past the list that used to enforce it, closed
@@ -141,7 +141,7 @@ person's own words about their own meeting. That path was first made explicit
 and testable; the public-source hardening pass then removed the uploader,
 first-meeting prompt, and endpoint from the compiled application altogether.
 `OffDeviceTrafficTests` now makes that structural absence the invariant instead
-of preserving a queue for a service Orakul does not operate.
+of preserving a queue for a service Cruxwing does not operate.
 
 **One of these lines was not true until 2026-08-18, and the way it failed is
 worth keeping.** The server halt read `sw BACKEND_URL` — while `sw` blanks that
@@ -182,8 +182,8 @@ on this, and that is the right outcome, not debt.
 
 ### 5.1 Page `/ru` belongs to another product
 
-`public/ru/` sits in the repo and holds a **Cruxwing landing**, not orakul: 53
-mentions of cruxwing and zero of orakul, `rel="canonical"` points at
+`public/ru/` sits in the repo and holds a **Cruxwing landing**, not cruxwing: 53
+mentions of cruxwing and zero of cruxwing, `rel="canonical"` points at
 `https://cruxwing.ai/ru/`, and the pricing block promises paid plans — straight
 against plan §5, «free, whole».
 
@@ -191,11 +191,11 @@ against plan §5, «free, whole».
 and `/ru/` both answer 404, as does every file under them, while `/demo-film/`
 at the root answers 200 — the directory has never been published. The page is
 committed on the deploying branch of the other repository; the site there is
-simply older than it. So publishing this copy on the orakul site would announce
+simply older than it. So publishing this copy on the cruxwing site would announce
 a canonical pointing at an address that does not exist — on top of it being
 another product's page with prices.
 
-`https://theasder.github.io/orakul/ru/` returns 404 only because the commits
+`https://theasder.github.io/cruxwing/ru/` returns 404 only because the commits
 carrying that page are unpushed — thirty-nine of them by 2026-08-18, up from two.
 Workflow `pages.yml` fires on any change under `public/**`, so the first `push`
 would publish a pricing page on the site of a product that has no prices.
@@ -214,7 +214,7 @@ remain open and remain the owner's:
 
 1. move `public/ru/` back to the Cruxwing repo it came from;
 2. **done** — kept here, excluded from publishing;
-3. rewrite it for orakul: no prices, own identity, own `canonical`.
+3. rewrite it for cruxwing: no prices, own identity, own `canonical`.
 
 **The check that stops it returning** is `test/publikaciya.test.mjs`: no page in
 the *published* set may carry «Cruxwing» in its title or a `canonical` off
@@ -318,7 +318,7 @@ such condition:
 brew install --cask theasder/cruxwing/cruxwing
 ```
 
-**Done:** `packaging/homebrew/orakul.rb.template` plus `scripts/refresh-cask.sh`,
+**Done:** `packaging/homebrew/cruxwing.rb.template` plus `scripts/refresh-cask.sh`,
 which builds the cask from the images that were actually produced — version read
 from `Info.plist`, minimum macOS from `config/app.json` (translated to Homebrew's
 codename), and both `sha256` sums computed from the files themselves. It refuses
@@ -330,7 +330,7 @@ app name in the cask matches the one `dmg.sh` actually ships — the two differ 
 different application, so microphone and screen-recording permissions do not
 carry over.
 
-**Left, and it is not code:** create `theasder/homebrew-orakul` and push the
+**Left, and it is not code:** create `theasder/homebrew-cruxwing` and push the
 generated file. Homebrew resolves a tap to a repository named
 `homebrew-<tap>`, so it cannot live beside the sources.
 
@@ -424,12 +424,12 @@ Exactly three things block it, all visible in the manifest:
 
 | Blocker | Where | Fix |
 |---|---|---|
-| `import AVFoundation` | `mvp/Sources/orakul`, command line | put under `#if canImport(AVFoundation)`; other systems keep the path through `ExternalTranscriber` |
-| `import SwiftUI` | `mvp/Sources/OrakulApp`, window | declare target and product conditionally, so a Linux build does not fall apart on the window |
+| `import AVFoundation` | `mvp/Sources/cruxwing`, command line | put under `#if canImport(AVFoundation)`; other systems keep the path through `ExternalTranscriber` |
+| `import SwiftUI` | `mvp/Sources/CruxwingApp`, window | declare target and product conditionally, so a Linux build does not fall apart on the window |
 | `platforms: [.macOS(.v14)]` | `mvp/Package.swift` | SwiftPM ignores the field on Linux, but verify by a run, not by reasoning |
 
 **Done 2026-08-17, and it found what the import check could not.** The three
-blockers above are fixed and a `linux-core` job builds `OrakulCore` and the
+blockers above are fixed and a `linux-core` job builds `CruxwingCore` and the
 command line on `ubuntu-latest` in `swift:6.0`. Measured, not reasoned: the
 first Linux build failed outright.
 
@@ -454,7 +454,7 @@ on Linux as well — 411 tests pass, 3 skip with a stated reason.
 | Class | What it actually was | Fix |
 |---|---|---|
 | Windows-1251 | `data(using: .windowsCP1251)` returns nil on corelibs: the encoding is simply absent. A CP1251 transcript — the kind Windows writes — was readable **only on macOS**. Product gap, not test noise | Own table, `CP1251`, used on every platform. `CP1251EquivalenceTests` compares it with Foundation's across all 256 bytes wherever Foundation has one, so a hand-typed table cannot quietly disagree |
-| Foundation behaviour | `URL(string: "")` is nil on Darwin and **non-nil** on corelibs, so a task with no link came back carrying a link to nowhere. `replaceItemAt` answers «file doesn't exist» on re-save, so a second `orakul добавить` with the same id failed on Linux | `RussianTrackers.link(_:)` refuses an empty string before building a URL; `SessionStore.save` removes and renames instead of `replaceItemAt`, keeping the write atomic where it matters |
+| Foundation behaviour | `URL(string: "")` is nil on Darwin and **non-nil** on corelibs, so a task with no link came back carrying a link to nowhere. `replaceItemAt` answers «file doesn't exist» on re-save, so a second `cruxwing добавить` with the same id failed on Linux | `RussianTrackers.link(_:)` refuses an empty string before building a URL; `SessionStore.save` removes and renames instead of `replaceItemAt`, keeping the write atomic where it matters |
 | Permissions | The container runs as root, and `chmod 000` does not stop root — the refusals those tests assert cannot happen there | `PermissionProbe` asks by **doing**: creates a directory, strips its permissions, tries to read it. Where permissions do not bite, the two tests skip with the reason printed. Not `getuid() == 0` — the question is whether permissions stop us, not who we are |
 
 The first class is the one that mattered for the audience this is written for:
@@ -462,7 +462,7 @@ Windows writes CP1251, and the whole point of §6.1 is that Windows is where the
 users are.
 
 **Then the program itself was run, and that found what no test could
-(2026-08-18).** `orakul record` on Linux printed «Записываю 5 с. Говорите…»
+(2026-08-18).** `cruxwing record` on Linux printed «Записываю 5 с. Говорите…»
 and only afterwards admitted recording does not exist on that system. Every test
 was green: the function behaved exactly as designed, while the program invited
 someone to speak into a microphone that cannot be there — the defect class of
@@ -495,7 +495,7 @@ and that person is exactly who can show the real server answer.
 
 **First slice landed 2026-08-18.** `ConnectorManifest` (the description),
 `ManifestConnector` (one engine), and three manifests under
-`mvp/Sources/OrakulCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
+`mvp/Sources/CruxwingCore/Resources/connectors/` — `gitea`, `gitlab`, `redmine`.
 **Today there are 21**, and the number is counted from that directory rather
 than remembered: «three» dated to the day it was true reads, two weeks later,
 like a project that stopped.
@@ -825,7 +825,7 @@ transcripts), and three of its fields exist for honesty rather than parsing:
   which means it cannot be disputed either.
 
 **Checked before use:** `bash scripts/corpus-check.sh <folder>` (or
-`orakul corpus <folder>`) parses the manifest, verifies every named file
+`cruxwing corpus <folder>`) parses the manifest, verifies every named file
 exists, refuses duplicate ids, and prints the per-genre counts. A missing file
 does not fail a measurement — it silently shrinks the corpus, and the average is
 then computed over the remainder and looks convincing.
@@ -960,7 +960,7 @@ Thirty-eight phrases translated across seven views, and
 
 Two exclusions are deliberate and tested, because a scan that flags them teaches
 people to disable it: an accessibility **identifier** is a name the suites search
-by, not speech, and a list of proper nouns («orakul, RICE, ARR, Kubernetes…») is
+by, not speech, and a list of proper nouns («cruxwing, RICE, ARR, Kubernetes…») is
 names, not English. Both were found by the scan flagging them first.
 
 And one exclusion was wrong in a way worth recording: «anything containing a
@@ -1107,7 +1107,7 @@ both are general rather than Plane-specific:
 * **The coverage reaching the answer.** `SelfHostedTrackers.run` returns the note
   next to the items, and `ConnectorQuery` prints it — including under «ничего не
   нашлось», which is the case that lies without it. From the command line the
-  fields travel as `ORAKUL_FIELD_workspace=…`, and the names come from the
+  fields travel as `CRUXWING_FIELD_workspace=…`, and the names come from the
   manifest rather than a second list in the CLI.
 
 «Подключено» in settings is now decided by the same code as the connector's own
@@ -1309,7 +1309,7 @@ server of my own, recording a real connector request, answered the question:
 «MeetGPT/… CFNetwork/… Darwin/24.6.0». Every connected service saw that,
 a competitor's included, along with the machine's macOS version.
 
-Connectors now introduce themselves deliberately — `orakul/<version>`, on the
+Connectors now introduce themselves deliberately — `cruxwing/<version>`, on the
 shared session rather than per connector, and with nothing about the machine.
 Naming yourself is politeness and some APIs require it; listing your OS version
 to a stranger is a fingerprint, not an introduction.
@@ -1322,7 +1322,7 @@ way, and a document travels further than a request.
 
 Historical correction (2026-08-25): that storage exception was unsafe for a
 public fork. Production data now lives under
-`Application Support/ai.orakul.desktop`; ambiguous `MeetGPT` data may belong to
+`Application Support/ai.cruxwing.desktop`; ambiguous `MeetGPT` data may belong to
 the parent product and is never read or imported automatically. A future import
 must be explicit and user-selected rather than inferred from a shared path.
 
@@ -1508,7 +1508,7 @@ parsing.
 
 **The command line told the truth about coverage and the app did not.** A
 bounded listing presented as a search is the same class as a confident sentence
-about something that never happened — and it was shipping. `orakul search` has
+about something that never happened — and it was shipping. `cruxwing search` has
 printed «просмотрены последние 500 из 1500» since the bound existed. During a
 call, the same finding reached the model with no such line: every branch of the
 fan-out called `search`, whose own comment in the core says «то же самое без
@@ -1749,7 +1749,7 @@ a technical one.
 2. **The interface says what the token really grants.** Not in small print: the
    credential hint states that the token is personal, that Slack allows no bot
    here, that it covers everything that person can see including DMs, and that
-   orakul discards the private part. A test pins those words, because this is
+   cruxwing discards the private part. A test pins those words, because this is
    the one screen where a person decides whether to hand that over.
 
 What honesty requires naming: condition 1 is about what reaches the model and
@@ -1956,7 +1956,7 @@ Wiki.js and Plane shape the script already cleans up after. And the team id
 travelled as the probe's `scope` rather than as a manifest field, because the
 messenger branch of the probe did not read manifest fields at all — a real limit
 of that harness rather than a detail of Mattermost. **Closed 2026-08-20:** the
-probe takes the field's name from the manifest, so `ORAKUL_FIELD_<name>` — the
+probe takes the field's name from the manifest, so `CRUXWING_FIELD_<name>` — the
 spelling anyone arriving from the trackers will try first — now works, and the
 Mattermost run was repeated to prove it.
 
@@ -2056,7 +2056,7 @@ by assumption. The second one is measurable: an issue «Windows needed» with
 votes, not our guess about the corporate fleet.
 
 **The deb exists as of 2026-08-18 — and the first one did not work.**
-`scripts/package-linux.sh` builds `orakul_<version>_<arch>.deb`, and CI builds
+`scripts/package-linux.sh` builds `cruxwing_<version>_<arch>.deb`, and CI builds
 and installs it on every pull request.
 
 The first version installed cleanly and then failed to start: `error while
@@ -2101,7 +2101,7 @@ build in a scratch directory named after the image's own `/etc/os-release`.
 **And both scripts refused to invent a version.** Missing `git` inside the
 Fedora image made the release number silently `0`; a package numbered after
 nothing is worse than a failed build, so they now stop and ask for
-`ORAKUL_RELEASE` explicitly.
+`CRUXWING_RELEASE` explicitly.
 
 **Astra Linux and ALT: tested 2026-08-18, and the first answer was «no».**
 Both ship container images, so «plausible» could be replaced with a measurement —
@@ -2173,7 +2173,7 @@ scripts and refuses exactly this contradiction.
 
 - **Glossary as a shared resource — first slice 2026-08-18.** The two lists a
   contributor actually extends now live in
-  `mvp/Sources/OrakulCore/Resources/lexicon/base.json`, not in Swift: adding a
+  `mvp/Sources/CruxwingCore/Resources/lexicon/base.json`, not in Swift: adding a
   term is editing data, exactly as with connectors. A parity test holds the pack
   word-for-word against the tables the product still reads.
 
@@ -2303,7 +2303,7 @@ scripts and refuses exactly this contradiction.
 Every connector here reads somebody else's API, and several of those somebodies
 sell a competing product. They cannot touch this repository; they can change
 their own service, legally and without notice. So the question is not «will they
-block us» — a block is visible — but **which hostile change leaves orakul
+block us» — a block is visible — but **which hostile change leaves cruxwing
 answering cheerfully while being wrong**.
 
 Played as the attacker against the real code. What landed:
@@ -2326,7 +2326,7 @@ Played as the attacker against the real code. What landed:
 | Write the refusal yourself | A refusal is passed on in the service's own words, and that is right: «answered with 400» sends a person to fix the wrong thing, «the queue field is required» fixes it. But those words are written by somebody with their own interests, and they land on screen at the most obedient moment there is — a person has just been refused and is ready to go and fix something. They were shown raw: any length, newlines intact, no cleaning. A newline draws whatever you like underneath, including a line that looks like ours; a wall of text pushes our own sentence — the one saying whose words these are — off the screen entirely | One line, bounded at 160 with a visible ellipsis, invisible characters stripped. The address inside is **not** removed: the product promises to show the source, and a person who sees it whole judges it. What must be hidden is a swapped address, and that is `VendorLink`'s job. All five families go through the one rule, and a test fails if a family stops |
 | Say who said it | «Who said this» is not decoration on a transcript line, it is the product — the thing that answers «кто что решил». On the Fireflies path that line is written by a service selling a competing product, about somebody else's meeting. The guard for it existed and was reasoned well — one to three words, forty characters — and stood at the **second** of two doors: the plain-text parse checked the name, the JSON parse, which is the one Fireflies actually uses, took the field raw. Any length, newlines intact, invisible characters included | The same door as every other vendor word: one line, no invisible characters, bounded. Here the bound **refuses** rather than truncates — a paragraph is not a long name, and «Артём Дремов, согласовал по…» would read as a real name nobody has. No attribution beats an invented one, and the line itself is kept either way. What this cannot do is stop the service naming the wrong person: it supplies the whole transcript. But a swap now fits in forty characters and one line, and a hidden paragraph of instructions does not |
 | Read the report we ask people to publish | Not a vendor move — ours, and it aims the wrong way. `ConnectorProbeReport` exists so a connector can be checked by someone who has an account where the maintainer has none, and it says at the bottom, in as many words, that it may be attached to a pull request. The token is scrubbed four ways — by header name, by value, by halves of a compound key, by percent-encoding — and beside all that it printed **the first row's title in full**: a real task out of the contributor's own tracker, «Пересмотр тарифов для такого-то с декабря», into a public thread that anyone reads, competitors included. The secret was guarded and the company's data walked out next to it | The maintainer needs proof that the **right field** was read, not its text: the title is reported as its length and alphabet («17 знаков, кириллица»). Cyrillic is the useful part — it distinguishes a real title from a substituted keyword. An empty answer still reads as an empty answer, which is a different thing from «the shape was not recognised» |
-| Put the address inside the words, part two | The screen was fixed; the **export** was not. The answer travels to Notion as raw markdown, and Notion renders `[слова](адрес)` as a link on its side. Same hidden address, worse door: the page is opened by colleagues, so more people click it, and the page says «orakul» at the top. The blind spots and the earlier answers went the same way | The same rule expressed for markdown rather than for parsed text: the words stay, the address is written out beside them, and an address identical to its label is not repeated. Checked in the neighbouring export too — the Google Docs HTML escapes everything first and never builds a link, so `[x](y)` stays literal text there |
+| Put the address inside the words, part two | The screen was fixed; the **export** was not. The answer travels to Notion as raw markdown, and Notion renders `[слова](адрес)` as a link on its side. Same hidden address, worse door: the page is opened by colleagues, so more people click it, and the page says «cruxwing» at the top. The blind spots and the earlier answers went the same way | The same rule expressed for markdown rather than for parsed text: the words stay, the address is written out beside them, and an address identical to its label is not repeated. Checked in the neighbouring export too — the Google Docs HTML escapes everything first and never builds a link, so `[x](y)` stays literal text there |
 | Let a source's silence speak for it | Not a vendor's move but a shape in our own answer, and the one §7.2 exists to forbid. The Telegram archive begins the moment the bot is connected — Bot API does not serve older history — so its emptiness means «we saw nothing before that date», not «this was never discussed». The source contributed **nothing at all** when it found nothing: no line in the prompt, no note, no mention that it was consulted. Silence read as absence, and «обсуждали раньше, чем появился бот» is often the true answer | The source answers every time. Its floor is stated as the day the archive actually starts, and the same line travels **with** findings too — writing it only on an empty result would leave an answer built on two messages quietly implying the source could see everything before them. An empty archive says it is empty rather than saying nothing |
 | …and the same hole where the vocabulary was invented | Telegram was one instance; the sweep found the general one. `SearchCoverage` exists for the difference between «searched everything» and «looked at the last 500 of 40 000», and it travelled **with findings** — while an empty result returned nothing at all. That is the single case where «part» and «all» sound identical to a reader, because both come out as «ничего не нашлось». A Plane project with forty thousand issues, scanned to its bound, finding nothing, said nothing | A source that saw only part now speaks when it finds nothing: «ничего не нашлось, но искали не везде — просмотрены последние 500 из 40 000». The rule needed no new vocabulary — `.searched` yields an empty note and everything else does not, so that distinction *is* the rule. A service that genuinely searched may still stay silent, and that is asserted too |
 | Simply not answer | The cheapest hostile act there is, and it needed no code on their side. Refusals **are** recorded — `ConnectorHealth` keeps the service's own words — and they are shown to the person in Settings, on that service's row. They never reached the **prompt**. So a call where the tracker stalled, the wiki refused and the messenger was throttled produced an answer built on the transcript alone, and it looked exactly like one checked against the sources. The same «confident claim about something unverified», assembled out of three services' silence at once | The fan-out ends by naming who did not answer, in the service's own words, and says that their silence is not evidence of absence. Only refusals recorded **after this fan-out started** count: that memory lives for the whole session, and without the cut a yesterday's refusal would ride into today's answer and send the person to fix what is not broken |
@@ -2858,7 +2858,7 @@ ignored, and the write reports the real error.
 **Somebody else's chat was sitting on disk with ordinary permissions.**
 `TeamWatcher` writes a line per keyword match into
 what was then `~/Library/Application Support/MeetGPT/team-watch.log` (now
-`~/Library/Application Support/ai.orakul.desktop/team-watch.log`), and that line carries up
+`~/Library/Application Support/ai.cruxwing.desktop/team-watch.log`), and that line carries up
 to 140 characters of a message from a work chat — Slack, Mattermost, Пачка —
 that a person let us watch. The size was thought about (512 KB, one rotation);
 the permissions were not, so any process running as that user could read it,
@@ -2898,7 +2898,7 @@ doing: turning a key into prose fails, and **renaming a key also fails** — the
 second test asserts the permitted patterns still match something, so a
 compatibility decision cannot be quietly reversed either.
 
-**orakul was introducing itself to every connected service as Cruxwing.** The
+**cruxwing was introducing itself to every connected service as Cruxwing.** The
 MCP client sent `Client(name: "Cruxwing", version: "1.0.0")` on connect, and the
 OAuth registration sent `clientName: "Cruxwing"` — the name the owner of the
 service sees when granting access, and the one that stays in their list of
@@ -3032,7 +3032,7 @@ is a guard tested against nothing — the shape of the pattern is now pinned by 
 check of its own.
 
 **The injection warning has never once been shown.** Following the competitor
-question to its most literal place — orakul consumes **Fireflies**, whose owner
+question to its most literal place — cruxwing consumes **Fireflies**, whose owner
 sells the competing product, and merges their transcript into the user's own —
 found the signal computed at write-staging and then dropped:
 `PendingAnswerAction` takes `injectionSignal`, the parameter has a default of
@@ -3064,7 +3064,7 @@ sentence a person reads before sending a colleague's voice to a cloud
 transcriber. It interpolated `diarizeDestination`, which returned «AssemblyAI
 with your own key»: an English fragment inside a Russian sentence («запись уйдёт
 в …»). The other branch returned «Cruxwing's backend (OpenAI)» — telling somebody
-who installed **orakul** that their meeting goes to a product they never heard
+who installed **cruxwing** that their meeting goes to a product they never heard
 of.
 
 That branch cannot run in a shipped build: `llmViaBackend` needs a backend
@@ -3370,7 +3370,7 @@ became `nil` and vanished. There was nowhere to read it even if it had been
 kept.
 
 This is the competitor scenario in its most effective form. A service that
-withdraws access does not have to break anything: from inside orakul, a revoked
+withdraws access does not have to break anything: from inside cruxwing, a revoked
 token is indistinguishable from a product that has quietly got worse at
 answering, and the person has nobody to blame but us.
 
@@ -3541,7 +3541,7 @@ immediately, and not for the reason it was written:
 
 * `URLSession.bytes(for:)` **does not exist** in swift-corelibs-foundation, so
   the streaming size limit added two days earlier broke the Linux build of
-  `OrakulCore` outright;
+  `CruxwingCore` outright;
 * `waitsForConnectivity` is **get-only** there, so the timeout work broke it a
   second time.
 

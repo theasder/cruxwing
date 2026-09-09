@@ -7,16 +7,16 @@ SWIFT_BUILD_ARGS=(-c release)
 SWIFT_SCRATCH="$ROOT/.build"
 case "$BUILD_ARCH" in
     native)
-        DEFAULT_APP_BASENAME="orakul"
+        DEFAULT_APP_BASENAME="cruxwing"
         ;;
     arm64|x86_64)
         SWIFT_SCRATCH="$ROOT/.build/$BUILD_ARCH"
         SWIFT_BUILD_ARGS+=(--triple "${BUILD_ARCH}-apple-macosx13.0"
                            --scratch-path "$SWIFT_SCRATCH")
         if [ "$BUILD_ARCH" = "x86_64" ]; then
-            DEFAULT_APP_BASENAME="orakul-Intel"
+            DEFAULT_APP_BASENAME="cruxwing-Intel"
         else
-            DEFAULT_APP_BASENAME="orakul"
+            DEFAULT_APP_BASENAME="cruxwing"
         fi
         ;;
     *)
@@ -83,7 +83,7 @@ SECRETS="$ROOT/Sources/MeetGPT/LocalSecrets.generated.swift"
 DIST="${MEETGPT_DIST:-0}"
 
 # A release commit must be enough to reconstruct the bytes being shipped.
-# OrakulSourceHash distinguishes two local builds, but it cannot recover files
+# CruxwingSourceHash distinguishes two local builds, but it cannot recover files
 # that were never committed; stamping HEAD alone would therefore make a dirty
 # release look attributable while leaving no source revision that can rebuild
 # it. Check the entire worktree (not only app/) before compiling.
@@ -131,10 +131,10 @@ require_clean_dist_tree() {
     #
     # LocalSecrets.generated.swift is the one deliberate exception. build.sh
     # creates it from .env for local builds, but DIST never enables
-    # ORAKUL_LOCAL_CONFIG, so it is neither compiled nor copied.
+    # CRUXWING_LOCAL_CONFIG, so it is neither compiled nor copied.
     untracked_inputs="$(git -C "$repo_root" ls-files --others \
         --exclude-standard -- \
-        app/Support app/Sources/MeetGPT mvp/Sources/OrakulCore 2>/dev/null)" || {
+        app/Support app/Sources/MeetGPT mvp/Sources/CruxwingCore 2>/dev/null)" || {
         echo "!! DIST build could not inspect untracked artifact inputs" >&2
         return 1
     }
@@ -146,7 +146,7 @@ require_clean_dist_tree() {
 
     ignored_inputs="$(git -C "$repo_root" ls-files --others --ignored \
         --exclude-standard -- \
-        app/Support app/Sources/MeetGPT mvp/Sources/OrakulCore 2>/dev/null)" || {
+        app/Support app/Sources/MeetGPT mvp/Sources/CruxwingCore 2>/dev/null)" || {
         echo "!! DIST build could not inspect ignored artifact inputs" >&2
         return 1
     }
@@ -159,9 +159,9 @@ require_clean_dist_tree() {
     done <<< "$ignored_inputs"
 
     if [ -n "$dirty_status" ]; then
-        if [ "${ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION:-0}" != "1" ]; then
+        if [ "${CRUXWING_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION:-0}" != "1" ]; then
             echo "!! DIST build requires a clean Git worktree; commit or remove all changes first" >&2
-            echo "!! For a non-release local build-path check only: ORAKUL_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION=1" >&2
+            echo "!! For a non-release local build-path check only: CRUXWING_ALLOW_DIRTY_DIST_FOR_LOCAL_VERIFICATION=1" >&2
             return 1
         fi
         DIST_TREE_STATE="dirty-local-verification"
@@ -210,11 +210,11 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
             # кодом, а вместе с ним и причину.
             *) printf ''; return ;;
         esac
-        # orakul: прямой доступ к провайдеру, не через шлюз.
+        # cruxwing: прямой доступ к провайдеру, не через шлюз.
         #
         # У Cruxwing здесь стояло 'backend' — и это правильно для продукта, у
         # которого сервер есть: ключи остаются на сервере, в бинарник не
-        # попадает ничего. У orakul сервера нет (api.orakul.ai не резолвится),
+        # попадает ничего. У cruxwing сервера нет (api.cruxwing.ai не резолвится),
         # поэтому то же значение означало бы: каждый запрос уходит в никуда,
         # введённый пользователем ключ не читается вовсе, а isConfigured
         # отвечает «настроено» за все провайдеры сразу. Установщик выглядел бы
@@ -227,10 +227,10 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
         # Расшифровка — на устройстве. 'server' означал бы managed Whisper на
         # нашем сервере, которого нет.
         [ "$1" = "TRANSCRIPTION_ENGINE" ] && { printf 'local'; return; }
-        # Адрес сервера не бакается: у orakul сервера нет.
+        # Адрес сервера не бакается: у cruxwing сервера нет.
         #
         # У cruxwing здесь подставлялся боевой адрес, потому что без него
-        # первый запуск упирался в пустоту. У orakul наоборот. LLM_GATEWAY
+        # первый запуск упирался в пустоту. У cruxwing наоборот. LLM_GATEWAY
         # выше уже переключён на 'direct': запрос идёт к провайдеру с ключом
         # пользователя, и адрес в бинарнике не нужен ни для чего. Любой,
         # который сюда попадёт, будет либо мёртвым (`http://localhost:8787` —
@@ -266,8 +266,8 @@ sw() {  # sw VAR  -> value of VAR from .env (empty if absent), Swift-string-esca
 }
 cat > "$SECRETS" <<EOF
 // GENERATED AND GITIGNORED — local build values only.
-// A distribution build never enables ORAKUL_LOCAL_CONFIG.
-#if ORAKUL_LOCAL_CONFIG
+// A distribution build never enables CRUXWING_LOCAL_CONFIG.
+#if CRUXWING_LOCAL_CONFIG
 enum Secrets {
     // Local/test builds may use the gitignored .env Desktop OAuth client.
     // MEETGPT_DIST=1 blanks both values: sw() пропускает только публичные настройки.
@@ -317,14 +317,14 @@ enum Secrets {
 EOF
 
 if [ "$DIST" != "1" ]; then
-    SWIFT_BUILD_ARGS+=(-Xswiftc -DORAKUL_LOCAL_CONFIG)
+    SWIFT_BUILD_ARGS+=(-Xswiftc -DCRUXWING_LOCAL_CONFIG)
 fi
 
 if [ "$DIST" = "1" ]; then
     echo ">> DIST build: ключи не бакаются — их вводит человек, расшифровка на устройстве"
     # Читается файл, который DIST действительно компилирует. Локальный
     # `LocalSecrets.generated.swift` в этом режиме остаётся под выключенным
-    # `#if ORAKUL_LOCAL_CONFIG`; проверять его означало бы доказывать свойства
+    # `#if CRUXWING_LOCAL_CONFIG`; проверять его означало бы доказывать свойства
     # файла, которого в отгружаемом бинарнике нет.
     #
     # Раньше здесь стояло `sw BACKEND_URL` — и это была мёртвая проверка: тот
@@ -346,12 +346,12 @@ if [ "$DIST" = "1" ]; then
     DIST_BACKEND="$(sed -n 's/.*backendBaseURL[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' "$DIST_CONFIG")"
     # Проверка перевёрнута против cruxwing. Там запрещался адрес рабочей копии
     # (`localhost`) при обязательном боевом; здесь запрещён любой непустой:
-    # orakul ходит к провайдеру напрямую, сервера у него нет, и адрес в
+    # cruxwing ходит к провайдеру напрямую, сервера у него нет, и адрес в
     # бинарнике может только увести данные не туда. Останов жёсткий, потому что
     # на машине сборщика такая ошибка не видна.
     if [ -n "$DIST_BACKEND" ]; then
         echo "!! В DIST-сборку попал адрес сервера ($DIST_BACKEND) — отказ." >&2
-        echo "!! У orakul нет сервера: LLM_GATEWAY=direct, ключ пользователя, запрос к провайдеру." >&2
+        echo "!! У cruxwing нет сервера: LLM_GATEWAY=direct, ключ пользователя, запрос к провайдеру." >&2
         echo "!! Адрес попал в отгружаемый Secrets.swift — уберите его источник, а не эту проверку." >&2
         exit 1
     fi
@@ -371,11 +371,11 @@ fi
 # отвечать исходникам, на которые ссылается его штамп, а не остаткам прошлого
 # прогона. Платим двумя минутами на архитектуру.
 if [ "$BUILD_ARCH" != "native" ]; then
-    # A prospective-release check may provide GIT_INDEX_FILE for Orakul's root
+    # A prospective-release check may provide GIT_INDEX_FILE for Cruxwing's root
     # tree. SwiftPM spawns Git while creating dependency worktrees; forwarding
     # the root index into those nested repositories leaves their own indexes
     # empty (every file appears deleted and untracked). The compiler never
-    # needs Orakul's alternate index, so keep that boundary out of SwiftPM.
+    # needs Cruxwing's alternate index, so keep that boundary out of SwiftPM.
     env -u GIT_INDEX_FILE swift package "${SWIFT_BUILD_ARGS[@]}" clean 2>/dev/null || true
 fi
 
@@ -424,11 +424,11 @@ if [ -z "$GIT_SHA" ]; then
     fi
     GIT_SHA="unknown"
 fi
-/usr/libexec/PlistBuddy -c "Add :OrakulCommit string $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Set :OrakulCommit $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null || true
-if ! /usr/libexec/PlistBuddy -c "Add :OrakulTreeState string $DIST_TREE_STATE" \
+/usr/libexec/PlistBuddy -c "Add :CruxwingCommit string $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CruxwingCommit $GIT_SHA" "$STAGE/Contents/Info.plist" 2>/dev/null || true
+if ! /usr/libexec/PlistBuddy -c "Add :CruxwingTreeState string $DIST_TREE_STATE" \
         "$STAGE/Contents/Info.plist" 2>/dev/null \
-   && ! /usr/libexec/PlistBuddy -c "Set :OrakulTreeState $DIST_TREE_STATE" \
+   && ! /usr/libexec/PlistBuddy -c "Set :CruxwingTreeState $DIST_TREE_STATE" \
         "$STAGE/Contents/Info.plist" 2>/dev/null; then
     echo "!! could not stamp worktree provenance in Info.plist" >&2
     exit 1
@@ -437,7 +437,7 @@ fi
 #
 # Коммит отвечает на вопрос «какой ref был выписан», а не «что внутри». При
 # незакоммиченном дереве он врёт молча: 12 августа подряд собрано девять разных
-# DMG, и все девять несли один и тот же `OrakulCommit`, при 149 изменённых
+# DMG, и все девять несли один и тот же `CruxwingCommit`, при 149 изменённых
 # файлах. Отличить сборку с десятью коннекторами от вчерашней по штампу было
 # нельзя.
 #
@@ -445,15 +445,15 @@ fi
 # генерируется из .env, и его содержимое зависит от режима, а не от исходников.
 # Безопасный, отслеживаемый `Secrets.swift` при этом входит в штамп.
 # Ядро входит в хеш наравне с приложением. Раньше считалось только по
-# `Sources/MeetGPT`, а с тех пор приложение линкует OrakulCore: коннекторы,
+# `Sources/MeetGPT`, а с тех пор приложение линкует CruxwingCore: коннекторы,
 # словарь и поиск ушли туда и физически лежат в этом же бинарнике. Проверено:
 # три файла ядра поменялись, бинарник пересобрался — штамп остался прежним.
 # Штамп, который не замечает половину того, что отгружает, хуже отсутствующего:
 # на него ссылается форма отчёта об ошибке. Сборка и аудит вызывают один скрипт,
 # чтобы не расходиться из-за платформы, формы пути или алгоритма.
 SOURCE_HASH="$(bash "$ROOT/../scripts/app-source-hash.sh")"
-/usr/libexec/PlistBuddy -c "Add :OrakulSourceHash string $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Set :OrakulSourceHash $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CruxwingSourceHash string $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Set :CruxwingSourceHash $SOURCE_HASH" "$STAGE/Contents/Info.plist" 2>/dev/null || true
 echo ">> исходники: $SOURCE_HASH (коммит $GIT_SHA)"
 # App-level privacy manifest (App Review requirement).
 cp "$ROOT/Support/PrivacyInfo.xcprivacy" "$STAGE/Contents/Resources/PrivacyInfo.xcprivacy"
@@ -468,8 +468,8 @@ if [ ! -s "$LEGAL_MANIFEST" ]; then
     echo "!! legal payload manifest missing ($LEGAL_MANIFEST) — refusing to package" >&2
     exit 1
 fi
-if ! cmp -s "$ROOT/../LICENSE" "$LEGAL/Orakul/LICENSE"; then
-    echo "!! bundled Orakul license is stale — sync Support/Legal/Orakul/LICENSE" >&2
+if ! cmp -s "$ROOT/../LICENSE" "$LEGAL/Cruxwing/LICENSE"; then
+    echo "!! bundled Cruxwing license is stale — sync Support/Legal/Cruxwing/LICENSE" >&2
     exit 1
 fi
 if ! (cd "$LEGAL" && shasum -a 256 -c MANIFEST.sha256 >/dev/null); then
@@ -510,16 +510,16 @@ if [ -z "$SIGN_ID" ]; then
 fi
 if [ -z "$SIGN_ID" ]; then
     SIGN_ID="$(printf '%s\n' "$IDENTITIES" \
-              | grep -Em1 'Apple Development|Mac Developer|Orakul|MeetGPT' \
+              | grep -Em1 'Apple Development|Mac Developer|Cruxwing|MeetGPT' \
               | awk -F'"' '{print $2}' || true)"
 fi
 if [ -z "$SIGN_ID" ]; then
     # Self-signed dev certs are not "valid" (-v) until trusted in the keychain,
     # but codesign can still sign with them — and TCC keys on their stable
-    # identity, which is all we need. Pick up an untrusted Orakul cert too;
+    # identity, which is all we need. Pick up an untrusted Cruxwing cert too;
     # retain MeetGPT as a compatibility fallback for existing developer setups.
     SIGN_ID="$(security find-identity -p codesigning 2>/dev/null \
-              | grep -Em1 'Orakul|MeetGPT' | awk -F'"' '{print $2}' || true)"
+              | grep -Em1 'Cruxwing|MeetGPT' | awk -F'"' '{print $2}' || true)"
 fi
 if [ -z "$SIGN_ID" ]; then
     SIGN_ID="-"
@@ -570,9 +570,9 @@ else
     # В cruxwing здесь был жёсткий останов: сборка без этого entitlement теряет
     # вход через Apple молча, без ошибки, у всех сразу.
     #
-    # В orakul терять нечего. Вход вообще не показывается: `wheesprAvailable`
+    # В cruxwing терять нечего. Вход вообще не показывается: `wheesprAvailable`
     # в AppState включается только при непустом адресе сервера, а DIST-сборка
-    # выше его не бакает. Аккаунтов у orakul нет — ключ провайдера человек
+    # выше его не бакает. Аккаунтов у cruxwing нет — ключ провайдера человек
     # вводит сам, и он лежит в Связке ключей. Так что останавливать сборку
     # было бы требованием профиля ради возможности, которой в продукте нет.
     #
@@ -581,17 +581,17 @@ else
     if [ "${MEETGPT_DIST:-0}" = "1" ] && [ -n "$DIST_BACKEND" ] \
        && [ "${MEETGPT_ALLOW_NO_APPLESIGNIN:-0}" != "1" ]; then
         echo "!! сборка для распространения потеряет вход через Apple — $WHY" >&2
-        echo "   Профиль Developer ID для ai.orakul.desktop с Sign in with Apple" >&2
+        echo "   Профиль Developer ID для ai.cruxwing.desktop с Sign in with Apple" >&2
         echo "   положить в $PROFILE и пересобрать." >&2
         echo "   Выпустить без этого намеренно: MEETGPT_ALLOW_NO_APPLESIGNIN=1" >&2
         exit 1
     fi
-    echo ">> Вход через Apple: не собирается — $WHY (в orakul входа нет)"
+    echo ">> Вход через Apple: не собирается — $WHY (в cruxwing входа нет)"
 fi
 
 # Sign the staging bundle before installing it. Developers often launch
 # the staged app directly; leaving that copy unsigned gives it a different
-# TCC identity from /Applications/orakul.app, so an apparently granted
+# TCC identity from /Applications/cruxwing.app, so an apparently granted
 # Microphone or Screen Recording permission is rejected at runtime.
 codesign --force --deep --sign "$SIGN_ID" --entitlements "$SIGN_ENT" "$STAGE"
 codesign --verify --deep --strict "$STAGE"

@@ -1,11 +1,11 @@
 import Foundation
 import Testing
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 /// Хранилище токенов — часть приложения, а не ядра.
 ///
-/// Коннектор переехал в `OrakulCore`: он знает только Foundation и потому
+/// Коннектор переехал в `CruxwingCore`: он знает только Foundation и потому
 /// переживёт порт на Windows. `RussianTrackerStore` стоит на Связке ключей
 /// macOS, и ей в портируемом ядре не место.
 @Suite("Хранилище токенов: WorkMessengers")

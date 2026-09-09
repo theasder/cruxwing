@@ -214,7 +214,7 @@ describe('open-source furniture', () => {
       // ignore rule is what keeps those two apart.
       // Checked per file, not on the two joined together. Joined, deleting the
       // ROOT rule still passed on the copy in `app/.gitignore` — and the root
-      // one is the whole point: `build/orakul.app` at the top level is what
+      // one is the whole point: `build/cruxwing.app` at the top level is what
       // actually got committed, home path and all.
       assert.match(read('.gitignore'), /^build\/$/m,
         'root build/ is not ignored — the built app returns to the repository');
@@ -238,7 +238,7 @@ describe('open-source furniture', () => {
       'the audit paths are no longer anchored to dist-all.sh itself');
     const displayed = code.replaceAll('\\"', '"');
     assert.match(displayed,
-      /bash "\$ROOT\/\.\.\/scripts\/audit-dmg\.sh" "\$ROOT\/dist\/orakul-AppleSilicon\.dmg" "\$ROOT\/dist\/orakul-Intel\.dmg"/,
+      /bash "\$ROOT\/\.\.\/scripts\/audit-dmg\.sh" "\$ROOT\/dist\/cruxwing-AppleSilicon\.dmg" "\$ROOT\/dist\/cruxwing-Intel\.dmg"/,
       'the local build no longer prints the explicit ROOT-anchored artifact audit command');
   });
 
@@ -246,7 +246,7 @@ describe('open-source furniture', () => {
     const broken = `
       @Test("fixture")
       func fixture() {
-        guard let path = environment["ORAKUL_FIXTURE"],
+        guard let path = environment["CRUXWING_FIXTURE"],
               !path.isEmpty else {
           return
         }
@@ -257,9 +257,9 @@ describe('open-source furniture', () => {
       ['literal tautology', 'silent return']);
 
     const credible = `
-      @Test("fixture", .enabled(if: hasFixture, "Set ORAKUL_FIXTURE."))
+      @Test("fixture", .enabled(if: hasFixture, "Set CRUXWING_FIXTURE."))
       func fixture() throws {
-        let path = try #require(environment["ORAKUL_FIXTURE"])
+        let path = try #require(environment["CRUXWING_FIXTURE"])
         #expect(!path.isEmpty)
       }
     `;
@@ -273,7 +273,7 @@ describe('open-source furniture', () => {
     //
     // Пропуск обязан быть виден: трейт `.enabled(if:)` печатает «skipped».
     // Разница между «проверено» и «не запускалось» — это вся ценность отчёта.
-    const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/OrakulCoreTests'];
+    const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/CruxwingCoreTests'];
     // These are the corpus/live-boundary harnesses where absence is expected
     // on a public contributor machine and therefore must be a visible skip.
     // Literal `true` assertions remain forbidden in every Swift test file.
@@ -319,7 +319,7 @@ describe('open-source furniture', () => {
       };
       walk(dir);
     }
-    assert.deepEqual(copies, ['mvp/Sources/OrakulCore/RussianLexicon.swift'],
+    assert.deepEqual(copies, ['mvp/Sources/CruxwingCore/RussianLexicon.swift'],
       `the Russian dictionary is duplicated again:\n${copies.join('\n')}`);
   });
 
@@ -329,7 +329,7 @@ describe('open-source furniture', () => {
     // и написан дважды. Кросс-алфавитный поиск и падежи чинились в обеих
     // копиях руками; на третий раз это перестало быть случайностью.
     const paths = [
-      ['CLI', 'mvp/Sources/OrakulCore/RecallIndex.swift'],
+      ['CLI', 'mvp/Sources/CruxwingCore/RecallIndex.swift'],
       ['app', 'app/Sources/MeetGPT/AI/DecisionRecallService.swift'],
     ];
     for (const [name, file] of paths) {
@@ -348,9 +348,9 @@ describe('open-source furniture', () => {
   test('the app links the portable core instead of copying it', () => {
     const manifest = readFileSync(resolve(repo, 'app', 'Package.swift'), 'utf8');
     assert.match(manifest, /\.package\(path: "\.\.\/mvp"\)/,
-      'the app no longer depends on OrakulCore — the copy is on its way back');
-    assert.match(manifest, /product\(name: "OrakulCore", package: "mvp"\)/,
-      'OrakulCore is declared as a dependency but never linked');
+      'the app no longer depends on CruxwingCore — the copy is on its way back');
+    assert.match(manifest, /product\(name: "CruxwingCore", package: "mvp"\)/,
+      'CruxwingCore is declared as a dependency but never linked');
   });
 
   describe('публикация страницы', () => {
@@ -423,10 +423,10 @@ describe('open-source furniture', () => {
     const security = read('SECURITY.md');
 
     test('names a reporting channel that exists', () => {
-      // The tempting line is "email security@orakul.ai". That domain does not
+      // The tempting line is "email security@cruxwing.ai". That domain does not
       // resolve, so it would be a channel that silently drops vulnerability
       // reports — strictly worse than offering none at all.
-      assert.doesNotMatch(security, /[\w.-]+@orakul\.ai/,
+      assert.doesNotMatch(security, /[\w.-]+@cruxwing\.ai/,
         'the policy prints an address at a domain that does not resolve');
       assert.match(security, /Report a vulnerability/,
         'no working private-reporting channel is named');
@@ -492,7 +492,7 @@ describe('open-source furniture', () => {
     test('пакет несёт лицензию и обязательные поля', () => {
       // Политика Debian требует copyright в /usr/share/doc; без него пакет
       // раздаёт код Apache 2.0 без текста лицензии.
-      assert.match(code, /usr\/share\/doc\/orakul/,
+      assert.match(code, /usr\/share\/doc\/cruxwing/,
         'пакет больше не кладёт документацию туда, где её ищут');
       assert.match(code, /cp LICENSE/, 'лицензия не едет с пакетом');
       for (const field of ['Package:', 'Version:', 'Architecture:', 'Maintainer:', 'Description:']) {
@@ -659,12 +659,12 @@ describe('open-source furniture', () => {
     const form = read('.github', 'ISSUE_TEMPLATE', 'oshibka.yml');
 
     test('asks for the version field the build actually stamps', () => {
-      // It asks for OrakulSourceHash because the commit alone cannot tell two
+      // It asks for CruxwingSourceHash because the commit alone cannot tell two
       // builds of the same dirty tree apart — nine installers went out in one
       // day under one commit. If build.sh stops stamping it, the form starts
       // asking for something nobody can supply.
-      assert.match(form, /OrakulSourceHash/);
-      assert.match(read('app', 'build.sh'), /OrakulSourceHash/,
+      assert.match(form, /CruxwingSourceHash/);
+      assert.match(read('app', 'build.sh'), /CruxwingSourceHash/,
         'the form asks for a stamp the build no longer writes');
     });
 

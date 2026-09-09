@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 /// Пустая выдача телеграмного архива — не «не обсуждали».

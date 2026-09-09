@@ -96,7 +96,7 @@ enum TranscriptDeduplicator {
     ]
 
     /// Reject only a closed list of bare connective/filler emissions. A line
-    /// containing nothing but a project term ("Asana", "Jira", "Orakul") is
+    /// containing nothing but a project term ("Asana", "Jira", "Cruxwing") is
     /// also a normal short answer; glossary membership is never proof of noise.
     static func isNoiseArtifact(_ entry: TranscriptEntry, glossary _: [String]) -> Bool {
         let entryTokens = tokens(entry.text)

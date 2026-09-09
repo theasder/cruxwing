@@ -12,7 +12,7 @@
 # prompt.
 set -euo pipefail
 
-CERT_NAME="${MEETGPT_SIGN_ID:-Orakul Dev}"
+CERT_NAME="${MEETGPT_SIGN_ID:-Cruxwing Dev}"
 KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 if security find-identity -v -p codesigning 2>/dev/null | grep -q "$CERT_NAME"; then
@@ -21,8 +21,8 @@ if security find-identity -v -p codesigning 2>/dev/null | grep -q "$CERT_NAME"; 
 fi
 
 TMP="$(mktemp -d)"
-export ORAKUL_DEV_P12_PASSWORD="$(openssl rand -hex 24)"
-trap 'rm -rf "$TMP"; unset ORAKUL_DEV_P12_PASSWORD' EXIT
+export CRUXWING_DEV_P12_PASSWORD="$(openssl rand -hex 24)"
+trap 'rm -rf "$TMP"; unset CRUXWING_DEV_P12_PASSWORD' EXIT
 
 echo ">> generating self-signed code-signing certificate \"$CERT_NAME\""
 cat > "$TMP/cert.conf" <<EOF
@@ -46,14 +46,14 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 # OpenSSL 3.x defaults to a newer algorithm `security import` rejects.
 openssl pkcs12 -export -legacy -out "$TMP/identity.p12" \
     -inkey "$TMP/key.pem" -in "$TMP/cert.pem" \
-    -name "$CERT_NAME" -passout env:ORAKUL_DEV_P12_PASSWORD >/dev/null 2>&1
+    -name "$CERT_NAME" -passout env:CRUXWING_DEV_P12_PASSWORD >/dev/null 2>&1
 
 # `-T /usr/bin/codesign` puts codesign in the key's ACL so it can sign without
 # a prompt. The cert is left UNtrusted on purpose: codesign signs fine with an
 # untrusted self-signed cert, and macOS TCC keys on the cert's stable identity
 # regardless of keychain trust — which is exactly what makes grants persist.
 echo ">> importing into login keychain"
-security import "$TMP/identity.p12" -k "$KEYCHAIN" -P "$ORAKUL_DEV_P12_PASSWORD" \
+security import "$TMP/identity.p12" -k "$KEYCHAIN" -P "$CRUXWING_DEV_P12_PASSWORD" \
     -T /usr/bin/codesign -T /usr/bin/security >/dev/null
 
 # Sierra+ ignores -T alone for codesign; partition list is what stops the

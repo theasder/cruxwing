@@ -26,25 +26,25 @@ final class ServerWhisperTranscription: TranscriptionService {
     func transcribe(wav: Data) async throws -> String {
         let base = Config.backendBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !base.isEmpty else {
-            throw NSError(domain: "OrakulWhisper", code: 503,
+            throw NSError(domain: "CruxwingWhisper", code: 503,
                           userInfo: [NSLocalizedDescriptionKey: "Server Whisper needs BACKEND_URL, and this build has none."])
         }
         guard let token = await tokenProvider(), !token.isEmpty else {
-            throw NSError(domain: "OrakulWhisper", code: 401,
+            throw NSError(domain: "CruxwingWhisper", code: 401,
                           userInfo: [NSLocalizedDescriptionKey: "Sign in to transcribe with Whisper large-v3 on the server."])
         }
         guard wav.count <= 25 * 1024 * 1024 else {
-            throw NSError(domain: "OrakulWhisper", code: 413,
+            throw NSError(domain: "CruxwingWhisper", code: 413,
                           userInfo: [NSLocalizedDescriptionKey: "Audio is too large to transcribe (max ~25 MB / ~13 min). Use a shorter clip."])
         }
 
         let root = base.hasSuffix("/") ? String(base.dropLast()) : base
         guard let url = URL(string: "\(root)/api/transcribe") else {
-            throw NSError(domain: "OrakulWhisper", code: -1,
+            throw NSError(domain: "CruxwingWhisper", code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "The BACKEND_URL for server Whisper is wrong."])
         }
 
-        let boundary = "orakul-\(UUID().uuidString)"
+        let boundary = "cruxwing-\(UUID().uuidString)"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.timeoutInterval = 90
@@ -70,7 +70,7 @@ final class ServerWhisperTranscription: TranscriptionService {
             let message = Self.errorMessage(from: responseData)
                 ?? String(data: responseData, encoding: .utf8)
                 ?? "HTTP \((response as? HTTPURLResponse)?.statusCode ?? -1)"
-            throw NSError(domain: "OrakulWhisper",
+            throw NSError(domain: "CruxwingWhisper",
                           code: (response as? HTTPURLResponse)?.statusCode ?? -1,
                           userInfo: [NSLocalizedDescriptionKey: "Server Whisper: \(message)"])
         }

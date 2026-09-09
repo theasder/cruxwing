@@ -1,7 +1,7 @@
 import Foundation
 
 /// A small first-party role profile used by the picker and generic output frame.
-/// Prompt-specific methodology comes only from Orakul's built-in prompt layer
+/// Prompt-specific methodology comes only from Cruxwing's built-in prompt layer
 /// and the separately reviewed nine-skill runtime bundle.
 struct RolePosition: Identifiable, Equatable, Sendable {
     let id: String

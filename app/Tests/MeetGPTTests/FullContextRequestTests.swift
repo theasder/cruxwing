@@ -127,7 +127,7 @@ struct FullContextRequestTests {
 
     // MARK: - What the user reads
 
-    @Test("the summary names provider input without inventing Orakul credits")
+    @Test("the summary names provider input without inventing Cruxwing credits")
     func summaryNamesProviderInput() {
         let quote = FullContextRequest.quote(model: model("gemini-3.1-pro-preview"),
                                              requested: true, inputChars: 40_000)

@@ -15,4 +15,4 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Разбор и проверки — те же, что у замера: второй набор правил разошёлся бы с
 # первым, и «проверено» перестало бы что-то значить.
-swift run --package-path "$ROOT/mvp" orakul корпус "$DIR"
+swift run --package-path "$ROOT/mvp" cruxwing корпус "$DIR"

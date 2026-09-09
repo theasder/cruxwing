@@ -1,4 +1,4 @@
-# Orakul repository rules
+# Cruxwing repository rules
 
 These rules apply to the whole repository. Before changing anything, read:
 
@@ -15,7 +15,7 @@ These rules apply to the whole repository. Before changing anything, read:
 - AI and transcription are local or runtime BYOK. A user must add, replace, and
   remove their own provider credentials. Never provision, infer, bundle, commit,
   log, upload, or add a build-time fallback for those credentials.
-- Do not add or activate a first-party Orakul/Cruxwing backend, account,
+- Do not add or activate a first-party Cruxwing/Cruxwing backend, account,
   subscription, tariff, paywall, checkout, StoreKit, promo, telemetry, analytics,
   crash-report, feedback-upload, or device-trial path in the public target.
   Inherited compatibility types are removal debt, not extension points.

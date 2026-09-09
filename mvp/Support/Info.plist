@@ -3,16 +3,16 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>orakul</string>
+	<string>cruxwing</string>
 	<key>CFBundleDisplayName</key>
-	<string>orakul</string>
+	<string>cruxwing</string>
 	<key>CFBundleExecutable</key>
-	<string>orakul</string>
+	<string>cruxwing</string>
 	<!-- Совпадать с com.meetgpt.macapp нельзя: macOS привязывает разрешения на
 	     микрофон и запись экрана к bundle id, и две программы с одним
 	     идентификатором делят один доступ, который нельзя отозвать у одной. -->
 	<key>CFBundleIdentifier</key>
-	<string>ai.orakul.desktop</string>
+	<string>ai.cruxwing.desktop</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,10 +24,10 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<!-- Этот текст пользователь видит в системном окне запроса. Он объясняет,
-	     зачем доступ и что происходит со звуком, потому что «orakul хочет
+	     зачем доступ и что происходит со звуком, потому что «cruxwing хочет
 	     доступ к микрофону» не отвечает ни на один из этих вопросов. -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>orakul записывает созвон, чтобы вы могли потом спросить «что мы решили». Запись и расшифровка остаются на вашем компьютере.</string>
+	<string>cruxwing записывает созвон, чтобы вы могли потом спросить «что мы решили». Запись и расшифровка остаются на вашем компьютере.</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 </dict>

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Завести задачу в российском трекере.
 ///

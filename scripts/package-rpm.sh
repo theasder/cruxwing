@@ -25,7 +25,7 @@ command -v rpmbuild >/dev/null || {
 # Готовый статический файл — законный вход. С ним образ сборки перестаёт иметь
 # значение: у musl-сборки нет зависимостей ни от glibc, ни от libcurl, и её
 # можно собрать где угодно, а упаковать здесь.
-PREBUILT="exports/static/orakul"
+PREBUILT="exports/static/cruxwing"
 
 PLIST="app/Support/Info.plist"
 VERSION="$(grep -A1 CFBundleShortVersionString "$PLIST" | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')"
@@ -36,13 +36,13 @@ VERSION="$(grep -A1 CFBundleShortVersionString "$PLIST" | sed -n 's/.*<string>\(
 # недоступен, нельзя: пакет уедет с номером, который ни на что не указывает, и
 # «какая у вас версия» получит третий ответ. Внутри контейнера без git высоту
 # передают переменной.
-if [ -n "${ORAKUL_RELEASE:-}" ]; then
-    RELEASE="$ORAKUL_RELEASE"
+if [ -n "${CRUXWING_RELEASE:-}" ]; then
+    RELEASE="$CRUXWING_RELEASE"
 elif RELEASE="$(git rev-list --count HEAD 2>/dev/null)" && [ -n "$RELEASE" ]; then
     :
 else
     echo "не смог узнать высоту истории: нет git или это не репозиторий."
-    echo "передайте её явно: ORAKUL_RELEASE=\$(git rev-list --count HEAD) bash $0"
+    echo "передайте её явно: CRUXWING_RELEASE=\$(git rev-list --count HEAD) bash $0"
     exit 1
 fi
 
@@ -63,7 +63,7 @@ esac
 # уезжает с зависимостями от того дистрибутива, где его НЕ собирали. Именно так
 # rpm дважды получил `libcurl.so.4(CURL_OPENSSL_4)` от Ubuntu и не ставился на
 # Fedora. Каталог в /tmp живёт внутри контейнера и чужого туда не пускает.
-SCRATCH="/tmp/orakul-build-$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}${VERSION_ID:-}")"
+SCRATCH="/tmp/cruxwing-build-$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}${VERSION_ID:-}")"
 if [ -x "$PREBUILT" ]; then
     BIN="$PREBUILT"
     REQUIRES=""
@@ -92,11 +92,11 @@ SWIFT_FLAGS+=(--scratch-path "$SCRATCH")
 if [ -z "${BIN:-}" ]; then
     echo ">> сборка релиза"
     swift build --package-path mvp "${SWIFT_FLAGS[@]}"
-    BIN="$(swift build --package-path mvp "${SWIFT_FLAGS[@]}" --show-bin-path)/orakul"
+    BIN="$(swift build --package-path mvp "${SWIFT_FLAGS[@]}" --show-bin-path)/cruxwing"
 fi
 [ -x "$BIN" ] || { echo "нет собранной программы: $BIN"; exit 1; }
 # Абсолютный путь: rpmbuild выполняет %install из своего каталога, и
-# относительный «exports/static/orakul» там не разрешается.
+# относительный «exports/static/cruxwing» там не разрешается.
 BIN="$(cd "$(dirname "$BIN")" && pwd)/$(basename "$BIN")"
 
 
@@ -106,16 +106,16 @@ BIN="$(cd "$(dirname "$BIN")" && pwd)/$(basename "$BIN")"
 # Хеш считается по тому, что РЕАЛЬНО едет в пакет: ядро и командная строка.
 # Приложение сюда не входит, и штамповать пакет его хешем значило бы обещать
 # прослеживаемость, которой нет.
-SOURCE_HASH="$(bash scripts/source-hash.sh mvp/Sources/OrakulCore mvp/Sources/orakul)"
-COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "${ORAKUL_COMMIT:-неизвестен}")"
+SOURCE_HASH="$(bash scripts/source-hash.sh mvp/Sources/CruxwingCore mvp/Sources/cruxwing)"
+COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "${CRUXWING_COMMIT:-неизвестен}")"
 BUILT_ON="$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-неизвестно}")"
 
 TOP="$PWD/exports/rpmbuild"
 rm -rf "$TOP"
 mkdir -p "$TOP"/{BUILD,RPMS,SOURCES,SPECS,BUILDROOT}
 
-cat > "$TOP/SPECS/orakul.spec" <<SPEC
-Name:           orakul
+cat > "$TOP/SPECS/cruxwing.spec" <<SPEC
+Name:           cruxwing
 Version:        ${VERSION}
 Release:        ${RELEASE}
 Summary:        Поиск по своим рабочим звонкам, на своём компьютере
@@ -139,30 +139,30 @@ ${REQUIRES:+Requires:       ${REQUIRES}}
 
 %install
 mkdir -p %{buildroot}/usr/bin
-install -m 0755 ${BIN} %{buildroot}/usr/bin/orakul
-mkdir -p %{buildroot}/usr/share/licenses/orakul
-install -m 0644 ${PWD}/LICENSE %{buildroot}/usr/share/licenses/orakul/LICENSE
-mkdir -p %{buildroot}/usr/share/doc/orakul
-cat > %{buildroot}/usr/share/doc/orakul/build-info <<INFO
+install -m 0755 ${BIN} %{buildroot}/usr/bin/cruxwing
+mkdir -p %{buildroot}/usr/share/licenses/cruxwing
+install -m 0644 ${PWD}/LICENSE %{buildroot}/usr/share/licenses/cruxwing/LICENSE
+mkdir -p %{buildroot}/usr/share/doc/cruxwing
+cat > %{buildroot}/usr/share/doc/cruxwing/build-info <<INFO
 version: ${VERSION}-${RELEASE}
 commit: ${COMMIT}
 source: ${SOURCE_HASH}
-paths: mvp/Sources/OrakulCore mvp/Sources/orakul
+paths: mvp/Sources/CruxwingCore mvp/Sources/cruxwing
 built-on: ${BUILT_ON}
 INFO
 
 %files
-/usr/bin/orakul
-/usr/share/doc/orakul/build-info
-%license /usr/share/licenses/orakul/LICENSE
+/usr/bin/cruxwing
+/usr/share/doc/cruxwing/build-info
+%license /usr/share/licenses/cruxwing/LICENSE
 
 %changelog
 SPEC
 
 echo ">> сборка пакета"
-rpmbuild --define "_topdir $TOP" -bb "$TOP/SPECS/orakul.spec" >/dev/null
+rpmbuild --define "_topdir $TOP" -bb "$TOP/SPECS/cruxwing.spec" >/dev/null
 
-PACKAGE="$(find "$TOP/RPMS" -name 'orakul-*.rpm' | head -1)"
+PACKAGE="$(find "$TOP/RPMS" -name 'cruxwing-*.rpm' | head -1)"
 [ -n "$PACKAGE" ] || { echo "пакет не собрался"; exit 1; }
 mkdir -p exports/linux
 cp "$PACKAGE" exports/linux/

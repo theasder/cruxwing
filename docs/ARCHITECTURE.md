@@ -6,7 +6,7 @@ This document describes the checked-in macOS application and the stricter
 `MEETGPT_DIST=1` public-distribution path. It is not a claim that every source
 file is active in that build. The fork still compiles some inherited Cruxwing
 account, backend, paywall-API, and tariff types behind an empty backend
-configuration; those are compatibility debt, not public Orakul services.
+configuration; those are compatibility debt, not public Cruxwing services.
 
 For user-facing behavior start with [`../README.md`](../README.md). For current
 evidence and unresolved work see
@@ -18,13 +18,13 @@ claims and reporting status are in [`../SECURITY.md`](../SECURITY.md).
 | Area | Responsibility |
 |---|---|
 | `app/` | Native macOS 14+ application: capture, transcription, assistant UI, persistence, connected services, and packaging. |
-| `mvp/` | Portable `OrakulCore` library and CLI: archive/search, Russian normalization, and connector policy. The app links it as a local Swift package. |
+| `mvp/` | Portable `CruxwingCore` library and CLI: archive/search, Russian normalization, and connector policy. The app links it as a local Swift package. |
 | `public/` | Static project page. It is not an application backend. |
 | `scripts/`, `test/` | Repository policy, provenance, packaging, documentation, and security checks. |
 
 `MeetGPT` source/target names and `MEETGPT_*` build variables are inherited
 compatibility names. The public product identity and local data root are
-`ai.orakul.desktop`.
+`ai.cruxwing.desktop`.
 
 ## Runtime data flow
 
@@ -52,7 +52,7 @@ FluidAudio may download model assets on first use and cache them; this is
 network traffic, but call audio is not part of a model-asset download. Local
 inference then runs inside the application process.
 
-For eligible local recordings, Orakul can retain up to about 60 minutes of the
+For eligible local recordings, Cruxwing can retain up to about 60 minutes of the
 system-audio PCM in process memory for a whole-call refinement or speaker pass.
 That buffer is not part of `SavedSession` and is not intentionally written as
 an audio file. It can outlive the visible recording while an opted-in post-call
@@ -70,7 +70,7 @@ trigger is present:
 | Path | Trigger and data sent | Credential and destination |
 |---|---|---|
 | Model assets | First use of an on-device transcription or diarization model; library/model identifiers and normal HTTP metadata, not meeting audio. | Download behavior and cache location are owned by WhisperKit/FluidAudio and their upstream model hosts. |
-| LLM inference | A question or enabled assistant workflow. A request can include system instructions, the question, transcript excerpts (or full transcript when full-context is explicitly selected), attached notes/documents, dialog history, and bounded connected-service evidence. The master automatic-request switch defaults off. When off, goal/title/digest/check loops, automatic Fireflies merging, and clarification/follow-up/action-proposal passes do not invoke a model; when enabled, each pass is a separate provider request. An explicit action can still fan out into model rounds for connected-source reads, council synthesis, retries, or global-Auto provider failover. Connected-source reads obey the global app pause and per-app mute, and the visible answer names consulted/refused sources. | Direct vendor endpoint for a provider configured by the user. The user's runtime key is sent to that vendor for authentication. It is not sent to an Orakul server. |
+| LLM inference | A question or enabled assistant workflow. A request can include system instructions, the question, transcript excerpts (or full transcript when full-context is explicitly selected), attached notes/documents, dialog history, and bounded connected-service evidence. The master automatic-request switch defaults off. When off, goal/title/digest/check loops, automatic Fireflies merging, and clarification/follow-up/action-proposal passes do not invoke a model; when enabled, each pass is a separate provider request. An explicit action can still fan out into model rounds for connected-source reads, council synthesis, retries, or global-Auto provider failover. Connected-source reads obey the global app pause and per-app mute, and the visible answer names consulted/refused sources. | Direct vendor endpoint for a provider configured by the user. The user's runtime key is sent to that vendor for authentication. It is not sent to an Cruxwing server. |
 | Connected services | User connects a service and then searches, imports, or writes; configured Telegram and Google Calendar polling may resume at launch. Fireflies post-call enhancement and Team Watch polling can also run after their settings are enabled. | Official hosted API/MCP endpoint or a self-hosted address entered by the user; OAuth/token credentials come from Keychain. Service-side storage and retention follow that service's policy. |
 | Exports | A user invokes a Google Workspace or similar write operation. The chosen content is sent to that service. Local file exports go only to the path selected in the macOS save panel. | Connected-service token from Keychain, or a user-selected local path. |
 
@@ -103,8 +103,8 @@ They must not be summarized as one “cloud” switch:
 - **Inherited server Whisper is retained code, not a public route.** Its client
   can upload chunks to a configured backend, but hidden engines fail closed
   even if inherited development configuration exists.
-- **Fireflies is a connected-service path, not an Orakul transcription key.**
-  Fireflies records under the user's separate setup; Orakul can later fetch and
+- **Fireflies is a connected-service path, not an Cruxwing transcription key.**
+  Fireflies records under the user's separate setup; Cruxwing can later fetch and
   merge that service's transcript when enhancement is enabled.
 
 The tracked `Secrets.swift` contains no AI/transcription credential fallback.
@@ -115,7 +115,7 @@ shapes. Local generated configuration remains for explicit connector OAuth and
 development compatibility values; a locally configured binary is not a public
 candidate.
 
-Direct BYOK does not consume an Orakul credit balance or inherited monthly
+Direct BYOK does not consume an Cruxwing credit balance or inherited monthly
 Copilot/research allowance, and it does not write the legacy local
 meeting/request counters. The selected vendor can still bill or rate-limit the
 user's own account. Managed-plan accounting remains compiled only as part of
@@ -134,13 +134,13 @@ retention, residency, and training policy.
 
 | Store | Contents and boundary |
 |---|---|
-| macOS Keychain | User-entered LLM keys, connector/OAuth tokens, and any compatible account session. Entries use the Orakul bundle-scoped service/account namespace. Keychain protects storage; it does not prevent a credential from being sent to the vendor it authenticates. |
-| `~/Library/Application Support/ai.orakul.desktop/Sessions/*.json` plus `*.json.recovery` | Plaintext saved-call records: transcript, model answers/history, digest, selected context text/notes, suggestions, fact/watch results, and follow-up data. After an overwrite, one recovery file retains the previous verified-readable version. A corrupt primary falls back to it and produces a visible incomplete-History warning. The directory is requested as `0700` and files as `0600`; this limits other OS users, not every process running as the same user. There is no application-level encryption or automatic age-based deletion. |
+| macOS Keychain | User-entered LLM keys, connector/OAuth tokens, and any compatible account session. Entries use the Cruxwing bundle-scoped service/account namespace. Keychain protects storage; it does not prevent a credential from being sent to the vendor it authenticates. |
+| `~/Library/Application Support/ai.cruxwing.desktop/Sessions/*.json` plus `*.json.recovery` | Plaintext saved-call records: transcript, model answers/history, digest, selected context text/notes, suggestions, fact/watch results, and follow-up data. After an overwrite, one recovery file retains the previous verified-readable version. A corrupt primary falls back to it and produces a visible incomplete-History warning. The directory is requested as `0700` and files as `0600`; this limits other OS users, not every process running as the same user. There is no application-level encryption or automatic age-based deletion. |
 | `.../Telegram/messages.json` plus `.recovery` | Plaintext Telegram message text and metadata, bot identity, and polling offset for explicitly allowed chats. The token remains in Keychain. Ordinary updates retain one previous verified-readable snapshot. Bot changes and allowlist pruning deliberately discard prior content instead; reset erases primary, recovery, and same-target staging files. The same requested `0700`/`0600` permissions and same-user limitation apply. The archive persists until reset; it has no time-based retention policy. |
 | `.../team-watch.log` and `.1` | For each matching Slack Team Watch message: timestamp, service/channel, matched keyword, author, and the first 140 characters. The intended permissions are `0600` under a `0700` directory. Rotation is size-based, not time-based: after the active file exceeds 512 KiB, the next append attempts to replace one `.1` backup and start a new file. File, permission, append, and rotation errors are currently swallowed, so the log is diagnostic only: a failure may lose an entry, fail to tighten permissions, or fail to enforce the intended bound. There is no scheduled deletion. |
 | `UserDefaults` | Non-secret preferences and UI state, including provider/model choice, Team Watch keywords, recording-consent acknowledgement, selected-folder paths/bookmarks, and feature toggles. Secrets must not be written here. |
-| Dependency-owned model caches | Downloaded transcription/diarization weights. Their cache format and cleanup are owned by the respective libraries; they do not contain Orakul session JSON. |
-| User-selected exports | Files written to a path the user chooses. Once exported, their permissions, synchronization, backup, and deletion are outside Orakul's application-support boundary. |
+| Dependency-owned model caches | Downloaded transcription/diarization weights. Their cache format and cleanup are owned by the respective libraries; they do not contain Cruxwing session JSON. |
+| User-selected exports | Files written to a path the user chooses. Once exported, their permissions, synchronization, backup, and deletion are outside Cruxwing's application-support boundary. |
 
 Both JSON stores use a same-directory hidden staging file named
 `.destination.<random-id>.tmp`. The staging bytes are synchronized before an
@@ -173,7 +173,7 @@ expose another product's transcripts without a trustworthy owner marker.
 - **The Keychain is the credential boundary.** Provider and service tokens are
   not ordinary settings, but they must leave that boundary when authenticating
   to the selected vendor.
-- **Every selected provider/service is an independent data controller.** Orakul
+- **Every selected provider/service is an independent data controller.** Cruxwing
   cannot enforce its retention, training, residency, logging, or deletion
   policy. The user must choose a suitable account and jurisdiction.
 - **Vendored Agent Skills are reviewed untrusted methodology data.** Digest,
@@ -184,7 +184,7 @@ expose another product's transcripts without a trustworthy owner marker.
   checksums, and attestations each prove a narrower property. None is a general
   security audit or a byte-for-byte reproducible-build guarantee.
 
-The privacy manifest declares that the Orakul developer collects no data and
+The privacy manifest declares that the Cruxwing developer collects no data and
 does not track users. That statement does not describe data a user directs to
 an external model, transcription vendor, or connected work service.
 
@@ -195,7 +195,7 @@ The following are deliberately documented rather than disguised as completed:
 - inherited account, identity, backend-gateway, paywall API, and tariff types
   still compile, although the public build's empty backend keeps those paths
   unavailable;
-- direct BYOK neither reads a legacy Orakul account session from Keychain nor
+- direct BYOK neither reads a legacy Cruxwing account session from Keychain nor
   subscribes to managed-session notifications; managed compatibility can do so
   only when its backend gateway is explicitly enabled;
 - hidden OpenAI Whisper and server-Whisper compatibility clients remain, but

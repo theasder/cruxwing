@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Молчащий источник оставляет след.
 ///

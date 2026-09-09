@@ -1,0 +1,348 @@
+import Foundation
+// URLRequest и HTTPURLResponse на Linux живут в FoundationNetworking — том же
+// модуле, что и в ядре. Без этого набор не собирается там, где он и должен
+// доказывать переносимость.
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+import Testing
+@testable import CruxwingCore
+
+/// Поиск по рабочим мессенджерам.
+///
+/// Форма каждого запроса сверена с документацией вендора 2026-08-12. Она
+/// закреплена здесь, потому что по тексту ошибки её не восстановить:
+/// Rocket.Chat на запрос без `roomId` отвечает не «укажите комнату», а пустым
+/// списком, и это неотличимо от «ничего не нашлось».
+@Suite("Рабочие мессенджеры")
+struct WorkMessengersTests {
+
+    private func stub(status: Int = 200, json: String)
+        -> (WorkMessengers.HTTP, Recorder) {
+        let recorder = Recorder()
+        let http: WorkMessengers.HTTP = { request in
+            recorder.record(request)
+            return (Data(json.utf8),
+                    HTTPURLResponse(url: request.url!, statusCode: status,
+                                    httpVersion: nil, headerFields: [:])!)
+        }
+        return (http, recorder)
+    }
+
+    // MARK: - Пачка
+
+    private static let pachcaJSON = """
+    {"data": [{"id": 1, "chat_id": 7, "content": "Про тарифы решили в пятницу",
+               "user_id": 42, "created_at": "2026-08-12T10:00:00Z"}],
+     "meta": {"total": 1, "paginate": {"next_page": ""}}}
+    """
+
+    @Test("Пачка ищет по всем чатам и кладёт токен в заголовок")
+    func pachcaSearchesEverywhere() async throws {
+        let (http, recorder) = stub(json: Self.pachcaJSON)
+        let hits = try await WorkMessengers(service: .pachca, token: "tok-synthetic",
+                                            http: http).search("тарифы")
+
+        let url = try #require(recorder.last?.url?.absoluteString)
+        #expect(url.hasPrefix("https://api.pachca.com/api/shared/v1/search/messages"))
+        #expect(url.contains("query="))
+        #expect(url.contains("sort=created_at"))
+        #expect(url.contains("order=desc"))
+        #expect(recorder.last?.value(forHTTPHeaderField: "Authorization")
+                == "Bearer tok-synthetic")
+        // Адрес сервера у Пачки не спрашивается: облако одно.
+        #expect(WorkMessengers.Service.pachca.secondaryPrompt == nil)
+        #expect(hits.map(\.text) == ["Про тарифы решили в пятницу"])
+        #expect(hits.first?.author == "42")
+    }
+
+    // MARK: - Mattermost
+
+    private static let mattermostJSON = """
+    {"order": ["p2", "p1"],
+     "posts": {"p1": {"message": "первое", "user_id": "u1"},
+               "p2": {"message": "второе", "user_id": "u2"}}}
+    """
+
+    @Test("Mattermost ищет по команде, и это И, а не ИЛИ")
+    func mattermostSearchesTheTeam() async throws {
+        let (http, recorder) = stub(json: Self.mattermostJSON)
+        _ = try await WorkMessengers(service: .mattermost, token: "tok-synthetic",
+                                     secondary: "chat.company.ru", scope: "team-1",
+                                     http: http).search("тарифы")
+
+        // ПЕРВЫЙ запрос, а не последний: за словом человека может уйти второй
+        // вопрос — основой слова, — и `last` тогда проверяет не то. Здесь это
+        // и случилось, когда Mattermost переехал на манифест: движок задаёт
+        // такой вопрос, а рукописная ветка не задавала.
+        let request = try #require(recorder.first)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.absoluteString
+                == "https://chat.company.ru/api/v4/teams/team-1/posts/search")
+        let body = try #require(request.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        #expect(json["terms"] as? String == "тарифы")
+        // ИЛИ вернуло бы сообщения, где совпало одно случайное слово.
+        #expect(json["is_or_search"] as? Bool == false)
+    }
+
+    @Test("порядок берётся из order, а не из словаря")
+    func mattermostKeepsServerOrder() async throws {
+        // `posts` — словарь, его порядок не определён. Без `order` выдача
+        // приходила бы каждый раз в новом порядке.
+        let (http, _) = stub(json: Self.mattermostJSON)
+        let hits = try await WorkMessengers(service: .mattermost, token: "t",
+                                            secondary: "chat.company.ru", scope: "team-1",
+                                            http: http).search("q")
+        #expect(hits.map(\.text) == ["второе", "первое"])
+    }
+
+    // MARK: - Rocket.Chat
+
+    private static let rocketJSON = """
+    {"messages": [{"_id": "m1", "msg": "обсуждали в среду",
+                   "u": {"username": "polina"}}], "success": true}
+    """
+
+    @Test("Rocket.Chat ищет в комнате и шлёт оба значения")
+    func rocketChatNeedsRoomAndTwoHeaders() async throws {
+        let (http, recorder) = stub(json: Self.rocketJSON)
+        let hits = try await WorkMessengers(service: .rocketChat,
+                                            token: "tok-synthetic:user-1",
+                                            secondary: "chat.company.ru",
+                                            scope: "room-9", http: http).search("тарифы")
+
+        let request = try #require(recorder.last)
+        let url = try #require(request.url?.absoluteString)
+        #expect(url.hasPrefix("https://chat.company.ru/api/v1/chat.search"))
+        #expect(url.contains("roomId=room-9"))
+        #expect(url.contains("searchText="))
+        // Одного токена мало — сервису нужен ещё идентификатор пользователя.
+        #expect(request.value(forHTTPHeaderField: "X-Auth-Token") == "tok-synthetic")
+        #expect(request.value(forHTTPHeaderField: "X-User-Id") == "user-1")
+        #expect(hits.first?.author == "polina")
+        #expect(hits.first?.text == "обсуждали в среду")
+    }
+
+    // MARK: - Zulip
+
+    private static let zulipJSON = """
+    {"messages": [{"id": 5, "content": "решили в четверг",
+                   "sender_full_name": "Полина"}], "result": "success"}
+    """
+
+    @Test("Zulip ищет через сужение и авторизуется по Basic")
+    func zulipSearchesWithNarrow() async throws {
+        let (http, recorder) = stub(json: Self.zulipJSON)
+        let hits = try await WorkMessengers(service: .zulip,
+                                            token: "me@company.ru:key-synthetic",
+                                            secondary: "zulip.company.ru",
+                                            http: http).search("тарифы")
+
+        // Первый запрос — тот, что унёс слово человека: за ним движок задаёт
+        // вопрос основой («тариф»), и `last` проверял бы уже не то.
+        let request = try #require(recorder.first)
+        let url = try #require(request.url?.absoluteString)
+        #expect(url.hasPrefix("https://zulip.company.ru/api/v1/messages"))
+        // Оператор `search` — это и есть полнотекстовый поиск по содержимому.
+        let decoded = try #require(request.url?.query?.removingPercentEncoding)
+        #expect(decoded.contains(#"{"operator":"search","operand":"тарифы"}"#))
+        #expect(decoded.contains("anchor=newest"))
+
+        // Basic: почта и ключ через двоеточие, как требует Zulip.
+        let expected = Data("me@company.ru:key-synthetic".utf8).base64EncodedString()
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Basic \(expected)")
+        #expect(hits.first?.text == "решили в четверг")
+        #expect(hits.first?.author == "Полина")
+    }
+
+    // MARK: - Matrix
+
+    private static let matrixJSON = """
+    {"search_categories": {"room_events": {"count": 1, "results": [
+       {"result": {"sender": "@polina:company.ru",
+                   "content": {"body": "решили не трогать годовой", "msgtype": "m.text"}}}
+     ]}}}
+    """
+
+    @Test("Matrix ищет по событиям комнат и просит свежие сверху")
+    func matrixSearchesRoomEvents() async throws {
+        let (http, recorder) = stub(json: Self.matrixJSON)
+        let hits = try await WorkMessengers(service: .matrix, token: "tok-synthetic",
+                                            secondary: "matrix.company.ru",
+                                            http: http).search("тарифы")
+
+        // Первый запрос — со словом человека; второй движок задаёт основой.
+        // Третья проверка за три дня, споткнувшаяся об это: `last`
+        // перестал быть словом человека, когда появился вопрос основой.
+        let request = try #require(recorder.first)
+        #expect(request.httpMethod == "POST")
+        #expect(request.url?.absoluteString
+                == "https://matrix.company.ru/_matrix/client/v3/search")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer tok-synthetic")
+
+        let body = try #require(request.httpBody)
+        let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let categories = try #require(json["search_categories"] as? [String: Any])
+        let events = try #require(categories["room_events"] as? [String: Any])
+        #expect(events["search_term"] as? String == "тарифы")
+        // На звонке важнее «когда решили», чем «где слово встретилось чаще».
+        #expect(events["order_by"] as? String == "recent")
+
+        // Вложенность ответа родная для Matrix, и разбор «как у всех» вернул бы
+        // пустоту, неотличимую от «не обсуждали».
+        #expect(hits.first?.text == "решили не трогать годовой")
+        #expect(hits.first?.author == "@polina:company.ru")
+    }
+
+    // MARK: - Общее
+
+    @Test("без обязательного поля запрос не уходит",
+          arguments: [WorkMessengers.Service.mattermost, .rocketChat])
+    func incompleteSetupNeverCallsOut(service: WorkMessengers.Service) async {
+        let (http, recorder) = stub(json: "{}")
+        // Нет адреса сервера.
+        await #expect(throws: WorkMessengers.ConnectorError.notConfigured) {
+            try await WorkMessengers(service: service, token: "t", scope: "x",
+                                     http: http).search("q")
+        }
+        // Нет места поиска — команды или комнаты.
+        await #expect(throws: WorkMessengers.ConnectorError.notConfigured) {
+            try await WorkMessengers(service: service, token: "t",
+                                     secondary: "chat.company.ru", http: http).search("q")
+        }
+        #expect(recorder.count == 0, "ушёл запрос при неполной настройке")
+    }
+
+    @Test("401 означает неподходящий токен, а 403 — недостающее право поиска")
+    func unauthorisedIsRecognised() async {
+        let (unauthorised, _) = stub(status: 401, json: "{}")
+        await #expect(throws: WorkMessengers.ConnectorError.unauthorised) {
+            try await WorkMessengers(service: .pachca, token: "t", http: unauthorised).search("q")
+        }
+        let (forbidden, _) = stub(status: 403, json: "{}")
+        await #expect(throws: WorkMessengers.ConnectorError.missingScope("search:messages")) {
+            try await WorkMessengers(service: .pachca, token: "t", http: forbidden).search("q")
+        }
+        #expect(WorkMessengers.ConnectorError.missingScope("search:messages")
+            .localizedDescription.contains("search:messages"))
+    }
+
+    @Test("ошибка сервиса не выдаётся за пустую выдачу")
+    func errorBodyIsNotAnEmptyResult() async {
+        // Ответ без ожидаемого ключа — это невыполненный запрос. Пустой список
+        // сказал бы «не обсуждали», и человек бы поверил.
+        for service in WorkMessengers.Service.allCases {
+            let (http, _) = stub(json: #"{"message": "Bad Request"}"#)
+            await #expect(throws: WorkMessengers.ConnectorError.unreadable) {
+                try await WorkMessengers(service: service, token: "t:u",
+                                         secondary: "chat.company.ru", scope: "x",
+                                         http: http).search("q")
+            }
+        }
+    }
+
+    @Test("пустой запрос никуда не уходит")
+    func blankQueryIsNotSent() async throws {
+        let (http, recorder) = stub(json: Self.pachcaJSON)
+        let hits = try await WorkMessengers(service: .pachca, token: "t",
+                                            http: http).search("   ")
+        #expect(hits.isEmpty)
+        #expect(recorder.count == 0)
+    }
+
+    @Test("у каждого сервиса сказано, что именно спрашивать у человека")
+    func promptsExplainThemselves() {
+        for service in WorkMessengers.Service.allCases {
+            #expect(!service.title.isEmpty)
+            #expect(!service.credentialHint.isEmpty)
+            // A person reads the hint, so it is in the product's language.
+            #expect(service.credentialHint.range(
+                of: "[а-яА-ЯёЁ]", options: .regularExpression) == nil,
+                "a Russian hint outlived the switch to English: \(service)")
+        }
+        // Пачке хватает токена; остальным нужны адрес и место поиска.
+        #expect(!WorkMessengers.Service.pachca.needsSecondary)
+        #expect(!WorkMessengers.Service.pachca.needsScope)
+        #expect(WorkMessengers.Service.mattermost.needsScope)
+        #expect(WorkMessengers.Service.rocketChat.needsScope)
+    }
+
+    // MARK: - Хранение
+}
+
+
+@Suite("Пара значений в одном поле")
+struct PairedTokenTests {
+    private func stub() -> (WorkMessengers.HTTP, () -> Int) {
+        let calls = SyncCounter()
+        let http: WorkMessengers.HTTP = { _ in
+            calls.tick()
+            return (Data("{}".utf8), HTTPURLResponse(
+                url: URL(string: "https://chat.company.ru")!, statusCode: 401,
+                httpVersion: nil, headerFields: [:])!)
+        }
+        return (http, { calls.count })
+    }
+
+    /// Раньше неполная пара уходила в сеть, возвращалась 401 и подпись «токен
+    /// истёк — создайте новый». Человек шёл перевыпускать исправный ключ.
+    @Test("одно значение вместо двух не уходит в сеть",
+          arguments: [WorkMessengers.Service.rocketChat, .zulip])
+    func singleValueNeverReachesTheNetwork(service: WorkMessengers.Service) async {
+        let (http, calls) = stub()
+        let client = WorkMessengers(service: service, token: "только-одно",
+                                    secondary: "chat.company.ru",
+                                    scope: "room-9", http: http)
+        await #expect(throws: WorkMessengers.ConnectorError.self) {
+            _ = try await client.search("тарифы")
+        }
+        #expect(calls() == 0, "запрос ушёл, хотя половины не хватает")
+    }
+
+    @Test("текст ошибки называет оба значения, а не советует новый токен",
+          arguments: [WorkMessengers.Service.rocketChat, .zulip])
+    func messageNamesBothHalves(service: WorkMessengers.Service) async throws {
+        let (http, _) = stub()
+        let client = WorkMessengers(service: service, token: "только-одно",
+                                    secondary: "chat.company.ru",
+                                    scope: "room-9", http: http)
+        do {
+            _ = try await client.search("тарифы")
+            Issue.record("ожидалась ошибка о неполной паре")
+        } catch let error as WorkMessengers.ConnectorError {
+            let text = try #require(error.errorDescription)
+            let expected = try #require(service.pairedTokenPrompt)
+            #expect(text.contains(expected))
+            #expect(!text.contains("создайте новый"),
+                    "совет перевыпустить токен здесь неверен: токен цел")
+        }
+    }
+
+    @Test("пустая половина считается отсутствующей", arguments: [":ключ", "почта:", " : "])
+    func emptyHalfIsMissing(token: String) {
+        let client = WorkMessengers(service: .zulip, token: token,
+                                    secondary: "zulip.company.ru",
+                                    http: { _ in (Data(), stubHTTPResponse()) })
+        #expect(!client.hasBothTokenHalves)
+    }
+
+    @Test("двоеточие внутри второй половины не ломает разбор")
+    func colonInsideSecondHalf() {
+        let client = WorkMessengers(service: .zulip, token: "user@company.ru:ab:cd",
+                                    secondary: "zulip.company.ru",
+                                    http: { _ in (Data(), stubHTTPResponse()) })
+        #expect(client.hasBothTokenHalves)
+    }
+
+    @Test("сервисам с одним значением пара не навязывается",
+          arguments: [WorkMessengers.Service.pachca, .mattermost, .matrix])
+    func singleValueServicesUnaffected(service: WorkMessengers.Service) {
+        #expect(service.pairedTokenPrompt == nil)
+        let client = WorkMessengers(service: service, token: "один-токен",
+                                    secondary: "chat.company.ru",
+                                    scope: "team-1",
+                                    http: { _ in (Data(), stubHTTPResponse()) })
+        #expect(client.hasBothTokenHalves)
+    }
+}

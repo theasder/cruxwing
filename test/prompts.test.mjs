@@ -13,7 +13,7 @@ import { dirname, resolve } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const canonicalCatalog = resolve(
-  here, '..', 'mvp', 'Sources', 'OrakulCore', 'Resources', 'prompts.ru.json',
+  here, '..', 'mvp', 'Sources', 'CruxwingCore', 'Resources', 'prompts.ru.json',
 );
 const catalog = JSON.parse(
   readFileSync(canonicalCatalog, 'utf8'),
@@ -35,9 +35,9 @@ const needsFilm = existsSync(filmScene)
   ? {}
   : { skip: 'демо-фильм лежит в соседнем репозитории маркетинга — в клоне его нет' };
 
-describe('orakul quick-action buttons (ru)', () => {
+describe('cruxwing quick-action buttons (ru)', () => {
   test('the test reads the resource SwiftPM actually ships, with no config copy', () => {
-    assert.ok(existsSync(canonicalCatalog), 'the bundled OrakulCore prompt catalogue is missing');
+    assert.ok(existsSync(canonicalCatalog), 'the bundled CruxwingCore prompt catalogue is missing');
     const copies = [];
     const walk = (directory) => {
       if (!existsSync(directory)) return;
@@ -50,7 +50,7 @@ describe('orakul quick-action buttons (ru)', () => {
     for (const root of ['app/Sources', 'mvp/Sources', 'config']) {
       walk(resolve(here, '..', root));
     }
-    assert.deepEqual(copies, ['mvp/Sources/OrakulCore/Resources/prompts.ru.json'],
+    assert.deepEqual(copies, ['mvp/Sources/CruxwingCore/Resources/prompts.ru.json'],
       `prompt catalogues can drift away from the resource users receive:\n${copies.join('\n')}`);
   });
 

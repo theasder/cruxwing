@@ -6,16 +6,16 @@ import { dirname, resolve } from 'node:path';
 
 // Run with: node --test
 //
-// orakul and Cruxwing must sit on one machine without touching each other. That
+// cruxwing and Cruxwing must sit on one machine without touching each other. That
 // is not a naming preference — macOS ties Screen Recording and Microphone
 // permission to the bundle id, so two apps sharing one id share one grant, and
 // a user cannot revoke it from one without losing the other. Same for the
 // UserDefaults suite and the Keychain service: a shared identifier means
-// installing orakul silently edits Cruxwing's settings.
+// installing cruxwing silently edits Cruxwing's settings.
 //
 // The comparison reads Cruxwing's REAL identity from its own files rather than
 // a copy pasted here, so if somebody ever changes Cruxwing's bundle id into
-// orakul's, this fails instead of quietly agreeing with itself.
+// cruxwing's, this fails instead of quietly agreeing with itself.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const identity = JSON.parse(readFileSync(resolve(here, '..', 'config', 'app.json'), 'utf8'));
@@ -42,11 +42,11 @@ function cruxwingVolumeName() {
   return readFileSync(cruxwingDmg, 'utf8').match(/^VOLNAME="([^"]+)"/m)?.[1] ?? null;
 }
 
-describe('orakul app identity', () => {
-  test('is called orakul, in every field a user or the OS ever sees', () => {
-    assert.equal(identity.app.name, 'orakul');
-    assert.equal(identity.app.displayName, 'orakul');
-    assert.equal(identity.app.volumeName, 'orakul');
+describe('cruxwing app identity', () => {
+  test('is called cruxwing, in every field a user or the OS ever sees', () => {
+    assert.equal(identity.app.name, 'cruxwing');
+    assert.equal(identity.app.displayName, 'cruxwing');
+    assert.equal(identity.app.volumeName, 'cruxwing');
     assert.match(identity.app.developerTeamId, /^[A-Z0-9]{10}$/,
       'published signatures need one explicit Apple TeamIdentifier');
   });
@@ -58,8 +58,8 @@ describe('orakul app identity', () => {
     // Not merely different: not derived from Cruxwing's names either, since a
     // shared prefix is how these drift back together during a refactor.
     for (const field of ['bundleId', 'defaultsSuite', 'keychainService', 'volumeName']) {
-      assert.doesNotMatch(identity.app[field], /cruxwing|meetgpt/i,
-        `${field} still carries Cruxwing's identity`);
+      assert.doesNotMatch(identity.app[field], /meetgpt|wheespr/i,
+        `${field} still carries a parent product's identity`);
     }
     assert.notEqual(identity.app.volumeName, cruxwingVolumeName());
   });
@@ -75,7 +75,7 @@ describe('orakul app identity', () => {
     }
   });
 
-  test('runtime diagnostics and queues carry Orakul identity', () => {
+  test('runtime diagnostics and queues carry Cruxwing identity', () => {
     const files = [
       'app/Sources/MeetGPT/Config.swift',
       'app/Sources/MeetGPT/Log.swift',
@@ -89,14 +89,14 @@ describe('orakul app identity', () => {
       const code = source.split('\n')
         .filter((line) => !line.trimStart().startsWith('//'))
         .join('\n');
-      assert.doesNotMatch(code, /ai\.wheespr\.meetgpt|com\.cruxwing|ai\.cruxwing/i,
+      assert.doesNotMatch(code, /ai\.wheespr\.meetgpt|com\.meetgpt/i,
         `${file} still identifies runtime work as the parent product`);
-      assert.match(code, /ai\.orakul\.desktop/,
-        `${file} has no Orakul-owned runtime identifier`);
+      assert.match(code, /ai\.cruxwing\.desktop/,
+        `${file} has no Cruxwing-owned runtime identifier`);
     }
   });
 
-  test('developer smoke tools launch and inspect Orakul, not the parent app', () => {
+  test('developer smoke tools launch and inspect Cruxwing, not the parent app', () => {
     const helpers = [
       'app/edgetest.sh',
       'app/livetest.sh',
@@ -112,24 +112,24 @@ describe('orakul app identity', () => {
 
     for (const file of ['app/edgetest.sh', 'app/livetest.sh', 'app/videotest.sh']) {
       const source = readFileSync(resolve(here, '..', file), 'utf8');
-      assert.match(source, /APP="\/Applications\/orakul\.app"/,
-        `${file} does not launch the installed Orakul bundle`);
-      assert.match(source, /ai\.orakul\.desktop\.livetest/,
-        `${file} does not use the Orakul live-test namespace`);
+      assert.match(source, /APP="\/Applications\/cruxwing\.app"/,
+        `${file} does not launch the installed Cruxwing bundle`);
+      assert.match(source, /ai\.cruxwing\.desktop\.livetest/,
+        `${file} does not use the Cruxwing live-test namespace`);
       assert.doesNotMatch(source, /ai\.cruxwing\.livetest/,
         `${file} still uses the parent product's live-test namespace`);
     }
 
     const coverageManifest = readFileSync(
       resolve(here, '..', 'app', 'Tests', 'E2E', 'coverage-manifest.json'), 'utf8');
-    assert.match(coverageManifest, /ai\.orakul\.desktop\.livetest/);
+    assert.match(coverageManifest, /ai\.cruxwing\.desktop\.livetest/);
     assert.doesNotMatch(coverageManifest, /ai\.cruxwing\.livetest/);
 
     const corpus = readFileSync(resolve(here, '..', 'app', 'eval-corpus.sh'), 'utf8');
     assert.match(corpus, /APP_SUPPORT="\$HOME\/Library\/Application Support"/,
       'eval-corpus.sh does not define the standard application-support root');
-    assert.match(corpus, /orakul_history="\$APP_SUPPORT\/ai\.orakul\.desktop\/Sessions"/,
-      'eval-corpus.sh cannot find Orakul session storage');
+    assert.match(corpus, /cruxwing_history="\$APP_SUPPORT\/ai\.cruxwing\.desktop\/Sessions"/,
+      'eval-corpus.sh cannot find Cruxwing session storage');
     assert.doesNotMatch(corpus, /Application Support\/(Cruxwing|MeetGPT)\/Sessions/,
       'eval-corpus.sh silently reads another product\'s sessions');
   });
@@ -139,51 +139,52 @@ describe('orakul app identity', () => {
     const windows = identity.artifacts.windows.installers;
     assert.ok(macos.length >= 2, 'both Mac architectures need an installer');
     for (const file of [...macos, ...windows]) {
-      assert.match(file, /^orakul-/, `installer not named for this app: ${file}`);
-      assert.doesNotMatch(file, /cruxwing/i, `installer collides with Cruxwing: ${file}`);
+      assert.match(file, /^cruxwing-/, `installer not named for this app: ${file}`);
+      assert.doesNotMatch(file, /meetgpt|wheespr/i,
+        `installer collides with a parent product: ${file}`);
     }
-    // Downloads land in orakul's own tree, never in the Cruxwing site's.
-    assert.match(identity.downloadDir, /^orakul\//);
-    assert.doesNotMatch(identity.downloadDir, /cruxwing/i);
+    // Downloads land in cruxwing's own tree, never in the Cruxwing site's.
+    assert.match(identity.downloadDir, /^cruxwing\//);
+    assert.doesNotMatch(identity.downloadDir, /meetgpt|wheespr/i);
   });
 
-  test('the Homebrew uninstall recipe deletes only Orakul data', () => {
+  test('the Homebrew uninstall recipe deletes only Cruxwing data', () => {
     const cask = readFileSync(
-      resolve(here, '..', 'packaging', 'homebrew', 'orakul.rb.template'), 'utf8');
-    assert.match(cask, /~\/Library\/Application Support\/ai\.orakul\.desktop/,
-      'the cask does not clean Orakul application data');
+      resolve(here, '..', 'packaging', 'homebrew', 'cruxwing.rb.template'), 'utf8');
+    assert.match(cask, /~\/Library\/Application Support\/ai\.cruxwing\.desktop/,
+      'the cask does not clean Cruxwing application data');
     assert.doesNotMatch(cask, /Application Support\/(MeetGPT|Cruxwing)/i,
-      'uninstalling Orakul could delete another product\'s data');
+      'uninstalling Cruxwing could delete another product\'s data');
   });
 
-  test('alternate macOS release lanes create only fresh Orakul-named artifacts', () => {
+  test('alternate macOS release lanes create only fresh Cruxwing-named artifacts', () => {
     const appStore = readFileSync(resolve(here, '..', 'app', 'appstore.sh'), 'utf8');
     const intel = readFileSync(resolve(here, '..', 'app', 'build-intel.sh'), 'utf8');
 
     for (const [script, source] of [['appstore.sh', appStore], ['build-intel.sh', intel]]) {
-      assert.doesNotMatch(source, /cruxwing/i,
+      assert.doesNotMatch(source, /wheespr/i,
         `${script} still carries the other product's identity or artifact path`);
       assert.match(source, /BUNDLE_ID="\$\(\/usr\/libexec\/PlistBuddy[^\n]+CFBundleIdentifier/,
         `${script} does not inspect the freshly built bundle identifier`);
       assert.match(source, /DISPLAY_NAME="\$\(\/usr\/libexec\/PlistBuddy[^\n]+CFBundleDisplayName/,
         `${script} does not inspect the freshly built display name`);
-      assert.match(source, /"\$BUNDLE_ID" != "ai\.orakul\.desktop"/,
+      assert.match(source, /"\$BUNDLE_ID" != "ai\.cruxwing\.desktop"/,
         `${script} would accept another product's bundle identifier`);
-      assert.match(source, /"\$DISPLAY_NAME" != "orakul"/,
+      assert.match(source, /"\$DISPLAY_NAME" != "cruxwing"/,
         `${script} would accept another product's display name`);
     }
 
-    assert.match(appStore, /^APP="\$ROOT\/build\/orakul\.app"$/m);
-    assert.match(appStore, /^PKG="\$DIST\/orakul\.pkg"$/m);
-    assert.match(appStore, /MEETGPT_APP_BASENAME=orakul .*"\$ROOT\/build\.sh"/);
+    assert.match(appStore, /^APP="\$ROOT\/build\/cruxwing\.app"$/m);
+    assert.match(appStore, /^PKG="\$DIST\/cruxwing\.pkg"$/m);
+    assert.match(appStore, /MEETGPT_APP_BASENAME=cruxwing .*"\$ROOT\/build\.sh"/);
     assert.match(appStore,
       /productbuild --component "\$APP" \/Applications --sign "\$INSTALLER_IDENTITY" "\$PKG"/,
-      'appstore.sh does not package the freshly validated Orakul app');
+      'appstore.sh does not package the freshly validated Cruxwing app');
     assert.match(appStore, /xcrun altool --upload-app -f "\$PKG"/,
-      'appstore.sh upload no longer uses the Orakul package');
+      'appstore.sh upload no longer uses the Cruxwing package');
     const appStoreClean = appStore.indexOf('rm -rf "$APP"');
     const appStoreOldPackage = appStore.indexOf('rm -f "$PKG"');
-    const appStoreBuild = appStore.indexOf('MEETGPT_APP_BASENAME=orakul ');
+    const appStoreBuild = appStore.indexOf('MEETGPT_APP_BASENAME=cruxwing ');
     const appStoreIdentity = appStore.indexOf('BUNDLE_ID="$(');
     const appStorePackage = appStore.indexOf('productbuild --component');
     assert.ok(appStoreClean >= 0 && appStoreClean < appStoreBuild,
@@ -193,12 +194,12 @@ describe('orakul app identity', () => {
     assert.ok(appStoreBuild < appStoreIdentity && appStoreIdentity < appStorePackage,
       'appstore.sh does not validate the fresh app identity before packaging it');
 
-    assert.match(intel, /^APP="\$ROOT\/build\/orakul-Intel\.app"$/m);
-    assert.match(intel, /^ZIP="\$DIST\/orakul-Intel\.zip"$/m);
-    assert.match(intel, /MEETGPT_APP_BASENAME=orakul-Intel/);
+    assert.match(intel, /^APP="\$ROOT\/build\/cruxwing-Intel\.app"$/m);
+    assert.match(intel, /^ZIP="\$DIST\/cruxwing-Intel\.zip"$/m);
+    assert.match(intel, /MEETGPT_APP_BASENAME=cruxwing-Intel/);
     assert.match(intel,
       /\/usr\/bin\/ditto -c -k --sequesterRsrc --keepParent "\$APP" "\$ZIP"/,
-      'build-intel.sh does not archive the freshly validated Orakul app');
+      'build-intel.sh does not archive the freshly validated Cruxwing app');
     const intelClean = intel.indexOf('rm -rf "$APP"');
     const intelOldArchive = intel.indexOf('rm -f "$ZIP"');
     const intelBuild = intel.indexOf('MEETGPT_ARCH=x86_64');

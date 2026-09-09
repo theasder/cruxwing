@@ -105,13 +105,13 @@ struct TranscriptNoiseRecoveryTests {
 
     @Test("project terms remain valid short answers even when in the glossary")
     func glossaryTermsAreSpeech() {
-        let glossary = ["Asana", "Jira", "Orakul", "Proglib"]
+        let glossary = ["Asana", "Jira", "Cruxwing", "Proglib"]
         for term in glossary {
             #expect(!TranscriptDeduplicator.isNoiseArtifact(
                 entry(term), glossary: glossary), "\(term)")
         }
         #expect(!TranscriptDeduplicator.isNoiseArtifact(
-            entry("Orakul, Proglib"), glossary: glossary))
+            entry("Cruxwing, Proglib"), glossary: glossary))
     }
 
     @Test("same-track short speech is preserved without speaker proof")

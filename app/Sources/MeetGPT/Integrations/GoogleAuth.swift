@@ -121,8 +121,8 @@ enum GoogleAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingClientID: return "Add the GOOGLE_CLIENT_ID of a Google OAuth desktop client and build orakul again."
-        case .missingClientSecret: return "Add the GOOGLE_CLIENT_SECRET of the same Google OAuth desktop client and build orakul again."
+        case .missingClientID: return "Add the GOOGLE_CLIENT_ID of a Google OAuth desktop client and build cruxwing again."
+        case .missingClientSecret: return "Add the GOOGLE_CLIENT_SECRET of the same Google OAuth desktop client and build cruxwing again."
         case .badClientID:     return "That does not look like a Google OAuth client id."
         case .noServicesSelected: return "Choose at least one Google Workspace service before connecting."
         case .cancelled:       return "Google sign-in cancelled."
@@ -327,7 +327,7 @@ final class GoogleAuth {
             .joined(separator: "&")
             .data(using: .utf8)
 
-        let (data, response) = try await OrakulNetworkIdentity.shared.data(for: request)
+        let (data, response) = try await CruxwingNetworkIdentity.shared.data(for: request)
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
         // OAuth servers return the useful error code/description in the JSON
         // body on non-2xx responses. Parse it before falling back to HTTP status.
@@ -378,7 +378,7 @@ final class GoogleAuth {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = "token=\(formEncode(token))".data(using: .utf8)
-        _ = try? await OrakulNetworkIdentity.shared.data(for: request)
+        _ = try? await CruxwingNetworkIdentity.shared.data(for: request)
     }
 
     // MARK: PKCE helpers

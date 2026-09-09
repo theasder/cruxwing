@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 /// Кто это сказал — и кто это написал.

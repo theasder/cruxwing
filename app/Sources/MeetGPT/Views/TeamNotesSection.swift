@@ -1,5 +1,5 @@
 import SwiftUI
-import OrakulCore
+import CruxwingCore
 
 /// Настройки → «Подключённые приложения»: база знаний команды.
 ///

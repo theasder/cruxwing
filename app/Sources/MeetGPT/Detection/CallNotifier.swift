@@ -67,7 +67,7 @@ final class CallNotifier: NSObject, UNUserNotificationCenterDelegate {
     /// this as a call happening *now* — distinct from the scheduled reminder,
     /// which announces an *upcoming* one.
     nonisolated static func callPromptText(source: String) -> (title: String, body: String) {
-        ("A call in \(source)", "orakul can record this call. Record it?")
+        ("A call in \(source)", "cruxwing can record this call. Record it?")
     }
 
     private func deliverCallPrompt(appName: String) async {

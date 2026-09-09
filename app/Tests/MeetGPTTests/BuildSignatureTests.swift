@@ -19,11 +19,11 @@ import Foundation
     @Test("Полный Info.plist даёт имя, версию и штамп исходников")
     func fullPlist() {
         let signature = SettingsView.buildSignature(from: [
-            "CFBundleDisplayName": "orakul (тест)",
+            "CFBundleDisplayName": "cruxwing (тест)",
             "CFBundleShortVersionString": "0.1.0",
-            "OrakulSourceHash": "81281531422f"
+            "CruxwingSourceHash": "81281531422f"
         ])
-        #expect(signature == "orakul (тест) 0.1.0 · 81281531422f")
+        #expect(signature == "cruxwing (тест) 0.1.0 · 81281531422f")
     }
 
     /// У сборки разработчика штампа нет. Показать пустое место честнее, чем
@@ -32,16 +32,16 @@ import Foundation
     @Test("Без штампа строка короче, но не врёт")
     func missingStamp() {
         let signature = SettingsView.buildSignature(from: [
-            "CFBundleDisplayName": "orakul (тест)",
+            "CFBundleDisplayName": "cruxwing (тест)",
             "CFBundleShortVersionString": "0.1.0"
         ])
-        #expect(signature == "orakul (тест) 0.1.0")
+        #expect(signature == "cruxwing (тест) 0.1.0")
         #expect(!signature.contains("·"))
     }
 
     @Test("Пустой Info.plist не даёт ни разделителей, ни пустых кусков")
     func emptyPlist() {
-        #expect(SettingsView.buildSignature(from: [:]) == "orakul")
+        #expect(SettingsView.buildSignature(from: [:]) == "cruxwing")
     }
 
     /// Имя в подписи — это имя из config/app.json, а не литерал в коде. Если
@@ -57,7 +57,7 @@ import Foundation
         let signature = SettingsView.buildSignature(from: [
             "CFBundleDisplayName": displayName,
             "CFBundleShortVersionString": "0.1.0",
-            "OrakulSourceHash": "81281531422f"
+            "CruxwingSourceHash": "81281531422f"
         ])
         #expect(signature.hasPrefix(displayName))
     }

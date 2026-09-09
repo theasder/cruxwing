@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-import OrakulCore
+import CruxwingCore
 import PDFKit
 import UniformTypeIdentifiers
 

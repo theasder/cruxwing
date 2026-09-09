@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$GITHUB_REPOSITORY" != "$EXPECTED_REPOSITORY" ]; then
-            echo "Отказ: Pages для orakul нельзя публиковать из $GITHUB_REPOSITORY." >&2
+            echo "Отказ: Pages для cruxwing нельзя публиковать из $GITHUB_REPOSITORY." >&2
             echo "Сначала владелец должен переименовать репозиторий в $EXPECTED_REPOSITORY." >&2
             exit 1
           fi
@@ -84,7 +84,7 @@ jobs:
                 echo "/ru/ не отдаётся — так и задумано"
                 exit 0
               fi
-              echo "!! /ru/ отдаётся (код $code) — это не часть сайта orakul" >&2
+              echo "!! /ru/ отдаётся (код $code) — это не часть сайта cruxwing" >&2
               exit 1
             fi
             sleep 10

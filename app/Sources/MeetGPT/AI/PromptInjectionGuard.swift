@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 /// Flags instruction-shaped text inside content the app did not author.
 ///

@@ -28,7 +28,7 @@ private actor LocalDiarizationUIProbe {
 struct LocalDiarizationControlsTests {
     private func eligibleState() -> AppState {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-speaker-controls-\(UUID().uuidString)")
+            .appendingPathComponent("cruxwing-speaker-controls-\(UUID().uuidString)")
         let state = AppState(
             credentialStore: InMemoryKeychain(),
             sessionStore: SessionStore(root: root))

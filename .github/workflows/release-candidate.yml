@@ -37,16 +37,16 @@ jobs:
     env:
       EXPECTED_REPOSITORY: theasder/cruxwing
       RELEASE_TAG: ${{ inputs.tag }}
-      RELEASE_OUTPUT: ${{ runner.temp }}/orakul-release-candidate
-      ORAKUL_CI_KEYCHAIN: ${{ runner.temp }}/orakul-signing.keychain-db
-      NOTARY_PROFILE: orakul-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      RELEASE_OUTPUT: ${{ runner.temp }}/cruxwing-release-candidate
+      CRUXWING_CI_KEYCHAIN: ${{ runner.temp }}/cruxwing-signing.keychain-db
+      NOTARY_PROFILE: cruxwing-ci-${{ github.run_id }}-${{ github.run_attempt }}
 
     steps:
       - name: Refuse the wrong repository or workflow ref
         run: |
           set -euo pipefail
           if [ "$GITHUB_REPOSITORY" != "$EXPECTED_REPOSITORY" ]; then
-            echo "Refusing to prepare Orakul artifacts from $GITHUB_REPOSITORY." >&2
+            echo "Refusing to prepare Cruxwing artifacts from $GITHUB_REPOSITORY." >&2
             echo "The owner must first restore $EXPECTED_REPOSITORY." >&2
             exit 1
           fi
@@ -108,18 +108,18 @@ jobs:
           done
 
           umask 077
-          certificate="$RUNNER_TEMP/orakul-developer-id.p12"
-          api_key="$RUNNER_TEMP/orakul-notary-key.p8"
-          ORAKUL_CERTIFICATE_PATH="$certificate" \
-          ORAKUL_NOTARY_KEY_PATH="$api_key" \
+          certificate="$RUNNER_TEMP/cruxwing-developer-id.p12"
+          api_key="$RUNNER_TEMP/cruxwing-notary-key.p8"
+          CRUXWING_CERTIFICATE_PATH="$certificate" \
+          CRUXWING_NOTARY_KEY_PATH="$api_key" \
           python3 <<'PY'
           import base64
           import os
           from pathlib import Path
 
           for source, target in [
-              ("APPLE_DEVELOPER_ID_P12_BASE64", "ORAKUL_CERTIFICATE_PATH"),
-              ("APPLE_NOTARY_KEY_P8_BASE64", "ORAKUL_NOTARY_KEY_PATH"),
+              ("APPLE_DEVELOPER_ID_P12_BASE64", "CRUXWING_CERTIFICATE_PATH"),
+              ("APPLE_NOTARY_KEY_P8_BASE64", "CRUXWING_NOTARY_KEY_PATH"),
           ]:
               try:
                   decoded = base64.b64decode(os.environ[source], validate=True)
@@ -131,22 +131,22 @@ jobs:
           PY
 
           keychain_password="$(openssl rand -hex 32)"
-          security create-keychain -p "$keychain_password" "$ORAKUL_CI_KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$ORAKUL_CI_KEYCHAIN"
-          security unlock-keychain -p "$keychain_password" "$ORAKUL_CI_KEYCHAIN"
+          security create-keychain -p "$keychain_password" "$CRUXWING_CI_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$CRUXWING_CI_KEYCHAIN"
+          security unlock-keychain -p "$keychain_password" "$CRUXWING_CI_KEYCHAIN"
           security import "$certificate" \
-            -k "$ORAKUL_CI_KEYCHAIN" \
+            -k "$CRUXWING_CI_KEYCHAIN" \
             -f pkcs12 \
             -P "$APPLE_DEVELOPER_ID_P12_PASSWORD" \
             -T /usr/bin/codesign \
             -T /usr/bin/security >/dev/null
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
-            -s -k "$keychain_password" "$ORAKUL_CI_KEYCHAIN" >/dev/null
-          security list-keychains -d user -s "$ORAKUL_CI_KEYCHAIN"
-          security default-keychain -d user -s "$ORAKUL_CI_KEYCHAIN"
+            -s -k "$keychain_password" "$CRUXWING_CI_KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$CRUXWING_CI_KEYCHAIN"
+          security default-keychain -d user -s "$CRUXWING_CI_KEYCHAIN"
 
-          signing_identity="$(security find-identity -v -p codesigning "$ORAKUL_CI_KEYCHAIN" \
+          signing_identity="$(security find-identity -v -p codesigning "$CRUXWING_CI_KEYCHAIN" \
             | sed -n 's/.*"\(Developer ID Application:[^"]*\)".*/\1/p' \
             | head -1)"
           if [ -z "$signing_identity" ]; then
@@ -158,7 +158,7 @@ jobs:
             --key "$api_key" \
             --key-id "$APPLE_NOTARY_KEY_ID" \
             --issuer "$APPLE_NOTARY_ISSUER_ID" \
-            --keychain "$ORAKUL_CI_KEYCHAIN" \
+            --keychain "$CRUXWING_CI_KEYCHAIN" \
             --validate >/dev/null
 
           echo "NOTARY_SIGN_ID=$signing_identity" >> "$GITHUB_ENV"
@@ -171,15 +171,15 @@ jobs:
       - name: Remove ephemeral Apple credentials
         if: always()
         run: |
-          security delete-keychain "$ORAKUL_CI_KEYCHAIN" >/dev/null 2>&1 || true
-          rm -f "$RUNNER_TEMP/orakul-developer-id.p12" "$RUNNER_TEMP/orakul-notary-key.p8"
+          security delete-keychain "$CRUXWING_CI_KEYCHAIN" >/dev/null 2>&1 || true
+          rm -f "$RUNNER_TEMP/cruxwing-developer-id.p12" "$RUNNER_TEMP/cruxwing-notary-key.p8"
 
       - name: Audit the exact distributable pair
         run: |
           set -euo pipefail
           bash scripts/audit-dmg.sh \
-            app/dist/orakul-AppleSilicon.dmg \
-            app/dist/orakul-Intel.dmg
+            app/dist/cruxwing-AppleSilicon.dmg \
+            app/dist/cruxwing-Intel.dmg
 
       - name: Assemble checksums, cask and provenance record
         run: |
@@ -194,7 +194,7 @@ jobs:
         id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-checksums: ${{ runner.temp }}/orakul-release-candidate/SHA256SUMS
+          subject-checksums: ${{ runner.temp }}/cruxwing-release-candidate/SHA256SUMS
 
       - name: Preserve the portable Sigstore bundle beside the candidate
         env:
@@ -202,13 +202,13 @@ jobs:
         run: |
           set -euo pipefail
           test -s "$ATTESTATION_BUNDLE"
-          cp "$ATTESTATION_BUNDLE" "$RELEASE_OUTPUT/orakul-attestation.sigstore.json"
+          cp "$ATTESTATION_BUNDLE" "$RELEASE_OUTPUT/cruxwing-attestation.sigstore.json"
 
       - name: Retain candidate for owner review (not a public release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: orakul-${{ inputs.tag }}-release-candidate
-          path: ${{ runner.temp }}/orakul-release-candidate/
+          name: cruxwing-${{ inputs.tag }}-release-candidate
+          path: ${{ runner.temp }}/cruxwing-release-candidate/
           if-no-files-found: error
           retention-days: 14
           compression-level: 0

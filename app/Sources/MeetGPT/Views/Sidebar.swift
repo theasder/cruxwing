@@ -92,7 +92,7 @@ struct Sidebar: View {
     private var brand: some View {
         HStack(spacing: Space.s) {
             AppMark()
-            Text("orakul")
+            Text("cruxwing")
                 .font(Typo.title)
                 .foregroundStyle(Theme.ink)
             Spacer()

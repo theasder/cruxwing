@@ -1,15 +1,15 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-// orakul — сборка, отдельная от Cruxwing.
+// cruxwing — сборка, отдельная от Cruxwing.
 //
-// Ядро (OrakulCore) не знает ни про SwiftUI, ни про CoreML, ни про
+// Ядро (CruxwingCore) не знает ни про SwiftUI, ни про CoreML, ни про
 // ScreenCaptureKit: там разбор каталога кнопок, правила уровней и всё, что
 // должно одинаково работать и на macOS, и на Windows. Платформенные слои —
 // захват звука и оболочка — лежат снаружи и заменяются целиком.
 //
 // Такое разделение не вкусовщина: порт на Windows стоит ровно тех модулей,
-// которые находятся вне OrakulCore, и это видно прямо из манифеста.
+// которые находятся вне CruxwingCore, и это видно прямо из манифеста.
 // Окно — единственная часть пакета, которой нужен SwiftUI, то есть Apple.
 // Объявлено условно, а не «пока не трогаем»: на Linux манифест с этой целью
 // разваливает сборку ЦЕЛИКОМ, вместе с ядром и командной строкой, которым
@@ -18,27 +18,27 @@ import PackageDescription
 // Ядра это не касается: `PortabilityTests` и без того держит его на одном
 // `Foundation`, и это по-прежнему то, ради чего разделение существует.
 #if os(macOS)
-let windowProducts: [Product] = [.executable(name: "OrakulApp", targets: ["OrakulApp"])]
-let windowTargets: [Target] = [.executableTarget(name: "OrakulApp", dependencies: ["OrakulCore"])]
+let windowProducts: [Product] = [.executable(name: "CruxwingApp", targets: ["CruxwingApp"])]
+let windowTargets: [Target] = [.executableTarget(name: "CruxwingApp", dependencies: ["CruxwingCore"])]
 #else
 let windowProducts: [Product] = []
 let windowTargets: [Target] = []
 #endif
 
 let package = Package(
-    name: "Orakul",
+    name: "Cruxwing",
     platforms: [.macOS(.v14)],
     products: [
-        .library(name: "OrakulCore", targets: ["OrakulCore"]),
+        .library(name: "CruxwingCore", targets: ["CruxwingCore"]),
         // Программа, которую можно запустить сегодня: захвата звука ещё нет, но
         // всё, что происходит со звонком после расшифровки, уже работает.
-        .executable(name: "orakul", targets: ["orakul"])
+        .executable(name: "cruxwing", targets: ["cruxwing"])
         // Окно. Собирается в бандл скриптом scripts/bundle.sh: SwiftPM умеет
         // исполняемый файл, но не .app. Объявлено выше, условно.
     ] + windowProducts,
     targets: [
         .target(
-            name: "OrakulCore",
+            name: "CruxwingCore",
             resources: [
                 // Каталог кнопок — данные, а не код: его правит тот, кто пишет
                 // тексты, и его же проверяют тесты на стороне сайта.
@@ -54,7 +54,7 @@ let package = Package(
         ),
         // Оболочка без логики: разбор аргументов и тексты — в ядре, где их
         // покрывают тесты.
-        .executableTarget(name: "orakul", dependencies: ["OrakulCore"]),
-        .testTarget(name: "OrakulCoreTests", dependencies: ["OrakulCore"])
+        .executableTarget(name: "cruxwing", dependencies: ["CruxwingCore"]),
+        .testTarget(name: "CruxwingCoreTests", dependencies: ["CruxwingCore"])
     ] + windowTargets
 )

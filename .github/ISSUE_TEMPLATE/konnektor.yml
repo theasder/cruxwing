@@ -101,7 +101,7 @@ body:
         данных. Именно этого не хватает Битрикс24: он написан по документации,
         и об этом сказано прямо, потому что портала у нас нет.
       placeholder: |
-        cd app && ORAKUL_PROBE_SERVICE=… ORAKUL_PROBE_TOKEN=… \
+        cd app && CRUXWING_PROBE_SERVICE=… CRUXWING_PROBE_TOKEN=… \
           bash scripts/test-filter.sh app LiveConnectorProbe
     validations:
       required: false

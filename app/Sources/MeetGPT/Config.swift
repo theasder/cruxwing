@@ -59,7 +59,7 @@ enum TranscriptionEngine: String, CaseIterable, Identifiable, Codable {
         // Про кредиты здесь больше нет ни слова: их не существует. Раньше в
         // каждой строке стояла цена в кредитах — «Free — no credits», «≈4 min
         // per credit», — и это был единственный оставшийся на экране счёт за
-        // то, за что orakul денег не берёт.
+        // то, за что cruxwing денег не берёт.
         case .local:    return "The audio never leaves the computer and it works with no network. Accuracy is decent, within your processor's means. Captions lag by a couple of seconds. Free."
         case .server:   return "The best accuracy — large-v3 and language-specific models on the server; the audio is erased after transcription. Captions lag by a couple of seconds, and it needs a sign-in."
         case .deepgram: return "The fastest transcript, and you can see who is speaking straight away; the audio goes to the Deepgram cloud. You pay Deepgram on your own key."
@@ -149,7 +149,7 @@ enum Config {
     private static let credentialCache = CredentialMemoryCache()
     private static let devTierPreviewRuntimeGate = DevTierPreviewRuntimeGate()
     private static let credentialPersistenceQueue = DispatchQueue(
-        label: "ai.orakul.desktop.credential-persistence",
+        label: "ai.cruxwing.desktop.credential-persistence",
         qos: .utility)
     // MARK: Ключи провайдеров
     //
@@ -292,9 +292,9 @@ enum Config {
         // Пусто — значит сервера нет, и это конечный ответ.
         //
         // В cruxwing здесь стояла подстановка `https://api.cruxwing.ai`, чтобы
-        // вход и тарифы работали в любой сборке. В orakul она давала прямо
+        // вход и тарифы работали в любой сборке. В cruxwing она давала прямо
         // противоположное задуманному: DIST-сборка не бакает адрес, пустое
-        // значение проваливалось в эту подстановку, и установщик orakul
+        // значение проваливалось в эту подстановку, и установщик cruxwing
         // предлагал вход и счёт на сервере другого продукта. Проверка в
         // build.sh это пропускала — она смотрела на своё значение, а не на
         // то, что в итоге возвращает Config.
@@ -309,8 +309,8 @@ enum Config {
     }
 
     /// Commercial usage limits belong only to the inherited managed gateway.
-    /// Public Orakul calls providers with the user's own key, so it must not
-    /// meter or disable those requests behind an Orakul allowance.
+    /// Public Cruxwing calls providers with the user's own key, so it must not
+    /// meter or disable those requests behind an Cruxwing allowance.
     static var managedUsageLimitsEnabled: Bool { llmViaBackend }
 
     /// Council mode: answers come from a multi-model US+CN panel with a
@@ -605,7 +605,7 @@ enum Config {
     }
 
     /// Baseline plan floor from `DEFAULT_TIER` (app/.env) — operator/dev default
-    /// retained for compatibility tests. The public Orakul path below always
+    /// retained for compatibility tests. The public Cruxwing path below always
     /// exposes the full catalog.
     static var baselineTier: Tier {
         Tier(rawValue: Secrets.defaultTier.lowercased()) ?? .free
@@ -622,7 +622,7 @@ enum Config {
         set { UserDefaults.standard.set(newValue, forKey: "billing.periodAnchor") }
     }
 
-    /// План. У orakul он один и всегда самый полный: тарифов нет.
+    /// План. У cruxwing он один и всегда самый полный: тарифов нет.
     ///
     /// Механика тарифов досталась от Cruxwing и осталась в коде — на ней висят
     /// выбор модели, число источников для подсказки, лимиты. Вырезать её
@@ -630,7 +630,7 @@ enum Config {
     /// отвечает «всё доступно» в одной точке, через которую проходят все
     /// остальные.
     ///
-    /// Разблокировать тут нечего: платить orakul не за что, всё считается на
+    /// Разблокировать тут нечего: платить cruxwing не за что, всё считается на
     /// компьютере пользователя. Оставить `.free` значило бы отдать российскому
     /// разработчику две модели из тринадцати и платный экран за остальные —
     /// ровно то, чего в этом продукте быть не должно.

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skillsRoot = join(repo, 'app', 'Sources', 'MeetGPT', 'Resources', 'Skills');
-const output = join(repo, 'app', 'Support', 'Legal', 'Orakul.cdx.json');
+const output = join(repo, 'app', 'Support', 'Legal', 'Cruxwing.cdx.json');
 const checkOnly = process.argv.includes('--check');
 
 const manifest = JSON.parse(readFileSync(join(skillsRoot, 'INGEST_MANIFEST.json'), 'utf8'));
@@ -111,7 +111,7 @@ const skillComponents = liveSkills.map((id) => {
   const upstreamURL = `https://github.com/${record.repo}/blob/${record.source_commit}/${encodePath(record.source_path)}`;
   return {
     type: 'data',
-    'bom-ref': `orakul:agent-skill:${id}@sha256:${record.source_sha256}`,
+    'bom-ref': `cruxwing:agent-skill:${id}@sha256:${record.source_sha256}`,
     group: record.repo,
     name: id,
     version: record.source_commit,
@@ -122,15 +122,15 @@ const skillComponents = liveSkills.map((id) => {
       { type: 'distribution', url: upstreamURL },
     ],
     properties: [
-      property('orakul:component-kind', 'agent-skill'),
-      property('orakul:source-path', record.source_path),
-      property('orakul:license-declaration', record.license),
-      property('orakul:license-evidence', noticeFor(record, licenseID)),
-      property('orakul:catalog-domain', metadata[id].domain),
-      property('orakul:meeting-relevance', metadata[id].meeting_relevance),
-      property('orakul:upstream-risk', upstreamRisk(bytes.toString('utf8'))),
-      property('orakul:runtime-decision', 'allow'),
-      property('orakul:runtime-prompts', [...review.prompt_ids].sort().join(',')),
+      property('cruxwing:component-kind', 'agent-skill'),
+      property('cruxwing:source-path', record.source_path),
+      property('cruxwing:license-declaration', record.license),
+      property('cruxwing:license-evidence', noticeFor(record, licenseID)),
+      property('cruxwing:catalog-domain', metadata[id].domain),
+      property('cruxwing:meeting-relevance', metadata[id].meeting_relevance),
+      property('cruxwing:upstream-risk', upstreamRisk(bytes.toString('utf8'))),
+      property('cruxwing:runtime-decision', 'allow'),
+      property('cruxwing:runtime-prompts', [...review.prompt_ids].sort().join(',')),
     ],
   };
 });
@@ -157,7 +157,7 @@ const swiftComponents = [...shippedSwift].map(([identity, legal]) => {
   if (!github) fail(`${identity} is not a pinned GitHub source`);
   return {
     type: 'library',
-    'bom-ref': `orakul:swiftpm:${identity}@${pin.state.revision}`,
+    'bom-ref': `cruxwing:swiftpm:${identity}@${pin.state.revision}`,
     name: identity,
     version: pin.state.version,
     purl: `pkg:github/${github}@${pin.state.revision}`,
@@ -166,9 +166,9 @@ const swiftComponents = [...shippedSwift].map(([identity, legal]) => {
       { type: 'vcs', url: `https://github.com/${github}/tree/${pin.state.revision}` },
     ],
     properties: [
-      property('orakul:component-kind', 'swiftpm-shipped-source-package'),
-      property('orakul:source-revision', pin.state.revision),
-      property('orakul:license-evidence', `Legal/${legal.notice}`),
+      property('cruxwing:component-kind', 'swiftpm-shipped-source-package'),
+      property('cruxwing:source-revision', pin.state.revision),
+      property('cruxwing:license-evidence', `Legal/${legal.notice}`),
     ],
   };
 });
@@ -176,45 +176,45 @@ const swiftComponents = [...shippedSwift].map(([identity, legal]) => {
 const embeddedComponents = [
   {
     type: 'library',
-    'bom-ref': 'orakul:embedded:fluidaudio-fastcluster',
+    'bom-ref': 'cruxwing:embedded:fluidaudio-fastcluster',
     name: 'fastcluster (embedded by FluidAudio)',
     licenses: [{ license: { id: 'BSD-2-Clause' } }],
-    properties: [property('orakul:license-evidence', 'Legal/FluidAudio/fastcluster-LICENSE.md')],
+    properties: [property('cruxwing:license-evidence', 'Legal/FluidAudio/fastcluster-LICENSE.md')],
   },
   {
     type: 'library',
-    'bom-ref': 'orakul:embedded:fluidaudio-vbx',
+    'bom-ref': 'cruxwing:embedded:fluidaudio-vbx',
     name: 'VBx (embedded by FluidAudio)',
     licenses: [{ license: { id: 'Apache-2.0' } }],
-    properties: [property('orakul:license-evidence', 'Legal/FluidAudio/vbx-LICENSE.md')],
+    properties: [property('cruxwing:license-evidence', 'Legal/FluidAudio/vbx-LICENSE.md')],
   },
   {
     type: 'library',
-    'bom-ref': 'orakul:embedded:whisperkit-swift-transformers',
+    'bom-ref': 'cruxwing:embedded:whisperkit-swift-transformers',
     name: 'swift-transformers-derived sources (embedded by WhisperKit)',
     licenses: [{ license: { id: 'Apache-2.0' } }],
     externalReferences: [{ type: 'vcs', url: 'https://github.com/huggingface/swift-transformers' }],
-    properties: [property('orakul:license-evidence', 'Legal/WhisperKit/NOTICES')],
+    properties: [property('cruxwing:license-evidence', 'Legal/WhisperKit/NOTICES')],
   },
 ];
 
 const appVersion = plistValue('CFBundleShortVersionString');
 const catalogHash = sha256(readFileSync(join(skillsRoot, 'INGEST_MANIFEST.json')));
-const catalogRef = `orakul:agent-skills-bundle@sha256:${catalogHash}`;
-const appRef = `orakul:application@${appVersion}`;
-const coreRef = `orakul:core@${appVersion}`;
+const catalogRef = `cruxwing:agent-skills-bundle@sha256:${catalogHash}`;
+const appRef = `cruxwing:application@${appVersion}`;
+const coreRef = `cruxwing:core@${appVersion}`;
 const catalogComponent = {
   type: 'data',
   'bom-ref': catalogRef,
-  name: 'Orakul reviewed Agent Skills bundle',
+  name: 'Cruxwing reviewed Agent Skills bundle',
   version: catalogHash,
   hashes: [{ alg: 'SHA-256', content: catalogHash }],
   properties: [
-    property('orakul:skill-bundle-count', liveSkills.length),
-    property('orakul:runtime-reviewed-count', reviews.size),
-    property('orakul:runtime-default-decision', runtimePolicy.default_decision),
-    property('orakul:provenance-source', 'MeetGPT_MeetGPT.bundle/Skills/INGEST_MANIFEST.json'),
-    property('orakul:runtime-policy-source', 'MeetGPT_MeetGPT.bundle/Skills/runtime-allowlist.json'),
+    property('cruxwing:skill-bundle-count', liveSkills.length),
+    property('cruxwing:runtime-reviewed-count', reviews.size),
+    property('cruxwing:runtime-default-decision', runtimePolicy.default_decision),
+    property('cruxwing:provenance-source', 'MeetGPT_MeetGPT.bundle/Skills/INGEST_MANIFEST.json'),
+    property('cruxwing:runtime-policy-source', 'MeetGPT_MeetGPT.bundle/Skills/runtime-allowlist.json'),
   ],
 };
 
@@ -227,13 +227,13 @@ const bom = {
     component: {
       type: 'application',
       'bom-ref': appRef,
-      name: 'orakul',
+      name: 'cruxwing',
       version: appVersion,
       licenses: [{ license: { id: 'Apache-2.0' } }],
       externalReferences: [{ type: 'vcs', url: 'https://github.com/theasder/cruxwing' }],
       properties: [
-        property('orakul:bundle-id', plistValue('CFBundleIdentifier')),
-        property('orakul:sbom-scope', 'shipped macOS application inputs'),
+        property('cruxwing:bundle-id', plistValue('CFBundleIdentifier')),
+        property('cruxwing:sbom-scope', 'shipped macOS application inputs'),
       ],
     },
   },
@@ -241,10 +241,10 @@ const bom = {
     {
       type: 'library',
       'bom-ref': coreRef,
-      name: 'OrakulCore',
+      name: 'CruxwingCore',
       version: appVersion,
       licenses: [{ license: { id: 'Apache-2.0' } }],
-      properties: [property('orakul:component-kind', 'local-swift-package')],
+      properties: [property('cruxwing:component-kind', 'local-swift-package')],
     },
     ...swiftComponents,
     ...embeddedComponents,
@@ -263,11 +263,11 @@ const bom = {
     { ref: coreRef, dependsOn: [] },
     {
       ref: swiftComponents.find((component) => component.name === 'fluidaudio')['bom-ref'],
-      dependsOn: ['orakul:embedded:fluidaudio-fastcluster', 'orakul:embedded:fluidaudio-vbx'],
+      dependsOn: ['cruxwing:embedded:fluidaudio-fastcluster', 'cruxwing:embedded:fluidaudio-vbx'],
     },
     {
       ref: swiftComponents.find((component) => component.name === 'whisperkit')['bom-ref'],
-      dependsOn: ['orakul:embedded:whisperkit-swift-transformers'],
+      dependsOn: ['cruxwing:embedded:whisperkit-swift-transformers'],
     },
     { ref: catalogRef, dependsOn: skillComponents.map((component) => component['bom-ref']) },
   ],
@@ -276,7 +276,7 @@ const bom = {
 const rendered = `${JSON.stringify(bom, null, 2)}\n`;
 if (checkOnly) {
   if (!existsSync(output) || readFileSync(output, 'utf8') !== rendered) {
-    fail('app/Support/Legal/Orakul.cdx.json is stale; run node scripts/generate-sbom.mjs');
+    fail('app/Support/Legal/Cruxwing.cdx.json is stale; run node scripts/generate-sbom.mjs');
   }
   process.stdout.write(`SBOM is current: ${skillComponents.length} skills, ${bom.components.length} components\n`);
 } else {

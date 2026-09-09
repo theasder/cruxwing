@@ -127,7 +127,7 @@ struct SessionStoreTests {
         try store.save(session)
 
         let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
-        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: destination)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
 
         try Data("interrupted write".utf8).write(to: destination)
@@ -160,7 +160,7 @@ struct SessionStoreTests {
         try store.save(session)
 
         let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
-        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: destination)
         try Data("damaged primary".utf8).write(to: destination)
         #expect(store.load(id: session.id)?.title == "known good v1")
 
@@ -184,8 +184,8 @@ struct SessionStoreTests {
         try store.save(session)
 
         let destination = store.root.appendingPathComponent("\(session.id.uuidString).json")
-        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
-        let staging = OrakulAtomicFile.stagingURL(for: destination)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: destination)
+        let staging = CruxwingAtomicFile.stagingURL(for: destination)
         try Data("private crash remnant".utf8).write(to: staging)
         let unrelated = store.root.appendingPathComponent("keep.txt")
         try Data("not a session".utf8).write(to: unrelated)
@@ -207,7 +207,7 @@ struct SessionStoreTests {
         session.title = "v2"
         try healthy.save(session)
         let destination = healthy.root.appendingPathComponent("\(session.id.uuidString).json")
-        let recovery = OrakulAtomicFile.recoveryURL(for: destination)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: destination)
         let failing = SessionStore(root: healthy.root, removeItem: { candidate in
             if candidate.standardizedFileURL == recovery.standardizedFileURL {
                 throw RemovalFailure.denied
@@ -244,7 +244,7 @@ struct SessionStoreTests {
         defer { try? FileManager.default.removeItem(at: root) }
         var synchronized: [URL] = []
 
-        try OrakulAtomicFile.write(
+        try CruxwingAtomicFile.write(
             Data("snapshot".utf8),
             to: destination,
             recoveryPolicy: .discardPreviousContent,
@@ -294,22 +294,22 @@ struct SessionStoreTests {
 
     @Test("production storage never falls back to a temporary directory")
     func applicationSupportResolution() throws {
-        let temporary = URL(fileURLWithPath: "/private/tmp/orakul-explicit-test")
-        #expect(throws: OrakulApplicationSupport.ResolutionError.self) {
-            _ = try OrakulApplicationSupport.resolvedRoot(
+        let temporary = URL(fileURLWithPath: "/private/tmp/cruxwing-explicit-test")
+        #expect(throws: CruxwingApplicationSupport.ResolutionError.self) {
+            _ = try CruxwingApplicationSupport.resolvedRoot(
                 applicationSupportDirectory: nil,
                 isUnderTest: false,
                 temporaryDirectory: temporary
             )
         }
 
-        let testRoot = try OrakulApplicationSupport.resolvedRoot(
+        let testRoot = try CruxwingApplicationSupport.resolvedRoot(
             applicationSupportDirectory: nil,
             isUnderTest: true,
             temporaryDirectory: temporary
         )
         #expect(testRoot.path.hasPrefix(temporary.path))
-        #expect(testRoot.lastPathComponent == OrakulApplicationSupport.directoryName)
+        #expect(testRoot.lastPathComponent == CruxwingApplicationSupport.directoryName)
     }
 
     @Test("displayTitle falls back to the date when the title is blank")

@@ -438,7 +438,7 @@ The same explicit dev gate may also write one
 telemetry, this review artifact intentionally contains the assembled assistant
 request, workflow transitions/results, backend route terminal, Blind Spot
 request/terminal cost trace, and final user-facing answer. It is enabled only
-by a dev build plus `ORAKUL_DEV_CALL_LOGS=1`, the live-test nonce, and the
+by a dev build plus `CRUXWING_DEV_CALL_LOGS=1`, the live-test nonce, and the
 owner's existing `0700` artifact root. Every file is `0600`, is capped at 4 MiB,
 uses bounded strings/events/collections, rotates to at most eight calls, and
 recursively redacts credential keys and bearer/API-key/JWT/private-key shapes.
@@ -656,7 +656,7 @@ swift test --filter ComposerImmediateFeedback
 # Zoom-like installed-app playback: remote fixture through built-in speakers,
 # physical microphone on, and ScreenCaptureKit concurrent (requires ffmpeg/ffplay
 # plus Screen Recording + Microphone grants)
-VIDEOTEST_OUT=/tmp/orakul-live-all \
+VIDEOTEST_OUT=/tmp/cruxwing-live-all \
   CONDITIONS="clean noisy fast" bash videotest.sh
 
 # Final execution-backed requirements gate. Reports and live report.json must
@@ -665,14 +665,14 @@ python3 testlib/verify_e2e_coverage.py \
   --manifest Tests/E2E/coverage-manifest.json \
   --xunit /tmp/cruxwing-swift-tests.xml \
   --xunit /tmp/cruxwing-api-tests.xml \
-  --live-artifacts /tmp/orakul-live-all \
+  --live-artifacts /tmp/cruxwing-live-all \
   --coverage-summary ../cruxwing-api/coverage/critical/coverage-summary.json \
   --run-command-checks \
   --out /tmp/cruxwing-e2e-coverage.json
 
 # Reproduce one seeded mid-call Settings run and keep artifacts outside the repo
 VIDEOTEST_SEED=424242 CONDITIONS=clean \
-  VIDEOTEST_OUT=/tmp/orakul-settings-424242 bash videotest.sh
+  VIDEOTEST_OUT=/tmp/cruxwing-settings-424242 bash videotest.sh
 
 # Gate speaker attribution on a configured diarizing run
 REQUIRE_DIARIZATION=1 CONDITIONS=clean bash videotest.sh

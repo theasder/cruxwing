@@ -20,8 +20,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 SERVICE="${1:-}"
-QUERY="${ORAKUL_PROBE_QUERY:-тарифы}"
-KEEP="${ORAKUL_PROBE_KEEP:-0}"
+QUERY="${CRUXWING_PROBE_QUERY:-тарифы}"
+KEEP="${CRUXWING_PROBE_KEEP:-0}"
 # Пустой массив и `set -u`: bash 3.2, который стоит в macOS, роняет
 # `"${FIELDS[@]}"` как «unbound variable». Отсюда форма с +.
 FIELDS=()
@@ -38,9 +38,9 @@ case "$SERVICE" in
   *) echo "Использование: $0 gitea|redmine|wikijs|nextcloud|plane|gitlab|mattermost|rocketChat|matrix" >&2; exit 2 ;;
 esac
 
-NAME="orakul-proba-$SERVICE"
+NAME="cruxwing-proba-$SERVICE"
 cleanup() {
-  if [ "$KEEP" = "1" ]; then echo ">> контейнер ${NAME} оставлен (ORAKUL_PROBE_KEEP=1)"; return; fi
+  if [ "$KEEP" = "1" ]; then echo ">> контейнер ${NAME} оставлен (CRUXWING_PROBE_KEEP=1)"; return; fi
   # Убираем ВСЁ, что названо этим префиксом, а не перечисленное поимённо.
   #
   # Список рос вместе с сервисами — база у Wiki.js, кэш у Plane, том у Synapse —
@@ -145,7 +145,7 @@ elif [ "$SERVICE" = nextcloud ]; then
   done
   docker exec -u www-data "$NAME" php occ files:scan --all >/dev/null 2>&1 || true
   TOKEN="proba:$PASS"
-  FIELDS=(ORAKUL_FIELD_provider=files)
+  FIELDS=(CRUXWING_FIELD_provider=files)
 elif [ "$SERVICE" = plane ]; then
   PORT=3995
   docker network create "${NAME}-net" >/dev/null 2>&1 || true
@@ -157,7 +157,7 @@ elif [ "$SERVICE" = plane ]; then
   sleep 6
   PLANE_ENV=(-e DATABASE_URL=postgresql://plane:plane@${NAME}-db/plane
              -e REDIS_URL=redis://${NAME}-redis:6379/
-             -e SECRET_KEY=proba-orakul-secret)
+             -e SECRET_KEY=proba-cruxwing-secret)
   docker run --rm --network "${NAME}-net" "${PLANE_ENV[@]}" \
     makeplane/plane-backend:stable ./bin/docker-entrypoint-migrator.sh >/dev/null 2>&1
   # Штатная точка входа поднимает ещё и хранилище объектов, которого здесь нет:
@@ -194,7 +194,7 @@ for i, (name, html) in enumerate(rows, start=1):
 t, _ = APIToken.objects.get_or_create(user=u, workspace=ws, label='proba')
 print('%s %s' % (pr.id, t.token))" | tail -1)
   TOKEN="${SETUP##* }"
-  FIELDS=(ORAKUL_FIELD_workspace=moya-komanda "ORAKUL_FIELD_project=${SETUP%% *}")
+  FIELDS=(CRUXWING_FIELD_workspace=moya-komanda "CRUXWING_FIELD_project=${SETUP%% *}")
 elif [ "$SERVICE" = mattermost ]; then
   # Первый мессенджер в этой пробе, и семья другая: у трекеров заводят задачи,
   # здесь пишут сообщения в канал.
@@ -241,10 +241,10 @@ elif [ "$SERVICE" = mattermost ]; then
   # примером, и живая установка тому единственный судья.
   #
   # Пишется полем — его имя проба берёт из манифеста. Раньше здесь стояла
-  # только область: `ORAKUL_FIELD_team` у мессенджера молча ничего не делал, и
+  # только область: `CRUXWING_FIELD_team` у мессенджера молча ничего не делал, и
   # сервис поднимался, наполнялся и отвечал «не настроено». Теперь работают обе
   # записи, и та, что привычна по трекерам, тоже.
-  FIELDS=("ORAKUL_FIELD_team=$TEAM")
+  FIELDS=("CRUXWING_FIELD_team=$TEAM")
 # Имя сервиса пишется ровно так, как в манифесте, — `rocketChat`.
 # Проба ищет коннектор по этому имени, и «rocketchat» строчными она не
 # знает: сервис поднялся бы, наполнился и не нашёлся.
@@ -392,11 +392,11 @@ fi
 echo ">> ${SERVICE} поднят на localhost:$PORT, спрашиваем «${QUERY}»"
 OUT=$(mktemp)
 env ${FIELDS[@]+"${FIELDS[@]}"} \
-  ORAKUL_PROBE_SERVICE="$SERVICE" \
-  ORAKUL_PROBE_TOKEN="$TOKEN" \
-  ORAKUL_PROBE_HOST="http://localhost:$PORT" \
-  ORAKUL_PROBE_QUERY="$QUERY" \
-  ORAKUL_PROBE_SCOPE="${SCOPE:-}" \
+  CRUXWING_PROBE_SERVICE="$SERVICE" \
+  CRUXWING_PROBE_TOKEN="$TOKEN" \
+  CRUXWING_PROBE_HOST="http://localhost:$PORT" \
+  CRUXWING_PROBE_QUERY="$QUERY" \
+  CRUXWING_PROBE_SCOPE="${SCOPE:-}" \
   swift test --package-path app --filter LiveConnectorProbe 2>&1 \
   | grep -E '^  — |✔ Test "коннектор|✘' > "$OUT" || true
 cat "$OUT"

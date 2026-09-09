@@ -1,5 +1,5 @@
 import SwiftUI
-import OrakulCore
+import CruxwingCore
 
 /// Настройки → «Подключённые приложения», блок рабочих мессенджеров.
 ///
@@ -98,7 +98,7 @@ private struct TelegramSupergroupRow: View {
                     .accessibilityLabel("Allowed Telegram supergroup ids")
                     .accessibilityIdentifier("settings.messenger.telegram.chatIDs")
 
-                Text("History starts at the moment you connect: the Bot API does not hand over old messages. Orakul only receives and locally searches new messages from the supergroups you named; it sends nothing to Telegram itself.")
+                Text("History starts at the moment you connect: the Bot API does not hand over old messages. Cruxwing only receives and locally searches new messages from the supergroups you named; it sends nothing to Telegram itself.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)

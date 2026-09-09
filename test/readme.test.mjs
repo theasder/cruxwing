@@ -17,7 +17,7 @@ const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
 
 describe('README', () => {
   test('README does not advertise the stale release behind the wrong identity', () => {
-    // GitHub currently canonicalises the supposed Orakul repository as
+    // GitHub currently canonicalises the supposed Cruxwing repository as
     // theasder/cruxwing. A historical notarised binary is not a release of
     // this source state, so a download CTA would be a false claim.
     const readme = readFileSync(resolve(repo, 'README.md'), 'utf8');
@@ -129,7 +129,7 @@ describe('README', () => {
   test('the binary the quick start runs is built by the directory it enters', () => {
     // The check above proves a package exists and that the words "swift build"
     // appear. It never tied the two together, so the README said `cd app` and
-    // then ran `.build/release/orakul` — and `app/` builds `MeetGPT`. The first
+    // then ran `.build/release/cruxwing` — and `app/` builds `MeetGPT`. The first
     // command a visitor types died with "no such file or directory", which is
     // the most expensive possible failure for a project measured in stars.
     const quickStart = /```bash\n([\s\S]*?)```/.exec(readme)?.[1] ?? '';
@@ -154,7 +154,7 @@ describe('README', () => {
     // produced. The refusal is the product's central promise (no invented
     // answers), so a paraphrase there costs more than anywhere else on the page.
     const source = readFileSync(
-      resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8');
+      resolve(repo, 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8');
     // Строка ищется где угодно, а не только после `return`: отказ переехал в
     // локальную переменную, когда к нему стала приписываться подсказка про
     // опечатку, и привязанный к `return` образец перестал совпадать. Сторож
@@ -188,7 +188,7 @@ describe('README', () => {
     assert.match(licence, /1\. Definitions/);
     assert.match(readme, /Mozilla Public License 2\.0/);
     const identity = JSON.parse(readFileSync(resolve(repo, 'config', 'app.json'), 'utf8'));
-    assert.equal(identity.app.name, 'orakul');
+    assert.equal(identity.app.name, 'cruxwing');
   });
 
   test('states the price, because "free" is the product', () => {

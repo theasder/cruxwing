@@ -1,4 +1,4 @@
-# orakul.ai — research and plan (v1)
+# cruxwing.ai — research and plan (v1)
 
 A Cruxwing branch for the Russian-speaking developer community. This file is the
 working document: research first, then the decisions the research supports, then
@@ -83,7 +83,7 @@ is neither explained nor contestable". An answer from your own call has none of
 that: it has an author, a date and a recording, and no third party who can take it
 away. This is not "a forum, but nicer" — it is a different source of truth.
 
-**What this means for orakul:** the opportunity is not "build a better forum".
+**What this means for cruxwing:** the opportunity is not "build a better forum".
 The forum model is what died. The opportunity is answering from the material a
 team already produces — its calls, its repos, its trackers — where the answer is
 specific to *this* codebase and *this* team's decisions, and cannot be closed as
@@ -242,8 +242,8 @@ check shows otherwise, one line changes in `body(for:limit:)`.
 **How to check it in one command,** once a portal exists:
 
 ```bash
-cd app && ORAKUL_PROBE_SERVICE=bitrix24 ORAKUL_PROBE_TOKEN='1/код' \
-  ORAKUL_PROBE_HOST=фирма.bitrix24.ru ORAKUL_PROBE_QUERY=тариф \
+cd app && CRUXWING_PROBE_SERVICE=bitrix24 CRUXWING_PROBE_TOKEN='1/код' \
+  CRUXWING_PROBE_HOST=фирма.bitrix24.ru CRUXWING_PROBE_QUERY=тариф \
   swift test --filter LiveConnectorProbe
 ```
 
@@ -339,7 +339,7 @@ answer seen.
 ### 2.2 The connector blueprint (as built, not as intended)
 
 Five trackers are already written, so the blueprint describes working code —
-`mvp/Sources/OrakulCore/RussianTrackers.swift` and its store. A new connector
+`mvp/Sources/CruxwingCore/RussianTrackers.swift` and its store. A new connector
 repeats this shape; departing from it requires a reason in a comment.
 
 **1. Three fields instead of one.** A token is almost never enough, and it falls
@@ -499,7 +499,7 @@ generalize to real calls.
 
 ### 3.0 GigaChat: not a judgement about the model but about the trusted root store (verified 2026-08-13)
 
-GigaChat is not in orakul's provider list, and the reason is not quality. TLS does
+GigaChat is not in cruxwing's provider list, and the reason is not quality. TLS does
 not reach it from an ordinary macOS: the chain ends at the Ministry of Digital
 Development's root, which is not in the system store.
 
@@ -557,7 +557,7 @@ all. A downloaded application that cannot answer a single question is not a free
 product but a broken one.
 
 Cruxwing removed key entry when the server gateway appeared: the keys moved to the
-server and `Secrets` became empty. orakul inherited that code without the gateway,
+server and `Secrets` became empty. cruxwing inherited that code without the gateway,
 that is, the worse half of the decision.
 
 Hence `ProviderKeyStore`: the key is entered under "Settings → AI → Provider
@@ -587,7 +587,7 @@ recase ordinary Russian words (the `GlossaryRestore` collision audit), and the
 vowel set in garble detection already covers Cyrillic, without which every
 Russian word reads as "vowelless" and becomes fair game for fuzzy repair.
 
-**The wedge**, in one line: *the call is the source of truth, and orakul makes it
+**The wedge**, in one line: *the call is the source of truth, and cruxwing makes it
 searchable in Russian.* Answering «что мы решили по ценам?» from your own past
 calls is something no Habr thread and no Telegram chat can do, because the
 material is yours.
@@ -721,7 +721,7 @@ where an address can return. On 2026-08-12 it turned out that it was there:
 `Config.backendBaseURL` substituted a default production address for the empty
 value — `api.cruxwing.ai`, another product's server, which exists and answers.
 Because of that, account sign-in, billing and the promise of "models without your
-own keys" came alive in the orakul installer.
+own keys" came alive in the cruxwing installer.
 
 Hence a rule, not a one-off fix:
 
@@ -838,7 +838,7 @@ the model choice.
 
 ## 6.6 The product's vocabulary is set by the demo film, not by a translator
 
-orakul's Russian copy is checked against
+cruxwing's Russian copy is checked against
 `cruxwing-marketing/public/demo-film/scene.ru.js` — an already-recorded Russian
 track, that is, the product's voice as people have heard it. I managed to write my
 own variant first and diverged from it on three words:
@@ -952,16 +952,16 @@ even without it.
 
 ## 7. A separate application, and why Windows comes first
 
-**orakul is not a Cruxwing build under a different name.** The identity is fully
+**cruxwing is not a Cruxwing build under a different name.** The identity is fully
 separated (`config/app.json`, checked by `test/identity.test.mjs`): bundle id
-`ai.orakul.desktop` against `com.meetgpt.macapp`, its own installer volume, its own
+`ai.cruxwing.desktop` against `com.meetgpt.macapp`, its own installer volume, its own
 set of settings and its own Keychain service.
 
 This is not cosmetic. macOS ties the screen-recording and microphone permissions to
 the bundle id: if they coincide, two programs share one grant, and revoking it from
 one without taking it from the other is impossible. A shared `UserDefaults` suite
-would mean that installing orakul changes Cruxwing's settings on the same machine.
-The installers are named `orakul-*` and go into a directory of their own — a file
+would mean that installing cruxwing changes Cruxwing's settings on the same machine.
+The installers are named `cruxwing-*` and go into a directory of their own — a file
 named Cruxwing cannot be overwritten and vice versa.
 
 ### 7.1 Windows: not "later", and possibly ahead of macOS
@@ -1001,10 +1001,10 @@ channel search tools (Teleteg, TGStat) and directories (TLGRM) — that is, ever
 acknowledges the problem and solves it from outside, by searching other people's
 chats.[^tg-search]
 
-**The conclusion for orakul, and it is a limiting one.** The temptation is to "build
+**The conclusion for cruxwing, and it is a limiting one.** The temptation is to "build
 search over Telegram chats". That is a mistake for three reasons: other people's
 chats are not our content, an answer in a chat has no status as a decision, and a
-market for such search tools already exists. orakul's value is the opposite: **not
+market for such search tools already exists. cruxwing's value is the opposite: **not
 finding an answer among strangers but finding it in your own calls**, where it has
 already been said and where it has an author and a date. Telegram appears in the
 product as a context source for your own team (your own chats, by explicit
@@ -1031,7 +1031,7 @@ but a change of promise.
 
 What is implemented is the narrower path that requires nobody's account: a separate
 bot, added to explicitly allowed supergroups, receives messages **from the moment of
-connection**. Privacy Mode must be off, or the bot must be an administrator. Orakul
+connection**. Privacy Mode must be off, or the bot must be an administrator. Cruxwing
 checks this on connection, saves the token in the Keychain and the messages in a
 local archive, and performs search with the same `RecallIndex`. The bot sends
 nothing. Disconnecting deletes both the token and the accumulated archive.
@@ -1093,7 +1093,7 @@ up in advance. For GitHub that path is closed.
 
 The second option — a pre-registered OAuth application with a baked-in secret, as
 with HubSpot — does not work either: secrets deliberately do not reach the finished
-installers (`build.sh`, `SECRET_VARS`), so in a downloaded orakul that line simply
+installers (`build.sh`, `SECRET_VARS`), so in a downloaded cruxwing that line simply
 will not exist.
 
 What remains is a personal token — something GitHub supports itself, and which
@@ -1164,9 +1164,9 @@ Checking each one's documentation closes the question: **not one of them provide
 the thing a connector is needed for**.
 
 First, why one is needed at all, because that is not obvious. On the call itself
-orakul needs nobody's API: it takes system audio, and the platform is
+cruxwing needs nobody's API: it takes system audio, and the platform is
 indistinguishable from a media player as far as it is concerned. A video-conferencing
-connector would give exactly one thing — **past calls, during which orakul was not
+connector would give exactly one thing — **past calls, during which cruxwing was not
 running**: the list of meetings and their transcripts. That is what was checked.
 
 | Platform | Meeting list | Recordings | Transcript | What blocks it |
@@ -1185,7 +1185,7 @@ storage/finalize hook or JaaS webhook; there is no single "Jitsi key" for all
 installations.[^jitsi-recording]
 
 **The SaluteJazz conclusion, separately, because it is not about them but about
-us.** Their API would fit. What does not fit is our architecture: orakul has no
+us.** Their API would fit. What does not fit is our architecture: cruxwing has no
 backend on which the transport token is supposed to be generated, and there is
 nowhere for one to come from — "there is no server" is checked at build time (§5.1).
 Baking the SDK key into the client would mean handing the organisation's key to

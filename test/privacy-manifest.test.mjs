@@ -31,7 +31,7 @@ function reasonsFor(category) {
 }
 
 test('elapsed-time API use has the matching privacy-manifest reason', () => {
-  const source = trackedSource(['app/Sources/MeetGPT', 'mvp/Sources/OrakulCore']);
+  const source = trackedSource(['app/Sources/MeetGPT', 'mvp/Sources/CruxwingCore']);
   assert.match(source, /ProcessInfo\.processInfo\.systemUptime/,
     'source guard found no systemUptime use, so this test would protect nothing');
   assert.ok(reasonsFor('NSPrivacyAccessedAPICategorySystemBootTime').includes('35F9.1'),
@@ -40,7 +40,7 @@ test('elapsed-time API use has the matching privacy-manifest reason', () => {
 
 test('file metadata covers app-owned and explicitly selected folders', () => {
   const localNotes = readFileSync(
-    resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'LocalNotes.swift'), 'utf8');
+    resolve(repo, 'mvp', 'Sources', 'CruxwingCore', 'LocalNotes.swift'), 'utf8');
   assert.match(localNotes, /contentModificationDateKey/,
     'source guard found no selected-folder metadata read');
   const reasons = reasonsFor('NSPrivacyAccessedAPICategoryFileTimestamp');

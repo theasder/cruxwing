@@ -75,7 +75,7 @@ final class AnthropicClient {
     /// whatever happened to be in the developer's `mac/.env`, and they broke the
     /// day provider keys were emptied for the keyless build — see `OpenAIClient`,
     /// which already took this shape.
-    init(session: URLSession = OrakulNetworkIdentity.shared,
+    init(session: URLSession = CruxwingNetworkIdentity.shared,
          keyProvider: @escaping () -> String = { Config.anthropicAPIKey }) {
         self.session = session
         self.keyProvider = keyProvider

@@ -5,12 +5,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="$ROOT/build/orakul-Intel.app"
+APP="$ROOT/build/cruxwing-Intel.app"
 BIN="$APP/Contents/MacOS/MeetGPT"
 DIST="$ROOT/dist"
-ZIP="$DIST/orakul-Intel.zip"
+ZIP="$DIST/cruxwing-Intel.zip"
 SECRETS="$ROOT/Sources/MeetGPT/LocalSecrets.generated.swift"
-SECRETS_BACKUP="$(mktemp "${TMPDIR:-/tmp}/orakul-secrets.XXXXXX")"
+SECRETS_BACKUP="$(mktemp "${TMPDIR:-/tmp}/cruxwing-secrets.XXXXXX")"
 HAD_SECRETS=0
 if [ -f "$SECRETS" ]; then
     cp "$SECRETS" "$SECRETS_BACKUP"
@@ -32,7 +32,7 @@ trap restore_secrets EXIT
 rm -rf "$APP"
 rm -f "$ZIP"
 MEETGPT_ARCH=x86_64 \
-MEETGPT_APP_BASENAME=orakul-Intel \
+MEETGPT_APP_BASENAME=cruxwing-Intel \
 MEETGPT_DIST=1 \
 MEETGPT_NO_INSTALL=1 \
 "$ROOT/build.sh"
@@ -44,9 +44,9 @@ if [ ! -f "$PLIST" ]; then
 fi
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PLIST" 2>/dev/null || true)"
 DISPLAY_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$PLIST" 2>/dev/null || true)"
-if [ "$BUNDLE_ID" != "ai.orakul.desktop" ] || [ "$DISPLAY_NAME" != "orakul" ]; then
+if [ "$BUNDLE_ID" != "ai.cruxwing.desktop" ] || [ "$DISPLAY_NAME" != "cruxwing" ]; then
     echo "!! refusing to package an app with unexpected identity" >&2
-    echo "   expected ai.orakul.desktop / orakul, got $BUNDLE_ID / $DISPLAY_NAME" >&2
+    echo "   expected ai.cruxwing.desktop / cruxwing, got $BUNDLE_ID / $DISPLAY_NAME" >&2
     exit 1
 fi
 

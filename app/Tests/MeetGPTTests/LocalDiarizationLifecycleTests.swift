@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import MeetGPT
 
-private final class OrakulDiarizationInvocationFlag: @unchecked Sendable {
+private final class CruxwingDiarizationInvocationFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var value = false
 
@@ -17,7 +17,7 @@ struct LocalDiarizationLifecycleTests {
 
     private func preparedState() -> AppState {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-local-diarization-\(UUID().uuidString)")
+            .appendingPathComponent("cruxwing-local-diarization-\(UUID().uuidString)")
         let state = AppState(
             credentialStore: InMemoryKeychain(),
             sessionStore: SessionStore(root: root))
@@ -49,7 +49,7 @@ struct LocalDiarizationLifecycleTests {
         #expect(!state.hasScheduledLocalDiarization)
     }
 
-    private func waitUntilInvoked(_ flag: OrakulDiarizationInvocationFlag) async throws {
+    private func waitUntilInvoked(_ flag: CruxwingDiarizationInvocationFlag) async throws {
         for _ in 0..<400 where !flag.isMarked {
             try await Task.sleep(nanoseconds: 5_000_000)
         }
@@ -113,7 +113,7 @@ struct LocalDiarizationLifecycleTests {
     func cancellationCannotApplyLateResult() async throws {
         let state = preparedState()
         let original = state.transcript
-        let invoked = OrakulDiarizationInvocationFlag()
+        let invoked = CruxwingDiarizationInvocationFlag()
         state.localDiarizationRunnerOverride = { _, _, _ in
             invoked.mark()
             try? await Task.sleep(nanoseconds: 150_000_000)
@@ -142,7 +142,7 @@ struct LocalDiarizationLifecycleTests {
     @Test("a transcript edit while the model runs makes the result stale")
     func transcriptRevisionWins() async throws {
         let state = preparedState()
-        let invoked = OrakulDiarizationInvocationFlag()
+        let invoked = CruxwingDiarizationInvocationFlag()
         state.localDiarizationRunnerOverride = { _, _, _ in
             invoked.mark()
             try? await Task.sleep(nanoseconds: 120_000_000)
@@ -164,7 +164,7 @@ struct LocalDiarizationLifecycleTests {
     @Test("Clear cancels and revision-blocks a late model result")
     func clearWinsOverLateResult() async throws {
         let state = preparedState()
-        let invoked = OrakulDiarizationInvocationFlag()
+        let invoked = CruxwingDiarizationInvocationFlag()
         state.localDiarizationRunnerOverride = { _, _, _ in
             invoked.mark()
             try? await Task.sleep(nanoseconds: 120_000_000)
@@ -184,7 +184,7 @@ struct LocalDiarizationLifecycleTests {
     @Test("History restore cancels and revision-blocks a late model result")
     func restoreWinsOverLateResult() async throws {
         let state = preparedState()
-        let invoked = OrakulDiarizationInvocationFlag()
+        let invoked = CruxwingDiarizationInvocationFlag()
         state.localDiarizationRunnerOverride = { _, _, _ in
             invoked.mark()
             try? await Task.sleep(nanoseconds: 120_000_000)
@@ -210,7 +210,7 @@ struct LocalDiarizationLifecycleTests {
     @Test("New call reset cancels and revision-blocks a late model result")
     func newCallWinsOverLateResult() async throws {
         let state = preparedState()
-        let invoked = OrakulDiarizationInvocationFlag()
+        let invoked = CruxwingDiarizationInvocationFlag()
         state.localDiarizationRunnerOverride = { _, _, _ in
             invoked.mark()
             try? await Task.sleep(nanoseconds: 120_000_000)

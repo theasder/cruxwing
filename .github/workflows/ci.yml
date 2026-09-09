@@ -84,7 +84,7 @@ jobs:
 
       - name: Сборка ядра
         working-directory: mvp
-        run: swift build --target OrakulCore
+        run: swift build --target CruxwingCore
 
       # Командная строка тоже: запись с микрофона убрана под
       # `#if canImport(AVFoundation)` и заменена ошибкой с объяснением, а не
@@ -168,7 +168,7 @@ jobs:
       # сборкой зависимостей нет вовсе; проверено запуском на обеих системах.
       - name: Сборка пакета (статически)
         run: |
-          docker run --rm -e ORAKUL_HEIGHT="$(git rev-list --count HEAD)" \
+          docker run --rm -e CRUXWING_HEIGHT="$(git rev-list --count HEAD)" \
             -v "$PWD":/repo -w /repo swift:6.0@sha256:0bdd33b44c0493bdf6a674700ce8960cff301977125cff2ced94770d13d7a921 bash -c '
               swift sdk install \
                 "https://download.swift.org/swift-6.0.3-release/static-sdk/swift-6.0.3-RELEASE/swift-6.0.3-RELEASE_static-linux-0.0.1.artifactbundle.tar.gz" \
@@ -181,10 +181,10 @@ jobs:
           docker run --rm -v "$PWD/exports/linux":/x alt:p10@sha256:5edc92edf6bc866824427f05834ffff3f815974fc1cd9840e0dda2492d11ce30 sh -c '
             set -e
             dpkg-deb -x /x/*.deb /tmp/p 2>/dev/null || { apt-get update >/dev/null; apt-get install -y dpkg >/dev/null; dpkg-deb -x /x/*.deb /tmp/p; }
-            export ORAKUL_HOME=/tmp/архив
+            export CRUXWING_HOME=/tmp/архив
             printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
-            /tmp/p/usr/bin/orakul добавить /tmp/р.txt "Планёрка" >/dev/null
-            /tmp/p/usr/bin/orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            /tmp/p/usr/bin/cruxwing добавить /tmp/р.txt "Планёрка" >/dev/null
+            /tmp/p/usr/bin/cruxwing найти что решили по тарифам | grep -q "пятнадцать процентов"
             echo "работает на ALT p10 (glibc 2.32) — статическая сборка сняла привязку"
           '
 
@@ -194,11 +194,11 @@ jobs:
             set -e
             apt-get update >/dev/null
             apt-get install -y /x/*.deb >/dev/null
-            export ORAKUL_HOME=/tmp/архив
+            export CRUXWING_HOME=/tmp/архив
             printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
-            orakul добавить /tmp/р.txt "Планёрка"
-            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
-            orakul найти когда корпоратив | grep -q "придумывать не буду"
+            cruxwing добавить /tmp/р.txt "Планёрка"
+            cruxwing найти что решили по тарифам | grep -q "пятнадцать процентов"
+            cruxwing найти когда корпоратив | grep -q "придумывать не буду"
             echo "пакет работает на системе без Swift"
           '
 
@@ -214,8 +214,8 @@ jobs:
       - name: Сборка пакета .rpm из той же статической программы
         run: |
           mkdir -p exports/static
-          cp exports/linux/orakul_*/usr/bin/orakul exports/static/orakul
-          docker run --rm -e ORAKUL_RELEASE="$(git rev-list --count HEAD)" \
+          cp exports/linux/cruxwing_*/usr/bin/cruxwing exports/static/cruxwing
+          docker run --rm -e CRUXWING_RELEASE="$(git rev-list --count HEAD)" \
             -v "$PWD":/repo -w /repo fedora:40@sha256:3c86d25fef9d2001712bc3d9b091fc40cf04be4767e48f1aa3b785bf58d300ed \
             bash -c 'dnf install -y rpm-build >/dev/null && bash scripts/package-rpm.sh'
 
@@ -224,19 +224,19 @@ jobs:
           docker run --rm -v "$PWD/exports/linux":/x alt:p10@sha256:5edc92edf6bc866824427f05834ffff3f815974fc1cd9840e0dda2492d11ce30 bash -c '
             set -e
             rpm -i /x/*.rpm
-            export ORAKUL_HOME=/tmp/архив
+            export CRUXWING_HOME=/tmp/архив
             printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
-            orakul добавить /tmp/р.txt "Планёрка" >/dev/null
-            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            cruxwing добавить /tmp/р.txt "Планёрка" >/dev/null
+            cruxwing найти что решили по тарифам | grep -q "пятнадцать процентов"
             echo "rpm ставится на ALT p10 — там, где обычная сборка не ставилась"
           '
           docker run --rm -v "$PWD/exports/linux":/x fedora:40@sha256:3c86d25fef9d2001712bc3d9b091fc40cf04be4767e48f1aa3b785bf58d300ed bash -c '
             set -e
             dnf install -y /x/*.rpm >/dev/null
-            export ORAKUL_HOME=/tmp/архив
+            export CRUXWING_HOME=/tmp/архив
             printf "Аня: По тарифам решили поднять на пятнадцать процентов.\n" > /tmp/р.txt
-            orakul добавить /tmp/р.txt "Планёрка"
-            orakul найти что решили по тарифам | grep -q "пятнадцать процентов"
+            cruxwing добавить /tmp/р.txt "Планёрка"
+            cruxwing найти что решили по тарифам | grep -q "пятнадцать процентов"
             echo "rpm работает на системе без Swift"
           '
 
@@ -253,7 +253,7 @@ jobs:
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: orakul-packages
+          name: cruxwing-packages
           path: |
             exports/linux/*.deb
             exports/linux/*.rpm

@@ -1,6 +1,6 @@
 # Skills security
 
-Third-party Agent Skills are untrusted methodology data. Orakul ships only the
+Third-party Agent Skills are untrusted methodology data. Cruxwing ships only the
 nine files listed in `runtime-allowlist.json`; the former unreviewed catalog is
 not present in the application bundle.
 
@@ -17,7 +17,7 @@ model prompt:
    actual bundled bytes. Unknown folders, changed files, duplicate reviews, and
    requests outside a reviewed prompt scope are denied.
 3. **Explicit-risk veto.** Upstream `risk:` metadata is advisory because it is
-   incomplete and not controlled by Orakul. A local review may cover a missing
+   incomplete and not controlled by Cruxwing. A local review may cover a missing
    value, but an explicit `unknown`, `critical`, or unrecognized value still
    vetoes runtime use.
 4. **Quarantine.** `BundledSkillSanitizer.quarantineIDs` remains a defense in
@@ -56,7 +56,7 @@ set is defined jointly by the live folders, `INGEST_MANIFEST.json`,
 Treat every new or modified `SKILL.md` as a new review. Do not preserve an old
 approval across a byte change, broaden prompt scopes without reading the full
 method, or add a license notice without immutable source and digest evidence.
-Regenerate `Support/Legal/Orakul.cdx.json` after any accepted change and run:
+Regenerate `Support/Legal/Cruxwing.cdx.json` after any accepted change and run:
 
 ```sh
 node scripts/generate-sbom.mjs --check

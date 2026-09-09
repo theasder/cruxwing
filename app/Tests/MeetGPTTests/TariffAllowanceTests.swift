@@ -39,7 +39,7 @@ struct CreditExhaustionTests {
         #expect(message?.contains("credit") == true)
     }
 
-    @Test("a direct provider 429 is never relabeled as Orakul credits")
+    @Test("a direct provider 429 is never relabeled as Cruxwing credits")
     func directProviderQuotaStaysProviderOwned() {
         let error = LLMError.http(
             "OpenAI", 429, #"{"code":"insufficient_quota"}"#)

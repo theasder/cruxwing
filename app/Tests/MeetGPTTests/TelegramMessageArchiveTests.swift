@@ -1,13 +1,13 @@
 import Foundation
 import Testing
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 @Suite("Локальный архив Telegram", .serialized)
 struct TelegramMessageArchiveTests {
     private func location() -> (URL, URL) {
         let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("orakul-telegram-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cruxwing-telegram-\(UUID().uuidString)", isDirectory: true)
         return (root, root.appendingPathComponent("messages.json"))
     }
 
@@ -112,7 +112,7 @@ struct TelegramMessageArchiveTests {
         #expect(await archive.count(allowedChatIDs: [-1001]) == 0)
         #expect(!FileManager.default.fileExists(atPath: file.path))
         #expect(!FileManager.default.fileExists(
-            atPath: OrakulAtomicFile.recoveryURL(for: file).path))
+            atPath: CruxwingAtomicFile.recoveryURL(for: file).path))
         let reopened = TelegramMessageArchive(fileURL: file)
         #expect(await reopened.count(allowedChatIDs: [-1001]) == 0)
     }
@@ -132,7 +132,7 @@ struct TelegramMessageArchiveTests {
             allowedChatIDs: [-1001]
         )
 
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
         try Data("partial".utf8).write(to: file)
 
@@ -173,7 +173,7 @@ struct TelegramMessageArchiveTests {
             allowedChatIDs: [-1001]
         )
 
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
         // Damage happens after actor initialization, so a one-time load flag is
         // insufficient: the ordinary write must revalidate disk immediately.
@@ -200,7 +200,7 @@ struct TelegramMessageArchiveTests {
             .init(messages: [message(update: 50, text: "Секрет старого бота")], nextOffset: 51),
             allowedChatIDs: [-1001]
         )
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
 
         try await archive.activate(botID: 55)
@@ -229,8 +229,8 @@ struct TelegramMessageArchiveTests {
             allowedChatIDs: [-1001]
         )
 
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
-        let stale = OrakulAtomicFile.stagingURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
+        let stale = CruxwingAtomicFile.stagingURL(for: file)
         try Data("sensitive interrupted write".utf8).write(to: stale)
         let primaryBefore = try Data(contentsOf: file)
         #expect(FileManager.default.fileExists(atPath: recovery.path))
@@ -269,7 +269,7 @@ struct TelegramMessageArchiveTests {
 
         #expect(await archive.count(allowedChatIDs: [-1001, -2002]) == 1)
         #expect(!FileManager.default.fileExists(
-            atPath: OrakulAtomicFile.recoveryURL(for: file).path))
+            atPath: CruxwingAtomicFile.recoveryURL(for: file).path))
         let reopened = TelegramMessageArchive(fileURL: file)
         #expect((await reopened.search("секрет", allowedChatIDs: [-1001, -2002])).isEmpty)
     }
@@ -284,8 +284,8 @@ struct TelegramMessageArchiveTests {
             .init(messages: [message(update: 70, text: "Секрет")], nextOffset: 71),
             allowedChatIDs: [-1001]
         )
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
-        let staging = OrakulAtomicFile.stagingURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
+        let staging = CruxwingAtomicFile.stagingURL(for: file)
         try Data("private crash remnant".utf8).write(to: staging)
 
         try await archive.reset()
@@ -308,7 +308,7 @@ struct TelegramMessageArchiveTests {
             .init(messages: [message(update: 80, text: "Остаётся")], nextOffset: 81),
             allowedChatIDs: [-1001]
         )
-        let recovery = OrakulAtomicFile.recoveryURL(for: file)
+        let recovery = CruxwingAtomicFile.recoveryURL(for: file)
         let failing = TelegramMessageArchive(fileURL: file, removeItem: { candidate in
             if candidate.standardizedFileURL == recovery.standardizedFileURL {
                 throw RemovalFailure.denied

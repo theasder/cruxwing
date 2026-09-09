@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import CruxwingCore
 
 /// Explicitly-authorized, content-bearing diagnostics for development calls.
 ///
@@ -7,7 +8,7 @@ import Foundation
 /// all of the following are true at process launch:
 ///
 /// - the binary is a dev build;
-/// - `ORAKUL_DEV_CALL_LOGS=1` was explicitly supplied;
+/// - `CRUXWING_DEV_CALL_LOGS=1` was explicitly supplied;
 /// - the normal live-test nonce is valid; and
 /// - the live-test artifact root is a real owner-only (0700) directory.
 ///
@@ -37,13 +38,13 @@ final class DevCallDiagnostics: @unchecked Sendable {
 
         static var process: Configuration {
             let environment = ProcessInfo.processInfo.environment
-            let root = environment["ORAKUL_LIVETEST_ARTIFACT_ROOT"].flatMap {
+            let root = ProductEnvironment.value("LIVETEST_ARTIFACT_ROOT", environment: environment).flatMap {
                 $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true)
             }
             return Configuration(
                 isDevBuild: Config.isDevBuild,
-                enabledValue: environment["ORAKUL_DEV_CALL_LOGS"],
-                nonce: environment["ORAKUL_LIVETEST_NONCE"],
+                enabledValue: ProductEnvironment.value("DEV_CALL_LOGS", environment: environment),
+                nonce: ProductEnvironment.value("LIVETEST_NONCE", environment: environment),
                 artifactRoot: root)
         }
     }
@@ -79,7 +80,7 @@ final class DevCallDiagnostics: @unchecked Sendable {
     }
 
     static let shared = DevCallDiagnostics(configuration: .process)
-    static let environmentOptIn = "ORAKUL_DEV_CALL_LOGS"
+    static let environmentOptIn = "CRUXWING_DEV_CALL_LOGS"
     static let directoryName = "dev-call-diagnostics"
 
     private let lock = NSLock()

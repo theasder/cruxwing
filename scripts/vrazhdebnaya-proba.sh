@@ -13,10 +13,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-VENDOR="${ORAKUL_HOSTILE_PORT:-4801}"
-COLLECTOR="${ORAKUL_COLLECTOR_PORT:-4802}"
+VENDOR="${CRUXWING_HOSTILE_PORT:-4801}"
+COLLECTOR="${CRUXWING_COLLECTOR_PORT:-4802}"
 
-python3 scripts/vrazhdebnyj-server.py "$VENDOR" "$COLLECTOR" >/tmp/orakul-hostile.log 2>&1 &
+python3 scripts/vrazhdebnyj-server.py "$VENDOR" "$COLLECTOR" >/tmp/cruxwing-hostile.log 2>&1 &
 SERVER=$!
 trap 'kill "$SERVER" 2>/dev/null || true' EXIT
 
@@ -38,7 +38,7 @@ BEFORE=$(curl -s "http://127.0.0.1:${COLLECTOR}/caught" \
 
 OUT=$(mktemp)
 set +e
-ORAKUL_HOSTILE_PORT="$VENDOR" ORAKUL_COLLECTOR_PORT="$COLLECTOR" \
+CRUXWING_HOSTILE_PORT="$VENDOR" CRUXWING_COLLECTOR_PORT="$COLLECTOR" \
   swift test --package-path mvp --filter HostileServiceTests >"$OUT" 2>&1
 STATUS=$?
 set -e

@@ -16,7 +16,7 @@ struct CallNotificationCopyTests {
     func callPromptDelineatesActiveCall() {
         let text = CallNotifier.callPromptText(source: "Zoom")
         #expect(text.title == "A call in Zoom")
-        #expect(text.body == "orakul can record this call. Record it?")
+        #expect(text.body == "cruxwing can record this call. Record it?")
         #expect(!text.body.contains("Cruxwing"), "в уведомлении имя другого продукта")
     }
 
@@ -29,7 +29,7 @@ struct CallNotificationCopyTests {
         // Время в скобках не проверяется: его формат зависит от языка системы,
         // на которой идёт прогон.
         #expect(text.body.contains("Starts in 5 min"))
-        #expect(text.body.contains("open orakul"))
+        #expect(text.body.contains("open cruxwing"))
         #expect(!text.body.contains("Cruxwing"), "в напоминании имя другого продукта")
     }
 

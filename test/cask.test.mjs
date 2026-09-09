@@ -13,8 +13,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 function buildCask(images = { arm: 'образ-arm', intel: 'образ-intel' }) {
   const dir = mkdtempSync(join(tmpdir(), 'cask-'));
   try {
-    if (images.arm !== null) writeFileSync(join(dir, 'orakul-AppleSilicon.dmg'), images.arm);
-    if (images.intel !== null) writeFileSync(join(dir, 'orakul-Intel.dmg'), images.intel);
+    if (images.arm !== null) writeFileSync(join(dir, 'cruxwing-AppleSilicon.dmg'), images.arm);
+    if (images.intel !== null) writeFileSync(join(dir, 'cruxwing-Intel.dmg'), images.intel);
     return {
       text: execFileSync('bash', [join(ROOT, 'scripts/refresh-cask.sh'), dir],
                          { encoding: 'utf8' }),
@@ -62,10 +62,10 @@ test('адреса в касте ведут на те файлы, которые
   const published = [...dmg.matchAll(/PUBLISH_NAME="([^"]+)"/g)].map((m) => m[1]);
   assert.equal(published.length, 2, 'в dmg.sh не два имени образа — проверка устарела');
   const cask = buildCask().text;
-  // Каст подставляет архитектуру в имя: orakul-#{arch}.dmg. Значит в нём
+  // Каст подставляет архитектуру в имя: cruxwing-#{arch}.dmg. Значит в нём
   // должны быть обе половины — общий префикс и оба суффикса.
   for (const name of published) {
-    const suffix = name.replace('orakul-', '');
+    const suffix = name.replace('cruxwing-', '');
     assert.ok(cask.includes(suffix), `каст не знает про образ ${name}`);
   }
 });
@@ -79,7 +79,7 @@ test('без одного из образов каст не выпускаетс
 });
 
 test('незаполненная подстановка не уезжает в каст', () => {
-  const template = readFileSync(join(ROOT, 'packaging/homebrew/orakul.rb.template'), 'utf8');
+  const template = readFileSync(join(ROOT, 'packaging/homebrew/cruxwing.rb.template'), 'utf8');
   const placeholders = [...template.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
   assert.ok(placeholders.length >= 4, 'в шаблоне пропали подстановки');
   const cask = buildCask().text;

@@ -27,13 +27,13 @@ VERSION="$(grep -A1 CFBundleShortVersionString "$PLIST" | sed -n 's/.*<string>\(
 # недоступен, нельзя: пакет уедет с номером, который ни на что не указывает, и
 # «какая у вас версия» получит третий ответ. Внутри контейнера без git высоту
 # передают переменной.
-if [ -n "${ORAKUL_HEIGHT:-}" ]; then
-    HEIGHT="$ORAKUL_HEIGHT"
+if [ -n "${CRUXWING_HEIGHT:-}" ]; then
+    HEIGHT="$CRUXWING_HEIGHT"
 elif HEIGHT="$(git rev-list --count HEAD 2>/dev/null)" && [ -n "$HEIGHT" ]; then
     :
 else
     echo "не смог узнать высоту истории: нет git или это не репозиторий."
-    echo "передайте её явно: ORAKUL_HEIGHT=\$(git rev-list --count HEAD) bash $0"
+    echo "передайте её явно: CRUXWING_HEIGHT=\$(git rev-list --count HEAD) bash $0"
     exit 1
 fi
 DEB_VERSION="${VERSION}-${HEIGHT}"
@@ -56,7 +56,7 @@ esac
 # уезжает с зависимостями от того дистрибутива, где его НЕ собирали. Именно так
 # rpm дважды получил `libcurl.so.4(CURL_OPENSSL_4)` от Ubuntu и не ставился на
 # Fedora. Каталог в /tmp живёт внутри контейнера и чужого туда не пускает.
-SCRATCH="/tmp/orakul-build-$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}${VERSION_ID:-}")"
+SCRATCH="/tmp/cruxwing-build-$(. /etc/os-release 2>/dev/null && echo "${ID:-unknown}${VERSION_ID:-}")"
 # Полностью статическая сборка, если установлен Static Linux SDK.
 #
 # Зачем. Обычная сборка привязывает пакет к версии glibc того образа, где его
@@ -88,14 +88,14 @@ SWIFT_FLAGS+=(--scratch-path "$SCRATCH")
 
 echo ">> сборка релиза"
 swift build --package-path mvp "${SWIFT_FLAGS[@]}"
-BIN="$(swift build --package-path mvp "${SWIFT_FLAGS[@]}" --show-bin-path)/orakul"
+BIN="$(swift build --package-path mvp "${SWIFT_FLAGS[@]}" --show-bin-path)/cruxwing"
 [ -x "$BIN" ] || { echo "нет собранной программы: $BIN"; exit 1; }
 
-STAGE="exports/linux/orakul_${DEB_VERSION}_${ARCH}"
+STAGE="exports/linux/cruxwing_${DEB_VERSION}_${ARCH}"
 rm -rf "$STAGE"
-mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/bin" "$STAGE/usr/share/doc/orakul"
+mkdir -p "$STAGE/DEBIAN" "$STAGE/usr/bin" "$STAGE/usr/share/doc/cruxwing"
 
-install -m 0755 "$BIN" "$STAGE/usr/bin/orakul"
+install -m 0755 "$BIN" "$STAGE/usr/bin/cruxwing"
 
 # Штамп прослеживаемости: по какому коду собран этот файл.
 #
@@ -103,17 +103,17 @@ install -m 0755 "$BIN" "$STAGE/usr/bin/orakul"
 # Хеш считается по тому, что РЕАЛЬНО едет в пакет: ядро и командная строка.
 # Приложение сюда не входит, и штамповать пакет его хешем значило бы обещать
 # прослеживаемость, которой нет.
-SOURCE_HASH="$(bash scripts/source-hash.sh mvp/Sources/OrakulCore mvp/Sources/orakul)"
-COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "${ORAKUL_COMMIT:-неизвестен}")"
+SOURCE_HASH="$(bash scripts/source-hash.sh mvp/Sources/CruxwingCore mvp/Sources/cruxwing)"
+COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "${CRUXWING_COMMIT:-неизвестен}")"
 BUILT_ON="$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-неизвестно}")"
 
-DOCDIR="$STAGE/usr/share/doc/orakul"
+DOCDIR="$STAGE/usr/share/doc/cruxwing"
 RELEASE_OR_HEIGHT="$HEIGHT"
 cat > "$DOCDIR/build-info" <<INFO
 version: ${VERSION}-${RELEASE_OR_HEIGHT}
 commit: ${COMMIT}
 source: ${SOURCE_HASH}
-paths: mvp/Sources/OrakulCore mvp/Sources/orakul
+paths: mvp/Sources/CruxwingCore mvp/Sources/cruxwing
 built-on: ${BUILT_ON}
 INFO
 
@@ -122,13 +122,13 @@ INFO
 SIZE_KB="$(du -ks "$STAGE/usr" | cut -f1)"
 
 cat > "$STAGE/DEBIAN/control" <<CONTROL
-Package: orakul
+Package: cruxwing
 Version: ${DEB_VERSION}
 Section: utils
 Priority: optional
 Architecture: ${ARCH}
 Installed-Size: ${SIZE_KB}
-Maintainer: orakul <https://github.com/theasder/cruxwing>
+Maintainer: cruxwing <https://github.com/theasder/cruxwing>
 Homepage: https://github.com/theasder/cruxwing
 Description: Поиск по своим рабочим звонкам, на своём компьютере
  Отвечает на вопрос «что мы решили?» строкой из той расшифровки, где это
@@ -149,7 +149,7 @@ CONTROL
 # которому причину не угадать.
 [ -n "$DEPENDS" ] && printf 'Depends: %s\n' "$DEPENDS" >> "$STAGE/DEBIAN/control"
 
-cp LICENSE "$STAGE/usr/share/doc/orakul/copyright"
+cp LICENSE "$STAGE/usr/share/doc/cruxwing/copyright"
 
 echo ">> сборка пакета"
 dpkg-deb --build --root-owner-group "$STAGE" >/dev/null

@@ -105,7 +105,7 @@ struct SessionStore {
              try FileManager.default.removeItem(at: $0)
          },
          synchronizeDirectory: @escaping DirectorySynchronizer = {
-             try OrakulAtomicFile.synchronizeDirectory($0)
+             try CruxwingAtomicFile.synchronizeDirectory($0)
          }) {
         self.root = root
         self.directoryContents = directoryContents
@@ -117,7 +117,7 @@ struct SessionStore {
         // The central path helper also redirects tests to a scratch root. Never
         // fall back to the inherited MeetGPT directory: it is shared with the
         // parent product, so its transcripts have no trustworthy owner marker.
-        SessionStore(root: OrakulApplicationSupport.sessionsDirectory)
+        SessionStore(root: CruxwingApplicationSupport.sessionsDirectory)
     }()
 
     private var encoder: JSONEncoder {
@@ -143,8 +143,8 @@ struct SessionStore {
     }
 
     private func decodedSession(at destination: URL) -> DecodedSession? {
-        let recovery = OrakulAtomicFile.recoveryURL(for: destination).standardizedFileURL
-        for candidate in OrakulAtomicFile.readableCandidates(for: destination) {
+        let recovery = CruxwingAtomicFile.recoveryURL(for: destination).standardizedFileURL
+        for candidate in CruxwingAtomicFile.readableCandidates(for: destination) {
             guard let data = try? Data(contentsOf: candidate),
                   let session = try? decoder.decode(SavedSession.self, from: data) else {
                 continue
@@ -163,7 +163,7 @@ struct SessionStore {
         let data = try encoder.encode(session)
         let destination = url(for: session.id)
         let decoded = decodedSession(at: destination)
-        let policy: OrakulAtomicFile.RecoveryPolicy
+        let policy: CruxwingAtomicFile.RecoveryPolicy
         if decoded?.recovered == true {
             policy = .preserveExistingRecovery
         } else if decoded != nil {
@@ -174,7 +174,7 @@ struct SessionStore {
             // recovery snapshot.
             policy = .discardPreviousContent
         }
-        try OrakulAtomicFile.write(data, to: destination, recoveryPolicy: policy)
+        try CruxwingAtomicFile.write(data, to: destination, recoveryPolicy: policy)
     }
 
     /// All sessions, newest first. Unreadable files are skipped, never fatal.
@@ -211,11 +211,11 @@ struct SessionStore {
 
         var destinations = Set(files.filter { $0.pathExtension == "json" })
         for file in files {
-            if let primary = OrakulAtomicFile.primaryURL(forRecoveryURL: file),
+            if let primary = CruxwingAtomicFile.primaryURL(forRecoveryURL: file),
                primary.pathExtension == "json" {
                 destinations.insert(primary)
             }
-            if let primary = OrakulAtomicFile.primaryURL(forStagingURL: file),
+            if let primary = CruxwingAtomicFile.primaryURL(forStagingURL: file),
                primary.pathExtension == "json" {
                 destinations.insert(primary)
             }
@@ -245,7 +245,7 @@ struct SessionStore {
     ///
     /// Копии не просто занимают место: ответ показывает не больше трёх звонков
     /// (`RecallAnswer.maximumMeetings`), поэтому дубли вытесняют из ответа
-    /// РАЗНЫЕ звонки. Та же беда, что была у `orakul добавить`.
+    /// РАЗНЫЕ звонки. Та же беда, что была у `cruxwing добавить`.
     ///
     /// Ключ — начало встречи и название. `startedAt` берётся из самой встречи,
     /// а не из момента импорта (см. `FirefliesPastCalls.session(for:)`), то
@@ -276,7 +276,7 @@ struct SessionStore {
 
     @discardableResult
     func delete(id: UUID) throws -> Bool {
-        try OrakulAtomicFile.erase(
+        try CruxwingAtomicFile.erase(
             url(for: id),
             directoryContents: directoryContents,
             removeItem: removeItem,
@@ -301,14 +301,14 @@ struct SessionStore {
 
         let artifacts = files.filter { file in
             if file.pathExtension == "json" { return true }
-            if OrakulAtomicFile.primaryURL(forRecoveryURL: file)?.pathExtension == "json" {
+            if CruxwingAtomicFile.primaryURL(forRecoveryURL: file)?.pathExtension == "json" {
                 return true
             }
-            return OrakulAtomicFile.primaryURL(forStagingURL: file)?.pathExtension == "json"
+            return CruxwingAtomicFile.primaryURL(forStagingURL: file)?.pathExtension == "json"
         }.sorted { left, right in
             func rank(_ file: URL) -> Int {
-                if OrakulAtomicFile.primaryURL(forStagingURL: file) != nil { return 0 }
-                if OrakulAtomicFile.primaryURL(forRecoveryURL: file) != nil { return 1 }
+                if CruxwingAtomicFile.primaryURL(forStagingURL: file) != nil { return 0 }
+                if CruxwingAtomicFile.primaryURL(forRecoveryURL: file) != nil { return 1 }
                 return 2
             }
             return rank(left) < rank(right)

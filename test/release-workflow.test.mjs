@@ -57,7 +57,7 @@ function write(root, relative, content) {
 }
 
 function releaseFixture({ tag = 'v1.2.3', version = '1.2.3', annotated = true } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'orakul-release-gate-'));
+  const root = mkdtempSync(join(tmpdir(), 'cruxwing-release-gate-'));
   const copies = [
     'scripts/release-gate.sh',
     'scripts/release-manifest.sh',
@@ -66,7 +66,7 @@ function releaseFixture({ tag = 'v1.2.3', version = '1.2.3', annotated = true } 
     'scripts/verify-swiftpm-checkouts.sh',
     'scripts/refresh-cask.sh',
     'scripts/scan-history-secrets.mjs',
-    'packaging/homebrew/orakul.rb.template',
+    'packaging/homebrew/cruxwing.rb.template',
     'config/app.json',
   ];
   for (const relative of copies) {
@@ -87,25 +87,25 @@ function releaseFixture({ tag = 'v1.2.3', version = '1.2.3', annotated = true } 
     'app/build.sh',
     'app/Sources/MeetGPT/App.swift',
     'mvp/Package.swift',
-    'mvp/Sources/OrakulCore/Core.swift',
+    'mvp/Sources/CruxwingCore/Core.swift',
   ]) write(root, relative, `fixture: ${relative}\n`);
   write(root, '.gitignore', 'release-candidate/\napp/dist/\n');
   write(root, 'config/history-secret-fixtures.json', '{"version":1,"fixtures":[]}\n');
   write(root, 'test-bin/node', `#!/bin/sh
-exec "$ORAKUL_TEST_NODE" "$@"
+exec "$CRUXWING_TEST_NODE" "$@"
 `);
   chmodSync(join(root, 'test-bin', 'node'), 0o755);
 
   git(root, 'init', '-q', '-b', 'main');
   git(root, 'add', '-A');
-  git(root, '-c', 'user.name=Orakul release test',
+  git(root, '-c', 'user.name=Cruxwing release test',
     '-c', 'user.email=release-test@invalid.example',
     'commit', '-qm', 'reviewed fixture');
   git(root, 'update-ref', 'refs/remotes/origin/main', 'HEAD');
   if (annotated) {
-    git(root, '-c', 'user.name=Orakul release test',
+    git(root, '-c', 'user.name=Cruxwing release test',
       '-c', 'user.email=release-test@invalid.example',
-      'tag', '-a', tag, '-m', `orakul ${tag}`);
+      'tag', '-a', tag, '-m', `cruxwing ${tag}`);
   } else {
     git(root, 'tag', tag);
   }
@@ -115,7 +115,7 @@ exec "$ORAKUL_TEST_NODE" "$@"
 function fixtureEnv(root, extra = {}) {
   return {
     ...extra,
-    ORAKUL_TEST_NODE: process.execPath,
+    CRUXWING_TEST_NODE: process.execPath,
     PATH: `${join(root, 'test-bin')}:${process.env.PATH ?? ''}`,
   };
 }
@@ -173,7 +173,7 @@ test('workflow binds the tag to tests, both audited DMGs, checksums and signed p
   assert.doesNotMatch(releaseGate, /npm run audit:history/,
     'release trust gate can be redirected through a package script');
 
-  for (const name of ['orakul-AppleSilicon.dmg', 'orakul-Intel.dmg']) {
+  for (const name of ['cruxwing-AppleSilicon.dmg', 'cruxwing-Intel.dmg']) {
     assert.ok(workflow.includes(name), `release workflow omits ${name}`);
   }
 
@@ -314,17 +314,17 @@ test('release gate rejects lightweight tags, version drift and prospective index
 });
 
 test('release gate rejects a tagged commit outside the reviewed origin/main history', () => {
-  assert.doesNotMatch(releaseGate, /ORAKUL_RELEASE_BASE_REF/,
+  assert.doesNotMatch(releaseGate, /CRUXWING_RELEASE_BASE_REF/,
     'an environment variable can replace the reviewed release base');
   const root = releaseFixture();
   try {
     git(root, 'tag', '-d', 'v1.2.3');
     writeFileSync(join(root, 'app', 'Package.swift'), 'unreviewed release commit\n');
     git(root, 'add', 'app/Package.swift');
-    git(root, '-c', 'user.name=Orakul release test',
+    git(root, '-c', 'user.name=Cruxwing release test',
       '-c', 'user.email=release-test@invalid.example',
       'commit', '-qm', 'not in reviewed remote base');
-    git(root, '-c', 'user.name=Orakul release test',
+    git(root, '-c', 'user.name=Cruxwing release test',
       '-c', 'user.email=release-test@invalid.example',
       'tag', '-a', 'v1.2.3', '-m', 'unreviewed tag');
 
@@ -344,8 +344,8 @@ test('release manifest verifies sidecars and emits one self-consistent candidate
     const dist = join(root, 'app', 'dist');
     mkdirSync(dist, { recursive: true });
     for (const [name, body] of [
-      ['orakul-AppleSilicon.dmg', 'arm candidate'],
-      ['orakul-Intel.dmg', 'intel candidate'],
+      ['cruxwing-AppleSilicon.dmg', 'arm candidate'],
+      ['cruxwing-Intel.dmg', 'intel candidate'],
     ]) {
       const path = join(dist, name);
       writeFileSync(path, body);
@@ -366,7 +366,7 @@ test('release manifest verifies sidecars and emits one self-consistent candidate
     assert.equal(verified.status, 0, verified.stderr);
     const sums = readFileSync(join(output, 'SHA256SUMS'), 'utf8');
     for (const name of [
-      'orakul-AppleSilicon.dmg', 'orakul-Intel.dmg', 'orakul.rb', 'provenance.json',
+      'cruxwing-AppleSilicon.dmg', 'cruxwing-Intel.dmg', 'cruxwing.rb', 'provenance.json',
     ]) assert.match(sums, new RegExp(`  ${name.replace('.', '\\.')}$`, 'm'));
 
     const provenance = JSON.parse(readFileSync(join(output, 'provenance.json'), 'utf8'));
@@ -376,7 +376,7 @@ test('release manifest verifies sidecars and emits one self-consistent candidate
     assert.match(provenance.sourceSha256, /^[0-9a-f]{64}$/);
     assert.equal(provenance.claims.notReproducibilityProof, true);
     assert.deepEqual(provenance.artifacts.map(({ name }) => name),
-      ['orakul-AppleSilicon.dmg', 'orakul-Intel.dmg', 'orakul.rb']);
+      ['cruxwing-AppleSilicon.dmg', 'cruxwing-Intel.dmg', 'cruxwing.rb']);
 
     const repeated = run('bash', [
       'scripts/release-manifest.sh', 'v1.2.3', 'app/dist', output,
@@ -394,13 +394,13 @@ test('release manifest rejects a mismatched sidecar before creating output', () 
     const dist = join(root, 'app', 'dist');
     mkdirSync(dist, { recursive: true });
     for (const [name, body] of [
-      ['orakul-AppleSilicon.dmg', 'arm candidate'],
-      ['orakul-Intel.dmg', 'intel candidate'],
+      ['cruxwing-AppleSilicon.dmg', 'arm candidate'],
+      ['cruxwing-Intel.dmg', 'intel candidate'],
     ]) writeFileSync(join(dist, name), body);
-    writeFileSync(join(dist, 'orakul-AppleSilicon.dmg.sha256'),
-      `${'0'.repeat(64)}  orakul-AppleSilicon.dmg\n`);
-    writeFileSync(join(dist, 'orakul-Intel.dmg.sha256'),
-      `${'0'.repeat(64)}  orakul-Intel.dmg\n`);
+    writeFileSync(join(dist, 'cruxwing-AppleSilicon.dmg.sha256'),
+      `${'0'.repeat(64)}  cruxwing-AppleSilicon.dmg\n`);
+    writeFileSync(join(dist, 'cruxwing-Intel.dmg.sha256'),
+      `${'0'.repeat(64)}  cruxwing-Intel.dmg\n`);
 
     const output = join(root, 'release-candidate', 'v1.2.3');
     const rejected = run('bash', [

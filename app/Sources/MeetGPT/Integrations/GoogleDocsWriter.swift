@@ -10,12 +10,12 @@ enum GoogleDocsWriter {
         let webViewLink: String
     }
 
-    private static let boundary = "orakul-doc-boundary-8f3a1c"
+    private static let boundary = "cruxwing-doc-boundary-8f3a1c"
 
     static func create(title: String,
                        html: String,
                        accessToken: String,
-                       session: URLSession = OrakulNetworkIdentity.shared) async throws -> CreatedDoc {
+                       session: URLSession = CruxwingNetworkIdentity.shared) async throws -> CreatedDoc {
         guard let url = URL(string:
             "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink")
         else { throw LLMError.badResponse("Google Docs") }
@@ -71,7 +71,7 @@ enum AssistantDocHTML {
         df.dateFormat = "d MMMM yyyy"
 
         var html = "<h1>\(esc(title))</h1>"
-        html += "<p><i>orakul · \(esc(df.string(from: date)))</i></p>"
+        html += "<p><i>cruxwing · \(esc(df.string(from: date)))</i></p>"
 
         // The archived dialog before the live turn, oldest first — the doc is
         // titled "Assistant chat" and must contain the chat.

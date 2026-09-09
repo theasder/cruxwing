@@ -3,7 +3,7 @@ import SwiftUI
 import Testing
 import ViewInspector
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Что человек видит на экране — по-русски.
 ///
@@ -117,7 +117,7 @@ struct RenderedRussianTests {
         // на мои же данные вместо интерфейса. Пустой архив — единственный
         // способ проверить именно интерфейс.
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
-            .appendingPathComponent("orakul-render-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("cruxwing-render-\(UUID().uuidString)", isDirectory: true)
 
         // Своя роль тоже своя у каждой машины: она лежит в UserDefaults, и в
         // тестовом хосте от прошлых прогонов осталось «Head of RevOps». Проверка
@@ -162,7 +162,7 @@ struct RenderedRussianTests {
 
     @Test("the keys and trackers screens are in English")
     func keysAndTrackersAreRussian() throws {
-        // Два экрана, ради которых orakul вообще открывают: куда вставить ключ
+        // Два экрана, ради которых cruxwing вообще открывают: куда вставить ключ
         // и как подключить трекер.
         //
         // Порог по числу строк — не украшение. Соседние экраны при отрисовке в

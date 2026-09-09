@@ -8,7 +8,7 @@ reason to ask again, not to close — see [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.m
 
 Often a connector is a JSON file rather than Swift. Put the answers to four
 questions — method, address, search parameter, response shape — into
-`mvp/Sources/OrakulCore/Resources/connectors/<service>.json`, and a shared engine
+`mvp/Sources/CruxwingCore/Resources/connectors/<service>.json`, and a shared engine
 runs them: the deadline, distinguishable errors, and the rule that an unfamiliar
 response is a refusal rather than an empty result all come for free.
 
@@ -66,8 +66,8 @@ returns coverage with the results, so the person sees "not found among the last
 
 Some services cannot be described this way at all — a dictionary instead of a
 list, a nested body, authorization assembled from two halves. Those are written
-in code; `mvp/Sources/OrakulCore/WorkMessengers.swift` is the model, and
-`mvp/Sources/OrakulCore/WesternTrackers.swift` shows a cloud service, which is
+in code; `mvp/Sources/CruxwingCore/WorkMessengers.swift` is the model, and
+`mvp/Sources/CruxwingCore/WesternTrackers.swift` shows a cloud service, which is
 never asked for an address: one host for everybody belongs in code, because an
 extra settings field is an extra typo the person will blame on their token.
 
@@ -97,7 +97,7 @@ dependencies at all, and Node runs the page tests itself.
 is declared in `package.json`; `npm install` and `npm ci` need not be run, because
 the root package has no dependencies.
 
-**If you added a file to `mvp/Sources/OrakulCore` and the application build "does
+**If you added a file to `mvp/Sources/CruxwingCore` and the application build "does
 not see" it.** The error looks like `cannot find <Type> in scope` even though the
 file is there and the import exists. SwiftPM keeps the file list of a path
 dependency in a cache and does not notice the new file; the manifest's timestamp
@@ -108,7 +108,7 @@ cd app && swift package clean && swift build
 ```
 
 **If the installer build stops at the notarization profile.** The message names
-the command: `xcrun notarytool store-credentials orakul-notary`. A human types the
+the command: `xcrun notarytool store-credentials cruxwing-notary`. A human types the
 password — it is not stored in the repository and must not be. The check comes
 first, before compilation: on 2026-08-13 the profile vanished from the keychain,
 and that was discovered after six minutes of building arm64.
@@ -155,7 +155,7 @@ nothing.
 (`RussianTrackers.HTTP`), keys go into a fake Keychain (`InMemoryKeychain`). A test
 that goes to Yandex Tracker is testing Yandex Tracker.
 
-**Nothing paid.** There are no plans, limits or paid screens in orakul; this is
+**Nothing paid.** There are no plans, limits or paid screens in cruxwing; this is
 pinned by `NoTariffsTests`. A feature available "only on a plan" will not get into
 the project.
 
@@ -254,7 +254,7 @@ bash scripts/build-running.sh && echo "do not edit" || echo "safe to edit"
 
 The script recognises the build by the process's working directory rather than by
 its command line: the build starts as `cd app && bash dist-all.sh`, and the path is
-not in its command line at all — the pattern `pgrep -f "orakul/app.*dist-all\.sh"`
+not in its command line at all — the pattern `pgrep -f "cruxwing/app.*dist-all\.sh"`
 never matched and silently allowed editing. Someone else's build from `/tmp` is not
 mistaken for ours. Both sides are covered by checks in
 `test/build-running.test.mjs`.
@@ -282,5 +282,5 @@ agree that your contribution is distributed on the same terms.
 
 MPL is file-level copyleft: changes to the project's files are published, while new
 code beside them may stay closed. MPL has an explicit patent grant (section 2.1);
-that is what a lawyer looks at in a company deciding whether orakul may be
+that is what a lawyer looks at in a company deciding whether cruxwing may be
 installed on a work laptop.

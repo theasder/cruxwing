@@ -98,7 +98,7 @@ struct YandexGPTProviderTests {
         // Тарифов нет, значит и здесь ничего не заперто.
         for model in yandex {
             #expect(model.isAvailable(for: Config.currentTier),
-                    "\(model.label) заперт — тарифов в orakul нет")
+                    "\(model.label) заперт — тарифов в cruxwing нет")
         }
     }
 

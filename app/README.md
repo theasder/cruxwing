@@ -1,11 +1,11 @@
-# Orakul for macOS
+# Cruxwing for macOS
 
-This directory contains Orakul's native macOS application. It captures system
+This directory contains Cruxwing's native macOS application. It captures system
 audio and microphone audio, transcribes locally, stores calls on the Mac, and
 can answer questions using a provider selected by the user.
 
-Orakul is a public fork of Cruxwing. The product name, bundle identifier, and
-user-facing paths are Orakul, but the Swift package, executable target, several
+Cruxwing is a public fork of Cruxwing. The product name, bundle identifier, and
+user-facing paths are Cruxwing, but the Swift package, executable target, several
 environment variables, and some source directories still use `MeetGPT` or
 `MEETGPT_*`. Those names are compatibility debt, not a second product.
 
@@ -20,7 +20,7 @@ that package through a local SwiftPM dependency.
 - network access for the first dependency and model downloads
 
 The full app is macOS-only because it uses SwiftUI, ScreenCaptureKit,
-AVFoundation, Security, and other Apple frameworks. `OrakulCore` and the
+AVFoundation, Security, and other Apple frameworks. `CruxwingCore` and the
 command-line application are also built and tested on Linux.
 
 ## Build and test
@@ -38,11 +38,11 @@ To create a signed development `.app` bundle:
 ```sh
 cd app
 MEETGPT_NO_INSTALL=1 ./build.sh
-open build/orakul.app
+open build/cruxwing.app
 ```
 
 Without `MEETGPT_NO_INSTALL=1`, the script tries to install the bundle at the
-stable path `/Applications/orakul.app`. A stable path and signing identity help
+stable path `/Applications/cruxwing.app`. A stable path and signing identity help
 macOS keep Microphone and Screen Recording permissions across rebuilds. If no
 development identity is available, the script uses ad-hoc signing and those
 permissions may need to be granted again.
@@ -61,7 +61,7 @@ those external paths were exercised.
 
 ## Local configuration and credentials
 
-No first-party Orakul backend is configured by default. The distributed app is
+No first-party Cruxwing backend is configured by default. The distributed app is
 intended to transcribe on-device and send an AI request only to the provider
 whose key the user entered in Settings. User provider keys are stored in the
 macOS Keychain.
@@ -110,7 +110,7 @@ before publication.
 
 ## Network and privacy boundary
 
-The default Orakul build has no account service, subscription service,
+The default Cruxwing build has no account service, subscription service,
 telemetry endpoint, or first-party inference gateway. Its expected operational
 network surface is downloading model assets, calling a provider configured by
 the user, or calling a work service connected by the user. Local transcription
@@ -119,7 +119,7 @@ does not upload audio.
 The fork still contains inherited Cruxwing types for accounts, tariffs,
 paywall APIs, and backend gateways. With an empty backend address these paths
 are expected to stop before a request is made, and tests enforce that default.
-Direct BYOK startup does not read an inherited Orakul account session from
+Direct BYOK startup does not read an inherited Cruxwing account session from
 Keychain or subscribe to managed-session notifications.
 They remain architectural debt: configuration is a weaker boundary than
 removing the unused product surface. First-party analytics, first-meeting
@@ -142,7 +142,7 @@ defense in depth, not a substitute for review.
 
 Attribution, immutable source and license provenance, the allowlist, and the
 historical ingest scan are in `Sources/MeetGPT/Resources/Skills/`. The generated
-CycloneDX 1.6 SBOM at `Support/Legal/Orakul.cdx.json` distinguishes shipped
+CycloneDX 1.6 SBOM at `Support/Legal/Cruxwing.cdx.json` distinguishes shipped
 Swift/package code, embedded library sources, and the nine skill data
 components; the legal checksum manifest covers it.
 
@@ -172,7 +172,7 @@ contract is in [`../docs/RELEASING.md`](../docs/RELEASING.md).
 - Rename the `MeetGPT` package, target, executable, paths, and `MEETGPT_*`
   variables without breaking upgrades or macOS permission identity.
 - **P1 structural gate:** remove or isolate the remaining inherited account, paywall API, backend, and
-  tariff code from the public Orakul target. First-party analytics, feedback
+  tariff code from the public Cruxwing target. First-party analytics, feedback
   upload, StoreKit purchase, checkout, promo-redemption, and anonymous
   device-trial code are already removed.
 - Split the oversized `AppState` and other large files into domain services with
@@ -181,7 +181,7 @@ contract is in [`../docs/RELEASING.md`](../docs/RELEASING.md).
   full content/license review, exact digest and prompt scope, SBOM regeneration,
   and matching provenance tests.
 - Decide which legacy app coverage and measurement jobs are still meaningful
-  for Orakul, then add only those to the root workflow; the inactive nested
+  for Cruxwing, then add only those to the root workflow; the inactive nested
   workflow has been removed.
 - Configure and exercise the protected release environment described in
   `../docs/RELEASING.md`; publishing remains an explicit owner action after

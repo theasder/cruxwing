@@ -3,7 +3,7 @@ import Foundation
 /// Reads a Google Doc's text via the Docs API (read-only scope).
 enum GoogleDocsService {
     static func read(documentID: String, accessToken: String,
-                     session: URLSession = OrakulNetworkIdentity.shared) async throws -> FetchedDocument {
+                     session: URLSession = CruxwingNetworkIdentity.shared) async throws -> FetchedDocument {
         guard let url = URL(string: "https://docs.googleapis.com/v1/documents/\(documentID)") else {
             throw LLMError.badResponse("Google Docs")
         }

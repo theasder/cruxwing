@@ -37,23 +37,23 @@ DENY_CORE=(
 )
 
 rm -rf "$OUT"
-mkdir -p "$OUT/Sources/OrakulCore/Resources" "$OUT/Sources/OrakulApp" "$OUT/Sources/orakul" "$OUT/Tests/OrakulCoreTests"
+mkdir -p "$OUT/Sources/CruxwingCore/Resources" "$OUT/Sources/CruxwingApp" "$OUT/Sources/cruxwing" "$OUT/Tests/CruxwingCoreTests"
 
 for f in "${KEEP_CORE[@]}"; do
-  src="$ROOT/mvp/Sources/OrakulCore/$f.swift"
+  src="$ROOT/mvp/Sources/CruxwingCore/$f.swift"
   [ -f "$src" ] || { echo "missing keep file: $f.swift" >&2; exit 1; }
-  cp "$src" "$OUT/Sources/OrakulCore/$f.swift"
+  cp "$src" "$OUT/Sources/CruxwingCore/$f.swift"
 done
 
-cp "$ROOT/mvp/Sources/OrakulApp/"*.swift "$OUT/Sources/OrakulApp/"
-cp "$ROOT/mvp/Sources/orakul/"*.swift    "$OUT/Sources/orakul/"
+cp "$ROOT/mvp/Sources/CruxwingApp/"*.swift "$OUT/Sources/CruxwingApp/"
+cp "$ROOT/mvp/Sources/cruxwing/"*.swift    "$OUT/Sources/cruxwing/"
 
 # Tests follow their subject: a test that exercises a denied type is a denied
 # test. Filtering by CONTENT and not by filename is deliberate — these tests are
 # named after the behaviour they pin ("StemQuestionTests", "HostileServiceTests",
 # "OrderIntoNowhereTests"), so a name filter silently keeps twenty of them and
 # the build breaks somewhere far from the cause.
-for t in "$ROOT/mvp/Tests/OrakulCoreTests/"*.swift; do
+for t in "$ROOT/mvp/Tests/CruxwingCoreTests/"*.swift; do
   name="$(basename "$t")"; skip=0
   for d in "${DENY_CORE[@]}"; do
     grep -qw "$d" "$t" && { skip=1; break; }
@@ -62,7 +62,7 @@ for t in "$ROOT/mvp/Tests/OrakulCoreTests/"*.swift; do
   # every promise printed there. That contract belongs to the Russian README of
   # the full product; the open edition ships a different document.
   case "$name" in ReadmeQuickstartTests.swift) skip=1 ;; esac
-  [ "$skip" = 1 ] || cp "$t" "$OUT/Tests/OrakulCoreTests/$name"
+  [ "$skip" = 1 ] || cp "$t" "$OUT/Tests/CruxwingCoreTests/$name"
 done
 
 # The prompt CATALOGUE is the asset; the parser is not. Ship the parser with a
@@ -71,7 +71,7 @@ done
 # offline buttons including "what-decided", so the file keeps its name and the
 # shape stays real — only the texts are ours to give away, and these are the
 # plainest six that still make the surface work.
-cat > "$OUT/Sources/OrakulCore/Resources/prompts.ru.json" <<'JSON'
+cat > "$OUT/Sources/CruxwingCore/Resources/prompts.ru.json" <<'JSON'
 {
   "version": 1,
   "locale": "en-US",
@@ -148,7 +148,7 @@ a written answer.
 By contributing you agree your work ships under the
 [Mozilla Public License 2.0](LICENSE), like the rest of this repository.
 CONTRIB
-cp -R "$ROOT/mvp/Sources/OrakulCore/Resources/lexicon" "$OUT/Sources/OrakulCore/Resources/lexicon"
+cp -R "$ROOT/mvp/Sources/CruxwingCore/Resources/lexicon" "$OUT/Sources/CruxwingCore/Resources/lexicon"
 cp "$ROOT/mvp/Package.swift" "$OUT/Package.swift"
 [ -d "$ROOT/mvp/Support" ] && cp -R "$ROOT/mvp/Support" "$OUT/Support"
 
@@ -177,26 +177,26 @@ def drop_ask_case(s):
     end = s.find('\ndefault:', start)
     if end == -1: return None
     return s[:start] + s[end + 1:]
-edit('Sources/orakul/main.swift', drop_ask_case)
+edit('Sources/cruxwing/main.swift', drop_ask_case)
 
 # 2. Help text: the command line, the service list, and the three connector
-#    environment variables. ORAKUL_ENGINE stays — that is transcription.
+#    environment variables. CRUXWING_ENGINE stays — that is transcription.
 def trim_help(s):
-    line = '      orakul спросить <сервис> <вопрос>   спросить подключённый сервис\n'
+    line = '      cruxwing спросить <сервис> <вопрос>   спросить подключённый сервис\n'
     if line not in s: return None
     s = s.replace(line, '', 1)
     block_start = s.find('    Сервисы: \\(ConnectorQuery.services')
     block_end = s.find('    Расшифровка идёт вашим движком')
     if block_start == -1 or block_end == -1 or block_end < block_start: return None
     return s[:block_start] + s[block_end:]
-edit('Sources/OrakulCore/CommandLineApp.swift', trim_help)
+edit('Sources/CruxwingCore/CommandLineApp.swift', trim_help)
 
 # 2b. The command NAME list, not just the help text. A test pins that the two
 #     agree, and it is right to: a command the help does not mention is a trap.
 def drop_ask_command(s):
     if '"спросить", "корпус",' not in s: return None
     return s.replace('"спросить", "корпус",', '"корпус",', 1)
-edit('Sources/OrakulCore/CommandLineApp.swift', drop_ask_command)
+edit('Sources/CruxwingCore/CommandLineApp.swift', drop_ask_command)
 
 # 3-4. Two comments that name a type the open edition does not ship. Comments,
 #      not code — but a reader who greps for the name and finds nothing is owed
@@ -205,7 +205,7 @@ def fix_invisible(s):
     old = 'чужого сервиса при отказе показываются человеку (`VendorText`). Ради'
     if old not in s: return None
     return s.replace(old, 'чужого сервиса при отказе показываются человеку. Ради', 1)
-edit('Sources/OrakulCore/InvisibleText.swift', fix_invisible)
+edit('Sources/CruxwingCore/InvisibleText.swift', fix_invisible)
 
 # 5. One assertion pins the bundled catalogue as the Russian one. That is a fact
 #    about the full product, not an invariant, and the open edition ships English.
@@ -213,7 +213,7 @@ def fix_locale_expectation(s):
     if '#expect(catalog.locale == "ru-RU")' not in s: return None
     return s.replace('#expect(catalog.locale == "ru-RU")',
                      '#expect(catalog.locale == "en-US")', 1)
-edit('Tests/OrakulCoreTests/PromptCatalogTests.swift', fix_locale_expectation)
+edit('Tests/CruxwingCoreTests/PromptCatalogTests.swift', fix_locale_expectation)
 
 # 6. One row of a parameterised test asks that a typo suggest a command the open
 #    edition does not have. Drop the row, not the test: the other row still pins
@@ -227,7 +227,7 @@ def drop_ask_suggestion(s):
     if old_doc in s:
         s = s.replace(old_doc, '    /// Команда `записать` выполняется в main.swift и до `run`', 1)
     return s
-edit('Tests/OrakulCoreTests/CommandLineAppTests.swift', drop_ask_suggestion)
+edit('Tests/CruxwingCoreTests/CommandLineAppTests.swift', drop_ask_suggestion)
 
 def fix_lexicon(s):
     old = ('/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся\n'
@@ -236,7 +236,7 @@ def fix_lexicon(s):
     new = ('/// Внутреннее, а не приватное: тем же вопросом «это кириллица?» задаётся\n'
            '/// поиск, когда решает, повторять ли запрос с другой буквы. Второе')
     return s.replace(old, new, 1)
-edit('Sources/OrakulCore/LexiconPack.swift', fix_lexicon)
+edit('Sources/CruxwingCore/LexiconPack.swift', fix_lexicon)
 PATCH
 
 # ---- Package.swift: point it at what the open tree actually contains ----
@@ -259,7 +259,7 @@ io.open(p, 'w', encoding='utf-8').write(s)
 # Every resource the manifest promises has to exist, or swift build fails late
 # and far from the cause.
 missing = [r for r in re.findall(r'\.copy\("([^"]+)"\)', s)
-           if not os.path.exists(os.path.join(out, 'Sources/OrakulCore', r))]
+           if not os.path.exists(os.path.join(out, 'Sources/CruxwingCore', r))]
 if missing:
     sys.exit('Package.swift promises resources that are not in the tree: ' + ', '.join(missing))
 PKG
@@ -268,19 +268,19 @@ PKG
 #
 # Done on the OUTPUT, like the patches: mvp/ keeps its own identity until the
 # source tree is renamed on purpose. Order matters — longest first, or
-# "OrakulCore" becomes "CruxwingCore" via two passes and stops matching.
+# "CruxwingCore" becomes "CruxwingCore" via two passes and stops matching.
 python3 - "$OUT" <<'RENAME'
 import sys, os, io, re
 out = sys.argv[1]
 
 PAIRS = [
-    ("OrakulCoreTests", "CruxwingCoreTests"),
-    ("OrakulCore",      "CruxwingCore"),
-    ("OrakulApp",       "CruxwingApp"),
-    ("ORAKUL_",         "CRUXWING_"),
-    ("Orakul",          "Cruxwing"),
-    ("orakul",          "cruxwing"),
-    ("Оракул",          "Cruxwing"),
+    ("CruxwingCoreTests", "CruxwingCoreTests"),
+    ("CruxwingCore",      "CruxwingCore"),
+    ("CruxwingApp",       "CruxwingApp"),
+    ("CRUXWING_",         "CRUXWING_"),
+    ("Cruxwing",          "Cruxwing"),
+    ("cruxwing",          "cruxwing"),
+    ("Cruxwing",          "Cruxwing"),
     ("оракул",          "cruxwing"),
 ]
 

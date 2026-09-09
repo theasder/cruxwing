@@ -32,7 +32,7 @@ action by the owner, after downloading and re-checking the candidate.
 
 An attestation proves which GitHub workflow produced those particular hashes. It
 does not prove the program is safe, that the review was any good, or that the build
-is byte-for-byte reproducible. The `OrakulCommit` and `OrakulSourceHash` values
+is byte-for-byte reproducible. The `CruxwingCommit` and `CruxwingSourceHash` values
 embedded in the application are narrower still: they are the artifact's own
 self-report. So both checks are needed, and neither may be called a security audit
 or a reproducible build.
@@ -111,15 +111,15 @@ gh workflow run release-candidate.yml --ref v0.2.0 -f tag=v0.2.0
 The two values are duplicated deliberately: the workflow refuses to run if its own
 definition did not come from `refs/tags/v0.2.0`. An ordinary run from `main` with
 the tag only in the input field is not a release. A successful run leaves an
-artifact `orakul-vX.Y.Z-release-candidate` containing:
+artifact `cruxwing-vX.Y.Z-release-candidate` containing:
 
 ```text
-orakul-AppleSilicon.dmg
-orakul-Intel.dmg
-orakul.rb
+cruxwing-AppleSilicon.dmg
+cruxwing-Intel.dmg
+cruxwing.rb
 provenance.json
 SHA256SUMS
-orakul-attestation.sigstore.json
+cruxwing-attestation.sigstore.json
 ```
 
 For local diagnostics of images that are already built and notarized, the same
@@ -129,8 +129,8 @@ boundary is available without GitHub:
 npm run release:check -- v0.2.0
 # release:check already includes the full scripts/scan-history-secrets.mjs
 bash scripts/audit-dmg.sh \
-  app/dist/orakul-AppleSilicon.dmg \
-  app/dist/orakul-Intel.dmg
+  app/dist/cruxwing-AppleSilicon.dmg \
+  app/dist/cruxwing-Intel.dmg
 bash scripts/release-manifest.sh v0.2.0
 ```
 
@@ -143,15 +143,15 @@ An Actions artifact is a zip container. After downloading, unpack it into a
 separate directory and run:
 
 ```bash
-cd /path/to/orakul-v0.2.0-release-candidate
+cd /path/to/cruxwing-v0.2.0-release-candidate
 shasum -a 256 -c SHA256SUMS
 
-gh attestation verify orakul-AppleSilicon.dmg \
+gh attestation verify cruxwing-AppleSilicon.dmg \
   --repo theasder/cruxwing \
   --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners
-gh attestation verify orakul-Intel.dmg \
+gh attestation verify cruxwing-Intel.dmg \
   --repo theasder/cruxwing \
   --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
@@ -164,12 +164,12 @@ and therefore not part of its own `SHA256SUMS`:
 
 ```bash
 gh attestation trusted-root > trusted_root.jsonl
-gh attestation verify orakul-AppleSilicon.dmg \
+gh attestation verify cruxwing-AppleSilicon.dmg \
   --repo theasder/cruxwing \
   --signer-workflow theasder/cruxwing/.github/workflows/release-candidate.yml \
   --source-ref refs/tags/v0.2.0 \
   --deny-self-hosted-runners \
-  --bundle orakul-attestation.sigstore.json \
+  --bundle cruxwing-attestation.sigstore.json \
   --custom-trusted-root trusted_root.jsonl
 ```
 
@@ -179,8 +179,8 @@ images:
 ```bash
 git checkout v0.2.0
 bash scripts/audit-dmg.sh \
-  /path/to/orakul-AppleSilicon.dmg \
-  /path/to/orakul-Intel.dmg
+  /path/to/cruxwing-AppleSilicon.dmg \
+  /path/to/cruxwing-Intel.dmg
 ```
 
 Only after that may the owner create a **draft**, read the release notes, check the
@@ -188,16 +188,16 @@ names and download the draft once more before publishing. For example:
 
 ```bash
 gh release create v0.2.0 \
-  orakul-AppleSilicon.dmg \
-  orakul-Intel.dmg \
-  SHA256SUMS provenance.json orakul-attestation.sigstore.json \
+  cruxwing-AppleSilicon.dmg \
+  cruxwing-Intel.dmg \
+  SHA256SUMS provenance.json cruxwing-attestation.sigstore.json \
   --verify-tag --draft --generate-notes --title "Cruxwing v0.2.0"
 ```
 
 The command is given as a manual step by the owner; the workflow does not invoke
 it. After publishing, download the DMG from the public URL again and re-check the
 SHA-256, the attestation, Gatekeeper and both architecture names. The Homebrew cask
-moves into a separate `theasder/homebrew-orakul` only after the owner creates that
+moves into a separate `theasder/homebrew-cruxwing` only after the owner creates that
 tap.
 
 ## A refusal is a result

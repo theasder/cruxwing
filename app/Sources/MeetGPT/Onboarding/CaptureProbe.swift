@@ -87,7 +87,7 @@ enum CaptureProbe {
     /// Which of them to show.
     ///
     /// **Why this is not `verdict == .micOnly`.** It was, and it produced a loop
-    /// with no exit: «even though i quited and reopened orakul told me i am
+    /// with no exit: «even though i quited and reopened cruxwing told me i am
     /// supposed to quit and reopen». `micOnly` means the microphone was heard
     /// and system audio was not — which is the relaunch quirk, and is equally
     /// the far more common case of no video or music playing during the six

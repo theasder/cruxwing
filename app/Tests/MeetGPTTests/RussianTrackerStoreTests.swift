@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Хранилище токенов трекеров. Проверяется главным образом одно: когда
 /// приложение считает сервис настроенным. Ошибка здесь не видна на экране —

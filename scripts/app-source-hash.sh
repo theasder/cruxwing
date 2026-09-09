@@ -9,6 +9,6 @@ cd "$root"
 
 exec bash scripts/source-hash.sh \
     app/Package.swift app/Package.resolved app/build.sh app/Support \
-    app/Sources/MeetGPT mvp/Package.swift mvp/Sources/OrakulCore \
+    app/Sources/MeetGPT mvp/Package.swift mvp/Sources/CruxwingCore \
     scripts/app-source-hash.sh scripts/source-hash.sh \
     scripts/verify-swiftpm-checkouts.sh

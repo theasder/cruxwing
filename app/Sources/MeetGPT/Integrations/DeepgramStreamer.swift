@@ -108,7 +108,7 @@ final class DeepgramStreamer {
     /// Immutable across reconnects; a Settings edit is for the next recording.
     private let keyterms: [String]
     private let transportOverrides: DeepgramTransportOverrides
-    private let session = OrakulNetworkIdentity.makeSession()
+    private let session = CruxwingNetworkIdentity.makeSession()
     private let lock = NSLock()
 
     private enum State { case idle, connecting, open, reconnecting, closed }

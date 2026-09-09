@@ -15,7 +15,7 @@ import { stripComments } from './swift-source.mjs';
 // со своей склейкой "https://\(value)" не уронит ни один Swift-тест: он
 // проверяет три известных ему сервиса, а не тот, которого ещё нет.
 
-const CORE = 'mvp/Sources/OrakulCore';
+const CORE = 'mvp/Sources/CruxwingCore';
 const RULE = 'ConnectorAddress.swift';
 
 /** Склейка схемы с чем-то, что пришло снаружи. */

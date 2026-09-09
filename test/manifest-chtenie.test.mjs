@@ -15,7 +15,7 @@ import { join } from 'node:path';
 // Поведение проверить набором нельзя: разница видна лишь тогда, когда негодный
 // файл уже в сборке, а этого не допускает bundledManifestsPass. Поэтому здесь
 // проверяется форма — что в работе нет строгого чтения.
-const DIR = 'mvp/Sources/OrakulCore';
+const DIR = 'mvp/Sources/CruxwingCore';
 
 test('в рабочем коде нет строгого чтения манифестов', () => {
   const offenders = [];

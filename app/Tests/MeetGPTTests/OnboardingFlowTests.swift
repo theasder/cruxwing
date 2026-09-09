@@ -159,7 +159,7 @@ struct CaptureProbeTests {
     }
 
     /// The reported bug, as a scenario: «even though i quited and reopened
-    /// orakul told me i am supposed to quit and reopen».
+    /// cruxwing told me i am supposed to quit and reopen».
     @Test("the relaunch is never advised twice for the same failure")
     func relaunchAdviceDoesNotRepeatAfterARelaunch() {
         // Run 1 — granted, stream refused, no relaunch yet.
@@ -214,13 +214,13 @@ struct CaptureProbeTests {
 
     @Test("the location is read off the path macOS actually gives us",
           arguments: [
-            ("/Applications/orakul.app", CaptureProbe.InstallLocation.normal),
-            ("/Users/me/Applications/orakul.app", .normal),
-            ("/private/var/folders/x9/T/AppTranslocation/9F2-A1/d/orakul.app", .translocated),
-            ("/Volumes/orakul/orakul.app", .diskImage),
+            ("/Applications/cruxwing.app", CaptureProbe.InstallLocation.normal),
+            ("/Users/me/Applications/cruxwing.app", .normal),
+            ("/private/var/folders/x9/T/AppTranslocation/9F2-A1/d/cruxwing.app", .translocated),
+            ("/Volumes/cruxwing/cruxwing.app", .diskImage),
             // Не путать с томом: путь пользователя может содержать слово, но
             // начинается не с /Volumes.
-            ("/Users/me/Volumes-backup/orakul.app", .normal),
+            ("/Users/me/Volumes-backup/cruxwing.app", .normal),
           ])
     func locationIsClassifiedFromTheBundlePath(path: String,
                                                expected: CaptureProbe.InstallLocation) {
@@ -233,8 +233,8 @@ struct CaptureProbeTests {
         /// the process, and a flag left behind there would surface as an
         /// unrelated failure somewhere else.
         private func freshDefaults(_ name: String) -> UserDefaults {
-            let defaults = UserDefaults(suiteName: "orakul.tests.\(name)")!
-            defaults.removePersistentDomain(forName: "orakul.tests.\(name)")
+            let defaults = UserDefaults(suiteName: "cruxwing.tests.\(name)")!
+            defaults.removePersistentDomain(forName: "cruxwing.tests.\(name)")
             return defaults
         }
 

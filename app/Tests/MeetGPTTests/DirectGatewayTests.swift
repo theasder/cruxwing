@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import MeetGPT
 
-/// orakul обращается к провайдеру напрямую, а не через наш сервер.
+/// cruxwing обращается к провайдеру напрямую, а не через наш сервер.
 ///
 /// Это не настройка вкуса, а условие работоспособности. `LLM_GATEWAY=backend`
 /// означает три вещи разом:
 ///
-///  1. запросы уходят на `api.orakul.ai`, которого не существует;
+///  1. запросы уходят на `api.cruxwing.ai`, которого не существует;
 ///  2. ключ, введённый пользователем, не читается вообще — берётся серверный
 ///     путь;
 ///  3. `LLMModel.isConfigured` возвращает true для всех провайдеров, потому что
@@ -115,7 +115,7 @@ struct DirectGatewayTests {
             .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("#") }
             .joined(separator: "\n")
         #expect(!code.contains("api.cruxwing.ai"),
-                "в orakul вернулся адрес чужого сервера")
+                "в cruxwing вернулся адрес чужого сервера")
 
         // И останов на случай, если подстановка вернётся другим путём.
         #expect(script.contains("В DIST-сборку попал адрес сервера"),
@@ -133,7 +133,7 @@ struct DirectGatewayTests {
         // адрес по умолчанию. Оба раза проверяемое место было не тем, которое
         // решает. Решает то, что приложение получает на руки.
         #expect(!Config.backendBaseURL.contains("cruxwing"),
-                "orakul обращается к серверу другого продукта: \(Config.backendBaseURL)")
+                "cruxwing обращается к серверу другого продукта: \(Config.backendBaseURL)")
 
         let state = AppState()
         #expect(!state.wheesprAvailable, "предлагается вход в несуществующий аккаунт")

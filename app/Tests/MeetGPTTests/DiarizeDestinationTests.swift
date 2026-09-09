@@ -35,8 +35,8 @@ struct DiarizeDestinationTests {
         }
     }
 
-    // Чужого продукта в предупреждении orakul быть не должно ни в одной ветке.
-    // Ветка сервера в собранном orakul недостижима — DIST-сборка отказывается
+    // Чужого продукта в предупреждении cruxwing быть не должно ни в одной ветке.
+    // Ветка сервера в собранном cruxwing недостижима — DIST-сборка отказывается
     // печь адрес сервера, — но достижимость меняется одной строкой сборки, а
     // текст читают глазами.
     @Test("ни одна ветка не называет другой продукт")
@@ -44,7 +44,7 @@ struct DiarizeDestinationTests {
         for onServer in [true, false] {
             let destination = AppState.diarizeDestination(onServer: onServer).lowercased()
             #expect(!destination.contains("cruxwing"),
-                    "человеку, поставившему orakul, сообщают про чужой сервис")
+                    "человеку, поставившему cruxwing, сообщают про чужой сервис")
         }
     }
 

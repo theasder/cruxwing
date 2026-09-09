@@ -48,7 +48,7 @@ struct WritebackShowsWhatItSendsTests {
         #expect(text.contains("до пятницы"))
         #expect(text.contains("таблица обновлена"))
         #expect(text.contains("решили поднять на 15%"))
-        #expect(text.contains("orakul"), "задача не говорит, откуда она взялась")
+        #expect(text.contains("cruxwing"), "задача не говорит, откуда она взялась")
     }
 
     // Строка листа собирается той же функцией, что и тело запроса. Иначе это
@@ -78,6 +78,6 @@ struct WritebackShowsWhatItSendsTests {
         let text = TaskWriteback.describe(bare)
         #expect(!text.contains("OWNER?"))
         #expect(!text.contains("DUE?"))
-        #expect(text.contains("orakul"))
+        #expect(text.contains("cruxwing"))
     }
 }

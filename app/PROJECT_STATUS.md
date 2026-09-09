@@ -1,4 +1,4 @@
-# Orakul macOS application status
+# Cruxwing macOS application status
 
 Last reviewed: 2026-08-26.
 
@@ -8,12 +8,12 @@ of truth; when this document disagrees with them, update or remove the claim.
 
 ## Current shape
 
-- Orakul is a public, local-first fork of Cruxwing.
+- Cruxwing is a public, local-first fork of Cruxwing.
 - `app/` is the native macOS 14 application.
-- `mvp/` provides `OrakulCore`, the cross-platform command-line application,
+- `mvp/` provides `CruxwingCore`, the cross-platform command-line application,
   local archive and search, Russian-language normalization, and connector
   policies. The app links it as a local Swift package.
-- Product identity is Orakul (`ai.orakul.desktop`), while internal `MeetGPT`
+- Product identity is Cruxwing (`ai.cruxwing.desktop`), while internal `MeetGPT`
   names and `MEETGPT_*` build variables remain compatibility debt.
 - Clean-clone checks require the eventual release tree to build without an
   `.env` file or an untracked source prerequisite. The current migration
@@ -29,7 +29,7 @@ of truth; when this document disagrees with them, update or remove the claim.
   stored in the macOS Keychain.
 - Model-provider keys are never read from `.env` or generated into any build;
   local and distribution builds both resolve them only from Keychain.
-- Direct BYOK has no Orakul credits, subscription allowance, monthly research
+- Direct BYOK has no Cruxwing credits, subscription allowance, monthly research
   cap, or local product-analytics counters. The selected provider applies its
   own billing and rate limits to the user's account.
 - Automatic model requests default off behind one master consent switch. With
@@ -52,15 +52,15 @@ device-trial routes have been removed from the app target. Source-policy tests
 reject their endpoints, UI hooks, and production symbols if they return.
 Inherited account, read-only plan/usage API, backend, and tariff types remain
 compiled behind an empty first-party backend configuration; that remaining
-product surface is P1 release-isolation debt, not an Orakul feature or a claim of
+product surface is P1 release-isolation debt, not an Cruxwing feature or a claim of
 fully structural release isolation.
-Direct BYOK launch does not read a legacy Orakul account session from Keychain
+Direct BYOK launch does not read a legacy Cruxwing account session from Keychain
 or subscribe to managed-session notifications.
 
 ## Verification available today
 
-- The macOS app and `OrakulCore` have substantial Swift test suites.
-- `OrakulCore`, the command-line program, and their tests run in Linux CI.
+- The macOS app and `CruxwingCore` have substantial Swift test suites.
+- `CruxwingCore`, the command-line program, and their tests run in Linux CI.
 - Root Node tests check documentation, identity, packaging policy, and selected
   security invariants.
 - The app ships nine reviewed, hash-pinned Agent Skills behind a default-deny,
@@ -104,12 +104,12 @@ recorded here because they age immediately and do not measure product maturity.
 
 - Decompose `AppState` into recording, transcription, assistant, connector,
   export, and account-compatibility coordinators.
-- Keep the portable public API intentionally small and make `OrakulCore`
+- Keep the portable public API intentionally small and make `CruxwingCore`
   consumable from the repository root or document it as an internal package.
 - Add formatting, linting, strict-concurrency, dependency-update, and coverage
   policies with narrow, reviewable adoption rather than a repository-wide
   warning dump.
-- Replace `OrakulCore`'s acknowledged cross-platform remove-then-move archive
+- Replace `CruxwingCore`'s acknowledged cross-platform remove-then-move archive
   write. The macOS app stores now use same-volume atomic replacement, a
   verified-readable recovery copy, synchronized directory mutations, and
   explicit artifact erasure; the portable core still needs an equivalent that
@@ -126,7 +126,7 @@ recorded here because they age immediately and do not measure product maturity.
   sanitization a formal isolation boundary or guarantee model output quality.
 - Mac App Store readiness, universal live permission behavior, and a fully
   reproducible release pipeline are not complete.
-- Internal compatibility names do not imply that Orakul depends on a Cruxwing
+- Internal compatibility names do not imply that Cruxwing depends on a Cruxwing
   service; the default public build has no such service configured.
 
 ## Where decisions belong

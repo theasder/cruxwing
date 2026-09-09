@@ -86,7 +86,7 @@ describe('RESEARCH-AND-PLAN', () => {
     // Наборы живут в двух пакетах: интерфейсные — в приложении, ядро — в mvp.
     // Проверка сначала смотрела только в приложение и объявила несуществующим
     // набор, который лежит в ядре. Ссылка была верной, узок был обход.
-    const trees = [['app', 'Tests', 'MeetGPTTests'], ['mvp', 'Tests', 'OrakulCoreTests']];
+    const trees = [['app', 'Tests', 'MeetGPTTests'], ['mvp', 'Tests', 'CruxwingCoreTests']];
     const files = trees.flatMap((tree) => readdirSync(resolve(repo, ...tree)));
 
     // Имя набора может стоять и внутри файла: один файл нередко содержит
@@ -136,9 +136,9 @@ describe('RESEARCH-AND-PLAN', () => {
     const appSourceHash = readFileSync(resolve(repo, 'scripts', 'app-source-hash.sh'), 'utf8');
     const sourceHash = readFileSync(resolve(repo, 'scripts', 'source-hash.sh'), 'utf8');
 
-    assert.match(build, /OrakulSourceHash/,
+    assert.match(build, /CruxwingSourceHash/,
       'build.sh no longer stamps the source hash — the DMG becomes untraceable');
-    assert.match(audit, /OrakulSourceHash/,
+    assert.match(audit, /CruxwingSourceHash/,
       'the audit no longer reads the stamp back');
     assert.match(build, /scripts\/app-source-hash\.sh/,
       'build.sh computes app provenance separately instead of using the shared input list');
@@ -152,7 +152,7 @@ describe('RESEARCH-AND-PLAN', () => {
     assert.doesNotMatch(sourceHash, /! -name Secrets\.swift/,
       'the tracked safe fallback is missing from provenance');
 
-    // И приложение, И ядро. Приложение линкует OrakulCore — коннекторы,
+    // И приложение, И ядро. Приложение линкует CruxwingCore — коннекторы,
     // словарь и поиск физически едут в том же бинарнике. Пока в хеш входило
     // только Sources/MeetGPT, три изменённых файла ядра оставили штамп
     // прежним: аудит отвечал «совпадает» на сборку, собранную из другого
@@ -161,7 +161,7 @@ describe('RESEARCH-AND-PLAN', () => {
     for (const input of [
       'app/Package.swift', 'app/Package.resolved', 'app/build.sh',
       'app/Support', 'app/Sources/MeetGPT', 'mvp/Package.swift',
-      'mvp/Sources/OrakulCore', 'scripts/app-source-hash.sh',
+      'mvp/Sources/CruxwingCore', 'scripts/app-source-hash.sh',
       'scripts/source-hash.sh',
     ]) {
       assert.ok(appSourceHash.includes(input),
@@ -178,7 +178,7 @@ describe('RESEARCH-AND-PLAN', () => {
     // The source id is an actual full SHA-256, not a 12-character SHA-1 label.
     // Recompute a small shipped tree independently so an unused `sha256sum`
     // string cannot make this contract pass.
-    const sourceRoot = 'mvp/Sources/orakul';
+    const sourceRoot = 'mvp/Sources/cruxwing';
     const files = [];
     const visit = (relative) => {
       for (const entry of readdirSync(resolve(repo, relative), { withFileTypes: true })) {
@@ -238,14 +238,14 @@ describe('RESEARCH-AND-PLAN', () => {
     assert.match(audit, /app\.developerTeamId/,
       'the expected Apple publisher is not read from the app identity');
     assert.match(audit, /identifier .*expected_bundle_id|expected_bundle_id.*identifier/,
-      'the signature requirement is not bound to Orakul’s bundle id');
+      'the signature requirement is not bound to Cruxwing’s bundle id');
     assert.match(audit, /spctl --assess/,
       'the audit no longer asks Gatekeeper to assess the artifact');
     assert.match(audit, /lipo -archs/,
       'Apple Silicon and Intel images can silently contain the same binary');
-    assert.match(audit, /orakul-AppleSilicon\.dmg[\s\S]*expected_arch="arm64"/,
+    assert.match(audit, /cruxwing-AppleSilicon\.dmg[\s\S]*expected_arch="arm64"/,
       'the Apple Silicon filename is not bound to arm64');
-    assert.match(audit, /orakul-Intel\.dmg[\s\S]*expected_arch="x86_64"/,
+    assert.match(audit, /cruxwing-Intel\.dmg[\s\S]*expected_arch="x86_64"/,
       'the Intel filename is not bound to x86_64');
     assert.doesNotMatch(audit, /can_codesign|can_stapler/,
       'missing signature/notarization tools still fail open');
@@ -411,7 +411,7 @@ describe('RESEARCH-AND-PLAN', () => {
     // чертеже осталось четыре имени. Читатель чертежа тогда не знает, что
     // делать с пятым — и, что хуже, не знает, что тот есть.
     const src = readFileSync(
-      resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
+      resolve(repo, 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8');
     const block = src.slice(src.indexOf('public enum TrackerError'));
     const cases = [...block.slice(0, block.indexOf('\n        }')).matchAll(/case ([a-zA-Z]+)/g)]
       .map(([, name]) => name);
@@ -455,7 +455,7 @@ describe('RESEARCH-AND-PLAN', () => {
     // сверяется с типом: каждый сервис из `RussianTrackers.Service` обязан
     // стоять в таблице со словом «подключён», и наоборот.
     const src = readFileSync(
-      resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
+      resolve(repo, 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8');
     const block = src.slice(src.indexOf('public var title: String'));
     const shipped = [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
       .map(([, title]) => title);

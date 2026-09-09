@@ -210,7 +210,7 @@ enum LLMError: LocalizedError {
             // в свежепоставленном приложении: ключей в установщике нет
             // намеренно. Прежний текст отправлял «войти в аккаунт, чтобы
             // пользоваться моделями» — совет для продукта с сервером, которого
-            // у orakul нет. Здесь нужно назвать экран, а не диагноз.
+            // у cruxwing нет. Здесь нужно назвать экран, а не диагноз.
             return "No \(provider) key. Paste your own: «Settings → AI → Provider keys» — "
                  + "the same screen says where to get one. Recording and call search work without a key."
         case .http(let provider, let code, let body):

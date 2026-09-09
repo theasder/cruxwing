@@ -2,10 +2,10 @@ import Foundation
 import Testing
 @testable import MeetGPT
 
-/// Приложение называется orakul — везде, где название видит пользователь.
+/// Приложение называется cruxwing — везде, где название видит пользователь.
 ///
 /// Отдельный идентификатор и своё имя тома уже проверяются снаружи
-/// (`orakul/test/identity.test.mjs`), но там речь про то, как приложение
+/// (`cruxwing/test/identity.test.mjs`), но там речь про то, как приложение
 /// выглядит для macOS. Здесь — про то, как оно разговаривает: подпись в
 /// экспортированном документе и подписи в настройках это и есть продукт для
 /// того, кто их читает.
@@ -83,7 +83,26 @@ struct ProductNameTests {
 
         var offenders: [String] = []
         for file in files {
-            for literal in literals(of: file) where literal.localizedCaseInsensitiveContains("cruxwing") {
+            // The foreign names are the commercial identities this edition was
+            // forked from, not our own. Until 2026-09-09 the product was called
+            // orakul and "Cruxwing" was the name to keep off screen; the rename
+            // made Cruxwing ours, so what must not appear is MeetGPT and Wheespr.
+            //
+            // Interpolations are stripped first. `\(state.wheesprEmail)` is a
+            // property name, not a word anybody reads, and matching it would
+            // report the one thing this check is not about.
+            for literal in literals(of: file) {
+                // Two strips, because the naive literal split cuts a fragment
+                // in half when an interpolation contains a quote of its own:
+                // `Account: \(state.wheesprEmail ?? "` has no closing paren to
+                // match, so an unterminated interpolation is dropped as well.
+                let visible = literal
+                    .replacingOccurrences(
+                        of: #"\\\([^)]*\)"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(
+                        of: #"\\\(.*$"#, with: "", options: .regularExpression)
+                guard ["meetgpt", "wheespr"]
+                    .contains(where: visible.localizedCaseInsensitiveContains) else { continue }
                 offenders.append("\(file.lastPathComponent): \(literal.prefix(70))")
             }
         }
@@ -91,7 +110,7 @@ struct ProductNameTests {
         #expect(offenders.isEmpty, "чужое имя на экране: \(report)")
     }
 
-    @Test("экспортированный документ подписан orakul")
+    @Test("экспортированный документ подписан cruxwing")
     func exportsAreStampedWithOurName() {
         // Документ уезжает в чужой Notion или Google Docs и живёт там дольше
         // приложения. Чужая подпись в нём — это не опечатка в настройках,
@@ -104,10 +123,12 @@ struct ProductNameTests {
             let stamps = literals(of: file).filter { $0.contains("df.string(from: date)") }
             #expect(stamps.count == 1, "\(path): подпись экспорта не найдена (\(stamps.count))")
             for stamp in stamps {
-                #expect(stamp.contains("orakul"),
+                #expect(stamp.contains("cruxwing"),
                         "\(path): документ не подписан именем продукта — \(stamp)")
-                #expect(!stamp.localizedCaseInsensitiveContains("cruxwing"),
-                        "\(path): документ подписан чужим именем — \(stamp)")
+                for foreign in ["meetgpt", "wheespr"] {
+                    #expect(!stamp.localizedCaseInsensitiveContains(foreign),
+                            "\(path): документ подписан чужим именем — \(stamp)")
+                }
             }
         }
     }
@@ -120,7 +141,10 @@ struct ProductNameTests {
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Support/Info.plist")
         let text = (try? String(contentsOf: plist, encoding: .utf8)) ?? ""
-        #expect(text.contains("<string>orakul</string>"), "Info.plist называет приложение иначе")
-        #expect(!text.localizedCaseInsensitiveContains("cruxwing"))
+        #expect(text.contains("<string>cruxwing</string>"), "Info.plist называет приложение иначе")
+        // Only Wheespr is foreign here. `CFBundleExecutable` is `MeetGPT`,
+        // which is this repository's own Swift target, not another product.
+        #expect(!text.localizedCaseInsensitiveContains("wheespr"),
+                "Info.plist carries the commercial Wheespr identity")
     }
 }

@@ -4,7 +4,7 @@
 #
 # Версию просим не «из меню О программе», а хешем исходников: сборок с одним и
 # тем же номером коммита выходило по девять штук за день, и по номеру нельзя
-# отличить вчерашнюю от сегодняшней. `OrakulSourceHash` считается по содержимому
+# отличить вчерашнюю от сегодняшней. `CruxwingSourceHash` считается по содержимому
 # `Sources/MeetGPT` и различает их.
 name: Ошибка
 description: Что-то работает не так, как написано
@@ -32,7 +32,7 @@ body:
       label: Как повторить
       description: По шагам. Если повторяется не всегда — так и напишите, это тоже важно.
       placeholder: |
-        1. Открыть orakul, дойти до проверки захвата
+        1. Открыть cruxwing, дойти до проверки захвата
         2. Включить видео на YouTube
         3. Нажать «Проверить»
     validations:
@@ -43,10 +43,10 @@ body:
     attributes:
       label: Версия
       description: >
-        `OrakulSourceHash` и `OrakulCommit` из
-        `orakul.app/Contents/Info.plist`. Одной командой:
-        `defaults read /Applications/orakul.app/Contents/Info.plist | grep Orakul`
-      placeholder: "OrakulSourceHash = c8d17edbe3f4, OrakulCommit = 04bf887"
+        `CruxwingSourceHash` и `CruxwingCommit` из
+        `cruxwing.app/Contents/Info.plist`. Одной командой:
+        `defaults read /Applications/cruxwing.app/Contents/Info.plist | grep Cruxwing`
+      placeholder: "CruxwingSourceHash = c8d17edbe3f4, CruxwingCommit = 04bf887"
     validations:
       required: true
 
@@ -76,4 +76,4 @@ body:
         Полный путь. macOS привязывает разрешения к месту программы на диске, и
         запуск из «Загрузок» или прямо из образа — отдельная причина половины
         сообщений про разрешения.
-      placeholder: "/Applications/orakul.app"
+      placeholder: "/Applications/cruxwing.app"

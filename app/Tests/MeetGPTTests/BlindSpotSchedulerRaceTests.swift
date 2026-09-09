@@ -400,7 +400,7 @@ struct BlindSpotSchedulerRaceTests {
         }
     }
 
-    @Test("a direct-provider 429 stays provider-owned and does not latch Orakul credits")
+    @Test("a direct-provider 429 stays provider-owned and does not latch Cruxwing credits")
     func directQuotaStaysProviderOwned() async {
         // Общие настройки — один комплект на процесс, а наборы идут
         // параллельно. `.serialized` упорядочивает тесты внутри набора и

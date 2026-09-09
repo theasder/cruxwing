@@ -66,7 +66,7 @@ enum TaskWriteback {
         }
         if let check = item.doneCheck, !check.isEmpty { lines.append("Done when: \(check)") }
         if let ref = item.sourceRef, !ref.isEmpty { lines.append("Source: \(ref)") }
-        lines.append("Created from a call in orakul.")
+        lines.append("Created from a call in cruxwing.")
         return lines.joined(separator: "\n")
     }
 

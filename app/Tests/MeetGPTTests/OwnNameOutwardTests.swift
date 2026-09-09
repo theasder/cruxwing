@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import MeetGPT
 
-/// Чужим сервисам orakul представляется собой.
+/// Чужим сервисам cruxwing представляется собой.
 ///
 /// Имя клиента уходит по сети: сервер MCP видит его при подключении, владелец
 /// сервера — при выдаче доступа, и дальше оно остаётся в чужом списке
@@ -21,9 +21,9 @@ struct OwnNameOutwardTests {
             .appendingPathComponent("Sources/MeetGPT", isDirectory: true)
     }
 
-    @Test("клиент MCP называет себя orakul")
+    @Test("клиент MCP называет себя cruxwing")
     func clientNameIsOurs() {
-        #expect(MCPConnectionManager.mcpClientName == "orakul")
+        #expect(MCPConnectionManager.mcpClientName == "cruxwing")
     }
 
     @Test("версия берётся у пакета, а не пишется числом")
@@ -52,20 +52,41 @@ struct OwnNameOutwardTests {
             // комментарий.
             let parts: [String] = code.components(separatedBy: "\"")
             let literals = parts.enumerated().filter { $0.offset % 2 == 1 }.map { $0.element }
-            let offenders = literals.filter { $0.lowercased().contains("cruxwing") }
+            // Same reversal as ProductNameTests: our name is Cruxwing now, and
+            // the names that must not travel outward are the commercial ones.
+            let offenders = literals.filter {
+                // Interpolations carry property names — `\(state.wheesprEmail)`
+                // is not a name that travels anywhere a person can see.
+                let text = $0
+                    .replacingOccurrences(
+                        of: #"\\\([^)]*\)"#, with: "", options: .regularExpression)
+                    .replacingOccurrences(
+                        of: #"\\\(.*$"#, with: "", options: .regularExpression)
+                    .lowercased()
+                // A product name in prose is not glued to more letters.
+                // `wheesprEmail` is a property this file legitimately reads;
+                // "Wheespr" as a word is the thing that must not travel out.
+                // The naive quote-split above can sweep whole code blocks in
+                // when a literal contains an escaped quote, so without this the
+                // check reports identifiers rather than copy.
+                return ["meetgpt", "wheespr"].contains { name in
+                    text.range(of: name + "(?![a-z0-9])",
+                               options: [.regularExpression]) != nil
+                }
+            }
             #expect(offenders.isEmpty,
                     "\(relative) называет чужой продукт в строке: \(offenders)")
         }
     }
 
-    @Test("каждый HTTP-клиент использует сетевое имя orakul")
+    @Test("каждый HTTP-клиент использует сетевое имя cruxwing")
     func everyHTTPClientUsesOurNetworkIdentity() throws {
-        let header = OrakulNetworkIdentity.shared.configuration
+        let header = CruxwingNetworkIdentity.shared.configuration
             .httpAdditionalHeaders?["User-Agent"] as? String
-        #expect(header == OrakulNetworkIdentity.userAgent)
-        #expect(header?.hasPrefix("orakul/") == true)
+        #expect(header == CruxwingNetworkIdentity.userAgent)
+        #expect(header?.hasPrefix("cruxwing/") == true)
         #expect(header?.localizedCaseInsensitiveContains("MeetGPT") == false)
-        #expect(header?.localizedCaseInsensitiveContains("Cruxwing") == false)
+        #expect(header?.localizedCaseInsensitiveContains("Wheespr") == false)
         #expect(header?.contains("CFNetwork") == false)
         #expect(header?.contains("Darwin") == false)
 
@@ -83,7 +104,7 @@ struct OwnNameOutwardTests {
             let source = try String(contentsOf: url, encoding: .utf8)
             guard source.contains("URLSession") else { continue }
             filesUsingURLSession += 1
-            guard url.lastPathComponent != "OrakulNetworkIdentity.swift" else { continue }
+            guard url.lastPathComponent != "CruxwingNetworkIdentity.swift" else { continue }
 
             let executableLines = source
                 .split(separator: "\n", omittingEmptySubsequences: false)
@@ -101,7 +122,7 @@ struct OwnNameOutwardTests {
         #expect(filesUsingURLSession >= 20,
                 "нашлось только \(filesUsingURLSession) сетевых файлов — проверка стала пустой")
         #expect(bypasses.isEmpty,
-                "эти файлы обходят OrakulNetworkIdentity и отдают системе имя MeetGPT: \(bypasses)")
+                "эти файлы обходят CruxwingNetworkIdentity и отдают системе имя MeetGPT: \(bypasses)")
     }
 
     @Test("название задачи в чужом трекере — по-русски и своё")
@@ -111,7 +132,7 @@ struct OwnNameOutwardTests {
             of: "Tests/MeetGPTTests/OwnNameOutwardTests.swift",
             with: "Sources/MeetGPT/AppState.swift")
         let code = (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
-        #expect(code.contains("\"From a call in orakul\""),
+        #expect(code.contains("\"From a call in cruxwing\""),
                 "запасное название задачи снова не наше или не по-русски")
     }
 }

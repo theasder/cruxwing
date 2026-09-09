@@ -24,7 +24,7 @@ final class MCPKeychainTokenStorage: TokenStorage, @unchecked Sendable {
         self.defersStoreAccess = defersStoreAccess
         self.cachedToken = initialTokenData.flatMap(Self.decodeToken)
         self.persistenceQueue = DispatchQueue(
-            label: "ai.orakul.desktop.mcp-token.\(serverID)", qos: .utility)
+            label: "ai.cruxwing.desktop.mcp-token.\(serverID)", qos: .utility)
     }
 
     private static func account(for serverID: String) -> String { "mcp.token.\(serverID)" }

@@ -109,7 +109,7 @@ struct BrainstormSection: View {
                         .lineLimit(1)
                     Button("clear it") { state.clearProposedGoal() }
                         .buttonStyle(QuietButtonStyle(prominent: true))
-                        .help("Remove the suggested goal — orakul will propose another")
+                        .help("Remove the suggested goal — cruxwing will propose another")
                     Spacer(minLength: 0)
                 }
             }
@@ -186,7 +186,7 @@ struct BrainstormSection: View {
                     } else {
                         Text(Config.managedUsageLimitsEnabled
                              ? "applications: \(mcp.researchableServers.count) · passes left: \(state.groundedCyclesRemaining)"
-                             : "applications: \(mcp.researchableServers.count) · no Orakul limit")
+                             : "applications: \(mcp.researchableServers.count) · no Cruxwing limit")
                             .font(Typo.caption)
                             .foregroundStyle(Theme.inkTertiary)
                     }
@@ -412,7 +412,7 @@ private struct RecordingContextChip: View {
 /// theme's expertise on top of the base instructions and the button's skill.
 /// The estimated input from sending everything, shown before the send.
 ///
-/// The input size is visible before the request, not discovered after. Orakul
+/// The input size is visible before the request, not discovered after. Cruxwing
 /// cannot quote one synthetic price across providers the user pays directly.
 ///
 /// Hidden entirely when the current model cannot do it. An always-visible

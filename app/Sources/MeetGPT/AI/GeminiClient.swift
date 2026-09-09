@@ -9,7 +9,7 @@ final class GeminiClient {
     /// Injected for the same reason as `AnthropicClient`: reading `Config` inline
     /// tied the SSE parser tests to the developer's `mac/.env`, so emptying the
     /// provider keys for the keyless build failed tests that never touched a key.
-    init(session: URLSession = OrakulNetworkIdentity.shared,
+    init(session: URLSession = CruxwingNetworkIdentity.shared,
          keyProvider: @escaping () -> String = { Config.googleAIAPIKey }) {
         self.session = session
         self.keyProvider = keyProvider

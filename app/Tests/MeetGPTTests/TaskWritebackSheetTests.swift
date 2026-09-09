@@ -34,7 +34,7 @@ struct TaskWritebackSheetTests {
         }
         // И то, что раньше уезжало, не показавшись.
         #expect(throws: Never.self) {
-            try sut.find(textWhere: { s, _ in s.contains("Created from a call in orakul") })
+            try sut.find(textWhere: { s, _ in s.contains("Created from a call in cruxwing") })
         }
         // No connected tracker → the connect hint, not a filed state.
         #expect(throws: Never.self) {

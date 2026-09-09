@@ -1,0 +1,930 @@
+import Foundation
+import Testing
+@testable import CruxwingCore
+
+/// Командная строка — первое, что человек трогает руками, и единственное, что
+/// он видит, когда что-то пошло не так. Сообщение об ошибке здесь такая же
+/// часть продукта, как поиск.
+@Suite("Командная строка")
+struct CommandLineAppTests {
+
+    // MARK: - «Файл пустой», когда он не пустой
+
+    @Test("файл из одних отметок времени не называется пустым")
+    func fileWithOnlyTimestampsIsNotCalledEmpty() {
+        // Экспорт субтитров без реплик — 69 байт разметки и ни одного слова.
+        // Текст исчезает при чистке, и человек получал «Файл пустой —
+        // сохранять нечего». Он открывает файл, видит там содержимое и не
+        // понимает, кому верить.
+        //
+        // Тот же класс, что записан в плане: уверенная фраза об операции,
+        // которой не было. Файл прочитан, он не пуст; пустым он стал у нас.
+        let vtt = """
+        WEBVTT
+
+        00:00:00.000 --> 00:00:04.320
+
+        00:00:04.320 --> 00:00:09.100
+        """
+        let (app, _) = makeApp(files: ["с.vtt": vtt])
+        let result = app.run(["добавить", "с.vtt", "Планёрка"])
+
+        #expect(!result.output.contains("Файл пустой"),
+                "непустой файл назван пустым: «\(result.output)»")
+        #expect(result.output.contains("no speech in it") || result.output.contains("with text"),
+                "не сказано, чего в файле не нашлось: «\(result.output)»")
+        #expect(result.exitCode != 0, "нечего сохранять — это отказ")
+    }
+
+    @Test("по-настоящему пустой файл так и называется")
+    func genuinelyEmptyFileKeepsItsMessage() {
+        // Граница: когда файл действительно пуст, прежняя фраза верна и
+        // должна остаться — она короче и понятнее.
+        let (app, _) = makeApp(files: ["п.txt": "   \n\n  "])
+        let result = app.run(["добавить", "п.txt", "Планёрка"])
+        #expect(result.output.contains("empty"), "получилось: «\(result.output)»")
+        #expect(result.exitCode != 0)
+    }
+
+    // MARK: - Название встречи
+
+    @Test("перевод строки в названии не ломает список")
+    func newlineInTitleDoesNotBreakTheList() {
+        // `cruxwing список` — построчный вывод: дата, идентификатор, название.
+        // Название приходит от человека как есть, и перевод строки в нём
+        // разрывает запись надвое. Вторая половина выглядит как ЕЩЁ ОДНА
+        // встреча — без даты и идентификатора, но отличить её нельзя ни
+        // глазом, ни скриптом, а список зовут разбирать: архив у нас открытый.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли."])
+        _ = app.run(["добавить", "з.txt", "Первая строка\nВторая строка"])
+
+        let listing = app.run(["список"]).output
+        let rows = listing.split(separator: "\n").filter { !$0.isEmpty }
+        #expect(rows.count == 1, "одна встреча заняла \(rows.count) строк: «\(listing)»")
+        #expect(listing.contains("Первая строка"), "название потерялось")
+        #expect(listing.contains("Вторая строка"), "часть названия выброшена")
+    }
+
+    @Test("очень длинное название не затапливает строку")
+    func veryLongTitleIsShortened() {
+        // Скрипт, берущий первую строку расшифровки как название, легко
+        // принесёт триста символов. Столбцы после этого не столбцы.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли."])
+        _ = app.run(["добавить", "з.txt", String(repeating: "О", count: 300)])
+
+        let listing = app.run(["список"]).output
+        let longest = listing.split(separator: "\n").map(\.count).max() ?? 0
+        #expect(longest < 200, "строка списка длиной \(longest) символов")
+        #expect(listing.contains("…"), "обрезка не показана — текст пропал молча")
+    }
+
+    @Test("обычное название не трогаем")
+    func ordinaryTitleIsUntouched() {
+        // Граница: чистка не должна менять то, что человек написал.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли."])
+        _ = app.run(["добавить", "з.txt", "Планёрка по тарифам"])
+        #expect(app.run(["список"]).output.contains("Планёрка по тарифам"),
+                "обычное название испорчено")
+    }
+
+    // MARK: - Повторное добавление
+
+    @Test("та же расшифровка второй раз не заводит вторую встречу")
+    func addingTheSameTranscriptTwiceIsNoticed() {
+        // Повторить `добавить` на том же файле — дело одной стрелки вверх, а
+        // ещё это делают скрипты при повторном импорте. Дубли не безобидны:
+        // ответ показывает не больше трёх встреч, поэтому три копии одного
+        // звонка занимают ВСЕ три места. Человек с полусотней разных звонков
+        // видит один и тот же трижды и больше ничего.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли на пятнадцать процентов."])
+        let first = app.run(["добавить", "з.txt", "Планёрка"])
+        #expect(first.output.contains("Added"))
+
+        let second = app.run(["добавить", "з.txt", "Планёрка"])
+        #expect(!second.output.contains("Added"),
+                "вторая копия завелась молча: «\(second.output)»")
+        #expect(second.output.contains("already here"),
+                "не сказано, что такая расшифровка уже в архиве: «\(second.output)»")
+        // Уже лежит в архиве — это и есть то, чего человек хотел, не сбой.
+        #expect(second.exitCode == 0, "повтор объявлен ошибкой")
+
+        #expect(app.run(["список"]).output
+            .components(separatedBy: "Планёрка").count - 1 == 1,
+                "в архиве больше одной копии")
+    }
+
+    @Test("ответ не занимают копии одного звонка")
+    func duplicatesDoNotCrowdOutTheAnswer() {
+        // То, ради чего всё это: три места в ответе должны достаться трём
+        // РАЗНЫМ звонкам.
+        let (app, _) = makeApp(files: [
+            "1.txt": "Аня: По тарифам подняли на пятнадцать процентов.",
+            "2.txt": "Борис: По тарифам решили не трогать годовой.",
+        ])
+        _ = app.run(["добавить", "1.txt", "Первая"])
+        _ = app.run(["добавить", "1.txt", "Повтор"])
+        _ = app.run(["добавить", "2.txt", "Вторая"])
+
+        let found = app.run(["найти", "что", "решили", "по", "тарифам"]).output
+        #expect(found.contains("Первая") && found.contains("Вторая"),
+                "разные звонки не попали в ответ: «\(found)»")
+        #expect(!found.contains("Повтор"), "копия заняла место в ответе")
+    }
+
+    @Test("после удаления ту же расшифровку можно добавить снова")
+    func deletingFreesTheTranscript() throws {
+        // Обычный способ исправить неудачное название: удалить и добавить
+        // заново. Проверка на дубль не должна этому мешать — иначе она чинит
+        // одно и ломает другое, а человек остаётся без звонка вовсе.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли на пятнадцать."])
+        let added = app.run(["добавить", "з.txt", "Опечатка в названии"])
+        let id = try #require(added.output.split(separator: "(").last?.dropLast(),
+                              "не разобрать идентификатор")
+        #expect(app.run(["удалить", String(id)]).exitCode == 0)
+
+        let again = app.run(["добавить", "з.txt", "Планёрка по тарифам"])
+        #expect(again.output.contains("Added"),
+                "после удаления добавить не дали: «\(again.output)»")
+        #expect(app.run(["найти", "что", "решили", "по", "тарифам"]).output
+            .contains("Планёрка по тарифам"), "звонок не ищется после повторного добавления")
+    }
+
+    @Test("другой текст с тем же названием добавляется")
+    func sameTitleDifferentTextStillAdds() {
+        // Граница: одинаковое НАЗВАНИЕ — обычное дело, планёрки называют
+        // одинаково каждую неделю. Отказ должен смотреть на текст.
+        let (app, _) = makeApp(files: [
+            "1.txt": "Аня: На этой неделе подняли лимиты.",
+            "2.txt": "Аня: На следующей неделе выкатываем биллинг.",
+        ])
+        _ = app.run(["добавить", "1.txt", "Планёрка"])
+        let second = app.run(["добавить", "2.txt", "Планёрка"])
+        #expect(second.output.contains("Added"),
+                "разные расшифровки под одним названием не добавились: «\(second.output)»")
+    }
+
+    // MARK: - Кодировка расшифровки
+
+    @Test("расшифровка в Windows-1251 читается, а не отвергается")
+    func cp1251TranscriptIsRead() throws {
+        // Продукт делается для русской команды, а в русском обиходе полно
+        // файлов в CP1251: выгрузка из старого инструмента, текст, сохранённый
+        // коллегой на Windows. `String(contentsOfFile:encoding: .utf8)` на
+        // таком файле возвращает nil, и человек получал «Не смог прочитать
+        // файл: <путь>» — сообщение, отправляющее проверять путь и права,
+        // тогда как файл на месте и прекрасно читается.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-enc-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let path = root.appendingPathComponent("cp1251.txt")
+        let text = "Аня: По тарифам решили поднять месячный на пятнадцать процентов."
+        // Своей таблицей, а не системной: на Linux `.windowsCP1251` возвращает
+        // nil, и проверка падала на подготовке файла, ничего не сказав о том,
+        // читает ли его продукт. Совпадение таблиц — `CP1251EquivalenceTests`.
+        let data = try #require(CP1251.encode(text), "нет кодировки CP1251")
+        try data.write(to: path)
+
+        let store = SessionStore(root: root.appendingPathComponent("архив", isDirectory: true))
+        let app = CommandLineApp(store: store, today: { "2026-07-24" },
+                                 makeIdentifier: { "1" })
+        let added = app.run(["добавить", path.path, "Планёрка"])
+        #expect(added.exitCode == 0, "CP1251 не прочитался: «\(added.output)»")
+
+        // И текст должен быть текстом, а не мусором из перепутанных байтов.
+        let found = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(found.output.contains("пятнадцать процентов"),
+                "текст расшифровки испорчен: «\(found.output)»")
+    }
+
+    @Test("расшифровка в UTF-16 тоже читается")
+    func utf16TranscriptIsRead() throws {
+        // «Юникод» в блокноте Windows — это UTF-16 с меткой порядка байтов.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-enc-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let path = root.appendingPathComponent("utf16.txt")
+        let text = "Борис: Годовой тариф не трогаем до декабря."
+        try #require(text.data(using: .utf16)).write(to: path)
+
+        let store = SessionStore(root: root.appendingPathComponent("архив", isDirectory: true))
+        let app = CommandLineApp(store: store, today: { "2026-07-24" },
+                                 makeIdentifier: { "1" })
+        let added = app.run(["добавить", path.path, "Планёрка"])
+        #expect(added.exitCode == 0, "UTF-16 не прочитался: «\(added.output)»")
+        #expect(app.run(["найти", "годовой", "тариф"]).output.contains("до декабря"),
+                "текст UTF-16 испорчен")
+    }
+
+    @Test("картинка по-прежнему отвергается")
+    func binaryFileIsStillRefused() throws {
+        // Граница, без которой запасная кодировка опасна.
+        //
+        // Байты взяты не случайные, а заголовок PNG: измерено, что Foundation
+        // ОТКАЗЫВАЕТСЯ читать в CP1251 набор из всех 256 байт (там есть
+        // неопределённый байт), и проверка на таком файле прошла бы сама
+        // собой, ничего не проверив. А вот заголовок PNG в CP1251 читается
+        // прекрасно — и даёт тридцать управляющих символов. Настоящий русский
+        // текст в той же кодировке даёт ноль. Это и отличает их.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-enc-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let path = root.appendingPathComponent("картинка.png")
+        try Data([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+                 + (0..<40).map { UInt8($0) }).write(to: path)
+
+        let store = SessionStore(root: root.appendingPathComponent("архив", isDirectory: true))
+        let app = CommandLineApp(store: store, today: { "2026-07-24" },
+                                 makeIdentifier: { "1" })
+        let added = app.run(["добавить", path.path, "Планёрка"])
+        #expect(added.exitCode != 0, "двоичный файл уехал в архив: «\(added.output)»")
+    }
+
+    // MARK: - Нечитаемые файлы архива
+
+    @Test("поиск признаётся, что часть архива не прочиталась")
+    func searchAdmitsUnreadableFiles() throws {
+        // Страница зовёт открывать архив: «обычные JSON-файлы, их можно читать
+        // и без нас». Раз зовёт — файл рано или поздно окажется испорченным:
+        // недописанным при сбое, перекодированным редактором, недосинхро-
+        // низированным. `cruxwing список` про такой файл говорит. `cruxwing найти`
+        // молчал и отвечал «в сохранённых звонках об этом не говорили» —
+        // уверенный отказ поверх архива, часть которого он не открыл.
+        //
+        // Для продукта, у которого честность ответа и есть продукт, это хуже
+        // пустого результата: человек уходит уверенным, что не обсуждали.
+        let (app, store) = makeApp(files: ["з.txt": "Аня: Обсудили дизайн главной."])
+        _ = app.run(["добавить", "з.txt", "Планёрка по дизайну"])
+
+        // Второй файл — «испорченный вручную».
+        let broken = store.root.appendingPathComponent("сломанный.json")
+        try Data("{\"id\": \"x\", \"tit".utf8).write(to: broken)
+
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(result.output.contains("сломанный.json"),
+                "не назван файл, который не прочитался: «\(result.output)»")
+        #expect(result.output.lowercased().contains("could not read")
+                || result.output.lowercased().contains("could not read"),
+                "не сказано, что часть архива не открылась: «\(result.output)»")
+    }
+
+    @Test("находки при этом остаются находками")
+    func unreadableFileDoesNotHideTheHits() throws {
+        // Предупреждение не должно подменять ответ: то, что прочиталось,
+        // человек обязан получить.
+        let (app, store) = makeApp(files: ["з.txt": "Аня: По тарифам подняли на пятнадцать процентов."])
+        _ = app.run(["добавить", "з.txt", "Планёрка по тарифам"])
+        let broken = store.root.appendingPathComponent("сломанный.json")
+        try Data("{".utf8).write(to: broken)
+
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(result.output.contains("Планёрка по тарифам"), "находка потерялась")
+        #expect(result.output.contains("сломанный.json"), "предупреждение пропало")
+    }
+
+    @Test("на целом архиве поиск не жалуется")
+    func cleanArchiveStaysQuiet() {
+        // Граница: предупреждение, которое печатается всегда, перестают читать
+        // за день. У целого архива вывод обязан остаться прежним.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: По тарифам подняли на пятнадцать."])
+        _ = app.run(["добавить", "з.txt", "Планёрка"])
+
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(!result.output.lowercased().contains("could not read"),
+                "жалуется на целом архиве: «\(result.output)»")
+    }
+
+    @Test("посторонний файл в папке архива — не поломка")
+    func foreignFileIsNotAFailure() throws {
+        // В папке архива живут и чужие файлы — заметка, .DS_Store. Они не наши,
+        // и объявлять их непрочитанными значит пугать на ровном месте.
+        let (app, store) = makeApp(files: ["з.txt": "Аня: По тарифам подняли."])
+        _ = app.run(["добавить", "з.txt", "Планёрка"])
+        try Data("заметка".utf8).write(to: store.root.appendingPathComponent("заметки.txt"))
+
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(!result.output.contains("заметки.txt"), "чужой файл выдан за поломку")
+    }
+
+    // MARK: - Первые пять минут
+
+    @Test("удаление несуществующего не выдаётся за успех")
+    func deletingWhatIsNotThereFails() throws {
+        // Было: «Deleted: нет-такого» и код возврата ноль. То есть команда
+        // сообщала об удалении записи, которой никогда не было, — и `cruxwing
+        // удалить $id && дальше` продолжал работу по опечатке в
+        // идентификаторе. Хранилище молча пропускает отсутствующий файл, а
+        // команда трактовала отсутствие ошибки как выполненную работу.
+        let (app, _) = makeApp()
+        let result = app.run(["удалить", "нет-такого-идентификатора"])
+
+        #expect(result.exitCode != 0, "удаление пустоты вернуло успех")
+        #expect(!result.output.contains("Deleted"),
+                "сказано «удалено» про то, чего не было: «\(result.output)»")
+        #expect(result.output.contains("нет-такого-идентификатора"),
+                "не названо, что именно не нашлось")
+    }
+
+    @Test("удаление существующего по-прежнему успех")
+    func deletingWhatIsThereSucceeds() throws {
+        // Обратная сторона: если ужесточить проверку неаккуратно, перестанет
+        // работать обычное удаление.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: Решили поднять лимиты."])
+        let added = app.run(["добавить", "з.txt", "Планёрка"])
+        let id = try #require(added.output.split(separator: "(").last?.dropLast(),
+                              "не разобрать идентификатор из «\(added.output)»")
+
+        let result = app.run(["удалить", String(id)])
+        #expect(result.exitCode == 0, "обычное удаление сломалось: «\(result.output)»")
+        #expect(result.output.contains("Deleted"))
+    }
+
+    @Test("пустой архив не выдаётся за архив без совпадений")
+    func emptyArchiveSaysSo() {
+        // «В сохранённых звонках об этом не говорили» — правда, когда звонки
+        // есть. На пустом архиве это утверждение о несуществующих записях, и
+        // первым, кто его читает, оказывается человек, запустивший `найти`
+        // раньше `добавить`. `список` эту разницу уже проводит.
+        let (app, _) = makeApp()
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+
+        #expect(result.output.contains("empty"),
+                "на пустом архиве ответ про несуществующие звонки: «\(result.output)»")
+        #expect(result.output.contains("add"),
+                "не сказано, что делать дальше: «\(result.output)»")
+        #expect(result.exitCode == 0, "пустой архив — не сбой")
+    }
+
+    @Test("архив не пуст, но совпадений нет — прежний ответ")
+    func nonEmptyArchiveKeepsTheHonestAnswer() {
+        // Именно тот случай, ради которого фраза и написана: звонки есть,
+        // просто про это не говорили. Придумывать ответ по-прежнему нельзя.
+        let (app, _) = makeApp(files: ["з.txt": "Аня: Обсудили дизайн главной."])
+        _ = app.run(["добавить", "з.txt", "Планёрка по дизайну"])
+
+        let result = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(result.output.contains("did not discuss"),
+                "потеряли честный ответ при непустом архиве: «\(result.output)»")
+        #expect(!result.output.contains("empty"), "непустой архив назван пустым")
+    }
+
+    private struct StubEngine: Transcriber {
+        let text: String
+        func transcribe(samples: [Float]) async throws -> String { text }
+    }
+
+    private func makeApp(files: [String: String] = [:],
+                         audio: [String: Data] = [:],
+                         engine: String? = nil,
+                         recognised: String = "Решили выкатить в прод.")
+        -> (app: CommandLineApp, store: SessionStore) {
+        let store = SessionStore(root: FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-cli-\(UUID().uuidString)", isDirectory: true))
+        let counter = Numbers()
+        let app = CommandLineApp(
+            store: store,
+            today: { "2026-07-24" },
+            makeIdentifier: { counter.next() },
+            readFile: { files[$0] },
+            readAudio: { audio[$0] },
+            engineCommand: engine,
+            transcriberFactory: { _ in StubEngine(text: recognised) })
+        return (app, store)
+    }
+
+    private func cleanUp(_ store: SessionStore) {
+        try? FileManager.default.removeItem(at: store.root)
+    }
+
+    @Test("без аргументов показывает, что умеет, и это не ошибка")
+    func usageIsNotAnError() {
+        let (app, store) = makeApp()
+        defer { cleanUp(store) }
+
+        let result = app.run([])
+        #expect(result.exitCode == 0, "человек, спросивший «что ты умеешь», не ошибся")
+        #expect(result.output.contains("cruxwing search"))
+    }
+
+    @Test("незнакомая команда не молчит и показывает список команд")
+    func unknownCommandExplains() {
+        let (app, store) = makeApp()
+        defer { cleanUp(store) }
+
+        let result = app.run(["всё-сломать"])
+        #expect(result.exitCode == 2)
+        #expect(result.output.contains("Unknown command"))
+        #expect(result.output.contains("cruxwing search"), "рядом с отказом обязан быть список команд")
+    }
+
+    @Test("добавить и найти — весь путь за две команды")
+    func addThenSearch() {
+        let (app, store) = makeApp(files: [
+            "planerka.txt": "Решили перейти на оплату за использование.",
+        ])
+        defer { cleanUp(store) }
+
+        let added = app.run(["добавить", "planerka.txt", "Планёрка по тарифам"])
+        #expect(added.exitCode == 0)
+        #expect(added.output.contains("Планёрка по тарифам"))
+
+        let found = app.run(["найти", "что", "решили", "по", "тарифам"])
+        #expect(found.exitCode == 0)
+        #expect(found.output.contains("«Планёрка по тарифам», 24 July 2026"))
+        #expect(found.output.contains("оплату за использование"))
+    }
+
+    @Test("английские команды тоже работают")
+    func englishAliases() {
+        let (app, store) = makeApp(files: ["a.txt": "Решили выкатить релиз."])
+        defer { cleanUp(store) }
+
+        #expect(app.run(["add", "a.txt", "Созвон"]).exitCode == 0)
+        #expect(app.run(["list"]).output.contains("Созвон"))
+        #expect(app.run(["search", "релиз"]).output.contains("релиз"))
+    }
+
+    @Test("словарь применяется при добавлении, а не при показе")
+    func lexiconRunsOnAdd() {
+        let (app, store) = makeApp(files: ["a.txt": "Выкатили в prod и дёрнули api."])
+        defer { cleanUp(store) }
+
+        _ = app.run(["добавить", "a.txt", "Созвон"])
+        let saved = store.load().sessions.first
+        #expect(saved?.digest.contains("прод") == true)
+        #expect(saved?.digest.contains("API") == true)
+    }
+
+    @Test("без названия берётся имя файла, а не «Созвон» на весь список")
+    func titleFallsBackToFilename() {
+        let (app, store) = makeApp(files: ["/tmp/планёрка-по-тарифам.txt": "Решили."])
+        defer { cleanUp(store) }
+
+        _ = app.run(["добавить", "/tmp/планёрка-по-тарифам.txt"])
+        #expect(store.load().sessions.first?.title == "планёрка-по-тарифам")
+    }
+
+    @Test("нечитаемый файл объясняется, а не роняет команду молча")
+    func missingFileIsExplained() {
+        let (app, store) = makeApp()
+        defer { cleanUp(store) }
+
+        let result = app.run(["добавить", "нет-такого.txt"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("нет-такого.txt"), "в сообщении обязан быть путь")
+        #expect(store.load().sessions.isEmpty)
+    }
+
+    @Test("пустой файл не создаёт пустую встречу")
+    func emptyFileSavesNothing() {
+        let (app, store) = makeApp(files: ["пусто.txt": "   \n  "])
+        defer { cleanUp(store) }
+
+        #expect(app.run(["добавить", "пусто.txt"]).exitCode == 1)
+        #expect(store.load().sessions.isEmpty)
+    }
+
+    @Test("ничего не найдено — это ответ, а не сбой")
+    func nothingFoundIsSuccess() {
+        let (app, store) = makeApp(files: ["a.txt": "Решили выкатить релиз."])
+        defer { cleanUp(store) }
+        _ = app.run(["добавить", "a.txt", "Созвон"])
+
+        let result = app.run(["найти", "когда", "корпоратив"])
+        // Нулевой код возврата важен: иначе скрипт, вызвавший cruxwing, решит,
+        // что программа сломалась, хотя она честно ответила «не знаю».
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains("will not invent"))
+    }
+
+    @Test("вопрос без слов отклоняется с подсказкой")
+    func emptyQueryIsRejected() {
+        let (app, store) = makeApp()
+        defer { cleanUp(store) }
+
+        let result = app.run(["найти"])
+        #expect(result.exitCode == 2)
+        #expect(result.output.contains("A question is required"))
+    }
+
+    @Test("пустой архив предлагает следующий шаг, а не пустую строку")
+    func emptyArchiveSuggestsWhatToDo() {
+        let (app, store) = makeApp()
+        defer { cleanUp(store) }
+
+        let result = app.run(["список"])
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains("The archive is empty"))
+        #expect(result.output.contains("add"))
+    }
+
+    @Test("непрочитанные файлы видны в списке")
+    func skippedFilesAreVisible() throws {
+        let (app, store) = makeApp(files: ["a.txt": "Решили."])
+        defer { cleanUp(store) }
+        _ = app.run(["добавить", "a.txt", "Созвон"])
+        try Data("{ битый".utf8).write(to: store.root.appendingPathComponent("bad.json"))
+
+        let result = app.run(["список"])
+        #expect(result.output.contains("Could not read"))
+        #expect(result.output.contains("bad.json"), "тихо потерянная встреча — худший исход")
+    }
+
+    @Test("запись расшифровывается и попадает в архив одной командой")
+    func transcribeEndToEnd() {
+        let wav = WAVFile.encode(samples: [0.1, -0.1, 0.2])
+        let (app, store) = makeApp(audio: ["созвон.wav": wav],
+                                   engine: "whisper -f {file}",
+                                   recognised: "Решили выкатить в prod.")
+        defer { cleanUp(store) }
+
+        let result = app.run(["расшифровать", "созвон.wav", "Планёрка"])
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains("Transcribed"))
+
+        // И сразу ищется — вся цепочка целиком, включая словарь.
+        let found = app.run(["найти", "что решили про прод"])
+        #expect(found.output.contains("Планёрка"))
+        #expect(store.load().sessions.first?.digest.contains("прод") == true)
+    }
+
+    @Test("без настроенного движка команда объясняет, как его задать")
+    func missingEngineExplainsItself() {
+        let (app, store) = makeApp(audio: ["a.wav": WAVFile.encode(samples: [0.1])],
+                                   engine: nil)
+        defer { cleanUp(store) }
+
+        let result = app.run(["расшифровать", "a.wav"])
+        #expect(result.exitCode == 2)
+        #expect(result.output.contains("CRUXWING_ENGINE"), "нужна готовая строка настройки")
+        #expect(store.load().sessions.isEmpty)
+    }
+
+    @Test("чужая частота записи объясняется вместе с командой конвертации")
+    func wrongSampleRateIsActionable() {
+        let wav = WAVFile.encode(samples: [0.1], sampleRate: 44_100)
+        let (app, store) = makeApp(audio: ["a.wav": wav], engine: "whisper -f {file}")
+        defer { cleanUp(store) }
+
+        let result = app.run(["расшифровать", "a.wav"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("44100"), "человек должен узнать частоту своего файла")
+        #expect(result.output.contains("ffmpeg"), "к отказу нужна команда, которой это чинится")
+    }
+
+    @Test("не-WAV не уходит движку впустую")
+    func nonWavIsRejectedBeforeTheEngine() {
+        let (app, store) = makeApp(audio: ["a.wav": Data("не запись".utf8)],
+                                   engine: "whisper -f {file}")
+        defer { cleanUp(store) }
+
+        let result = app.run(["расшифровать", "a.wav"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("PCM"))
+    }
+
+    @Test("удаление убирает встречу и не трогает соседние")
+    func deleteRemovesOne() throws {
+        let (app, store) = makeApp(files: ["a.txt": "Решили.", "b.txt": "Тоже решили."])
+        defer { cleanUp(store) }
+
+        _ = app.run(["добавить", "a.txt", "Первый"])
+        _ = app.run(["добавить", "b.txt", "Второй"])
+        let id = try #require(store.load().sessions.first?.id)
+
+        #expect(app.run(["удалить", id]).exitCode == 0)
+        #expect(store.load().sessions.count == 1)
+        #expect(app.run(["удалить"]).exitCode == 2)
+    }
+}
+
+/// Счётчик под замком: генератор идентификаторов помечен `Sendable`, а захват
+/// изменяемой переменной из такого замыкания — гонка, а не мелочь.
+private final class Numbers: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    func next() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        value += 1
+        return "s\(value)"
+    }
+}
+
+@Suite("Слово продукта одно на всех поверхностях")
+struct ProductVocabularyTests {
+    /// Страница проверяет это про себя с самого начала: продукт говорит
+    /// «звонок». В командной строке при этом стояло «поиск по своим
+    /// созвонам» — первая строка, которую видит каждый, кто запустил `cruxwing`,
+    /// и единственное место, где слово расходилось.
+    ///
+    /// Проверяется текст для человека, а не комментарии: в исходниках ядра
+    /// «созвон» встречается три десятка раз, и это нормально — читают их
+    /// разработчики, а не пользователи.
+    @Test("в текстах командной строки нет «созвон»")
+    func commandLineSpeaksTheProductWord() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Sources/CruxwingCore")
+        let manager = FileManager.default
+        let walker = try #require(manager.enumerator(atPath: root.path))
+
+        var offenders: [String] = []
+        var scanned = 0
+        for case let path as String in walker where path.hasSuffix(".swift") {
+            let text = try String(contentsOf: root.appendingPathComponent(path), encoding: .utf8)
+            scanned += 1
+            for line in text.split(separator: "\n", omittingEmptySubsequences: false) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard !trimmed.hasPrefix("//") else { continue }
+                // Кавычка как признак «это текст» не годится: подсказка и
+                // сообщения об ошибках лежат в многострочных блоках, где
+                // кавычек на строке нет. Первая версия проверки требовала
+                // кавычку и пропустила «Такой встречи нет» — мутация прошла
+                // зелёной. Русские слова вне комментариев в Swift и есть текст
+                // для человека: имена типов и переменных здесь латиницей.
+                // Два слова, одно правило: у записанного звонка одно имя.
+                // Страница проверяет ровно это — «созвон» и «встреча» там
+                // запрещены оба, потому что читаются как два разных продукта.
+                for second in ["созвон", "встреч"] where line.lowercased().contains(second) {
+                    offenders.append("\(path): \(trimmed.prefix(60))")
+                }
+            }
+        }
+        #expect(scanned > 10, "обход нашёл \(scanned) файлов — проверка была бы фиктивной")
+        #expect(offenders.isEmpty,
+                "продукт говорит «звонок», а здесь «созвон»:\n\(offenders.joined(separator: "\n"))")
+    }
+
+    @Test("the usage text uses the product's one word for the thing: «call»")
+    func usageUsesTheProductWord() {
+        #expect(CommandLineApp.usage.contains("calls"))
+        #expect(!CommandLineApp.usage.lowercased().contains("meeting"))
+        #expect(!CommandLineApp.usage.lowercased().contains("conversation"),
+                "«conversation» would be a second name for the same call")
+    }
+}
+
+@Suite("Удаление по началу идентификатора")
+struct DeleteByPrefixTests {
+    private func app(with titles: [String]) -> (CommandLineApp, SessionStore) {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-prefix-\(UUID().uuidString)")
+        let store = SessionStore(root: root)
+        let app = CommandLineApp(store: store, readFile: { _ in "Аня: тарифы" })
+        for title in titles { _ = app.run(["добавить", "t.txt", title]) }
+        return (app, store)
+    }
+
+    /// В `список` идентификатор длиной в тридцать шесть знаков, и вставлять его
+    /// целиком — работа руками там, где git давно принимает начало.
+    @Test("начала хватает, если под него подходит один звонок")
+    func prefixDeletesTheOnlyMatch() throws {
+        let (app, store) = app(with: ["Планёрка"])
+        let id = try #require(store.load().sessions.first?.id)
+        let result = app.run(["удалить", String(id.prefix(8))])
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains(id), "в ответе должен быть полный идентификатор")
+        #expect(store.load().sessions.isEmpty)
+    }
+
+    /// Главное здесь, и проверять это надо детерминированно.
+    ///
+    /// Первая версия брала два обычных звонка и надеялась, что их случайные
+    /// идентификаторы совпадут первыми знаками. Они не совпадают никогда, и
+    /// проверка молча не выполнялась: мутация «при неоднозначности удаляй
+    /// первый» проходила зелёной. Удаление не отменить — такую ветку нельзя
+    /// оставлять на волю случая, поэтому идентификаторы задаются руками.
+    @Test("под неоднозначное начало не удаляется ничего")
+    func ambiguousPrefixDeletesNothing() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-ambig-\(UUID().uuidString)")
+        let store = SessionStore(root: root)
+        for suffix in ["1111", "2222"] {
+            try store.save(RecallIndex.Session(
+                id: "ABCD0000-0000-0000-0000-00000000\(suffix)",
+                title: "Звонок \(suffix)", date: "2026-08-14", digest: "тарифы"))
+        }
+        let app = CommandLineApp(store: store, readFile: { _ in "" })
+
+        let result = app.run(["удалить", "ABCD"])
+        #expect(result.exitCode == 2, "неоднозначное начало не должно ничего удалять")
+        #expect(result.output.contains("More than one call matches"), "не сказано, что совпадений много")
+        #expect(store.load().sessions.count == 2, "при неоднозначности удалили звонок")
+
+        // И обе стороны разбора, без удаления.
+        #expect(app.resolveIdentifier("ABCD") == .ambiguous([
+            "ABCD0000-0000-0000-0000-000000001111",
+            "ABCD0000-0000-0000-0000-000000002222",
+        ]))
+        #expect(app.resolveIdentifier("ABCD0000-0000-0000-0000-000000001111")
+                == .exact("ABCD0000-0000-0000-0000-000000001111"))
+        #expect(app.resolveIdentifier("") == .none)
+    }
+
+    @Test("слишком короткое начало не принимается", arguments: ["1", "ab", "abc"])
+    func tooShortIsRefused(prefix: String) throws {
+        let (app, store) = app(with: ["Планёрка"])
+        let result = app.run(["удалить", prefix])
+        #expect(result.exitCode == 2)
+        #expect(result.output.contains("four characters"), "не сказано, сколько знаков нужно")
+        #expect(store.load().sessions.count == 1, "по короткому началу что-то удалилось")
+    }
+
+    @Test("полный идентификатор работает как работал")
+    func fullIdentifierStillWorks() throws {
+        let (app, store) = app(with: ["Планёрка"])
+        let id = try #require(store.load().sessions.first?.id)
+        #expect(app.run(["удалить", id]).exitCode == 0)
+        #expect(store.load().sessions.isEmpty)
+    }
+
+    @Test("чужой идентификатор по-прежнему не находится")
+    func unknownIdentifierIsStillReported() throws {
+        let (app, _) = app(with: ["Планёрка"])
+        let result = app.run(["удалить", "00000000-0000-0000-0000-000000000000"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("No such call"))
+    }
+
+    /// То же самое в расшифровке: имя файла — то, что человек напечатал,
+    /// движок — настройка. Раньше при опечатке и ненастроенном движке продукт
+    /// рассказывал про движок.
+    @Test("отсутствующий файл называется отсутствующим файлом, а не ненастроенным движком")
+    func missingFileBeatsMissingEngine() {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-транскрипт-\(UUID().uuidString)")
+        let app = CommandLineApp(store: SessionStore(root: root), readFile: { _ in nil })
+        let result = app.run(["расшифровать", "нетакого.wav"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("Could not read the recording"))
+        #expect(!result.output.contains("Не настроен движок"),
+                "человека послали настраивать движок из-за опечатки в имени файла")
+    }
+
+    /// Отказ файловой системы человек читает ровно тогда, когда ему нужна
+    /// помощь. Было: «Could not save: Error Domain=NSCocoaErrorDomain
+    /// Code=513 "You don\u{2019}t have permission to save the file…"» — внутренности
+    /// по-английски. Ту же ошибку продукт уже исправлял в коннекторах.
+    @Test("filesystem refusals are explained in plain words, with an action")
+    func filesystemErrorsExplainThemselves() {
+        let cases: [(Int, [String])] = [
+            (513, ["No permission to write", "CRUXWING_HOME"]),
+            (640, ["disk is full"]),
+            (4, ["not found", "CRUXWING_HOME"]),
+            (642, ["read-only"]),
+        ]
+        for (code, expected) in cases {
+            let text = CommandLineApp.explain(
+                NSError(domain: NSCocoaErrorDomain, code: code))
+            for fragment in expected {
+                #expect(text.contains(fragment), "в «\(text)» нет «\(fragment)»")
+            }
+            #expect(!text.contains("NSCocoaErrorDomain"), "наружу вылезло имя домена: \(text)")
+            #expect(!text.contains("Code="), "наружу вылез код ошибки: \(text)")
+        }
+    }
+
+    /// И объяснение должно стоять НА ПУТИ сохранения, а не рядом. Мутация
+    /// «вернуть сырую ошибку в `добавить`» проходила зелёной, пока проверки
+    /// звали `explain` напрямую.
+    @Test("на настоящем пути сохранения человек тоже видит русский текст",
+          .enabled(if: PermissionProbe.enforced, PermissionProbe.reason))
+    func saveFailureIsExplainedThroughTheCommand() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-закрытый-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: root.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o700],
+                                                   ofItemAtPath: root.path)
+            try? FileManager.default.removeItem(at: root)
+        }
+
+        let app = CommandLineApp(store: SessionStore(root: root),
+                                 readFile: { _ in "Аня: по тарифам решили не трогать" })
+        let result = app.run(["добавить", "расшифровка.txt", "Планёрка"])
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("No permission to write"),
+                "человеку показали не то: \(result.output)")
+        #expect(!result.output.contains("NSCocoaErrorDomain"),
+                "наружу вылезли внутренности: \(result.output)")
+    }
+
+    /// Чужую ошибку выдумывать не за что: её текст отдаётся как есть, но с
+    /// русской рамкой, чтобы было видно, что говорит система, а что мы.
+    @Test("незнакомая ошибка не выдаётся за знакомую")
+    func unknownErrorsAreNotInvented() {
+        // Код нарочно тот же, что у отказа в правах: без проверки домена
+        // чужая ошибка получила бы чужое объяснение, и мутация «убрать
+        // проверку домена» проходила бы зелёной.
+        let text = CommandLineApp.explain(
+            NSError(domain: "ЧужойДомен", code: 513,
+                    userInfo: [NSLocalizedDescriptionKey: "странное"]))
+        #expect(text.contains("The system replied"))
+        #expect(text.contains("странное"))
+        #expect(!text.contains("Нет прав"), "чужая ошибка выдана за отказ в правах")
+    }
+
+    /// Список шёл в порядке имён файлов, то есть по случайному идентификатору.
+    /// На сорока звонках одного дня это выглядит как перемешанная колода:
+    /// «Планёрка 24», «Планёрка 11», «Планёрка 28». Найти вчерашний звонок
+    /// нечем, кроме глаз.
+    @Test("свежие звонки идут первыми, а внутри дня порядок устойчивый")
+    func listIsOrderedNewestFirst() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("cruxwing-порядок-\(UUID().uuidString)")
+        let store = SessionStore(root: root)
+        // Идентификаторы нарочно в порядке, обратном нужному: если сортировки
+        // нет, список выйдет именно в этом порядке, и проверка это поймает.
+        try store.save(.init(id: "AAAA1111-0000-0000-0000-000000000001",
+                             title: "Старая", date: "2026-08-10", digest: "тарифы"))
+        try store.save(.init(id: "BBBB2222-0000-0000-0000-000000000002",
+                             title: "Бета", date: "2026-08-14", digest: "тарифы"))
+        try store.save(.init(id: "CCCC3333-0000-0000-0000-000000000003",
+                             title: "Альфа", date: "2026-08-14", digest: "тарифы"))
+
+        let app = CommandLineApp(store: store, readFile: { _ in "" })
+        let lines = app.run(["список"]).output
+            .split(separator: "\n").map(String.init)
+            .filter { $0.contains("2026-") }
+        #expect(lines.count == 3)
+        #expect(lines[0].contains("Альфа"), "сверху не самый свежий: \(lines)")
+        #expect(lines[1].contains("Бета"), "внутри дня порядок не по названию: \(lines)")
+        #expect(lines[2].contains("Старая"), "старый звонок не внизу: \(lines)")
+    }
+}
+
+/// Опечатка в имени команды лечится тем же, чем опечатка в вопросе.
+///
+/// «Unknown command «найтии»» и полотно справки — ответ формально верный и
+/// бесполезный: человек промахнулся мимо одной клавиши, а ему предлагают
+/// перечитать всё. Расстояние в одну опечатку уже посчитано для поиска.
+@Suite("Похожая команда")
+struct CommandSuggestionTests {
+
+    private func app() -> CommandLineApp {
+        CommandLineApp(store: SessionStore(root: URL(fileURLWithPath: NSTemporaryDirectory())
+                                            .appendingPathComponent(UUID().uuidString)),
+                       readFile: { _ in "" })
+    }
+
+    @Test("опечатка в команде подсказывает команду", arguments: [
+        ("найтии", "найти"),
+        ("найт", "найти"),
+        ("дабавить", "добавить"),
+        ("спсок", "список"),
+    ])
+    func подсказываетКоманду(_ набрано: String, _ ожидается: String) {
+        let вывод = app().run([набрано]).output
+        #expect(вывод.contains("«\(ожидается)»"),
+                "«\(набрано)» не подсказало «\(ожидается)»: \(вывод.prefix(120))")
+    }
+
+    /// Команды `записать` и `спросить` выполняются в main.swift и до `run`
+    /// не доходят. Подсказка обязана знать и о них: человеку всё равно, где
+    /// внутри нас разложены ветки.
+    @Test("подсказка знает команды, которые выполняются не здесь", arguments: [
+        ("записат", "записать"),
+        ("сросить", "спросить"),
+    ])
+    func знаетКомандыИзГлавногоФайла(_ набрано: String, _ ожидается: String) {
+        let вывод = app().run([набрано]).output
+        #expect(вывод.contains("«\(ожидается)»"),
+                "«\(набрано)» не подсказало «\(ожидается)»: \(вывод.prefix(120))")
+    }
+
+    /// Слово, не похожее ни на одну команду, подсказки не получает: выдумать
+    /// её значит отправить человека набирать наугад.
+    @Test("непохожему слову подсказки нет")
+    func непохожемуМолчим() {
+        let вывод = app().run(["квакать"]).output
+        #expect(вывод.contains("Unknown command"))
+        #expect(!вывод.contains("Возможно"), "подсказка взялась ниоткуда: \(вывод.prefix(120))")
+    }
+
+    @Test("неизвестная команда остаётся ошибкой")
+    func кодВозвратаНеНоль() {
+        #expect(app().run(["найтии"]).exitCode == 2)
+    }
+
+    /// Список для подсказки лежит отдельно от справки, и разойтись они могут
+    /// молча: подсказка перестанет знать команду, которую человек видит в
+    /// справке. Поэтому каждое имя из списка обязано быть в справке.
+    @Test("подсказка и справка знают одни и те же команды")
+    func списокСовпадаетСправкой() {
+        for команда in CommandLineApp.commandNames {
+            #expect(CommandLineApp.usage.contains(команда),
+                    "«\(команда)» есть в подсказке, но не в справке")
+        }
+        // И наоборот: команда из справки, которой нет в списке, не
+        // подскажется никогда.
+        for строка in CommandLineApp.usage.split(separator: "\n") {
+            guard строка.hasPrefix("  cruxwing ") else { continue }
+            let имя = String(строка.dropFirst("  cruxwing ".count)
+                .prefix(while: { !$0.isWhitespace }))
+            #expect(CommandLineApp.commandNames.contains(имя),
+                    "«\(имя)» есть в справке, но подсказка о ней не знает")
+        }
+    }
+}

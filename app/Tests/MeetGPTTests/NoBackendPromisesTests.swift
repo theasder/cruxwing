@@ -54,7 +54,7 @@ struct NoBackendPromisesTests {
     @MainActor
     @Test(
         "вход нигде не предлагается, когда входить некуда",
-        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Cruxwing build."))
     func noSignInOfferedWithoutABackend() {
         let state = AppState(credentialStore: InMemoryKeychain())
 
@@ -66,7 +66,7 @@ struct NoBackendPromisesTests {
     @MainActor
     @Test(
         "в настройках нет раздела «Аккаунт», когда входить некуда",
-        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Cruxwing build."))
     func settingsHidesTheAccountSection() throws {
         // Проверяется отрисовка, а не исходник. Первая версия искала
         // «backendBaseURL» по файлу целиком — и проходила даже с убранной
@@ -93,7 +93,7 @@ struct NoBackendPromisesTests {
     @MainActor
     @Test(
         "стартовый экран проверки не предлагает несуществующий веб-поиск",
-        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Orakul build."))
+        .enabled(if: !Self.hasBackend, "This boundary applies to the serverless Cruxwing build."))
     func defaultFactCheckUIHidesWebSearch() throws {
         // Проверяем то, что видит человек после обычного запуска. Поиск слова
         // `backendBaseURL` по всему файлу проходил даже после удаления защиты.
@@ -113,7 +113,7 @@ struct NoBackendPromisesTests {
     @Test("рельса с кредитами не показывается ни в каком виде")
     func creditRailNeverRenders() throws {
         // Механика кредитов осталась от Cruxwing и закрыта признаком
-        // `Config.llmViaBackend`, который в orakul всегда false. Удалять её —
+        // `Config.llmViaBackend`, который в cruxwing всегда false. Удалять её —
         // это ~250 строк внутри живой полосы бюджета, и цена ошибки там выше,
         // чем польза. Поэтому проверяется не отсутствие кода, а отсутствие
         // кредитов на экране: строка «Войдите, чтобы получить кредиты», баланс
@@ -250,7 +250,7 @@ struct LaunchSendsNothingTests {
         #expect(security.contains("no unrequested calls to the developer's server"))
     }
 
-    @Test("манифест конфиденциальности не приписывает orakul сбор данных")
+    @Test("манифест конфиденциальности не приписывает cruxwing сбор данных")
     func privacyManifestDeclaresNoDeveloperCollection() throws {
         let data = try Data(contentsOf: appRoot.appendingPathComponent("Support/PrivacyInfo.xcprivacy"))
         let object = try PropertyListSerialization.propertyList(

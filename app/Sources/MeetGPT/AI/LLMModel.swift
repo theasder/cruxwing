@@ -1,7 +1,7 @@
 import Foundation
 
 /// Inherited capability levels used by model-routing and prompt-budget code.
-/// Public Orakul has no subscriptions: `Config.currentTier` always exposes the
+/// Public Cruxwing has no subscriptions: `Config.currentTier` always exposes the
 /// highest level, while these cases remain until the old tariff-shaped call
 /// sites are removed. Ordered free < pro < premium < ultra via `rank`.
 enum Tier: String, CaseIterable, Codable, Identifiable {

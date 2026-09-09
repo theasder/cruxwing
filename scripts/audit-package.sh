@@ -11,8 +11,8 @@
 # этого не показывает: при незакоммиченном дереве он одинаков у всех сборок
 # подряд.
 #
-#   bash scripts/audit-package.sh exports/linux/orakul_0.1.0-179_arm64.deb
-#   bash scripts/audit-package.sh exports/linux/orakul-0.1.0-179.aarch64.rpm
+#   bash scripts/audit-package.sh exports/linux/cruxwing_0.1.0-179_arm64.deb
+#   bash scripts/audit-package.sh exports/linux/cruxwing-0.1.0-179.aarch64.rpm
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -39,7 +39,7 @@ case "$PACKAGE" in
         echo "не знаю такого пакета: $PACKAGE"; exit 1 ;;
 esac
 
-INFO="$WORK/usr/share/doc/orakul/build-info"
+INFO="$WORK/usr/share/doc/cruxwing/build-info"
 [ -f "$INFO" ] || {
     echo "в пакете нет штампа сборки — проследить, из чего он собран, нельзя"
     exit 1

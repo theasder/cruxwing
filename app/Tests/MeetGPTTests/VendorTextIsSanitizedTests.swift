@@ -1,5 +1,5 @@
 import Testing
-import OrakulCore
+import CruxwingCore
 import Foundation
 @testable import MeetGPT
 

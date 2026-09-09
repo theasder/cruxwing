@@ -5,7 +5,7 @@ import FluidAudio
 ///
 /// Audio and embeddings stay in this process. FluidAudio may download its
 /// CoreML weights on first use, then caches them under Application Support.
-/// orakul never persists the returned embeddings or builds voiceprints.
+/// cruxwing never persists the returned embeddings or builds voiceprints.
 enum LocalDiarization {
 
     typealias Progress = @Sendable (Double) -> Void

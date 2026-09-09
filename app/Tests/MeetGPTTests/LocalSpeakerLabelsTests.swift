@@ -7,9 +7,9 @@ struct LocalSpeakerLabelsTests {
 
     private static var hasDiarizationFixture: Bool {
         let environment = ProcessInfo.processInfo.environment
-        guard let path = environment["ORAKUL_DIARIZE_WAV"],
+        guard let path = environment["CRUXWING_DIARIZE_WAV"],
               FileManager.default.fileExists(atPath: path),
-              let rawCount = environment["ORAKUL_DIARIZE_REMOTE_SPEAKERS"],
+              let rawCount = environment["CRUXWING_DIARIZE_REMOTE_SPEAKERS"],
               let count = Int(rawCount) else { return false }
         return (1...4).contains(count)
     }
@@ -238,17 +238,17 @@ struct LocalSpeakerLabelsTests {
         }
     }
 
-    /// ORAKUL_DIARIZE_WAV=/path/to/call.wav ORAKUL_DIARIZE_REMOTE_SPEAKERS=2
+    /// CRUXWING_DIARIZE_WAV=/path/to/call.wav CRUXWING_DIARIZE_REMOTE_SPEAKERS=2
     /// swift test --filter smokeRealDiarization
     @Test(
         "smoke: real models label a real recording",
         .enabled(
             if: Self.hasDiarizationFixture,
-            "Set ORAKUL_DIARIZE_WAV to a readable WAV and ORAKUL_DIARIZE_REMOTE_SPEAKERS to 1...4."))
+            "Set CRUXWING_DIARIZE_WAV to a readable WAV and CRUXWING_DIARIZE_REMOTE_SPEAKERS to 1...4."))
     func smokeRealDiarization() async throws {
         let environment = ProcessInfo.processInfo.environment
-        let path = try #require(environment["ORAKUL_DIARIZE_WAV"])
-        let rawCount = try #require(environment["ORAKUL_DIARIZE_REMOTE_SPEAKERS"])
+        let path = try #require(environment["CRUXWING_DIARIZE_WAV"])
+        let rawCount = try #require(environment["CRUXWING_DIARIZE_REMOTE_SPEAKERS"])
         let count = try #require(Int(rawCount))
         let wav = try Data(contentsOf: URL(fileURLWithPath: path))
         let samples = LocalWhisperTranscription.floatSamples(fromWAV: wav)

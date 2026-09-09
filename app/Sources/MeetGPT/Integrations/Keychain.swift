@@ -27,14 +27,25 @@ protocol KeychainStore: Sendable {
 /// the dialogs. Orphaned rows can be deleted once in Keychain Access.
 struct SystemKeychain: KeychainStore {
     static let shared = SystemKeychain()
-    private static let productionBundleIdentifier = "ai.orakul.desktop"
+    private static let productionBundleIdentifier = "ai.cruxwing.desktop"
     /// Fresh namespace under the new service. Do not bump into the abandoned
     /// `ai.wheespr.meetgpt` rows — that reopens the ACL prompt loop.
     private static let accountVersion = "v1"
-    /// The first public builds still wrote under Cruxwing's service name. The
-    /// account itself was already bundle-scoped, so we can migrate only
-    /// Orakul's rows without ever enumerating or touching Cruxwing's tokens.
-    static let legacyServiceIdentifier = "com.cruxwing.credentials"
+    /// Services this build will read from once, to move a row forward.
+    ///
+    /// Two eras, both real. `ai.cruxwing.desktop.credentials` is where every build
+    /// wrote until the product took one name on 2026-09-09; `com.cruxwing.credentials`
+    /// is older still, from the first public builds. Each lookup is an exact
+    /// account match rather than an enumeration of the service, so this can
+    /// never read a row belonging to a different application that happens to
+    /// share a service name.
+    ///
+    /// Order matters only in that the newest era is tried first: a person
+    /// upgrading has their key under Cruxwing's service, not the older one.
+    static let legacyServiceIdentifiers = [
+        "ai.orakul.desktop.credentials",
+        "com.cruxwing.credentials",
+    ]
 
     static func serviceIdentifier(bundleIdentifier: String) -> String {
         "\(bundleIdentifier).credentials"
@@ -204,9 +215,9 @@ struct SystemKeychain: KeychainStore {
         let storedAccount = versionedAccount(account)
         guard setStored(data, account: storedAccount) else { return false }
 
-        // Remove only the exact Orakul-namespaced legacy row after the new
+        // Remove only the exact Cruxwing-namespaced legacy row after the new
         // write succeeds. A failed migration never destroys the readable copy.
-        _ = deleteStored(storedAccount, service: Self.legacyServiceIdentifier)
+        _ = Self.legacyServiceIdentifiers.forEach { _ = deleteStored(storedAccount, service: $0) }
         return true
     }
 
@@ -241,18 +252,21 @@ struct SystemKeychain: KeychainStore {
         let storedAccount = versionedAccount(account)
         if let current = getStored(storedAccount) { return current }
 
-        // Compatibility with the first Orakul builds. This is an exact account
-        // lookup, not an enumeration of the shared service, and therefore
-        // cannot read a Cruxwing account with a different bundle namespace.
-        guard let legacy = getStored(
-            storedAccount,
-            service: Self.legacyServiceIdentifier
-        ) else { return nil }
-
-        if setStored(legacy, account: storedAccount) {
-            _ = deleteStored(storedAccount, service: Self.legacyServiceIdentifier)
+        // Compatibility with the earlier service names. Each is an exact account
+        // lookup, not an enumeration of a shared service, and therefore cannot
+        // read an account belonging to a different bundle namespace.
+        for legacyService in Self.legacyServiceIdentifiers {
+            guard let legacy = getStored(storedAccount, service: legacyService)
+            else { continue }
+            // Move it forward, then drop the old row. If the write fails the old
+            // row is deliberately left where it is: losing the only copy of a
+            // key the person cannot re-derive is worse than reading it twice.
+            if setStored(legacy, account: storedAccount) {
+                _ = deleteStored(storedAccount, service: legacyService)
+            }
+            return legacy
         }
-        return legacy
+        return nil
     }
 
     private func getStored(_ storedAccount: String,
@@ -284,10 +298,13 @@ struct SystemKeychain: KeychainStore {
     func delete(_ account: String) -> Bool {
         let storedAccount = versionedAccount(account)
         let status = deleteStored(storedAccount)
-        let legacyStatus = deleteStored(
-            storedAccount,
-            service: Self.legacyServiceIdentifier
-        )
+        // Deleting means deleting everywhere: a row left under an old service
+        // name would be read back by the migration above and look like the key
+        // had returned by itself.
+        let legacyStatus = Self.legacyServiceIdentifiers
+            .map { deleteStored(storedAccount, service: $0) }
+            .first { $0 != errSecSuccess && $0 != errSecItemNotFound }
+            ?? errSecSuccess
         if status != errSecSuccess && status != errSecItemNotFound {
             Log.keychain.error(
                 "Keychain delete failed for \(versionedAccount(account), privacy: .public) — OSStatus \(status, privacy: .public)")

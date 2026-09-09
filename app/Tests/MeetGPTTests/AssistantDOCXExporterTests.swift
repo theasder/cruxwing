@@ -198,7 +198,7 @@ struct AssistantDOCXExporterTests {
             == "What did we decide about the enterprise launch")
         #expect(AssistantAnswerTitle.fallback(
             prompt: "Prompt unavailable for this older saved answer.")
-            == "orakul's answer")
+            == "cruxwing's answer")
         #expect(AssistantDOCXExporter.suggestedFilename(
             for: "Launch / rollout: owner?") == "Launch rollout owner.docx")
     }

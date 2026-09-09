@@ -1,6 +1,6 @@
 import Foundation
 import MCP
-import OrakulCore
+import CruxwingCore
 
 /// One piece of background pulled from a connected work app during research.
 struct GroundingSnippet: Identifiable, Sendable {

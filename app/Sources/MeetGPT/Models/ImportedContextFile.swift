@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 struct ImportedContextFile: Identifiable, Equatable, Codable {
     let id: UUID

@@ -14,7 +14,7 @@ import Foundation
 ///
 /// **Bounded before the send.** Eligibility and the input ceiling come from the
 /// verified metadata in the local model catalogue. Missing metadata fails
-/// closed; there is no copied server pricing contract in public Orakul.
+/// closed; there is no copied server pricing contract in public Cruxwing.
 enum FullContextRequest {
 
     /// Chars per token. Deliberately LOW so the estimate errs high — quoting
@@ -50,7 +50,7 @@ enum FullContextRequest {
     }
 
     /// Conservative input-token estimate for what will actually be sent. The
-    /// vendor—not Orakul—owns the price, so a made-up cross-provider credit
+    /// vendor—not Cruxwing—owns the price, so a made-up cross-provider credit
     /// conversion would be less honest than this measurable quantity.
     static func estimatedInputTokens(for inputChars: Int) -> Int {
         Int(ceil(Double(max(0, inputChars)) / charsPerToken))

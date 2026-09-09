@@ -26,7 +26,7 @@ struct OverlayView: View {
 
             if latest.isEmpty {
                 Text(state.isRecording
-                     ? (goal.isEmpty ? "Set a goal in orakul so hints arrive as the call goes." : "Looking for blind spots…")
+                     ? (goal.isEmpty ? "Set a goal in cruxwing so hints arrive as the call goes." : "Looking for blind spots…")
                      : "Not recording.")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
@@ -57,7 +57,7 @@ struct OverlayView: View {
                     .font(Typo.mono)
                     .foregroundStyle(Theme.ink)
             } else {
-                Text("orakul")
+                Text("cruxwing")
                     .font(Typo.mono)
                     .foregroundStyle(Theme.ink)
             }

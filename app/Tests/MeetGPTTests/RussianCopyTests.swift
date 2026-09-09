@@ -299,7 +299,7 @@ struct RussianCopyTests {
     /// Их две, и каждая — не недоделка перевода:
     ///
     /// - `Google Workspace` — имя продукта, по-русски его не называют;
-    /// - `orakul, RICE, ARR, Kubernetes…` — пример перечисления терминов.
+    /// - `cruxwing, RICE, ARR, Kubernetes…` — пример перечисления терминов.
     ///
     /// Было восемь: пять строк вида `platform.openai.com → API keys` уехали к
     /// `LLMProvider.keyConsoleHint` (см. абзац выше), и список остался с
@@ -426,7 +426,7 @@ struct RussianCopyTests {
     /// Разрешения и вход — те же слова, что уведомления, только в другом
     /// файле. По-английски оставались «Microphone access denied. Open System
     /// Settings → …, allow Cruxwing», такой же текст про запись экрана и два
-    /// сообщения о слетевшем входе, обещавшие «AI credits» — то, чего у orakul
+    /// сообщения о слетевшем входе, обещавшие «AI credits» — то, чего у cruxwing
     /// нет вовсе. Первое из них человек видит при первом же запуске.
     /// Строки, которые человек не читает: они уходят в модель или в поиск.
     ///
@@ -587,7 +587,7 @@ struct RussianCopyTests {
         // забыли второе. Ловится по латинским словам внутри русской строки —
         // кроме имён сервисов и технических терминов, которые так и пишутся.
         let allowed: Set<String> = [
-            "orakul", "cruxwing", "google", "notion", "linear", "asana", "jira",
+            "cruxwing", "cruxwing", "google", "notion", "linear", "asana", "jira",
             "fireflies", "zapier", "deepgram", "whisper", "assemblyai", "openai",
             "anthropic", "claude", "gpt", "gemini", "deepseek", "qwen", "zhipu",
             "moonshot", "kimi", "glm", "mcp", "oauth", "api", "http", "https",

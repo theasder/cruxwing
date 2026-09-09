@@ -15,7 +15,7 @@
 изменить файл; восстановление сверяется по контрольной сумме; код возврата
 команды доходит до вызывающего целиком.
 
-    python3 scripts/mutaciya.py --file mvp/Sources/OrakulCore/X.swift \\
+    python3 scripts/mutaciya.py --file mvp/Sources/CruxwingCore/X.swift \\
         --old 'было' --new 'стало' -- swift test --package-path mvp
 
 Возвращает 0, если набор УПАЛ (сторож работает), и 1, если набор прошёл

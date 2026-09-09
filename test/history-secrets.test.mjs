@@ -40,10 +40,10 @@ test('all reachable history and current publication inputs pass the exact secret
 });
 
 test('an unknown historical key fails redacted, and only its exact reviewed blob can pass', () => {
-  const root = mkdtempSync(join(tmpdir(), 'orakul-history-secret-'));
+  const root = mkdtempSync(join(tmpdir(), 'cruxwing-history-secret-'));
   const allowlist = join(root, 'reviewed.json');
   const secretPath = join(root, 'redaction-fixture.txt');
-  // Assemble the sentinel so the Orakul repository never contains the same
+  // Assemble the sentinel so the Cruxwing repository never contains the same
   // credential-shaped value that this negative fixture is meant to catch.
   const sentinel = ['sk-', 'history-fixture-', 'X'.repeat(24)].join('');
   try {
@@ -51,7 +51,7 @@ test('an unknown historical key fails redacted, and only its exact reviewed blob
     writeFileSync(secretPath, `${sentinel}\n`);
     git(root, ['add', 'redaction-fixture.txt']);
     git(root, [
-      '-c', 'user.name=Orakul history scan test',
+      '-c', 'user.name=Cruxwing history scan test',
       '-c', 'user.email=history-scan@invalid.example',
       'commit', '-qm', 'synthetic fixture',
     ]);

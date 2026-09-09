@@ -63,7 +63,7 @@ struct SignedOutNoticeTests {
         #expect(message.contains("dev@cruxwing.ai"))
         // Человеку нужны два факта: что делать и что коннекторы целы —
         // отсутствие второго и делало это похожим на отказ оплаты. Сам текст
-        // был английским и обещал «AI credits», которых у orakul нет.
+        // был английским и обещал «AI credits», которых у cruxwing нет.
         #expect(message.lowercased().contains("sign in"))
         Config.lastSignedInEmail = nil
     }

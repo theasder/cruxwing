@@ -1,8 +1,8 @@
 #!/bin/bash
 # Smoke-test a DISTRIBUTION artifact — the thing users actually receive.
 #
-#   ./distsmoke.sh dist/orakul-AppleSilicon.dmg
-#   ./distsmoke.sh dist/orakul-Intel.dmg
+#   ./distsmoke.sh dist/cruxwing-AppleSilicon.dmg
+#   ./distsmoke.sh dist/cruxwing-Intel.dmg
 #
 # Takes either format. The disk image is what the download page links, so it is
 # the one that has to pass; the zips ship alongside for mirrors. Checking only
@@ -99,7 +99,7 @@ SINCE="$(date +%s)"
 sleep 12
 if /usr/bin/pgrep -f "$APP/Contents/MacOS/" >/dev/null; then
     ok "process alive 12s after launch"
-    /usr/bin/osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1
+    /usr/bin/osascript -e 'tell application id "ai.cruxwing.desktop" to quit' >/dev/null 2>&1
     sleep 3
     /usr/bin/pgrep -f "$APP/Contents/MacOS/" >/dev/null && bad "did not quit cleanly" || ok "quit cleanly"
 else
@@ -107,7 +107,7 @@ else
 fi
 
 NEW_CRASH="$(/usr/bin/find ~/Library/Logs/DiagnosticReports -name '*.ips' -newermt "@$SINCE" 2>/dev/null \
-             | xargs -I{} basename {} 2>/dev/null | grep -i -E 'MeetGPT|orakul' | head -3)"
+             | xargs -I{} basename {} 2>/dev/null | grep -i -E 'MeetGPT|cruxwing' | head -3)"
 [ -z "$NEW_CRASH" ] && ok "no crash report generated" || bad "crash report: $NEW_CRASH"
 
 echo

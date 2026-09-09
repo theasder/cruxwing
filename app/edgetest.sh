@@ -24,22 +24,22 @@ set -u
 umask 077
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-APP="/Applications/orakul.app"
-OUTDIR="$(mktemp -d /tmp/orakul-edgetest.XXXXXX)"
+APP="/Applications/cruxwing.app"
+OUTDIR="$(mktemp -d /tmp/cruxwing-edgetest.XXXXXX)"
 chmod 700 "$OUTDIR"
 STATE_JSON="$OUTDIR/state.json"
 RUN_NONCE="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 RUN_STARTED_EPOCH="$(python3 -c 'import time; print(int(time.time()))')"
-AI_ASSERTIONS_ENABLED="${ORAKUL_LIVETEST_AI_ASSERTIONS:-1}"
+AI_ASSERTIONS_ENABLED="${CRUXWING_LIVETEST_AI_ASSERTIONS:-1}"
 case "$AI_ASSERTIONS_ENABLED" in
     0|1) ;;
-    *) echo "!! ORAKUL_LIVETEST_AI_ASSERTIONS must be 0 or 1"; exit 2 ;;
+    *) echo "!! CRUXWING_LIVETEST_AI_ASSERTIONS must be 0 or 1"; exit 2 ;;
 esac
 
 cleanup() {
-    /bin/launchctl unsetenv ORAKUL_LIVETEST_NONCE >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv ORAKUL_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
-    /bin/launchctl unsetenv ORAKUL_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv CRUXWING_LIVETEST_NONCE >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv CRUXWING_LIVETEST_ARTIFACT_ROOT >/dev/null 2>&1 || true
+    /bin/launchctl unsetenv CRUXWING_LIVETEST_STARTED_AT >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -63,27 +63,27 @@ function run(argv) {
 }
 JXA
 }
-dump() { rm -f "$STATE_JSON"; send ai.orakul.desktop.livetest.dumpState path "$STATE_JSON"
+dump() { rm -f "$STATE_JSON"; send ai.cruxwing.desktop.livetest.dumpState path "$STATE_JSON"
          for _ in $(seq 1 20); do [ -f "$STATE_JSON" ] && break; sleep 0.25; done
          [ -f "$STATE_JSON" ] || { echo "!! no state dump — dev app running?"; return 1; }; }
 jqv() { python3 -c "import json;d=json.load(open('$STATE_JSON'));print(d$1)"; }
-inject() { send ai.orakul.desktop.livetest.injectLine text "$1" source "$2" ${3:+speaker "$3"}; }
-appwin() { osascript -e 'tell application "System Events" to count windows of process "orakul"' 2>/dev/null || echo 0; }
+inject() { send ai.cruxwing.desktop.livetest.injectLine text "$1" source "$2" ${3:+speaker "$3"}; }
+appwin() { osascript -e 'tell application "System Events" to count windows of process "cruxwing"' 2>/dev/null || echo 0; }
 
 # ── E1 · cold launch, then relaunch while running ───────────────────────────
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
     echo ">> building + installing"
     bash "$ROOT/build.sh" >"$OUTDIR/build.log" 2>&1 || { echo "!! build failed — $OUTDIR/build.log"; exit 2; }
 fi
-osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1; sleep 2
-/bin/launchctl setenv ORAKUL_LIVETEST_NONCE "$RUN_NONCE"
-/bin/launchctl setenv ORAKUL_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
-/bin/launchctl setenv ORAKUL_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
+osascript -e 'tell application id "ai.cruxwing.desktop" to quit' >/dev/null 2>&1; sleep 2
+/bin/launchctl setenv CRUXWING_LIVETEST_NONCE "$RUN_NONCE"
+/bin/launchctl setenv CRUXWING_LIVETEST_ARTIFACT_ROOT "$OUTDIR"
+/bin/launchctl setenv CRUXWING_LIVETEST_STARTED_AT "$RUN_STARTED_EPOCH"
 open "$APP"; sleep 6
 dump || exit 2
 check "E1a cold launch reaches idle" $? "status=$(jqv "['status']")"
 
-# E3 uses only the provider credentials the user already saved in Orakul.
+# E3 uses only the provider credentials the user already saved in Cruxwing.
 # The harness never inserts a shared key or grants itself product access.
 PIDS_BEFORE="$(pgrep -x MeetGPT | sort | tr '\n' ' ')"
 open "$APP"; sleep 3   # relaunch while running — LaunchServices must reuse
@@ -93,16 +93,16 @@ check "E1b relaunch reuses the running instance" $? "pids: ${PIDS_AFTER:-none}"
 dump; [ "$(jqv "['status']")" != "" ]; check "E1c app still responds after relaunch" $? "hooks alive"
 
 # ── E2 · empty and whitespace asks must not start a run ─────────────────────
-send ai.orakul.desktop.livetest.ask text ""
-send ai.orakul.desktop.livetest.ask text "   "
+send ai.cruxwing.desktop.livetest.ask text ""
+send ai.cruxwing.desktop.livetest.ask text "   "
 sleep 2; dump
 [ "$(jqv "['aiStreaming']")" = "False" ] && [ "$(jqv "['aiResponseChars']")" = "0" ]
 check "E2 empty ask starts nothing" $? "streaming=$(jqv "['aiStreaming']") chars=$(jqv "['aiResponseChars']")"
 
 # ── E3 · ask while streaming: the second message must not vanish ────────────
-send ai.orakul.desktop.livetest.ask text "First question: give a long answer about meeting preparation."
+send ai.cruxwing.desktop.livetest.ask text "First question: give a long answer about meeting preparation."
 sleep 1   # let the first run enter streaming
-send ai.orakul.desktop.livetest.ask text "Second question: what is two plus two?"
+send ai.cruxwing.desktop.livetest.ask text "Second question: what is two plus two?"
 TERMINAL=1
 for _ in $(seq 1 90); do
     sleep 1; dump >/dev/null 2>&1 || continue
@@ -154,7 +154,7 @@ TOTAL_GAIN=$(( $(jqv "['transcriptCount']") - BASE_TC ))
 check "E6 same sentence minutes apart is kept" $? "+$TOTAL_GAIN line(s) (want 2)"
 
 # ── E7 · quota latch: watches stop, one visible notice ──────────────────────
-send ai.orakul.desktop.livetest.latchQuota
+send ai.cruxwing.desktop.livetest.latchQuota
 sleep 1; dump
 QM="$(jqv "['copilotQuotaMessage']")"
 [ "$QM" != "None" ] && [ -n "$QM" ]; check "E7a latch is set from the 429" $? "message: $(echo "$QM" | head -c 70)"
@@ -162,7 +162,7 @@ case "$QM" in *"{"*) BAD=0;; *) BAD=1;; esac
 [ "$BAD" = "1" ]; check "E7b notice is a sentence, not raw JSON" $? "no JSON envelope leaked"
 
 # ── E8 · a new call clears the latch and per-call state ─────────────────────
-send ai.orakul.desktop.livetest.newCall
+send ai.cruxwing.desktop.livetest.newCall
 sleep 2; dump
 # JSONEncoder drops nil optionals entirely — an absent key IS the cleared state.
 CLEARED="$(python3 -c "import json;d=json.load(open('$STATE_JSON'));print(d.get('copilotQuotaMessage'))")"
@@ -173,8 +173,8 @@ check "E8b new call starts with an empty transcript" $? "transcriptCount=$(jqv "
 
 # ── E9 · rapid record toggling must settle cleanly ──────────────────────────
 for _ in 1 2 3; do
-    send ai.orakul.desktop.livetest.toggleRecording; sleep 1
-    send ai.orakul.desktop.livetest.toggleRecording; sleep 1
+    send ai.cruxwing.desktop.livetest.toggleRecording; sleep 1
+    send ai.cruxwing.desktop.livetest.toggleRecording; sleep 1
 done
 sleep 4; dump
 STATUS="$(jqv "['status']")"
@@ -186,9 +186,9 @@ check "E9 rapid start/stop settles" $? "status=$STATUS after 3 fast cycles"
 # as the newest SAVED session, not in the live transcript.
 inject "persistence marker line about project falcon budget" system "Speaker A"
 sleep 1
-send ai.orakul.desktop.livetest.newCall     # startNewCall persists the outgoing call
+send ai.cruxwing.desktop.livetest.newCall     # startNewCall persists the outgoing call
 sleep 2
-osascript -e 'tell application id "ai.orakul.desktop" to quit' >/dev/null 2>&1; sleep 3
+osascript -e 'tell application id "ai.cruxwing.desktop" to quit' >/dev/null 2>&1; sleep 3
 open "$APP"; sleep 6
 if dump; then
     python3 -c "

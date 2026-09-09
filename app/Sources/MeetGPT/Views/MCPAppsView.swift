@@ -194,7 +194,7 @@ private struct MCPAddServerSheet: View {
         VStack(alignment: .leading, spacing: Space.l) {
             Label("Add an MCP server", systemImage: "puzzlepiece.extension")
                 .font(Typo.title).foregroundStyle(Theme.ink)
-            Text("Paste the Streamable HTTP address of any MCP server (https). orakul connects with ordinary OAuth — no keys are needed if the server supports dynamic client registration.")
+            Text("Paste the Streamable HTTP address of any MCP server (https). cruxwing connects with ordinary OAuth — no keys are needed if the server supports dynamic client registration.")
                 .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
             TextField("", text: $name, prompt: Text("A name — for example HubSpot"))
                 .textFieldStyle(.plain).padding(Space.m)

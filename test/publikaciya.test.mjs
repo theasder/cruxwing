@@ -33,11 +33,13 @@ const canonical = (html) =>
 test('на сайт не уезжает страница другого продукта', () => {
   const strangers = publishedPages().filter((path) => {
     const html = readFileSync(path, 'utf8');
-    return /cruxwing/i.test(title(html));
+      // The parent products, not ours: this product took the Cruxwing name on
+      // 2026-09-09, so a Cruxwing title is now exactly what belongs here.
+      return /meetgpt|wheespr/i.test(title(html));
   });
   assert.deepEqual(strangers, [],
     `в публикуемом наборе страницы чужого продукта: ${strangers.join(', ')}. ` +
-    'Либо исключите каталог в pages.yml, либо перепишите страницу под orakul.');
+    'Либо исключите каталог в pages.yml, либо перепишите страницу под cruxwing.');
 });
 
 test('canonical публикуемой страницы указывает на свой же адрес', () => {

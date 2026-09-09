@@ -1,5 +1,5 @@
 import SwiftUI
-import OrakulCore
+import CruxwingCore
 
 enum SettingsTab: String, Hashable, CaseIterable {
     case general
@@ -20,7 +20,7 @@ struct SettingsView: View {
     ///
     /// Имя, версия и хеш исходников: по первым двум понятно, что человек
     /// запускал, по третьему — из какого кода это собрано. Хеш ставит сборка
-    /// (`OrakulSourceHash`), и он отличает две сборки одного коммита, чего
+    /// (`CruxwingSourceHash`), и он отличает две сборки одного коммита, чего
     /// номер коммита не умеет.
     static var buildSignature: String { buildSignature(from: Bundle.main.infoDictionary ?? [:]) }
 
@@ -28,9 +28,9 @@ struct SettingsView: View {
     /// тестами `Bundle.main` — это раннер, а не приложение, и штампа там нет.
     static func buildSignature(from info: [String: Any]) -> String {
         let name = (info["CFBundleDisplayName"] as? String)
-            ?? (info["CFBundleName"] as? String) ?? "orakul"
+            ?? (info["CFBundleName"] as? String) ?? "cruxwing"
         let version = (info["CFBundleShortVersionString"] as? String) ?? ""
-        let source = (info["OrakulSourceHash"] as? String) ?? ""
+        let source = (info["CruxwingSourceHash"] as? String) ?? ""
         // Имя и версия — через пробел, штамп исходников — за точкой: она
         // отделяет то, что человек и так знает, от того, что нужно нам.
         let head = [name, version].filter { !$0.isEmpty }.joined(separator: " ")
@@ -58,7 +58,7 @@ struct SettingsView: View {
                 .tag(SettingsTab.accountPrivacy)
         }
         // Версия — под вкладками, чтобы её было видно с любой из них.
-        // Раньше её не было нигде: сборка штампует `OrakulSourceHash` в
+        // Раньше её не было нигде: сборка штампует `CruxwingSourceHash` в
         // Info.plist, но человек туда не заглянет, и сообщение «не работает»
         // приходило без ответа на первый же вопрос — какую сборку он проверял.
         // `ДЛЯ-ТЕСТИРОВЩИКА.md` пункт 4 просит прислать эту строку, поэтому
@@ -185,7 +185,7 @@ private struct GeneralSettingsTab: View {
             }
 
             SettingsSection(title: "During a call",
-                            caption: "orakul notices a call application opening and offers to start recording.") {
+                            caption: "cruxwing notices a call application opening and offers to start recording.") {
                 SettingsRow {
                     Label("Tell me about calls", systemImage: "bell.badge")
                         .labelStyle(SettingLabelStyle())
@@ -210,7 +210,7 @@ private struct GeneralSettingsTab: View {
             }
 
             SettingsSection(title: "During a call",
-                            caption: "A quiet banner when a new blind spot is found and orakul is minimised — text only, no sound.") {
+                            caption: "A quiet banner when a new blind spot is found and cruxwing is minimised — text only, no sound.") {
                 SettingsRow {
                     Label("Blind-spot banners", systemImage: "bell.badge")
                         .labelStyle(SettingLabelStyle())
@@ -291,7 +291,7 @@ private struct TranscriptionSettingsTab: View {
             VStack(alignment: .leading, spacing: Space.xl) {
                 SettingsSection(
                     title: "Cloud transcription keys",
-                    caption: "Optional. You add and delete the key yourself; it is kept in the Keychain and used for a direct request to the chosen service. The build carries no orakul keys and no server-side substitution."
+                    caption: "Optional. You add and delete the key yourself; it is kept in the Keychain and used for a direct request to the chosen service. The build carries no cruxwing keys and no server-side substitution."
                 ) {
                     TranscriptionProviderKeysSection(
                         store: state.transcriptionProviderKeys,
@@ -355,7 +355,7 @@ private struct TranscriptionSettingsTab: View {
                 }
 
                 SettingsSection(title: "Enrich from Fireflies",
-                                caption: "Off by default, and it works only together with the shared automatic-requests switch on the «AI» tab. After a call, orakul reconciles the Fireflies transcript with the local one through your chosen AI provider; that sends it the text and creates spend under your contract. Names and terms may be refined against the connected applications you allowed.") {
+                                caption: "Off by default, and it works only together with the shared automatic-requests switch on the «AI» tab. After a call, cruxwing reconciles the Fireflies transcript with the local one through your chosen AI provider; that sends it the text and creates spend under your contract. Names and terms may be refined against the connected applications you allowed.") {
                     SettingsRow {
                         Label("Enrich the transcript from Fireflies", systemImage: "flame")
                             .labelStyle(SettingLabelStyle())
@@ -400,14 +400,14 @@ private struct TranscriptionSettingsTab: View {
                             .accessibilityLabel("Recognition tuning")
                             .accessibilityIdentifier("settings.transcription.adaptive")
                     }
-                    Text("If transcription keeps falling behind, orakul picks a lighter model for the next recording. At Base it will suggest Deepgram, but it never goes to the cloud on its own.")
+                    Text("If transcription keeps falling behind, cruxwing picks a lighter model for the next recording. At Base it will suggest Deepgram, but it never goes to the cloud on its own.")
                         .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
                     }
 
                     SettingsSection(
                         title: "Post-call refinement",
-                        caption: "Off by default. Turned on, orakul re-reads the saved audio on this Mac after you stop. The live transcript is kept if the new result is incomplete or lost content.") {
+                        caption: "Off by default. Turned on, cruxwing re-reads the saved audio on this Mac after you stop. The live transcript is kept if the new result is incomplete or lost content.") {
                         SettingsRow {
                             Label("Refine after stopping", systemImage: "waveform.badge.checkmark")
                                 .labelStyle(SettingLabelStyle())
@@ -424,7 +424,7 @@ private struct TranscriptionSettingsTab: View {
 
                     SettingsSection(
                         title: "Private speaker labels · Beta",
-                        caption: "Turn this on before the next local recording: orakul keeps the other party's track in memory. After stopping, choose 1–4 voices and run identification; the number can be changed and re-run on the same call. There is no automatic count — when measured, it overstated the number of voices. The first run downloads about 34 MB of models. Audio and embeddings stay on this Mac, and no voiceprints are stored. Labels are saved only in this call's local history on this Mac. For calls longer than an hour, only the fully saved part is labelled. Beta — check the labels before sending them anywhere."
+                        caption: "Turn this on before the next local recording: cruxwing keeps the other party's track in memory. After stopping, choose 1–4 voices and run identification; the number can be changed and re-run on the same call. There is no automatic count — when measured, it overstated the number of voices. The first run downloads about 34 MB of models. Audio and embeddings stay on this Mac, and no voiceprints are stored. Labels are saved only in this call's local history on this Mac. For calls longer than an hour, only the fully saved part is labelled. Beta — check the labels before sending them anywhere."
                     ) {
                         SettingsRow {
                             Label("Identify speakers on this Mac", systemImage: "person.2.wave.2")
@@ -463,7 +463,7 @@ private struct TranscriptionSettingsTab: View {
 
                 if state.hasAssemblyAI {
                     SettingsSection(title: "Who spoke — after the call",
-                                    caption: "Optional processing through AssemblyAI. Takes effect from the next recording: orakul keeps the other party's track and uploads it only after you press «Identify speakers» — never on its own during a call.") {
+                                    caption: "Optional processing through AssemblyAI. Takes effect from the next recording: cruxwing keeps the other party's track and uploads it only after you press «Identify speakers» — never on its own during a call.") {
                         SettingsRow {
                             Label("Allow cloud speaker identification", systemImage: "person.2.wave.2")
                                 .labelStyle(SettingLabelStyle())
@@ -490,7 +490,7 @@ private struct TranscriptionSettingsTab: View {
                             .strokeBorder(Theme.hairline, lineWidth: 1))
                         .overlay(alignment: .topLeading) {
                             if glossary.isEmpty {
-                                Text("orakul, RICE, ARR, Kubernetes…")
+                                Text("cruxwing, RICE, ARR, Kubernetes…")
                                     .font(.system(size: 12, design: .monospaced))
                                     .foregroundStyle(Theme.inkTertiary)
                                     .padding(.horizontal, Space.s + 4).padding(.vertical, Space.s + 8)
@@ -662,25 +662,25 @@ private struct AISettingsTab: View {
         VStack(alignment: .leading, spacing: Space.xl) {
             // Блока «Тариф» здесь нет и не будет. Значок кредитной карты,
             // бейдж плана и кнопка «Управление…» — это интерфейс продукта, за
-            // который платят; orakul бесплатен целиком, и строка про план
+            // который платят; cruxwing бесплатен целиком, и строка про план
             // означала бы, что где-то есть другой.
 
             // Выше выбора модели: модель без ключа не отвечает, а в готовом
             // установщике ключей нет ни одного.
             SettingsSection(title: "Provider keys",
-                            caption: "The key is entered once and lives in the Keychain. Spend goes through your own contract with the provider — orakul is not a middleman and takes no money. Without a key the model will not answer: keys are deliberately not baked into the ready-made installers.") {
+                            caption: "The key is entered once and lives in the Keychain. Spend goes through your own contract with the provider — cruxwing is not a middleman and takes no money. Without a key the model will not answer: keys are deliberately not baked into the ready-made installers.") {
                 ProviderKeysSection()
             }
 
             SettingsSection(title: "Model",
-                            caption: "Choose a provider and a version — or leave «Auto» and orakul picks one per request. Every model is available: none are withheld.") {
+                            caption: "Choose a provider and a version — or leave «Auto» and cruxwing picks one per request. Every model is available: none are withheld.") {
                 ModelSelectionRows()
             }
 
             SettingsSection(title: "Copilot",
                             caption: Config.managedUsageLimitsEnabled
                                 ? "Looks for blind spots as the recording goes, against your goal and the transcript. The observations share one hourly budget: switch one off and the rest refresh more often."
-                                : "Off by default. Turned on, orakul may propose a goal and a title, update the summary, enrich the transcript from Fireflies and run the checks you selected, as well as make extra passes for clarifications and follow-up questions. Every pass is a separate request under your contract with the AI provider. While the switch is off there are no background or extra passes; an explicit action may still make several requests to read connected sources, poll a council of models, or fall back to another provider.") {
+                                : "Off by default. Turned on, cruxwing may propose a goal and a title, update the summary, enrich the transcript from Fireflies and run the checks you selected, as well as make extra passes for clarifications and follow-up questions. Every pass is a separate request under your contract with the AI provider. While the switch is off there are no background or extra passes; an explicit action may still make several requests to read connected sources, poll a council of models, or fall back to another provider.") {
                 SettingsRow {
                     Label("Automatic AI requests", systemImage: "bolt.horizontal.circle")
                         .labelStyle(SettingLabelStyle())
@@ -780,12 +780,12 @@ private struct ConnectedAppsTab: View {
                 // «заводили ли задачу», а «обсуждали ли это». Ответ на второй
                 // чаще лежит в переписке, чем в трекере.
                 SettingsSection(title: "Work messengers",
-                                caption: "Пачка, Mattermost and Rocket.Chat can search messages. Telegram connects through a bot of its own: the Bot API does not hand over old history, so orakul archives locally and searches only messages that arrive after connecting.") {
+                                caption: "Пачка, Mattermost and Rocket.Chat can search messages. Telegram connects through a bot of its own: the Bot API does not hand over old history, so cruxwing archives locally and searches only messages that arrive after connecting.") {
                     WorkMessengersSection()
                 }
 
                 SettingsSection(title: "Self-hosted open trackers",
-                                caption: "GitLab, Gitea (and Forgejo, a fork of Gitea with the same API), Redmine, Plane, GitFlic and Jira are hosted by the team itself, so besides a token they need a server address. Jira here is only the self-hosted one: the cloud version connects over MCP above. GitHub connects above: its address is always the same. Plane and GitFlic have no word search — orakul looks through the most recent issues and writes under the answer how many it looked through.") {
+                                caption: "GitLab, Gitea (and Forgejo, a fork of Gitea with the same API), Redmine, Plane, GitFlic and Jira are hosted by the team itself, so besides a token they need a server address. Jira here is only the self-hosted one: the cloud version connects over MCP above. GitHub connects above: its address is always the same. Plane and GitFlic have no word search — cruxwing looks through the most recent issues and writes under the answer how many it looked through.") {
                     SelfHostedTrackersSection()
                 }
 
@@ -797,17 +797,17 @@ private struct ConnectedAppsTab: View {
                 }
 
                 SettingsSection(title: "Knowledge base",
-                                caption: "Outline, BookStack, Wiki.js and Nextcloud can search documents, and orakul asks them during a call: a decision written into a wiki six months ago will not be found in issues or in chat. Яндекс Вики and Teamly cannot be connected — the first has no text search in its public documentation, and the second publishes no API description at all.") {
+                                caption: "Outline, BookStack, Wiki.js and Nextcloud can search documents, and cruxwing asks them during a call: a decision written into a wiki six months ago will not be found in issues or in chat. Яндекс Вики and Teamly cannot be connected — the first has no text search in its public documentation, and the second publishes no API description at all.") {
                     TeamNotesSection()
                 }
 
                 SettingsSection(title: "Notes on this computer",
-                                caption: "An Obsidian vault, or any directory of .md files. The one source that needs neither a key nor a network: orakul reads your disk and sends nothing anywhere. A large vault is not read in full — the program writes under the answer how many files it actually read.") {
+                                caption: "An Obsidian vault, or any directory of .md files. The one source that needs neither a key nor a network: cruxwing reads your disk and sends nothing anywhere. A large vault is not read in full — the program writes under the answer how many files it actually read.") {
                     LocalNotesSection()
                 }
 
                 SettingsSection(title: "Google",  // имя сервиса, не переводится
-                                caption: "Calendar, Docs, Sheets and Drive connect through separate permissions that you control. Search is read-only; when exporting, orakul creates and changes only the files it created itself.") {
+                                caption: "Calendar, Docs, Sheets and Drive connect through separate permissions that you control. Search is read-only; when exporting, cruxwing creates and changes only the files it created itself.") {
                     GoogleSignInRow()
                 }
 
@@ -882,8 +882,8 @@ private struct OwnMCPCard: View {
             }
 
             VStack(alignment: .leading, spacing: Space.xs) {
-                setupStep(1, "In your own AI tool, add orakul as a connector at the address above.")
-                setupStep(2, "Confirm the sign-in in the browser, with the same email you use in orakul.")
+                setupStep(1, "In your own AI tool, add cruxwing as a connector at the address above.")
+                setupStep(2, "Confirm the sign-in in the browser, with the same email you use in cruxwing.")
                 setupStep(3, "Conversation, search and call context in any tool.")
             }
         }
@@ -923,7 +923,7 @@ private struct AccountPrivacyTab: View {
             // Он единственный из четырёх мест со входом не был ничем закрыт —
             // остальные смотрят на `wheesprAvailable`, и после того как адрес
             // сервера перестал зашиваться, они исчезли сами. А этот оставался
-            // на экране и обещал ровно то, чего у orakul нет: «модели без своих
+            // на экране и обещал ровно то, чего у cruxwing нет: «модели без своих
             // ключей» (нет сервера) и синхронизацию журнала решений (тоже нет).
             // Ключ провайдера вводится ниже, в разделе «ИИ», и вход для него не
             // нужен.
@@ -1210,10 +1210,10 @@ private struct GoogleSignInRow: View {
             GoogleServiceToggles()
 
             if !state.hasGoogleClientID {
-                Text("Add GOOGLE_CLIENT_ID to app/.env and rebuild orakul.")
+                Text("Add GOOGLE_CLIENT_ID to app/.env and rebuild cruxwing.")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
             } else if !state.hasGoogleClientSecret {
-                Text("Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild orakul.")
+                Text("Add GOOGLE_CLIENT_SECRET for the same Google Desktop OAuth client and rebuild cruxwing.")
                     .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
             } else if let error = state.googleConnectionError, !error.isEmpty {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -1456,7 +1456,7 @@ struct SignInSheet: View {
             .disabled(!state.hasGoogleSignInClient)
             .help(state.authWorking
                   ? "The sign-in window is already open — click to start again"
-                  : "Sign in to orakul with Google")
+                  : "Sign in to cruxwing with Google")
             }
 
             Text("Signing in is not the same as connecting Google Calendar under «Work applications».")

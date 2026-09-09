@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 /// Источник, который НЕ ОТВЕТИЛ, — не то же самое, что ответивший пусто.

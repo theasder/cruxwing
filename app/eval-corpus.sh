@@ -18,12 +18,12 @@
 #
 set -euo pipefail
 
-CORPUS="${ORAKUL_EVAL_CORPUS_DIR:-${CRUXWING_EVAL_CORPUS_DIR:-$HOME/orakul-eval-corpus}}/Sessions"
+CORPUS="${CRUXWING_EVAL_CORPUS_DIR:-${CRUXWING_EVAL_CORPUS_DIR:-$HOME/cruxwing-eval-corpus}}/Sessions"
 APP_SUPPORT="$HOME/Library/Application Support"
 
 find_history() {
-  local orakul_history="$APP_SUPPORT/ai.orakul.desktop/Sessions"
-  [ -d "$orakul_history" ] && { echo "$orakul_history"; return; }
+  local cruxwing_history="$APP_SUPPORT/ai.cruxwing.desktop/Sessions"
+  [ -d "$cruxwing_history" ] && { echo "$cruxwing_history"; return; }
   return 1
 }
 

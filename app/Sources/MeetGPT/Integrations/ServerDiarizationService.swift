@@ -59,7 +59,7 @@ enum ServerDiarizationService {
             throw Failure.notSignedIn
         }
 
-        let boundary = "orakul.\(UUID().uuidString)"
+        let boundary = "cruxwing.\(UUID().uuidString)"
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         // A long meeting is a large upload and a slow model pass; the default

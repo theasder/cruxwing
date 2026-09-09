@@ -6,7 +6,7 @@ enum GoogleSheetsService {
     private static let range = "A1:Z1000"
 
     static func read(spreadsheetID: String, accessToken: String,
-                     session: URLSession = OrakulNetworkIdentity.shared) async throws -> FetchedDocument {
+                     session: URLSession = CruxwingNetworkIdentity.shared) async throws -> FetchedDocument {
         async let titleTask = fetchTitle(spreadsheetID: spreadsheetID, accessToken: accessToken, session: session)
         async let valuesTask = fetchValues(spreadsheetID: spreadsheetID, accessToken: accessToken, session: session)
         let (title, rows) = try await (titleTask, valuesTask)

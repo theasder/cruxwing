@@ -11,7 +11,7 @@ const guard = resolve(here, '..', 'scripts', 'build-running.sh');
 
 /// Поддельный репозиторий: тот же сторож, свой каталог `app`.
 function fakeRepo() {
-  const root = mkdtempSync(resolve(tmpdir(), 'orakul-guard-'));
+  const root = mkdtempSync(resolve(tmpdir(), 'cruxwing-guard-'));
   mkdirSync(resolve(root, 'scripts'));
   mkdirSync(resolve(root, 'app'));
   copyFileSync(guard, resolve(root, 'scripts', 'build-running.sh'));
@@ -47,7 +47,7 @@ describe('сторож «идёт ли сборка»', () => {
   const repos = [fakeRepo(), fakeRepo()];
   // Запуск ровно такой, как настоящий: `cd app && bash dist-all.sh`. Именно
   // из-за него в командной строке процесса нет пути, и прежний шаблон
-  // `pgrep -f "orakul/app.*dist-all\.sh"` не совпадал ни разу.
+  // `pgrep -f "cruxwing/app.*dist-all\.sh"` не совпадал ни разу.
   let build;
   before(async () => {
     build = spawn('bash', ['dist-all.sh'], {

@@ -78,17 +78,17 @@ struct KeychainStorageTests {
     @Test("system Keychain accounts are versioned and QA-isolated")
     func systemNamespace() {
         let production = SystemKeychain.versionedAccount(
-            "google.tokens", bundleIdentifier: "ai.orakul.desktop")
+            "google.tokens", bundleIdentifier: "ai.cruxwing.desktop")
         let qa = SystemKeychain.versionedAccount(
-            "google.tokens", bundleIdentifier: "ai.orakul.desktop.qa")
+            "google.tokens", bundleIdentifier: "ai.cruxwing.desktop.qa")
 
-        #expect(production == "v1.ai.orakul.desktop.google.tokens")
-        #expect(qa == "v1.ai.orakul.desktop.qa.google.tokens")
+        #expect(production == "v1.ai.cruxwing.desktop.google.tokens")
+        #expect(qa == "v1.ai.cruxwing.desktop.qa.google.tokens")
         #expect(production != qa)
         #expect(production != "google.tokens")
-        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.orakul.desktop"))
-        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.orakul.desktop.qa"))
-        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.orakul.desktop.dev"))
+        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.cruxwing.desktop"))
+        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.cruxwing.desktop.qa"))
+        #expect(!SystemKeychain.allowsLegacyAccess(bundleIdentifier: "ai.cruxwing.desktop.dev"))
     }
 
     @Test("in-memory store round-trips set / get / delete and overwrites")

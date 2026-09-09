@@ -18,7 +18,7 @@ import { stripComments } from './swift-source.mjs';
 // безобидно, собирается, проходит все наборы этой семьи — и отменяет разом всё
 // перечисленное. Заметить это глазами нельзя: отличие в том, чего в коде НЕТ.
 
-const CORE = 'mvp/Sources/OrakulCore';
+const CORE = 'mvp/Sources/CruxwingCore';
 const DOOR = 'ConnectorSession.swift';
 
 function coreSources() {

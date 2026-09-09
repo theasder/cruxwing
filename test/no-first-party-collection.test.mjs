@@ -85,7 +85,7 @@ test('live harness never grants itself paid access or depends on removed promo h
     assert.equal(corpus.includes(marker), false,
       `removed promo/paywall test dependency returned: ${marker}`);
   }
-  assert.match(video, /ORAKUL_LIVETEST_AI_ASSERTIONS/,
+  assert.match(video, /CRUXWING_LIVETEST_AI_ASSERTIONS/,
     'live AI coverage no longer has an explicit user-configured-provider boundary');
   assert.ok(Array.isArray(manifest.requirements) && manifest.requirements.length > 50,
     'coverage manifest became vacuous while removing the promo requirement');
@@ -136,7 +136,7 @@ test('every LLM provider key is runtime BYOK with no build-time fallback', () =>
     'ProviderKeyStore regained a baked-key fallback API');
 });
 
-test('direct BYOK has no inherited Orakul credit or monthly research limit', () => {
+test('direct BYOK has no inherited Cruxwing credit or monthly research limit', () => {
   const config = readFileSync(resolve(sourceRoot, 'Config.swift'), 'utf8');
   const appState = readFileSync(resolve(sourceRoot, 'AppState.swift'), 'utf8');
   const usage = readFileSync(
@@ -149,7 +149,7 @@ test('direct BYOK has no inherited Orakul credit or monthly research limit', () 
   assert.match(config, /managedUsageLimitsEnabled:\s*Bool\s*\{\s*llmViaBackend\s*\}/,
     'managed limits are no longer tied exclusively to the managed backend');
   assert.match(usage, /UsageLimitPolicy\.permits\([\s\S]{0,240}Config\.managedUsageLimitsEnabled/,
-    'connected-app research can regain an Orakul quota in direct mode');
+    'connected-app research can regain an Cruxwing quota in direct mode');
   for (const recorder of ['recordMeeting', 'recordAIRequest', 'recordCopilot']) {
     assert.match(usage,
       new RegExp(`static func ${recorder}\\([^)]*\\) \\{[\\s\\S]{0,160}guard Config\\.managedUsageLimitsEnabled`),
@@ -157,10 +157,10 @@ test('direct BYOK has no inherited Orakul credit or monthly research limit', () 
   }
   assert.match(appState, /UsageLimitPolicy\.remaining\([\s\S]{0,180}Config\.managedUsageLimitsEnabled/,
     'automatic co-pilot can regain an inherited monthly cutoff in direct mode');
-  assert.match(brainstorm, /Config\.managedUsageLimitsEnabled[\s\S]{0,260}no Orakul limit/,
+  assert.match(brainstorm, /Config\.managedUsageLimitsEnabled[\s\S]{0,260}no Cruxwing limit/,
     'the reachable research UI still presents a managed-plan allowance to BYOK users');
-  assert.match(budget, /if Config\.llmViaBackend[\s\S]{0,1800}Orakul does not sell credits and does not limit requests/,
-    'the direct-provider prompt details are still framed as an Orakul credit product');
+  assert.match(budget, /if Config\.llmViaBackend[\s\S]{0,1800}Cruxwing does not sell credits and does not limit requests/,
+    'the direct-provider prompt details are still framed as an Cruxwing credit product');
   assert.match(budget,
     /private func directContextStatus[\s\S]{0,420}Config\.selectedRequestModel\.contextTokens/,
     'the direct-provider prompt summary regained the managed 6k tariff boundary');
@@ -264,11 +264,11 @@ test('direct UI does not invent credits or advertise managed-only services', () 
   const appState = readFileSync(resolve(sourceRoot, 'AppState.swift'), 'utf8');
 
   assert.doesNotMatch(fullContext, /baseCreditsByModel|fallbackCredits|Quote\.credits/,
-    'full-context UI regained invented Orakul credit pricing');
+    'full-context UI regained invented Cruxwing credit pricing');
   assert.doesNotMatch(brainstorm, /quote\.credits/,
-    'reachable full-context chip regained invented Orakul credits');
+    'reachable full-context chip regained invented Cruxwing credits');
   assert.doesNotMatch(glossary, /estimatedComputeCredits/,
-    'connected glossary regained invented Orakul credit estimates');
+    'connected glossary regained invented Cruxwing credit estimates');
   assert.match(settings, /if Config\.llmViaBackend[\s\S]{0,320}OwnMCPCard\(\)/,
     'direct Settings can advertise the inherited first-party MCP server');
   assert.match(sidebar, /if Config\.llmViaBackend\s*\{\s*LedgerSection\(\)/,
@@ -294,7 +294,7 @@ test('direct UI does not invent credits or advertise managed-only services', () 
     'direct mode can advertise the inherited ledger merely because BACKEND_URL is set');
 });
 
-test('copied server pricing contract and commercial research stay out of public Orakul', () => {
+test('copied server pricing contract and commercial research stay out of public Cruxwing', () => {
   const removed = [
     'app/contract/contract.json',
     'app/Tests/MeetGPTTests/SharedContract.swift',

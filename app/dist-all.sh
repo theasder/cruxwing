@@ -5,8 +5,8 @@
 # Each arch goes through the full, already-debugged notarize.sh pipeline (its own
 # scratch path under .build/<arch>, its own Developer-ID sign, its own Apple
 # notarization + staple). Output in dist/:
-#     orakul-AppleSilicon.zip  (+ .sha256)   arm64
-#     orakul-Intel.zip         (+ .sha256)   x86_64
+#     cruxwing-AppleSilicon.zip  (+ .sha256)   arm64
+#     cruxwing-Intel.zip         (+ .sha256)   x86_64
 #
 # arm64 runs first, so if the Intel leg fails the Apple Silicon artifact and
 # its diagnostics are still available. Prerequisites are
@@ -41,4 +41,4 @@ ls -1 "$ROOT/dist/"*.zip "$ROOT/dist/"*.dmg 2>/dev/null || true
 # Packaging ends in this repository. Publishing is a separate, explicit
 # maintainer action; a public build script must not mutate a sibling checkout.
 echo ">> проверить свежесть и подписи:"
-echo "   bash \"$ROOT/../scripts/audit-dmg.sh\" \"$ROOT/dist/orakul-AppleSilicon.dmg\" \"$ROOT/dist/orakul-Intel.dmg\""
+echo "   bash \"$ROOT/../scripts/audit-dmg.sh\" \"$ROOT/dist/cruxwing-AppleSilicon.dmg\" \"$ROOT/dist/cruxwing-Intel.dmg\""

@@ -23,7 +23,7 @@ struct ServerFallbackTranscriptionTests {
     }
 
     private func capError(_ code: Int) -> NSError {
-        NSError(domain: "OrakulWhisper", code: code,
+        NSError(domain: "CruxwingWhisper", code: code,
                 userInfo: [NSLocalizedDescriptionKey: "err \(code)"])
     }
 

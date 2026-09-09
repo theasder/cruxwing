@@ -100,14 +100,14 @@ final class TeamWatcher: ObservableObject {
                                       // видно всем, включая владельца сервиса.
                                       // Стояло чужое имя продукта, и
                                       // по-английски — в русской переписке.
-                                      text: "⚑ orakul: the word «\(keyword)» was spotted — the team was notified.")
+                                      text: "⚑ cruxwing: the word «\(keyword)» was spotted — the team was notified.")
         }
     }
 
     // MARK: - Audit trail
 
     static var auditLogURL: URL {
-        let url = OrakulApplicationSupport.teamWatchAuditLogURL
+        let url = CruxwingApplicationSupport.teamWatchAuditLogURL
         let dir = url.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true,
                                                  attributes: [.posixPermissions: 0o700])

@@ -61,7 +61,7 @@ struct SetupCard: View {
                     SetupRow(done: captureVerified, title: "Capture permissions granted")
                     if showsProviderKeyRow {
                         // Раньше здесь предлагался вход ради «моделей без своих
-                        // ключей» — обещание сервера, которого у orakul нет.
+                        // ключей» — обещание сервера, которого у cruxwing нет.
                         // Человек, дошедший до этой строки, не мог по ней ничего
                         // сделать: она открывала SignInSheet. Настоящий шаг один
                         // — вставить свой ключ, а вводят его в настройках.
@@ -164,7 +164,7 @@ struct NoCallTodayCard: View {
                 }
 
                 VStack(alignment: .leading, spacing: Space.s) {
-                    Text("Point orakul at something you were going to listen to anyway.")
+                    Text("Point cruxwing at something you were going to listen to anyway.")
                         .font(Typo.caption).foregroundStyle(Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                     SuggestedSource(

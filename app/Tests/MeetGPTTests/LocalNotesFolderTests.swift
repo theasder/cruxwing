@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Разрешение на папку с заметками.
 ///
@@ -14,14 +14,14 @@ import OrakulCore
     /// живого приложения, и чтобы параллельные проверки не перетирали друг
     /// другу папку.
     static func isolated() -> LocalNotesFolder {
-        LocalNotesFolder(defaults: UserDefaults(suiteName: "orakul.tests.\(UUID().uuidString)")!)
+        LocalNotesFolder(defaults: UserDefaults(suiteName: "cruxwing.tests.\(UUID().uuidString)")!)
     }
 
     final class Vault {
         let root: URL
         init() {
             root = URL(fileURLWithPath: NSTemporaryDirectory())
-                .appendingPathComponent("orakul-folder-\(UUID().uuidString)")
+                .appendingPathComponent("cruxwing-folder-\(UUID().uuidString)")
             try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         }
         deinit { try? FileManager.default.removeItem(at: root) }

@@ -11,7 +11,7 @@ import { bodyOf, callsInside, stripComments } from './swift-source.mjs';
 // no claim without something real behind it. A page for a tool that listens to
 // people's meetings earns trust by being checkable, and these numbers are
 // checkable — they come from the measurements recorded in docs/RESEARCH-AND-PLAN.md and from
-// the sources cited in orakul/docs/RESEARCH-AND-PLAN.md.
+// the sources cited in cruxwing/docs/RESEARCH-AND-PLAN.md.
 
 const here = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(resolve(here, '..', 'public', 'index.html'), 'utf8');
@@ -27,7 +27,7 @@ function consoleHints() {
 }
 const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
 
-describe('orakul landing (ru)', () => {
+describe('cruxwing landing (ru)', () => {
   test('is declared Russian, top to bottom', () => {
     assert.match(html, /<html lang="ru">/);
     assert.match(html, /og:locale" content="ru_RU"/);
@@ -172,8 +172,8 @@ describe('orakul landing (ru)', () => {
   });
 
   test('offers no download while no build is published', () => {
-    // Checked against the world, not assumed: cruxwing.ai/download/orakul-*.dmg
-    // returns 404, orakul.ai does not resolve, and the rsync host redirects to
+    // Checked against the world, not assumed: cruxwing.ai/download/cruxwing-*.dmg
+    // returns 404, cruxwing.ai does not resolve, and the rsync host redirects to
     // a login. Historical installers exist, but they do not pass this tree's
     // provenance audit and nothing serves a current build publicly — so a
     // download button here would misrepresent the release state.
@@ -261,7 +261,7 @@ describe('orakul landing (ru)', () => {
     // sell it. Reading the `title` switch keeps this honest either way: if the
     // connectors are ever deleted for real, this check goes with them.
     const src = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8');
     const block = src.slice(src.indexOf('public var title: String'));
     const titles = [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
       .map(([, title]) => title);
@@ -488,7 +488,7 @@ describe('orakul landing (ru)', () => {
     // Страница обещает проверку до запроса. Обещание держится, пока список
     // сервисов на странице и в коде один и тот же.
     const messengers = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'WorkMessengers.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'WorkMessengers.swift'), 'utf8');
     const body = bodyOf(messengers, 'public var pairedTokenPrompt: String?');
     assert.ok(body, 'the code no longer marks which services need two values');
 
@@ -505,10 +505,10 @@ describe('orakul landing (ru)', () => {
   });
 
   test('the org headers the page names are the ones the app can actually send', () => {
-    // Страница обещает, что orakul сам выберет заголовок. Обещание держится,
+    // Страница обещает, что cruxwing сам выберет заголовок. Обещание держится,
     // пока обе половины — текст и код — говорят одно и то же.
     const trackers = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8');
     const chooser = bodyOf(trackers, 'static func orgHeader(for organisation: String)');
     assert.ok(chooser, 'the app no longer chooses an organisation header');
     const sendable = [...chooser.matchAll(/"([A-Za-z-]*Org-ID)"/g)].map((m) => m[1]);
@@ -581,7 +581,7 @@ describe('orakul landing (ru)', () => {
     assert.ok(build[1].includes('dist-all.sh'),
       `README documents "${build[1]}" — following it can leave one architecture stale`);
     assert.match(readme,
-      /bash scripts\/audit-dmg\.sh app\/dist\/orakul-AppleSilicon\.dmg app\/dist\/orakul-Intel\.dmg/,
+      /bash scripts\/audit-dmg\.sh app\/dist\/cruxwing-AppleSilicon\.dmg app\/dist\/cruxwing-Intel\.dmg/,
       'README does not pass both built DMGs to the standalone audit');
   });
 
@@ -757,7 +757,7 @@ describe('orakul landing (ru)', () => {
     // comments may name absent services, so a plain substring search would call
     // them shipped. Telegram is a separate prospective-only source rather than
     // a server-side search connector, and is detected from its own type.
-    // Три коннектора переехали в OrakulCore — они знают только Foundation и
+    // Три коннектора переехали в CruxwingCore — они знают только Foundation и
     // потому доступны и приложению, и командной строке.
     const titles = (path) => {
       const src = readFileSync(resolve(here, '..', ...path), 'utf8');
@@ -766,7 +766,7 @@ describe('orakul landing (ru)', () => {
         .map(([, title]) => title);
     };
 
-    const core = ['mvp', 'Sources', 'OrakulCore'];
+    const core = ['mvp', 'Sources', 'CruxwingCore'];
     const telegram = readFileSync(
       resolve(here, '..', ...core, 'TelegramSupergroups.swift'), 'utf8');
     const shipped = [...titles([...core, 'WorkMessengers.swift']),
@@ -831,7 +831,7 @@ describe('orakul landing (ru)', () => {
     // than a list maintained by hand — a chip may go solid only once the
     // service exists in the build, and must go solid once it does.
     const trackers = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8');
     // Only the `title` switch counts as "shipped". Reading the whole file was
     // wrong in a way that mattered: a doc comment can explain why a service is
     // absent, so a plain substring search may call it shipped. Only enum cases
@@ -982,18 +982,18 @@ describe('orakul landing (ru)', () => {
 
     // Ядро не «на будущее»: приложение действительно на него ссылается.
     const manifest = readFileSync(resolve(here, '..', 'app', 'Package.swift'), 'utf8');
-    assert.match(manifest, /product\(name: "OrakulCore", package: "mvp"\)/,
+    assert.match(manifest, /product\(name: "CruxwingCore", package: "mvp"\)/,
       'the app stopped linking the portable core — the page claim goes hollow');
 
     // И общий разбор слова: страница обещает «написан один раз».
-    for (const file of ['mvp/Sources/OrakulCore/RecallIndex.swift',
+    for (const file of ['mvp/Sources/CruxwingCore/RecallIndex.swift',
                         'app/Sources/MeetGPT/AI/DecisionRecallService.swift']) {
       const code = stripComments(readFileSync(resolve(here, '..', file), 'utf8'));
       assert.match(code, /canonicalToken\(for:|RecallIndex\.searchToken\(for:/,
         `${file} stopped using the shared word lookup`);
     }
 
-    const guard = resolve(here, '..', 'mvp', 'Tests', 'OrakulCoreTests', 'PortabilityTests.swift');
+    const guard = resolve(here, '..', 'mvp', 'Tests', 'CruxwingCoreTests', 'PortabilityTests.swift');
     assert.ok(existsSync(guard),
       'the page claims the core is checked for portability; no such test exists');
 
@@ -1023,7 +1023,7 @@ describe('orakul landing (ru)', () => {
     assert.match(open, /вычитываются из него и выполняются/,
       'the page no longer claims the README commands are executed');
 
-    const guard = resolve(here, '..', 'mvp', 'Tests', 'OrakulCoreTests',
+    const guard = resolve(here, '..', 'mvp', 'Tests', 'CruxwingCoreTests',
                           'ReadmeQuickstartTests.swift');
     assert.ok(existsSync(guard),
       'the page says the README commands are executed; no such test exists');
@@ -1270,28 +1270,28 @@ describe('orakul landing (ru)', () => {
     // А `searchToken` обязан вести в тот же словарь, иначе общий разбор общий
     // только по названию.
     const core = stripComments(readFileSync(resolve(
-      here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8'));
+      here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8'));
     assert.match(core, /public static func searchToken[\s\S]{0,120}stem\(word\)/,
       'searchToken stopped routing through the shared stem');
 
     // Командная строка — то, что пробуют по README.
-    const cli = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const cli = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                      'RecallIndex.swift'), 'utf8');
     assert.equal(callsInside(cli, 'static func stem', 'RussianLexicon.canonicalToken'), true,
       'the CLI search no longer folds spellings to one canonical token');
     // Возврат КАНОНА, а не написания из запроса, теперь живёт в общем разборе.
     assert.match(stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianLexicon.swift'), 'utf8')),
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianLexicon.swift'), 'utf8')),
       /canonicalIndex\[key\] \{ return normalized\(canonical\) \}/,
       'the shared lookup returns the incoming spelling instead of the canonical form');
 
     // Падежи терминов — отдельное обещание и отдельная таблица.
     assert.match(text, /Термины тоже склоняются/,
       'the page no longer promises that terms decline');
-    // Словарь один на оба поиска: приложение линкует OrakulCore, а не
+    // Словарь один на оба поиска: приложение линкует CruxwingCore, а не
     // держит вторую копию.
     const shared = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianLexicon.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianLexicon.swift'), 'utf8'));
     assert.match(shared, /static func inflections\(\)/,
       'the shared lexicon has no inflection table — declined terms stop matching');
     // Падежи входят в тот же общий разбор — отдельного вызова больше нет.
@@ -1310,7 +1310,7 @@ describe('orakul landing (ru)', () => {
     assert.match(text, /Имя говорящего идёт вместе с цитатой/,
       'the page no longer promises attributed quotes');
 
-    const cli = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const cli = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                      'RecallIndex.swift'), 'utf8');
     assert.equal(callsInside(cli, 'static func excerpt', 'splitSpeaker'), true,
       'the CLI excerpt no longer separates the speaker from the sentence');
@@ -1329,7 +1329,7 @@ describe('orakul landing (ru)', () => {
     assert.match(text, /Двести \S+ звонков в архиве/,
       'the page no longer states how search behaves on a real archive');
 
-    const tests = readFileSync(resolve(here, '..', 'mvp', 'Tests', 'OrakulCoreTests',
+    const tests = readFileSync(resolve(here, '..', 'mvp', 'Tests', 'CruxwingCoreTests',
                                        'RecallIndexTests.swift'), 'utf8');
     const code = stripComments(tests);
     assert.match(code, /Скорость поиска/,
@@ -1351,7 +1351,7 @@ describe('orakul landing (ru)', () => {
     // в собственной структурной проверке, и утверждение о нём совпадало бы
     // даже с вырезанной оптимизацией.
     const recall = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8'));
     assert.match(recall, /endingsByLength/,
       'the ending lookup is back to scanning the whole list on the hot path');
     assert.doesNotMatch(recall, /for ending in endings where/,
@@ -1359,7 +1359,7 @@ describe('orakul landing (ru)', () => {
 
     // И таблицы словаря обязаны строиться один раз, иначе скорость вернётся.
     const lexicon = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianLexicon.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianLexicon.swift'), 'utf8'));
     assert.match(lexicon, /static let canonicalIndex/,
       'the shared lexicon rebuilds the canonical table per call again');
     assert.match(lexicon, /static let inflectionIndex/,
@@ -1374,11 +1374,11 @@ describe('orakul landing (ru)', () => {
       'the page no longer shows what a connector failure reads like');
 
     const connectors = [
-      ['WorkMessengers', ['mvp', 'Sources', 'OrakulCore', 'WorkMessengers.swift']],
-      ['SelfHostedTrackers', ['mvp', 'Sources', 'OrakulCore', 'SelfHostedTrackers.swift']],
-      ['TeamNotes', ['mvp', 'Sources', 'OrakulCore', 'TeamNotes.swift']],
-      ['RussianTrackers', ['mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift']],
-      ['GitHubConnector', ['mvp', 'Sources', 'OrakulCore', 'GitHubConnector.swift']],
+      ['WorkMessengers', ['mvp', 'Sources', 'CruxwingCore', 'WorkMessengers.swift']],
+      ['SelfHostedTrackers', ['mvp', 'Sources', 'CruxwingCore', 'SelfHostedTrackers.swift']],
+      ['TeamNotes', ['mvp', 'Sources', 'CruxwingCore', 'TeamNotes.swift']],
+      ['RussianTrackers', ['mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift']],
+      ['GitHubConnector', ['mvp', 'Sources', 'CruxwingCore', 'GitHubConnector.swift']],
     ];
     for (const [name, file] of connectors) {
       const source = stripComments(readFileSync(resolve(here, '..', ...file), 'utf8'));
@@ -1444,7 +1444,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer explains why silence here is the worse lie');
 
     const answer = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8'));
     assert.match(answer, /unreadable: \[String\]/,
       'the shared answer no longer accepts the unreadable list');
     assert.match(answer, /guard !unreadable\.isEmpty else \{ return answer \}/,
@@ -1479,7 +1479,7 @@ describe('orakul landing (ru)', () => {
       'the page presents the number as a guarantee rather than a measurement');
 
     const perf = readFileSync(
-      resolve(here, '..', 'mvp', 'Tests', 'OrakulCoreTests', 'RecallIndexTests.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Tests', 'CruxwingCoreTests', 'RecallIndexTests.swift'), 'utf8');
     // Из ТЕЛА нужной функции, а не поиском по файлу: рядом лежит другой
     // замер со своим потолком, и первая версия этой проверки поймала именно
     // его — ровно та ошибка соседнего совпадения, что уже случалась здесь.
@@ -1517,7 +1517,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer states what the check compares');
 
     const cli = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CommandLineApp.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'CommandLineApp.swift'), 'utf8'));
     assert.match(cli, /\$0\.digest == text/,
       'the duplicate check compares something other than the transcript text');
 
@@ -1525,7 +1525,7 @@ describe('orakul landing (ru)', () => {
     // настолько, что копии перестанут вытеснять, довод на странице обветшает —
     // пусть об этом узнают здесь, а не читатели.
     const answer = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8'));
     const cap = /maximumMeetings = (\d+)/.exec(answer);
     assert.ok(cap, 'the answer cap is gone — the page argues from it');
     assert.ok(Number(cap[1]) <= 5,
@@ -1541,7 +1541,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer states the notice is conditional');
 
     const query = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'ConnectorQuery.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'ConnectorQuery.swift'), 'utf8'));
     assert.match(query, /lines\.count >= searchLimit/,
       'the notice is unconditional or gone — either way the page is wrong');
     assert.match(query, /Showing the first \\\(searchLimit\)/,
@@ -1564,7 +1564,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer says who emptied it');
 
     const cli = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CommandLineApp.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'CommandLineApp.swift'), 'utf8'));
     assert.match(cli, /let fileWasEmpty = raw\.trimmingCharacters/,
       'the two causes are conflated again — a file with markup reads as empty');
     assert.match(cli, /The file has no speech in it/,
@@ -1581,7 +1581,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer states how binary is told apart');
 
     const decoder = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'TranscriptFile.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'TranscriptFile.swift'), 'utf8'));
     // Раньше здесь стояло `windowsCP1251` — имя системной кодировки. Оно ушло
     // 2026-08-17 вместе с самой системной таблицей: её нет в
     // swift-corelibs-foundation, и на Linux с Windows этот путь молча отвечал бы
@@ -1589,7 +1589,7 @@ describe('orakul landing (ru)', () => {
     // держится теперь на своей таблице, и проверять надо её.
     assert.match(decoder, /CP1251\.decode/, 'the CP1251 fallback is gone');
     const table = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CP1251.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'CP1251.swift'), 'utf8');
     assert.match(table, /0x0410, 0x0411, 0x0412/,
       'the CP1251 table lost its Cyrillic block — the page promises files it can no longer read');
     // Метка порядка байтов обязательна: без неё UTF-16 берётся за любые байты
@@ -1618,7 +1618,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer names the failure it fixed');
 
     const trackers = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8'));
     assert.doesNotMatch(trackers, /Int\(place\)\s*\?\?\s*0/,
       'the silent zero is back — a board name would ship as board 0');
     assert.match(trackers, /guard let board = Int\(place\.trimmingCharacters/,
@@ -1641,7 +1641,7 @@ describe('orakul landing (ru)', () => {
     assert.match(text, /502 или 504/,
       'the page no longer names the on-premise failure it is about');
 
-    const core = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore');
+    const core = resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore');
     for (const file of ['SelfHostedTrackers.swift', 'TeamNotes.swift',
                         'WorkMessengers.swift']) {
       const source = stripComments(readFileSync(resolve(core, file), 'utf8'));
@@ -1683,7 +1683,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer states the boundary that makes this safe');
 
     const lexicon = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianLexicon.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianLexicon.swift'), 'utf8');
 
     // Имена, названные на странице, обязаны быть в таблице.
     for (const name of ['redis', 'postgres', 'git', 'nginx', 'clickhouse']) {
@@ -1717,17 +1717,17 @@ describe('orakul landing (ru)', () => {
       'the page no longer states the boundary it keeps');
 
     const cleanup = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'TranscriptCleanup.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'TranscriptCleanup.swift'), 'utf8');
     // Якорь начала строки — это и есть граница. Без него отметка из цитаты
     // лога тоже была бы вычищена, и обещание стало бы ложным.
     assert.match(cleanup, /\^\\s\*\\\[/,
       'the inline pattern lost its start-of-line anchor — mid-sentence stamps would go too');
 
     // Чистка обязана стоять на обеих дверях в архив.
-    for (const [file, door] of [['CommandLineApp.swift', 'orakul добавить'],
-                                ['MeetingPipeline.swift', 'orakul расшифровать']]) {
+    for (const [file, door] of [['CommandLineApp.swift', 'cruxwing добавить'],
+                                ['MeetingPipeline.swift', 'cruxwing расшифровать']]) {
       const source = readFileSync(
-        resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', file), 'utf8');
+        resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', file), 'utf8');
       assert.match(source, /TranscriptCleanup\.strip/,
         `${door} stores the raw transcript again`);
     }
@@ -1743,7 +1743,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer says why the old answer was wrong');
 
     const answer = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8'));
     // Только когда ничего не нашлось: находка означает, что вопрос был
     // достаточно конкретным, и придираться к нему поздно.
     assert.match(answer, /grounded\.isEmpty, RecallIndex\.tokens\(query\)\.isEmpty/,
@@ -1751,7 +1751,7 @@ describe('orakul landing (ru)', () => {
 
     // Держится на том, что указательные слова считаются служебными.
     const index = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8'));
     for (const word of ['"это"', '"там"', '"этому"']) {
       assert.ok(index.includes(word),
         `${word} is searchable again — «а что там по этому» would search for noise`);
@@ -1768,7 +1768,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer says why the rule is not made smarter');
 
     const index = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8'));
     // Оговорка правдива только пока правило действительно простое: если
     // появится отбор «какая реплика настоящая», страница станет врать.
     assert.doesNotMatch(index, /bestLineIndex \+ 2/,
@@ -1788,7 +1788,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer states the boundary that keeps this honest');
 
     const index = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8'));
     assert.match(index, /guard bestWasQuestion/,
       'the next line is attached to every hit, or to none — both make the page wrong');
     assert.match(index, /character == "\?"/,
@@ -1800,7 +1800,7 @@ describe('orakul landing (ru)', () => {
     // программой на одном слове. Третий ответ — про пустой архив — добавлен
     // потому, что первым его читает тот, кто спросил раньше, чем добавил.
     const answers = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8');
 
     for (const [quoted, why] of [
       ['The saved calls did not discuss this', 'честный отказ'],
@@ -1851,7 +1851,7 @@ describe('orakul landing (ru)', () => {
   });
 
   test('the terminal promises — exit status and a Russian network error — hold', () => {
-    // Обе найдены запуском собранной команды, а не чтением кода: `orakul
+    // Обе найдены запуском собранной команды, а не чтением кода: `cruxwing
     // спросить kaiten` с недоступным адресом печатал «Could not connect to
     // the server.» и завершался нулём. Оба обещания на странице новые, и
     // обоим нужен якорь в коде, иначе они станут враньём молча.
@@ -1861,7 +1861,7 @@ describe('orakul landing (ru)', () => {
       'the page no longer shows what a network failure reads like');
 
     const query = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'ConnectorQuery.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'ConnectorQuery.swift'), 'utf8'));
 
     // Отказ обязан отличаться от ответа — иначе коду возврата неоткуда взяться.
     assert.match(query, /failed: true/,
@@ -1884,7 +1884,7 @@ describe('orakul landing (ru)', () => {
     // Точка входа обязана этот признак использовать: без этого всё выше —
     // мёртвая структура, а команда по-прежнему возвращает ноль.
     const main = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'orakul', 'main.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'cruxwing', 'main.swift'), 'utf8'));
     assert.match(main, /exitCode: answer\.failed \? 1 : 0/,
       'the CLI ignores the failure flag — the exit status is hardcoded again');
   });
@@ -1932,23 +1932,23 @@ describe('orakul landing (ru)', () => {
     // Обещание из двух частей: команда есть, и коннекторы лежат в ядре, а не
     // в оболочке. Вторая часть — то, ради чего их и переносили: одна копия
     // кода на приложение и терминал вместо двух.
-    const example = /orakul ask ([A-Za-z]+) /.exec(text);
+    const example = /cruxwing ask ([A-Za-z]+) /.exec(text);
     assert.ok(example, 'the page no longer shows the terminal connector command');
-    // Пример должен звать НАСТОЯЩИЙ сервис: `orakul ask jira` на странице
+    // Пример должен звать НАСТОЯЩИЙ сервис: `cruxwing ask jira` на странице
     // выглядит так же убедительно и не работает.
     const known = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'ConnectorQuery.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'ConnectorQuery.swift'), 'utf8'));
     const russian = stripComments(readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8'));
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8'));
     const cases = /case (yandexTracker[^\n]*)/.exec(russian)?.[1].split(',').map((s) => s.trim()) ?? [];
     assert.ok(cases.length >= 3, 'the Russian tracker cases could not be read');
     assert.ok(cases.includes(example[1]) || known.includes(`"${example[1]}"`),
-      `the page shows «orakul ask ${example[1]}» — no such service`);
+      `the page shows «cruxwing ask ${example[1]}» — no such service`);
     // Продукт делается для российской команды: в примере стоит российский трекер.
     assert.ok(cases.includes(example[1]),
       `the example points at ${example[1]}, not one of the Russian trackers`);
 
-    const core = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore');
+    const core = resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore');
     for (const file of ['WorkMessengers.swift', 'SelfHostedTrackers.swift', 'TeamNotes.swift']) {
       assert.ok(existsSync(resolve(core, file)),
         `${file} left the portable core — the terminal loses the connector`);
@@ -1959,7 +1959,7 @@ describe('orakul landing (ru)', () => {
 
     // И в подсказке CLI — те же сервисы, что есть в коде.
     const cli = readFileSync(resolve(core, 'CommandLineApp.swift'), 'utf8');
-    assert.match(cli, /orakul ask <service> <question>/,
+    assert.match(cli, /cruxwing ask <service> <question>/,
       'the command is not listed in the CLI help');
   });
 
@@ -1973,7 +1973,7 @@ describe('orakul landing (ru)', () => {
     assert.ok(stated, `unknown number word on the page: ${promise[1]}`);
 
     const cli = stripComments(readFileSync(resolve(
-      here, '..', 'mvp', 'Sources', 'OrakulCore', 'CommandLineApp.swift'), 'utf8'));
+      here, '..', 'mvp', 'Sources', 'CruxwingCore', 'CommandLineApp.swift'), 'utf8'));
     const threshold = /needle\.count >= (\d+)/.exec(cli);
     assert.ok(threshold, 'the minimum prefix length is gone from the code');
     assert.equal(Number(threshold[1]), stated,
@@ -2080,7 +2080,7 @@ describe('orakul landing (ru)', () => {
   });
 
   test('the page neither claims publication happened nor freezes audit totals', () => {
-    // Имя репозитория блокером быть перестало: theasder/orakul перенаправляет
+    // Имя репозитория блокером быть перестало: theasder/cruxwing перенаправляет
     // на theasder/cruxwing, то есть на этот же репозиторий (проверено
     // 2026-09-09). Блокер остался, но другой — свежего выпуска нет. Старый
     // рассказ о состоявшейся публикации и однажды измеренные счётчики
@@ -2158,7 +2158,7 @@ describe('orakul landing (ru)', () => {
     const claim = /падеж вопроса и падеж речи сходятся/.test(text);
     assert.ok(claim, 'страница больше не обещает падежи');
     const source = readFileSync(resolve(
-      here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallIndex.swift'), 'utf8');
+      here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallIndex.swift'), 'utf8');
     for (const ending of ['"ием"', '"ия"', '"ию"', '"ии"']) {
       assert.ok(source.includes(ending),
         `окончание ${ending} пропало — обещание про падежи перестало быть правдой`);
@@ -2208,7 +2208,7 @@ describe('orakul landing (ru)', () => {
     // Перечисление объявлено через запятую в одну строку — считать надо все
     // имена, а не первое: ровно на этом уже спотыкалась проверка про GigaChat.
     const source = stripComments(readFileSync(resolve(
-      here, '..', 'mvp', 'Sources', 'OrakulCore', 'RussianTrackers.swift'), 'utf8'));
+      here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RussianTrackers.swift'), 'utf8'));
     const block = /public enum Service[^{]*\{([\s\S]*?)\n\s{8}public var title/.exec(source);
     assert.ok(block, 'перечисление сервисов не читается');
     const cases = (block[1].match(/case ([^\n]+)/g) ?? [])
@@ -2271,7 +2271,7 @@ describe('orakul landing (ru)', () => {
     const [, words, seconds] = claim;
     assert.ok(Number(words) >= 400, `корпус на странице меньше месяца звонков: ${words} тыс.`);
 
-    const test = readFileSync(resolve(here, '..', 'mvp', 'Tests', 'OrakulCoreTests',
+    const test = readFileSync(resolve(here, '..', 'mvp', 'Tests', 'CruxwingCoreTests',
                                       'RecallIndexTests.swift'), 'utf8');
     // Замер обязан строить корпус не меньше того, о котором говорит страница.
     assert.match(test, /totalWords > 400_000/,
@@ -2433,7 +2433,7 @@ describe('orakul landing (ru)', () => {
     assert.ok(demo, 'блок с показанным выводом пропал со страницы');
 
     const answer = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'RecallAnswer.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'RecallAnswer.swift'), 'utf8');
     const refusal = /"(The saved calls [^"]+)"/.exec(answer)?.[1];
     assert.ok(refusal, 'отказ пропал из RecallAnswer.swift');
     assert.ok(demo.includes(refusal),
@@ -2452,10 +2452,10 @@ describe('orakul landing (ru)', () => {
     // Команды в блоке — те же, что человек наберёт: имя программы и глаголы
     // разбираются командной строкой, а не придуманы для картинки.
     const cli = readFileSync(
-      resolve(here, '..', 'mvp', 'Sources', 'OrakulCore', 'CommandLineApp.swift'), 'utf8');
+      resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore', 'CommandLineApp.swift'), 'utf8');
     for (const verb of ['найти']) {
       assert.ok(cli.includes(`"${verb}"`),
-        `страница показывает «orakul ${verb}», а команда так не называется`);
+        `страница показывает «cruxwing ${verb}», а команда так не называется`);
     }
   });
 });

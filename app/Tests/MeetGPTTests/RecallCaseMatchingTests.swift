@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import MeetGPT
-import OrakulCore
+import CruxwingCore
 
 /// Поиск по прошлым звонкам в приложении складывает совпадения множествами
 /// слов. Для русского запроса это и есть весь поиск: вторая половина —

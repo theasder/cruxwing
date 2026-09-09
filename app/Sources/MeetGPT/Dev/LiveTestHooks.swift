@@ -1,6 +1,7 @@
 import AppKit
 import Darwin
 import Foundation
+import CruxwingCore
 
 /// Dev-build-only automation surface for the live-test driver
 /// (`mac/livetest.sh`): the script exercises the REAL app — record, scripted
@@ -12,50 +13,50 @@ import Foundation
 /// normal developer launch has neither value, so the hooks remain disabled.
 ///
 /// Commands:
-///   ai.orakul.desktop.livetest.toggleRecording
-///   ai.orakul.desktop.livetest.runPrompt    userInfo["id"]   = QuickPrompt id
-///   ai.orakul.desktop.livetest.cancelPrompt userInfo["exchangeID"] = exact active id
-///   ai.orakul.desktop.livetest.dumpState    userInfo["path"] = output JSON path,
+///   ai.cruxwing.desktop.livetest.toggleRecording
+///   ai.cruxwing.desktop.livetest.runPrompt    userInfo["id"]   = QuickPrompt id
+///   ai.cruxwing.desktop.livetest.cancelPrompt userInfo["exchangeID"] = exact active id
+///   ai.cruxwing.desktop.livetest.dumpState    userInfo["path"] = output JSON path,
 ///                                     userInfo["requestID"] = acknowledgement id
-///   ai.orakul.desktop.livetest.ask          userInfo["text"] = free-form composer ask
-///   ai.orakul.desktop.livetest.injectLine   userInfo["text","source"("mic"|"system"),"speaker"?]
-///   ai.orakul.desktop.livetest.latchQuota   userInfo["message"]? — simulate the 429 latch
-///   ai.orakul.desktop.livetest.promptSurface userInfo["type"] = poll | mandatory | contextual
-///   ai.orakul.desktop.livetest.clearPromptSurface
-///   ai.orakul.desktop.livetest.newCall      — Start new call (resets per-call state)
-///   ai.orakul.desktop.livetest.openSettings  userInfo["tab"] = SettingsTab raw value
-///   ai.orakul.desktop.livetest.closeSettings
-///   ai.orakul.desktop.livetest.applySetting  userInfo["id","value"] — whitelisted only
-///   ai.orakul.desktop.livetest.restoreSettings — restore launch-time preferences
-///   ai.orakul.desktop.livetest.setSyntheticCallGoal userInfo["fixtureID","commandID"]
-///   ai.orakul.desktop.livetest.refreshBlindSpot userInfo["fixtureID","commandID"]
-///   ai.orakul.desktop.livetest.glossarySuggestions userInfo["action","commandID"]
+///   ai.cruxwing.desktop.livetest.ask          userInfo["text"] = free-form composer ask
+///   ai.cruxwing.desktop.livetest.injectLine   userInfo["text","source"("mic"|"system"),"speaker"?]
+///   ai.cruxwing.desktop.livetest.latchQuota   userInfo["message"]? — simulate the 429 latch
+///   ai.cruxwing.desktop.livetest.promptSurface userInfo["type"] = poll | mandatory | contextual
+///   ai.cruxwing.desktop.livetest.clearPromptSurface
+///   ai.cruxwing.desktop.livetest.newCall      — Start new call (resets per-call state)
+///   ai.cruxwing.desktop.livetest.openSettings  userInfo["tab"] = SettingsTab raw value
+///   ai.cruxwing.desktop.livetest.closeSettings
+///   ai.cruxwing.desktop.livetest.applySetting  userInfo["id","value"] — whitelisted only
+///   ai.cruxwing.desktop.livetest.restoreSettings — restore launch-time preferences
+///   ai.cruxwing.desktop.livetest.setSyntheticCallGoal userInfo["fixtureID","commandID"]
+///   ai.cruxwing.desktop.livetest.refreshBlindSpot userInfo["fixtureID","commandID"]
+///   ai.cruxwing.desktop.livetest.glossarySuggestions userInfo["action","commandID"]
 ///       action = generate | acceptFirst | rejectFirst (fixed synthetic data)
 @MainActor
 enum LiveTestHooks {
-    static let toggleRecording = Notification.Name("ai.orakul.desktop.livetest.toggleRecording")
-    static let runPrompt = Notification.Name("ai.orakul.desktop.livetest.runPrompt")
-    static let cancelPrompt = Notification.Name("ai.orakul.desktop.livetest.cancelPrompt")
+    static let toggleRecording = Notification.Name("ai.cruxwing.desktop.livetest.toggleRecording")
+    static let runPrompt = Notification.Name("ai.cruxwing.desktop.livetest.runPrompt")
+    static let cancelPrompt = Notification.Name("ai.cruxwing.desktop.livetest.cancelPrompt")
     /// Fixed, transcript-only prompt used to prove model snapshot semantics
     /// without spending connected-app grounding tokens in every live condition.
     nonisolated static let modelSnapshotPromptID = "livetest-model-snapshot"
-    static let dumpState = Notification.Name("ai.orakul.desktop.livetest.dumpState")
-    static let ask = Notification.Name("ai.orakul.desktop.livetest.ask")
-    static let injectLine = Notification.Name("ai.orakul.desktop.livetest.injectLine")
-    static let latchQuota = Notification.Name("ai.orakul.desktop.livetest.latchQuota")
-    static let promptSurface = Notification.Name("ai.orakul.desktop.livetest.promptSurface")
-    static let clearPromptSurface = Notification.Name("ai.orakul.desktop.livetest.clearPromptSurface")
-    static let newCall = Notification.Name("ai.orakul.desktop.livetest.newCall")
-    static let openSettings = Notification.Name("ai.orakul.desktop.livetest.openSettings")
-    static let closeSettings = Notification.Name("ai.orakul.desktop.livetest.closeSettings")
-    static let applySetting = Notification.Name("ai.orakul.desktop.livetest.applySetting")
-    static let restoreSettings = Notification.Name("ai.orakul.desktop.livetest.restoreSettings")
+    static let dumpState = Notification.Name("ai.cruxwing.desktop.livetest.dumpState")
+    static let ask = Notification.Name("ai.cruxwing.desktop.livetest.ask")
+    static let injectLine = Notification.Name("ai.cruxwing.desktop.livetest.injectLine")
+    static let latchQuota = Notification.Name("ai.cruxwing.desktop.livetest.latchQuota")
+    static let promptSurface = Notification.Name("ai.cruxwing.desktop.livetest.promptSurface")
+    static let clearPromptSurface = Notification.Name("ai.cruxwing.desktop.livetest.clearPromptSurface")
+    static let newCall = Notification.Name("ai.cruxwing.desktop.livetest.newCall")
+    static let openSettings = Notification.Name("ai.cruxwing.desktop.livetest.openSettings")
+    static let closeSettings = Notification.Name("ai.cruxwing.desktop.livetest.closeSettings")
+    static let applySetting = Notification.Name("ai.cruxwing.desktop.livetest.applySetting")
+    static let restoreSettings = Notification.Name("ai.cruxwing.desktop.livetest.restoreSettings")
     static let setSyntheticCallGoal = Notification.Name(
-        "ai.orakul.desktop.livetest.setSyntheticCallGoal")
+        "ai.cruxwing.desktop.livetest.setSyntheticCallGoal")
     static let refreshBlindSpot = Notification.Name(
-        "ai.orakul.desktop.livetest.refreshBlindSpot")
+        "ai.cruxwing.desktop.livetest.refreshBlindSpot")
     static let glossarySuggestions = Notification.Name(
-        "ai.orakul.desktop.livetest.glossarySuggestions")
+        "ai.cruxwing.desktop.livetest.glossarySuggestions")
     /// The notification accepts only this fixture identifier. The call goal is
     /// compiled into the dev hook rather than accepted as cross-process text,
     /// keeping this automation seam bounded and synthetic by construction.
@@ -65,14 +66,14 @@ enum LiveTestHooks {
     nonisolated static let maximumCommandIDBytes = 128
     private static var observers: [NSObjectProtocol] = []
     private static let expectedNonce =
-        ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_NONCE"] ?? ""
+        ProductEnvironment.value("LIVETEST_NONCE") ?? ""
     private static let artifactRoot: URL? = {
-        guard let raw = ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_ARTIFACT_ROOT"],
+        guard let raw = ProductEnvironment.value("LIVETEST_ARTIFACT_ROOT"),
               !raw.isEmpty else { return nil }
         return URL(fileURLWithPath: raw, isDirectory: true).standardizedFileURL
     }()
     private static let runStartedAt: Double? = {
-        guard let raw = ProcessInfo.processInfo.environment["ORAKUL_LIVETEST_STARTED_AT"] else {
+        guard let raw = ProductEnvironment.value("LIVETEST_STARTED_AT") else {
             return nil
         }
         return Double(raw)

@@ -68,7 +68,7 @@ enum CoachTip: String, CaseIterable {
     var body: String {
         switch self {
         case .recordingType:
-            "orakul watches what is happening on screen and adapts: a lecture gets a study plan, not a task list. The type can be switched at any moment."
+            "cruxwing watches what is happening on screen and adapts: a lecture gets a study plan, not a task list. The type can be switched at any moment."
         case .goalQuality:
             "One line: what must be true by the end of the call? The copilot measures every blind spot against it."
         case .pinDecision:
@@ -183,7 +183,7 @@ enum OnboardingPrompts {
     /// карточку ради одной строки нельзя: с ней уйдёт шаг про подключения.
     ///
     /// Раньше строка отвечала за вход в аккаунт. Условие осталось тем же
-    /// (`!выполнено && !отложено`), сменился смысл: аккаунтов у orakul нет,
+    /// (`!выполнено && !отложено`), сменился смысл: аккаунтов у cruxwing нет,
     /// есть ключ, который человек вставляет сам.
     static func showsProviderKeyRow(hasKey: Bool, dismissed: Bool) -> Bool {
         !hasKey && !dismissed

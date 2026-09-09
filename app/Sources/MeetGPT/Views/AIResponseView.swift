@@ -592,8 +592,8 @@ struct WorkflowTracePanel: View {
     }
 
     private static let localApp = WorkflowApp(
-        id: "orakul",
-        name: "orakul",
+        id: "cruxwing",
+        name: "cruxwing",
         symbol: "sparkles",
         kind: .local
     )

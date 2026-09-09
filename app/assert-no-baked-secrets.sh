@@ -1,5 +1,5 @@
 #!/bin/bash
-# assert-no-baked-secrets.sh <orakul.app | binary>
+# assert-no-baked-secrets.sh <cruxwing.app | binary>
 #
 # Fail-safe secret gate for distribution. A keyless dist build
 # (MEETGPT_DIST=1) reads provider credentials from the user's Keychain, so the
@@ -10,7 +10,7 @@
 # never prints a full secret.
 set -euo pipefail
 
-TARGET="${1:?usage: assert-no-baked-secrets.sh <orakul.app|binary>}"
+TARGET="${1:?usage: assert-no-baked-secrets.sh <cruxwing.app|binary>}"
 if [ -d "$TARGET" ]; then
     BIN="$TARGET/Contents/MacOS/MeetGPT"
     SCAN_ROOT="$TARGET"
@@ -44,7 +44,7 @@ HITS="$(find "$SCAN_ROOT" -type f -print0 2>/dev/null \
         | perl -nle "print \$1 while /$PATTERN/g" | sort -u || true)"
 if [ -n "$HITS" ]; then
     echo "!! BAKED SECRET DETECTED in $SCAN_ROOT — refusing to package." >&2
-    echo "   A public Orakul build must be keyless. Rebuild with MEETGPT_DIST=1." >&2
+    echo "   A public Cruxwing build must be keyless. Rebuild with MEETGPT_DIST=1." >&2
     echo "   Offending token shapes:" >&2
     printf '%s\n' "$HITS" | sed -E 's/(.{6}).*/   \1… [redacted]/' >&2
     exit 1

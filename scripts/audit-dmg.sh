@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Диагностика свежести одного или нескольких DMG по их собственному штампу.
 #
-#   bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg
-#   bash scripts/audit-dmg.sh app/dist/orakul-AppleSilicon.dmg \
-#       app/dist/orakul-Intel.dmg
+#   bash scripts/audit-dmg.sh app/dist/cruxwing-AppleSilicon.dmg
+#   bash scripts/audit-dmg.sh app/dist/cruxwing-AppleSilicon.dmg \
+#       app/dist/cruxwing-Intel.dmg
 #
 # Пути передаются явно: репозиторий не знает, где владелец публикует файлы, и
 # не должен зависеть от соседнего checkout. Для каждого образа проверяются:
@@ -15,7 +15,7 @@
 #
 # Граница проверки важна. Сравнение хеша отвечает на узкий вопрос свежести:
 # «самоотчёт артефакта совпадает с лежащими рядом исходниками?». Артефакт сам
-# сообщает OrakulSourceHash/OrakulCommit, поэтому это НЕ доказательство
+# сообщает CruxwingSourceHash/CruxwingCommit, поэтому это НЕ доказательство
 # воспроизводимой сборки (reproducible-build proof) и не независимая аттестация
 # происхождения. Для этого нужны сборка из проверенного commit в чистом CI,
 # журнал/подпись процесса и независимое воспроизведение байт-в-байт.
@@ -127,7 +127,7 @@ for supplied in "$@"; do
     esac
 
     case "$(basename "$supplied")" in
-        orakul-AppleSilicon.dmg)
+        cruxwing-AppleSilicon.dmg)
             expected_arch="arm64"
             if [ "$seen_arm64" -ne 0 ]; then
                 echo "  повторный образ Apple Silicon — пара выпуска неоднозначна" >&2
@@ -135,7 +135,7 @@ for supplied in "$@"; do
             fi
             seen_arm64=$((seen_arm64 + 1))
             ;;
-        orakul-Intel.dmg)
+        cruxwing-Intel.dmg)
             expected_arch="x86_64"
             if [ "$seen_x86_64" -ne 0 ]; then
                 echo "  повторный образ Intel — пара выпуска неоднозначна" >&2
@@ -145,7 +145,7 @@ for supplied in "$@"; do
             ;;
         *)
             echo "  неизвестное имя образа: $(basename "$supplied")" >&2
-            echo "  ожидается orakul-AppleSilicon.dmg или orakul-Intel.dmg" >&2
+            echo "  ожидается cruxwing-AppleSilicon.dmg или cruxwing-Intel.dmg" >&2
             status=1
             continue
             ;;
@@ -176,7 +176,7 @@ for supplied in "$@"; do
         status=1
     fi
 
-    mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/orakul-audit.XXXXXX")"
+    mount_dir="$(mktemp -d "${TMPDIR:-/tmp}/cruxwing-audit.XXXXXX")"
     if ! hdiutil attach "$dmg" -readonly -nobrowse -quiet -mountpoint "$mount_dir"; then
         echo "  НЕ УДАЛОСЬ СМОНТИРОВАТЬ DMG" >&2
         status=1
@@ -275,9 +275,9 @@ for supplied in "$@"; do
         fi
     fi
 
-    stamped_source="$(/usr/libexec/PlistBuddy -c 'Print :OrakulSourceHash' "$plist" 2>/dev/null || true)"
-    stamped_commit="$(/usr/libexec/PlistBuddy -c 'Print :OrakulCommit' "$plist" 2>/dev/null || true)"
-    stamped_tree_state="$(/usr/libexec/PlistBuddy -c 'Print :OrakulTreeState' "$plist" 2>/dev/null || true)"
+    stamped_source="$(/usr/libexec/PlistBuddy -c 'Print :CruxwingSourceHash' "$plist" 2>/dev/null || true)"
+    stamped_commit="$(/usr/libexec/PlistBuddy -c 'Print :CruxwingCommit' "$plist" 2>/dev/null || true)"
+    stamped_tree_state="$(/usr/libexec/PlistBuddy -c 'Print :CruxwingTreeState' "$plist" 2>/dev/null || true)"
 
     if [ "$stamped_tree_state" = "clean" ]; then
         echo "  worktree: clean at build time"

@@ -67,7 +67,7 @@ struct TaskWritebackTests {
         #expect(full.contains("Due: Friday"))
         #expect(full.contains("Done when: deployed to prod"))
         #expect(full.contains("Source: 10:32 decision"))
-        #expect(full.contains("orakul"))
+        #expect(full.contains("cruxwing"))
 
         // Placeholder markers never become written values.
         let placeholders = TaskWriteback.describe(item("Do it", owner: "[OWNER?]", due: "[DUE?]"))

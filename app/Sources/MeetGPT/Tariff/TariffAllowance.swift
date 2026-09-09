@@ -33,7 +33,7 @@ struct TariffAllowance: Codable, Equatable, Sendable {
 }
 
 /// Keeps inherited managed-plan accounting from becoming a product limit in
-/// direct BYOK mode. The public path has no Orakul-funded pool to exhaust.
+/// direct BYOK mode. The public path has no Cruxwing-funded pool to exhaust.
 enum UsageLimitPolicy {
     static func permits(managedLimitsEnabled: Bool,
                         withinManagedLimit: @autoclosure () -> Bool) -> Bool {

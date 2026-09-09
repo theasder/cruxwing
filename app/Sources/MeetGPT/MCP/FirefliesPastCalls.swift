@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 /// Past Fireflies meetings, imported as ordinary saved sessions.
 ///

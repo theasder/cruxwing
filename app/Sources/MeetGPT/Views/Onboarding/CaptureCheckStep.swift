@@ -89,13 +89,13 @@ struct CaptureCheckStep: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Label("Let us check that orakul can hear the room.",
+            Label("Let us check that cruxwing can hear the room.",
                   systemImage: "waveform")
                 .font(Typo.title).foregroundStyle(Theme.ink)
             // Deliberately does NOT restate the duration. The capture-check row
             // says "Six seconds" right next to the button that spends them, and
             // saying it twice two lines apart reads as a mistake, not emphasis.
-            Text("Two permissions and a short check. No bot joins the call — orakul listens on this computer.")
+            Text("Two permissions and a short check. No bot joins the call — cruxwing listens on this computer.")
                 .font(Typo.callout).foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -153,7 +153,7 @@ struct CaptureCheckStep: View {
         HStack(spacing: Space.m) {
             // Было «Вы не вошли — расшифровка на устройстве всё равно без
             // ограничений»: первая строка, которую видит новый человек, начиналась
-            // с упоминания входа, которого в orakul нет. Отвечала на вопрос,
+            // с упоминания входа, которого в cruxwing нет. Отвечала на вопрос,
             // которого он не задавал, и подсказывала, что где-то есть аккаунт.
             Text("There is no account and none is needed — transcription runs on this computer, with no limits.")
                 .font(Typo.caption).foregroundStyle(Theme.inkTertiary)
@@ -318,11 +318,11 @@ struct AdviceRow: View {
                 icon: "arrow.clockwise.circle",
                 iconTint: Theme.amber,
                 title: "macOS has not applied the screen-recording permission yet",
-                detail: "This is how macOS behaves, not an orakul bug: the permission takes effect from the next launch. Nothing is lost."
+                detail: "This is how macOS behaves, not an cruxwing bug: the permission takes effect from the next launch. Nothing is lost."
             ) {
                 Button("Quit and open again") { relaunch() }
                     .buttonStyle(QuietButtonStyle(prominent: true))
-                    .accessibilityLabel("Quit and open orakul again")
+                    .accessibilityLabel("Quit and open cruxwing again")
             }
 
         case .regrant:
@@ -334,7 +334,7 @@ struct AdviceRow: View {
                 icon: "exclamationmark.triangle",
                 iconTint: Theme.amber,
                 title: "Restarting did not help — the permission has to be granted again",
-                detail: "This happens when the permission is recorded against an older version of orakul: after an update, or when a second copy of the program sits alongside it. Open Settings, clear the orakul checkbox, tick it again, and launch orakul once more."
+                detail: "This happens when the permission is recorded against an older version of cruxwing: after an update, or when a second copy of the program sits alongside it. Open Settings, clear the cruxwing checkbox, tick it again, and launch cruxwing once more."
             ) {
                 Button("Open System Settings") {
                     if let url = PermissionPrompt.settingsURL(for: .screenRecording) {
@@ -354,14 +354,14 @@ struct AdviceRow: View {
             OnboardingRow(
                 icon: "folder.badge.gearshape",
                 iconTint: Theme.amber,
-                title: "Move orakul to Applications",
-                detail: "orakul is running from a disk image or from Downloads. macOS launches such programs from a temporary copy at a random path, and remembers the permission by path — which is why it does not survive between launches. Drag orakul into Applications, launch it from there, and grant the permission again."
+                title: "Move cruxwing to Applications",
+                detail: "cruxwing is running from a disk image or from Downloads. macOS launches such programs from a temporary copy at a random path, and remembers the permission by path — which is why it does not survive between launches. Drag cruxwing into Applications, launch it from there, and grant the permission again."
             ) {
                 Button("Show in Finder") {
                     NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
                 }
                 .buttonStyle(QuietButtonStyle(prominent: true))
-                .accessibilityLabel("Show orakul in Finder")
+                .accessibilityLabel("Show cruxwing in Finder")
             }
 
         case .noSoundPlaying:
@@ -371,7 +371,7 @@ struct AdviceRow: View {
                 icon: "speaker.slash",
                 iconTint: Theme.inkTertiary,
                 title: "No audio from the other party was heard",
-                detail: "Screen recording works — orakul attached to the system audio without error. It looks like nothing was playing during those six seconds. Play a video or a song a little louder and press «Again»."
+                detail: "Screen recording works — cruxwing attached to the system audio without error. It looks like nothing was playing during those six seconds. Play a video or a song a little louder and press «Again»."
             ) {
                 EmptyView()
             }

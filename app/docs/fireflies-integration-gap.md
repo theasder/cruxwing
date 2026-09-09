@@ -11,7 +11,7 @@ build.*
 
 - **Video-conferencing is not a gap.** Fireflies integrates Meet / Teams /
   Webex / GoToMeeting / Lifesize because it needs a bot to *get into* the call.
-  Orakul captures the call directly through ScreenCaptureKit — it is already
+  Cruxwing captures the call directly through ScreenCaptureKit — it is already
   inside every one of those meetings with no integration. Listing them as gaps
   would be measuring ourselves on the competitor's constraint, not ours.
 - **The automation tail is already covered.** Zapier is a built-in connector,
@@ -20,7 +20,7 @@ build.*
   native work is warranted for any of them.
 
 What is left after those two cuts is a short, honest list of connectors that
-would deepen what Orakul does in the room: reach the systems a team actually
+would deepen what Cruxwing does in the room: reach the systems a team actually
 discusses and acts on.
 
 ## Current catalogue (17 built-in, `MCP/MCPCatalog.swift`)
@@ -36,7 +36,7 @@ eng (Sentry). Thin in: **team chat, enterprise docs/storage, the CRM leader.**
 ## The gap table
 
 MCP status per the 2026 official/vendor-hosted list (sources below). Demand is
-**inferred**, not measured. Public Orakul deliberately has no first-party usage
+**inferred**, not measured. Public Cruxwing deliberately has no first-party usage
 telemetry, so this ranking should be re-cut only from volunteered research or
 an explicitly user-run local export.
 
@@ -52,7 +52,7 @@ an explicitly user-run local export.
 | **Box** | Storage | Emerging (MCP-Apps launch partner, not clearly a server) | Low-medium | Wait for the vendor server; not bespoke-worthy now. |
 | **Greenhouse / Lever / BambooHR** | ATS | No | Low (for a co-pilot) | Skip — recruiting-specific; narrow for a general meeting co-pilot. |
 | **Redtail / Wealthbox / Supersales** | Niche CRM | No | Low | Skip — wealth-management vertical; revisit only if that vertical is chosen. |
-| **Dialers** (OpenPhone, RingCentral, Aircall, Dialpad, Zoom Phone) | Telephony | No | Low-medium | Skip for now — Orakul already captures the call audio directly; the CRM write-back is the value, and that lands via the CRM connectors above. |
+| **Dialers** (OpenPhone, RingCentral, Aircall, Dialpad, Zoom Phone) | Telephony | No | Low-medium | Skip for now — Cruxwing already captures the call audio directly; the CRM write-back is the value, and that lands via the CRM connectors above. |
 
 ## Recommendation
 

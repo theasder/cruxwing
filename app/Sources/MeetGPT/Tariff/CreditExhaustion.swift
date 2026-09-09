@@ -16,7 +16,7 @@ enum CreditExhaustion {
     /// The user-facing message when `error` is a quota rejection, else nil.
     static func quotaMessage(from error: Error, managed: Bool) -> String? {
         // A direct provider also uses HTTP 429 for its own rate or funding
-        // limit. That is not an Orakul credit pool and must never acquire the
+        // limit. That is not an Cruxwing credit pool and must never acquire the
         // inherited upgrade copy or disable unrelated direct-key features.
         guard managed else { return nil }
         guard case LLMError.http(_, 429, let body) = error else { return nil }

@@ -33,7 +33,7 @@ process.stdout.write(String(Array.isArray(value) ? value.length : value) + '\\n'
 }
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'orakul-swiftpm-checkouts-'));
+  const root = mkdtempSync(join(tmpdir(), 'cruxwing-swiftpm-checkouts-'));
   const scratch = join(root, 'scratch');
   const checkout = join(scratch, 'checkouts', 'Example');
   const bin = join(root, 'bin');
@@ -46,7 +46,7 @@ function fixture() {
   writeFileSync(join(checkout, '.gitignore'), '*.pem\n');
   assert.equal(run('git', ['add', 'Source.swift', '.gitignore'], { cwd: checkout }).status, 0);
   assert.equal(run('git', [
-    '-c', 'user.name=Orakul release test',
+    '-c', 'user.name=Cruxwing release test',
     '-c', 'user.email=release-test@invalid.example',
     'commit', '-qm', 'fixture',
   ], { cwd: checkout }).status, 0);
@@ -114,7 +114,7 @@ test('SwiftPM checkout verifier requires lockfile, workspace and HEAD to agree',
     writeFileSync(join(f.checkout, 'Source.swift'), 'let reviewed = false\n');
     assert.equal(run('git', ['add', 'Source.swift'], { cwd: f.checkout }).status, 0);
     assert.equal(run('git', [
-      '-c', 'user.name=Orakul release test',
+      '-c', 'user.name=Cruxwing release test',
       '-c', 'user.email=release-test@invalid.example',
       'commit', '-qm', 'unreviewed',
     ], { cwd: f.checkout }).status, 0);

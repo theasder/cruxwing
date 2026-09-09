@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 /// Owns Telegram long polling for the lifetime of the app. Search never calls
 /// Telegram: it reads the durable archive populated by this actor.

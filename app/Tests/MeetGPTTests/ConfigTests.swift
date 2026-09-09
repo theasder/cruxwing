@@ -63,7 +63,7 @@ struct TranscriptionEngineTests {
     @Test("описание движка отвечает про приватность, точность и скорость — и молчит про кредиты")
     func advantageCaptions() {
         // Раньше здесь была четвёртая тема — цена в кредитах, и тест её
-        // требовал: «Free — no credits», «≈4 min per credit». Кредитов в orakul
+        // требовал: «Free — no credits», «≈4 min per credit». Кредитов в cruxwing
         // нет, и это был последний счёт, оставшийся на экране.
         #expect(TranscriptionEngine.local.advantageCaption
             == "The audio never leaves the computer and it works with no network. Accuracy is decent, within your processor's means. Captions lag by a couple of seconds. Free.")
@@ -179,7 +179,7 @@ struct ConfigGetterTests {
     func emptyBackendStaysEmpty() {
         // Прошлая версия этого теста повторяла реализацию ветка в ветку и
         // потому проходила при любом поведении. Она пропустила ровно то, ради
-        // чего была написана: DIST-сборка orakul не бакает адрес, пустое
+        // чего была написана: DIST-сборка cruxwing не бакает адрес, пустое
         // значение проваливалось в подстановку `https://api.cruxwing.ai`, и в
         // установщике оживали вход и счёт на сервере другого продукта.
         // Проверяется результат, а не ветвление.
@@ -191,16 +191,16 @@ struct ConfigGetterTests {
                     "подставился адрес, которого в сборке не было: \(Config.backendBaseURL)")
         }
         #expect(!Config.backendBaseURL.contains("cruxwing"),
-                "orakul обращается к серверу другого продукта")
+                "cruxwing обращается к серверу другого продукта")
     }
 
     @Test("пустое значение остаётся пустым, чем бы ни была собрана эта машина",
-          arguments: ["", "   ", "\n", "off", "none", "direct", "local", "не адрес", "api.orakul.ai"])
+          arguments: ["", "   ", "\n", "off", "none", "direct", "local", "не адрес", "api.cruxwing.ai"])
     func nothingSubstitutesAHostThatWasNotThere(value: String) {
         // Именно эта ветка уходит в установщик, и именно её прошлый тест не
         // выполнял: сборка на этой машине идёт с `http://localhost:8787`, и
         // проверка каждый раз попадала в другую ветку.
-        // `api.orakul.ai` без схемы — тоже не адрес: домен не резолвится, и
+        // `api.cruxwing.ai` без схемы — тоже не адрес: домен не резолвится, и
         // подставлять его было бы тем же самым.
         #expect(Config.resolveBackendBaseURL(value).isEmpty,
                 "из «\(value)» получился адрес: \(Config.resolveBackendBaseURL(value))")

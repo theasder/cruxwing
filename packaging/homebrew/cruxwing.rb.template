@@ -1,0 +1,29 @@
+# Каст Homebrew для cruxwing. ФАЙЛ-ШАБЛОН: значения в фигурных скобках
+# подставляет scripts/refresh-cask.sh по собранным образам.
+#
+# Готовый файл живёт не здесь, а в отдельном репозитории-кране
+# (theasder/homebrew-cruxwing): Homebrew ищет касты в репозитории с именем
+# homebrew-<кран>, и положить его рядом с исходниками нельзя.
+cask "cruxwing" do
+  arch arm: "AppleSilicon", intel: "Intel"
+
+  version "{{VERSION}}"
+  sha256 arm:   "{{SHA_ARM}}",
+         intel: "{{SHA_INTEL}}"
+
+  url "https://github.com/theasder/cruxwing/releases/download/v#{version}/cruxwing-#{arch}.dmg",
+      verified: "github.com/theasder/cruxwing/"
+  name "cruxwing"
+  desc "Meeting assistant that answers with a quote from your own calls"
+  homepage "https://github.com/theasder/cruxwing"
+
+  depends_on macos: ">= :{{MACOS}}"
+
+  app "cruxwing.app"
+
+  zap trash: [
+    "~/Library/Application Support/ai.cruxwing.desktop",
+    "~/Library/Preferences/ai.cruxwing.desktop.plist",
+    "~/Library/Caches/ai.cruxwing.desktop",
+  ]
+end

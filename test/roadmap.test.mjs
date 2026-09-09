@@ -96,7 +96,7 @@ describe('ROADMAP', () => {
     let counted = 0;
 
     for (const file of families) {
-      const src = read('mvp', 'Sources', 'OrakulCore', file);
+      const src = read('mvp', 'Sources', 'CruxwingCore', file);
       const block = src.slice(src.indexOf('public var title: String'));
       const shipped = [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
         .map(([, title]) => title);
@@ -122,10 +122,10 @@ describe('ROADMAP', () => {
     // поднятом у себя»: проверка молча пропускала сервис, и жирная отметка в
     // §2.2 держалась на выборе слова в прозе. Утверждение «проверено на
     // работающем сервисе» слишком сильное, чтобы зависеть от синонима.
-    const live = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const live = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                      'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json'))
-      .filter((f) => JSON.parse(read('mvp', 'Sources', 'OrakulCore', 'Resources',
+      .filter((f) => JSON.parse(read('mvp', 'Sources', 'CruxwingCore', 'Resources',
                                      'connectors', f)).liveCheckedOn);
     assert.ok(live.length >= 4, `манифестов с живой проверкой ${live.length} — ждали хотя бы четыре`);
 
@@ -160,7 +160,7 @@ describe('ROADMAP', () => {
     // срок памяти жили в прозе. Ровно так же выглядели причины «остаётся
     // кодом» в §6.2 — верные на день написания и не сверяемые ни с чем; две из
     // четырёх к моменту проверки уже протухли.
-    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const engine = read('mvp', 'Sources', 'CruxwingCore', 'ManifestConnector.swift');
     const bytes = /maximumResponseBytes = (\d+) \* 1024 \* 1024/.exec(engine);
     assert.ok(bytes, 'потолок ответа не найден в движке — разбор сломан');
     const audit = section('10.1');
@@ -170,11 +170,11 @@ describe('ROADMAP', () => {
     // И «в двух местах» — это счёт, а не оборот речи: снимут одну проверку,
     // и фраза останется верной на вид.
     const places = ['ManifestConnector.swift', 'ConnectorSession.swift']
-      .filter((f) => read('mvp', 'Sources', 'OrakulCore', f).includes('maximumResponseBytes'));
+      .filter((f) => read('mvp', 'Sources', 'CruxwingCore', f).includes('maximumResponseBytes'));
     assert.equal(places.length, 2,
       `потолок проверяется в ${places.length} местах, а §10.1 обещает два`);
 
-    const cache = read('mvp', 'Sources', 'OrakulCore', 'ConnectorCache.swift');
+    const cache = read('mvp', 'Sources', 'CruxwingCore', 'ConnectorCache.swift');
     const window = /freshFor: TimeInterval = (\d+)/.exec(cache);
     assert.ok(window, 'окно памяти не найдено — разбор сломан');
     assert.ok(audit.includes(`${window[1]} seconds`),
@@ -186,7 +186,7 @@ describe('ROADMAP', () => {
     // пределу: байт в секунду держался будто бы восьмисекундным таймаутом, а
     // тот считает ПАУЗЫ и обнуляется на каждом принятом байте. Числа в тексте
     // теперь берутся из кода, а не из памяти.
-    const session = read('mvp', 'Sources', 'OrakulCore', 'ConnectorSession.swift');
+    const session = read('mvp', 'Sources', 'CruxwingCore', 'ConnectorSession.swift');
     const values = [...session.matchAll(/timeoutIntervalForResource = (\d+)/g)]
       .map(([, n]) => Number(n));
     assert.equal(values.length, 2,
@@ -202,7 +202,7 @@ describe('ROADMAP', () => {
   test('§10.1 называет оба написания своей сессии', () => {
     // Сторож ловит и `URLSession.shared`, и `URLSession(configuration:)`.
     // Текст, называющий одно, обещает половину защиты.
-    const test = read('mvp', 'Tests', 'OrakulCoreTests', 'RedirectPolicyTests.swift');
+    const test = read('mvp', 'Tests', 'CruxwingCoreTests', 'RedirectPolicyTests.swift');
     assert.ok(test.includes('URLSession.shared') && test.includes('URLSession('),
       'проверка перестала ловить оба написания — тогда и текст менять не надо');
 
@@ -225,7 +225,7 @@ describe('ROADMAP', () => {
     assert.ok(unique.length >= 5,
       `в §3 нашлось ${unique.length} имён сторожей — разбор сломан`);
 
-    const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/OrakulCoreTests', 'test'];
+    const roots = ['app/Tests/MeetGPTTests', 'mvp/Tests/CruxwingCoreTests', 'test'];
     for (const name of unique) {
       const isSwift = !name.endsWith('.mjs');
       const candidates = roots.flatMap((root) => {
@@ -249,7 +249,7 @@ describe('ROADMAP', () => {
     // Прозу про защиты этот файл уже ловил на трёх устаревших утверждениях.
     // Числа стареют так же и заметны ещё меньше: «три манифеста» и «предел 10»
     // выглядят одинаково правдоподобно и когда верны, и когда нет.
-    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const engine = read('mvp', 'Sources', 'CruxwingCore', 'ManifestConnector.swift');
     const limit = Number(/scanPageLimit = (\d+)/.exec(engine)[1]);
     assert.ok(limit > 0, 'предел страниц не найден в движке — разбор сломан');
     assert.ok(section('7.2').includes(`scanPageLimit\` = ${limit}`),
@@ -268,7 +268,7 @@ describe('ROADMAP', () => {
     // Идентификаторы — из файлов, а не из их имён: по полю `id` ищет движок, а
     // имя файла лишь соглашение. Эта же проверка сначала сверяла имена и
     // объявила `rocketChat` необъяснённым, когда файл назывался иначе.
-    const connectorsDir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const connectorsDir = resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                   'Resources', 'connectors');
     const described = readdirSync(connectorsDir)
       .filter((f) => f.endsWith('.json'))
@@ -287,9 +287,9 @@ describe('ROADMAP', () => {
     // втихую. Но список читается как полный, а был неполным: из пяти сервисов
     // без манифеста в нём стояло два. Rocket.Chat, Kaiten и YouGile оставались
     // кодом вообще без объяснения. Теперь молчание ловится по имени.
-    const enums = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const enums = readFileSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                        'RussianTrackers.swift'), 'utf8')
-      + readFileSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+      + readFileSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                              'WorkMessengers.swift'), 'utf8');
     const inCode = [...enums.matchAll(/public enum Service: String[^{]*\{\s*\n\s*case ([^\n]+)/g)]
       .flatMap((m) => m[1].split(',').map((n) => n.trim()));
@@ -299,7 +299,7 @@ describe('ROADMAP', () => {
     assert.deepEqual(silent, [],
       `сервисы без манифеста и без причины в §6.2: ${silent.join(', ')}`);
 
-    const manifests = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const manifests = readdirSync(resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                                           'Resources', 'connectors'))
       .filter((f) => f.endsWith('.json')).length;
     assert.ok(manifests >= 10, `манифестов нашлось ${manifests} — разбор сломан`);
@@ -317,7 +317,7 @@ describe('ROADMAP', () => {
   // строка держала «четыре», когда их было шесть, — и заметили это не при
   // чтении, а когда мутация пометок в §2.2 прошла зелёной.
   test('§11 знает, сколько коннекторов проверено живьём, а сколько нет', () => {
-    const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const dir = resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                         'Resources', 'connectors');
     const manifests = readdirSync(dir)
       .filter((f) => f.endsWith('.json'))
@@ -351,7 +351,7 @@ describe('ROADMAP', () => {
   // {query} там, где нужен {queryWords}, и привезёт ту самую дыру, которую
   // §7.4 закрывал: чужой сервис прочтёт вопрос как указание.
   test('CONTRIBUTING называет все подстановки, которые умеет движок', () => {
-    const engine = read('mvp', 'Sources', 'OrakulCore', 'ConnectorManifest.swift');
+    const engine = read('mvp', 'Sources', 'CruxwingCore', 'ConnectorManifest.swift');
     const line = /let builtin: Set<String> = \[([^\]]+)\]/.exec(engine);
     assert.ok(line, 'в движке не нашёлся список подстановок — разбор сломан');
     const placeholders = [...line[1].matchAll(/"([a-zA-Z]+)"/g)].map((m) => m[1]);
@@ -365,7 +365,7 @@ describe('ROADMAP', () => {
   });
 
   test('перечень языковых сервисов в §7.4 — тот же, что в манифестах', () => {
-    const dir = resolve(here, '..', 'mvp', 'Sources', 'OrakulCore',
+    const dir = resolve(here, '..', 'mvp', 'Sources', 'CruxwingCore',
                         'Resources', 'connectors');
     const dialects = readdirSync(dir)
       .filter((f) => f.endsWith('.json'))
@@ -410,7 +410,7 @@ describe('ROADMAP', () => {
     // семнадцатый, — и этого никто не замечает, потому что добавление
     // коннектора и правка роадмапа лежат в разных головах.
     const services = (file) => {
-      const src = read('mvp', 'Sources', 'OrakulCore', file);
+      const src = read('mvp', 'Sources', 'CruxwingCore', file);
       const block = src.slice(src.indexOf('public enum Service'));
       const line = /case ([^\n]+)/.exec(block)[1];
       return line.split(',').length;
@@ -421,7 +421,7 @@ describe('ROADMAP', () => {
       // иначе число «+3» переживёт удаление любого из них.
       + ['GitHubConnector', 'TelegramSupergroups', 'LocalNotes']
           .filter((type) => {
-            const src = read('mvp', 'Sources', 'OrakulCore', `${type}.swift`);
+            const src = read('mvp', 'Sources', 'CruxwingCore', `${type}.swift`);
             return new RegExp(`public struct ${type}\\b`).test(src);
           }).length;
 
@@ -449,7 +449,7 @@ describe('ROADMAP', () => {
     // service.rawValue`. Имя файла — соглашение, и оно однажды разошлось:
     // `rocketchat.json` с идентификатором `rocketChat` был вполне достижим, а
     // проверка объявила его брошенным. Сверять надо то, по чему ищет код.
-    const dir = resolve(repo, 'mvp', 'Sources', 'OrakulCore', 'Resources', 'connectors');
+    const dir = resolve(repo, 'mvp', 'Sources', 'CruxwingCore', 'Resources', 'connectors');
     const ids = readdirSync(dir)
       .filter((name) => name.endsWith('.json'))
       .map((name) => JSON.parse(readFileSync(resolve(dir, name), 'utf8')).id);
@@ -458,7 +458,7 @@ describe('ROADMAP', () => {
     // Достижим тот, чей id совпадает с case в Service одного из четырёх файлов.
     const cases = new Set();
     for (const file of SERVICE_FILES) {
-      const src = readFileSync(resolve(repo, 'mvp', 'Sources', 'OrakulCore', file), 'utf8');
+      const src = readFileSync(resolve(repo, 'mvp', 'Sources', 'CruxwingCore', file), 'utf8');
       const block = src.slice(src.indexOf('public enum Service'));
       for (const name of /case ([^\n]+)/.exec(block)[1].split(',')) cases.add(name.trim());
     }
@@ -478,7 +478,7 @@ describe('ROADMAP', () => {
   test('§7.2: граница перечисления — то же число, что в движке', () => {
     // Потолок держит движок, а не манифест. Если число в тексте разойдётся с
     // кодом, читатель поверит тексту: код он открывает реже.
-    const engine = read('mvp', 'Sources', 'OrakulCore', 'ManifestConnector.swift');
+    const engine = read('mvp', 'Sources', 'CruxwingCore', 'ManifestConnector.swift');
     const limit = /scanPageLimit = (\d+)/.exec(engine);
     assert.ok(limit, 'потолок перечисления исчез из движка');
     const text = section('7.2').replace(/\n/g, ' ');
@@ -736,7 +736,7 @@ describe('ROADMAP', () => {
     // чтобы его стеречь.
     const titles = ['RussianTrackers', 'WorkMessengers', 'SelfHostedTrackers', 'TeamNotes']
       .flatMap((file) => {
-        const src = read('mvp', 'Sources', 'OrakulCore', `${file}.swift`);
+        const src = read('mvp', 'Sources', 'CruxwingCore', `${file}.swift`);
         const block = src.slice(src.indexOf('public var title: String'));
         return [...block.slice(0, block.indexOf('}\n\n')).matchAll(/return "([^"]+)"/g)]
           .map(([, title]) => title);

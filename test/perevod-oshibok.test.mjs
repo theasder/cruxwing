@@ -28,7 +28,7 @@ const ENGINE = engineErrors();
  * СЕРВИСОВ (`.slack`, `.plane`), объявив слиянием то, что им не является.
  * Проверка, у которой два ложных срабатывания из трёх, перестаёт читаться. */
 function engineErrors() {
-  const code = stripComments(readFileSync('mvp/Sources/OrakulCore/ManifestConnector.swift', 'utf8'));
+  const code = stripComments(readFileSync('mvp/Sources/CruxwingCore/ManifestConnector.swift', 'utf8'));
   const start = code.indexOf('public enum ConnectorError');
   assert.ok(start > 0, 'у движка больше нет ConnectorError — проверка смотрит в пустоту');
   const body = code.slice(start, code.indexOf('\n    }', start));
@@ -39,7 +39,7 @@ function engineErrors() {
 
 /** Пары «случай движка -> случай семьи» из веток перевода. */
 function mapping(name) {
-  const raw = readFileSync(`mvp/Sources/OrakulCore/${name}.swift`, 'utf8');
+  const raw = readFileSync(`mvp/Sources/CruxwingCore/${name}.swift`, 'utf8');
   const code = stripComments(raw);
   const pairs = [];
   const re = /case ((?:\.\w+(?:\([^)]*\))?,?\s*)+):\s*(?:\n\s*)?(?:if [^\n]*\n\s*)?throw \w+Error\.(\w+)/g;

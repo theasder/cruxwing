@@ -1,17 +1,17 @@
 #!/bin/bash
 # Build, Developer-ID-sign (hardened runtime), notarize, staple, and zip
-# orakul.app for distribution outside the App Store.
+# cruxwing.app for distribution outside the App Store.
 #
 # One-time setup (needs a paid Apple Developer account):
 #   1. Install a "Developer ID Application: …" certificate in your keychain
 #      (developer.apple.com → Certificates, or Xcode → Settings → Accounts).
 #   2. Store notarytool credentials (App Store Connect API key or app-specific
 #      password):
-#        xcrun notarytool store-credentials orakul-notary \
+#        xcrun notarytool store-credentials cruxwing-notary \
 #            --apple-id you@example.com --team-id TEAMID
 #
 # Then:  ./notarize.sh
-# Env:   NOTARY_PROFILE (default orakul-notary), NOTARY_SIGN_ID (override cert)
+# Env:   NOTARY_PROFILE (default cruxwing-notary), NOTARY_SIGN_ID (override cert)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -21,9 +21,9 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 # to be lying in build/ — a "Gatekeeper-ready Intel build" that was not Intel.
 ARCH="${MEETGPT_ARCH:-native}"
 case "$ARCH" in
-    x86_64) APP_BASENAME="orakul-Intel"; PUBLISH_NAME="orakul-Intel" ;;
-    arm64)  APP_BASENAME="orakul";       PUBLISH_NAME="orakul-AppleSilicon" ;;
-    native) APP_BASENAME="orakul";       PUBLISH_NAME="orakul" ;;
+    x86_64) APP_BASENAME="cruxwing-Intel"; PUBLISH_NAME="cruxwing-Intel" ;;
+    arm64)  APP_BASENAME="cruxwing";       PUBLISH_NAME="cruxwing-AppleSilicon" ;;
+    native) APP_BASENAME="cruxwing";       PUBLISH_NAME="cruxwing" ;;
     *) echo "!! unsupported MEETGPT_ARCH=$ARCH (use native, arm64, or x86_64)" >&2; exit 2 ;;
 esac
 APP="$ROOT/build/$APP_BASENAME.app"
@@ -39,7 +39,7 @@ APP="$ROOT/build/$APP_BASENAME.app"
 ENT="$ROOT/Support/MeetGPT.sandbox.entitlements"
 [ -f "$ROOT/build/.local.entitlements" ] && ENT="$ROOT/build/.local.entitlements"
 DIST="$ROOT/dist"
-PROFILE="${NOTARY_PROFILE:-orakul-notary}"
+PROFILE="${NOTARY_PROFILE:-cruxwing-notary}"
 
 # Учётные данные нотаризации проверяются ДО сборки, а не в момент отправки.
 #

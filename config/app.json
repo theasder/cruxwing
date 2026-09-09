@@ -1,22 +1,22 @@
 {
   "$comment": [
-    "Идентичность приложения orakul. Отдельная от Cruxwing во всём, что macOS",
+    "Идентичность приложения cruxwing. Отдельная от Cruxwing во всём, что macOS",
     "и Windows считают признаком приложения.",
     "",
     "Почему это не косметика. macOS привязывает разрешения на запись экрана и",
     "микрофона к bundle id: при совпадении две программы делят один доступ, и",
     "отозвать его у одной, не забрав у второй, нельзя. UserDefaults suite и",
     "служба в Связке ключей — то же самое для настроек и токенов: общий",
-    "идентификатор означает, что установка orakul меняет настройки Cruxwing.",
+    "идентификатор означает, что установка cruxwing меняет настройки Cruxwing.",
     "Поэтому ни одно поле ниже не должно совпадать с com.meetgpt.macapp."
   ],
   "app": {
-    "name": "orakul",
-    "displayName": "orakul",
-    "bundleId": "ai.orakul.desktop",
-    "volumeName": "orakul",
-    "defaultsSuite": "ai.orakul.desktop.settings",
-    "keychainService": "ai.orakul.desktop.credentials",
+    "name": "cruxwing",
+    "displayName": "cruxwing",
+    "bundleId": "ai.cruxwing.desktop",
+    "volumeName": "cruxwing",
+    "defaultsSuite": "ai.cruxwing.desktop.settings",
+    "keychainService": "ai.cruxwing.desktop.credentials",
     "developerTeamId": "WQ9JR8SW55",
     "locale": "ru-RU"
   },
@@ -25,23 +25,23 @@
       "status": "release-blocked",
       "minimumVersion": "14.0",
       "installers": [
-        "orakul-AppleSilicon.dmg",
-        "orakul-Intel.dmg"
+        "cruxwing-AppleSilicon.dmg",
+        "cruxwing-Intel.dmg"
       ],
       "notarised": false,
-      "note": "Исторический v0.1.0 за перенаправлением на theasder/cruxwing старше текущей ветки и не проходит её аудит происхождения. Для публикации владелец должен переименовать репозиторий в theasder/orakul и из одного коммита выпустить оба новых DMG."
+      "note": "Исторический v0.1.0 за перенаправлением на theasder/cruxwing старше текущей ветки и не проходит её аудит происхождения. Для публикации владелец должен переименовать репозиторий в theasder/cruxwing и из одного коммита выпустить оба новых DMG."
     },
     "windows": {
       "status": "planned",
       "minimumVersion": "10 (1903)",
       "installers": [
-        "orakul-Setup-x64.exe"
+        "cruxwing-Setup-x64.exe"
       ],
       "capture": "WASAPI loopback",
       "note": "Отдельная реализация захвата звука: ScreenCaptureKit существует только на macOS. Расшифровка и поиск по встречам общие, слой захвата — платформенный."
     }
   },
-  "downloadDir": "orakul/public/download",
+  "downloadDir": "cruxwing/public/download",
   "separateFrom": {
     "product": "Cruxwing",
     "bundleId": "com.meetgpt.macapp",

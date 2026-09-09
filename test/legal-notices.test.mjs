@@ -12,8 +12,8 @@ const expectedFiles = [
   'FluidAudio/LICENSE',
   'FluidAudio/fastcluster-LICENSE.md',
   'FluidAudio/vbx-LICENSE.md',
-  'Orakul/LICENSE',
-  'Orakul.cdx.json',
+  'Cruxwing/LICENSE',
+  'Cruxwing.cdx.json',
   'WhisperKit/LICENSE',
   'WhisperKit/NOTICES',
   'eventsource/LICENSE.md',
@@ -87,9 +87,9 @@ test('tracked legal payload is the exact nonempty matrix for the shipped target'
     assert.equal(actual, entry.hash, `changed legal snapshot: ${entry.path}`);
   }
   assert.deepEqual(
-    readFileSync(resolve(legalRoot, 'Orakul', 'LICENSE')),
+    readFileSync(resolve(legalRoot, 'Cruxwing', 'LICENSE')),
     readFileSync(resolve(repo, 'LICENSE')),
-    'the license inside the app no longer matches Orakul itself',
+    'the license inside the app no longer matches Cruxwing itself',
   );
 });
 
@@ -125,9 +125,9 @@ test('the executable cannot link a resolved test/trait package without notice re
     /\.product\(\s*name:\s*"([^"]+)"\s*,\s*package:\s*"([^"]+)"\s*\)/g,
   )].map((match) => `${match[1]}@${match[2]}`).sort();
   assert.deepEqual(products, [
+    'CruxwingCore@mvp',
     'FluidAudio@FluidAudio',
     'MCP@swift-sdk',
-    'OrakulCore@mvp',
     'WhisperKit@WhisperKit',
   ]);
 

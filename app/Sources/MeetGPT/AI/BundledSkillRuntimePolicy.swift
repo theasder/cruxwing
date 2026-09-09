@@ -4,7 +4,7 @@ import Foundation
 /// Local authority for allowing vendored methodology into a model prompt.
 ///
 /// Upstream `risk:` metadata is useful evidence, but it is neither complete nor
-/// controlled by Orakul. The checked-in allowlist is therefore the authority:
+/// controlled by Cruxwing. The checked-in allowlist is therefore the authority:
 /// every approved record pins the exact source bytes and the built-in prompts
 /// for which those bytes were reviewed. Missing, malformed, stale, duplicated,
 /// or scope-mismatched policy data means deny.

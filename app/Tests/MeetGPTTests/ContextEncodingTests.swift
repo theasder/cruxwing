@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import OrakulCore
+import CruxwingCore
 @testable import MeetGPT
 
 /// Кодировка файла, который человек приносит как контекст.

@@ -7,7 +7,7 @@
 //
 // Повод не выдуманный. В унаследованном файле лежали два живых секрета клиента
 // Google проекта Cruxwing — и они уехали в опубликованные DMG: `LC_ALL=C grep -a`
-// находил обе строки прямо в бинарнике по адресу загрузки. orakul при этом
+// находил обе строки прямо в бинарнике по адресу загрузки. cruxwing при этом
 // аккаунтов не имеет вовсе, README обещает «аккаунт не нужен», а общий с
 // Cruxwing идентификатор — ровно то, что запрещают проверки в identity.test.mjs
 // про bundle id и Связку ключей.
@@ -45,7 +45,7 @@ const CREDENTIAL_SHAPES = [
 ];
 
 function builtBinary() {
-  return resolve(repo, 'app', 'build', 'orakul.app', 'Contents', 'MacOS', 'MeetGPT');
+  return resolve(repo, 'app', 'build', 'cruxwing.app', 'Contents', 'MacOS', 'MeetGPT');
 }
 
 function skipUnbuilt() {
@@ -55,8 +55,8 @@ function skipUnbuilt() {
 }
 
 function fakeAppBundle({ resource = 'clean', executable = 'clean' } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'orakul-artifact-scan-'));
-  const app = join(root, 'orakul.app');
+  const root = mkdtempSync(join(tmpdir(), 'cruxwing-artifact-scan-'));
+  const app = join(root, 'cruxwing.app');
   const macOS = join(app, 'Contents', 'MacOS');
   const resources = join(app, 'Contents', 'Resources');
   mkdirSync(macOS, { recursive: true });
@@ -150,7 +150,7 @@ describe('учётные данные', () => {
     const build = readFileSync(resolve(repo, 'app', 'build.sh'), 'utf8');
     assert.match(build, /SECRETS="\$ROOT\/Sources\/MeetGPT\/LocalSecrets\.generated\.swift"/,
       'build.sh снова перезаписывает отслеживаемую конфигурацию');
-    assert.match(build, /-DORAKUL_LOCAL_CONFIG/,
+    assert.match(build, /-DCRUXWING_LOCAL_CONFIG/,
       'локальная конфигурация не включается явным compile flag');
 
     const tracked = execFileSync('git', ['ls-files', '--error-unmatch',
@@ -214,7 +214,7 @@ describe('учётные данные', () => {
       `учётных имён нашлось ${credentials.length} — проверка была бы пустой`);
 
     const SENTINEL = 'SENTINEL-must-not-ship';
-    const envFile = resolve(tmpdir(), 'orakul-sw-probe.env');
+    const envFile = resolve(tmpdir(), 'cruxwing-sw-probe.env');
     writeFileSync(envFile, `${credentials.map((n) => `${n}=${SENTINEL}`).join('\n')}\n`);
     try {
       const script = [
@@ -315,7 +315,7 @@ describe('учётные данные', () => {
     // Первое — имя без всякой формы, второе — публичная настройка, которая
     // обязана дойти: проверка без неё разрешала бы стереть вообще всё.
     const unnamed = ['PARTNER_HANDSHAKE', 'CONFLUENCE_SITE', 'SLACK_CHANNEL_IDS'];
-    const envFile = resolve(tmpdir(), 'orakul-sw-default-deny.env');
+    const envFile = resolve(tmpdir(), 'cruxwing-sw-default-deny.env');
     writeFileSync(envFile,
       `${unnamed.map((n) => `${n}=${SENTINEL}`).join('\n')}\nDEFAULT_TIER=team\n`);
     try {
@@ -348,7 +348,7 @@ describe('учётные данные', () => {
     // минует ту проверку целиком. Здесь путей нет: сравнивается отгружаемое с
     // тем, что лежит в .env.
     const script = resolve(repo, 'app', 'assert-no-env-values.sh');
-    const dir = mkdtempSync(join(tmpdir(), 'orakul-env-scan-'));
+    const dir = mkdtempSync(join(tmpdir(), 'cruxwing-env-scan-'));
     const env = join(dir, 'probe.env');
     // Assemble the fixture at runtime so the repository's own history scanner
     // never has to exempt a credential-shaped literal in its test source.
@@ -525,7 +525,7 @@ describe('учётные данные', () => {
     assert.ok(!/sw BACKEND_URL/.test(line),
       'останов снова читает функцию вместо сгенерированного файла');
 
-    const dir = mkdtempSync(join(tmpdir(), 'orakul-backend-'));
+    const dir = mkdtempSync(join(tmpdir(), 'cruxwing-backend-'));
     const run = (contents) => {
       const secrets = join(dir, `Secrets-${Math.random().toString(36).slice(2)}.swift`);
       writeFileSync(secrets, contents);
@@ -544,7 +544,7 @@ describe('учётные данные', () => {
     };
 
     const empty = 'struct Secrets {\n    static let backendBaseURL  = ""\n}\n';
-    const filled = 'struct Secrets {\n    static let backendBaseURL  = "https://api.orakul.ai"\n}\n';
+    const filled = 'struct Secrets {\n    static let backendBaseURL  = "https://api.cruxwing.ai"\n}\n';
     assert.equal(run(empty).code, 0, 'останов сработал на пустом адресе — сборка встанет всегда');
     assert.equal(run(filled).code, 1, 'адрес сервера в Secrets.swift не остановил сборку');
 

@@ -10,7 +10,7 @@
 # подряд: девять установщиков за день выходили с одним номером коммита и разным
 # содержимым.
 #
-#   bash scripts/source-hash.sh mvp/Package.swift mvp/Sources/OrakulCore
+#   bash scripts/source-hash.sh mvp/Package.swift mvp/Sources/CruxwingCore
 #
 # Пути передаются явно и относительно корня репозитория: в пакет для Linux едет
 # не то же, что в macOS-приложение, и штамповать пакет хешем исходников, которых

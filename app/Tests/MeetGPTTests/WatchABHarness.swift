@@ -11,7 +11,7 @@ import Testing
 /// at `CRUXWING_AB_WINDOWS` (default 12), so a full run is on the order of a
 /// few dozen fast-model calls — a one-off experiment, not a per-tick cost.
 ///
-///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.orakul.desktop/Sessions" \
+///     CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.cruxwing.desktop/Sessions" \
 ///     CRUXWING_AB_LIVE=1 CRUXWING_AB_WINDOWS=12 \
 ///       swift test --filter WatchABHarness
 @Suite("Watch A/B harness")
@@ -37,7 +37,7 @@ struct WatchABHarness {
             print("""
 
             [watch-ab] skipped — this experiment spends model calls, so it needs both:
-              CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.orakul.desktop/Sessions" \\
+              CRUXWING_EVAL_CORPUS="$HOME/Library/Application Support/ai.cruxwing.desktop/Sessions" \\
               CRUXWING_AB_LIVE=1 \\
                 swift test --filter WatchABHarness
 

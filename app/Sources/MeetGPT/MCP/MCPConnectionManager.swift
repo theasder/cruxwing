@@ -1,6 +1,6 @@
 import Foundation
 import MCP
-import OrakulCore
+import CruxwingCore
 
 /// Presents the OAuth authorization URL for an MCP server: opens the system
 /// browser and catches the loopback redirect. Called by the SDK only when no
@@ -964,7 +964,7 @@ final class MCPConnectionManager: ObservableObject {
         // Имя, которым мы представляемся ЧУЖОМУ СЕРВЕРУ.
         //
         // Здесь стояло «Cruxwing, 1.0.0»: каждому подключённому серверу — в том
-        // числе Fireflies, чей владелец продаёт конкурирующий продукт, — orakul
+        // числе Fireflies, чей владелец продаёт конкурирующий продукт, — cruxwing
         // называл чужой продукт и выдуманную версию. Это не косметика: имя
         // клиента уходит по сети, оседает в чужих журналах и в их статистике
         // «кто нами пользуется». Своя строка — единственная честная.
@@ -977,8 +977,8 @@ final class MCPConnectionManager: ObservableObject {
         return client
     }
 
-    /// Как orakul представляется серверам MCP.
-    static let mcpClientName = "orakul"
+    /// Как cruxwing представляется серверам MCP.
+    static let mcpClientName = "cruxwing"
 
     /// Версия из собранного пакета; «неизвестно» вместо выдумки, если её нет.
     static var mcpClientVersion: String {

@@ -536,7 +536,7 @@ enum CreditBadge: Equatable {
                  + "Create an account in «Settings ▸ Account» and you get \(offer)."
         case .stale:         return "Showing the last known balance while it refreshes."
         case .signedOut:
-            return "Connected applications sign in separately from your orakul account. "
+            return "Connected applications sign in separately from your cruxwing account. "
                  + "Sign in under «Settings ▸ Account» to use models without your own keys."
         case .unavailable:
             return "Could not reach the billing service. That does not affect the balance itself."
@@ -896,7 +896,7 @@ struct PromptBudgetDetails: View {
             if Config.llmViaBackend {
                 // Balance, then when it refills, then what it buys. This block
                 // belongs only to the inherited managed gateway; direct BYOK
-                // has no Orakul balance or plan.
+                // has no Cruxwing balance or plan.
                 VStack(alignment: .leading, spacing: Space.xs) {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Credits")
@@ -925,7 +925,7 @@ struct PromptBudgetDetails: View {
                     Text("Request context")
                         .font(Typo.headline)
                         .foregroundStyle(Theme.ink)
-                    Text("Orakul does not sell credits and does not limit requests. You control the key and the billing of the AI provider you chose.")
+                    Text("Cruxwing does not sell credits and does not limit requests. You control the key and the billing of the AI provider you chose.")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1052,13 +1052,13 @@ struct PromptBudgetDetails: View {
         HStack(spacing: Space.s) {
             Image(systemName: "person.crop.circle.badge.questionmark")
                 .foregroundStyle(Theme.accent)
-            Text("Sign in to orakul to use models without your own keys. Connected applications sign in separately and stay connected either way.")
+            Text("Sign in to cruxwing to use models without your own keys. Connected applications sign in separately and stay connected either way.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("You are not signed in. Sign in to orakul to see credits.")
+        .accessibilityLabel("You are not signed in. Sign in to cruxwing to see credits.")
     }
 
     private var unavailableCreditRow: some View {

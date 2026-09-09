@@ -1,7 +1,7 @@
 import Foundation
 
 /// Legacy managed-gateway usage signals. Direct BYOK neither reads nor writes
-/// these counters: Orakul does not need local product analytics or a funded
+/// these counters: Cruxwing does not need local product analytics or a funded
 /// allowance when the user owns the provider account.
 struct UsageStats {
     let meetings: Int          // completed recordings
@@ -58,7 +58,7 @@ enum UsageTracker {
     }
 
     /// Reserve one bounded MCP-grounded research cycle. The UI calls this
-    /// before fan-out. Direct BYOK has no Orakul quota; the inherited managed
+    /// before fan-out. Direct BYOK has no Cruxwing quota; the inherited managed
     /// gateway keeps its monthly reservation semantics.
     static func consumeGroundedCycle(for tier: Tier) -> Bool {
         guard Config.managedUsageLimitsEnabled else { return true }

@@ -1,5 +1,5 @@
 import Foundation
-import OrakulCore
+import CruxwingCore
 
 /// Токены российских трекеров: чтение, запись, удаление.
 ///

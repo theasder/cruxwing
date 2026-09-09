@@ -26,7 +26,7 @@ docker run --rm --memory=2g -v "$PWD":/repo -w /repo "$IMAGE" bash -euo pipefail
 
   # Сборка ядра отдельно от командной строки: ядро — то, что переносимо, и
   # ломается оно первым.
-  echo ">> сборка ядра";           swift build --package-path mvp --target OrakulCore
+  echo ">> сборка ядра";           swift build --package-path mvp --target CruxwingCore
   echo ">> сборка командной строки"; swift build --package-path mvp
   echo ">> набор ядра";            swift test --package-path mvp
   echo ">> защиты через сокет";     bash scripts/vrazhdebnaya-proba.sh

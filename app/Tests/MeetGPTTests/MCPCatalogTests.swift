@@ -134,7 +134,7 @@ struct MCPCatalogTests {
     @Test("сервис с пустым ключом не появляется — независимо от того, что в сборке")
     func gateRefusesEmptyCredentials() {
         // Проверяется сам механизм, а не состояние машины. Обещание §2.3:
-        // «в скачанном orakul этих шести кнопок нет», потому что ключей в
+        // «в скачанном cruxwing этих шести кнопок нет», потому что ключей в
         // раздаваемой сборке нет.
         let id = MCPCatalog.preRegisteredIDs.first ?? "asana"
         #expect(MCPCatalog.configuredDescriptor(id: id, clientID: "", clientSecret: "секрет") == nil)

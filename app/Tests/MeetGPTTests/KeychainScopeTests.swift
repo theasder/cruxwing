@@ -14,7 +14,7 @@ import Testing
 /// Settings — reading UserDefaults — still showed the paid plan.
 @Suite("Keychain scope")
 struct KeychainScopeTests {
-    private let store = SystemKeychain(bundleIdentifier: "ai.orakul.desktop.tests")
+    private let store = SystemKeychain(bundleIdentifier: "ai.cruxwing.desktop.tests")
 
     private func scope(of query: [String: Any]) -> Bool? {
         query[kSecUseDataProtectionKeychain as String] as? Bool
@@ -61,8 +61,8 @@ struct KeychainScopeTests {
     @Test("the account is namespaced by version and bundle id")
     func accountIsNamespaced() {
         let account = SystemKeychain.versionedAccount(
-            "wheespr.session", bundleIdentifier: "ai.orakul.desktop.tests")
-        #expect(account == "v1.ai.orakul.desktop.tests.wheespr.session")
+            "wheespr.session", bundleIdentifier: "ai.cruxwing.desktop.tests")
+        #expect(account == "v1.ai.cruxwing.desktop.tests.wheespr.session")
         #expect(store.query(account: account)[kSecAttrAccount as String] as? String == account)
     }
 
@@ -82,30 +82,36 @@ struct KeychainScopeTests {
         ))
     }
 
-    @Test("the runtime service belongs to Orakul, with the old service migration-only")
+    @Test("the runtime service belongs to Cruxwing, with the old services migration-only")
     func serviceIdentity() {
-        #expect(store.serviceIdentifier == "ai.orakul.desktop.tests.credentials")
+        #expect(store.serviceIdentifier == "ai.cruxwing.desktop.tests.credentials")
         #expect(store.query(account: "probe")[kSecAttrService as String] as? String
-                == "ai.orakul.desktop.tests.credentials")
-        #expect(SystemKeychain.legacyServiceIdentifier == "com.cruxwing.credentials")
-        #expect(store.serviceIdentifier != SystemKeychain.legacyServiceIdentifier)
+                == "ai.cruxwing.desktop.tests.credentials")
+        // Both eras are read once and then emptied. Cruxwing's service is listed
+        // first because that is where an upgrading person's key actually is.
+        #expect(SystemKeychain.legacyServiceIdentifiers
+                == ["ai.orakul.desktop.credentials", "com.cruxwing.credentials"])
+        for legacy in SystemKeychain.legacyServiceIdentifiers {
+            #expect(store.serviceIdentifier != legacy,
+                    "the live service must never equal one it migrates from")
+        }
     }
 }
 
 @Suite("Storage identity")
 struct StorageIdentityTests {
-    @Test("all live stores share one Orakul-owned Application Support root")
-    func liveStorePathsAreOrakulOwned() {
+    @Test("all live stores share one Cruxwing-owned Application Support root")
+    func liveStorePathsAreCruxwingOwned() {
         let base = URL(fileURLWithPath: "/Users/example/Library/Application Support",
                        isDirectory: true)
-        let root = OrakulApplicationSupport.root(in: base)
+        let root = CruxwingApplicationSupport.root(in: base)
 
-        #expect(root.lastPathComponent == "ai.orakul.desktop")
-        #expect(OrakulApplicationSupport.sessionsDirectory(under: root)
+        #expect(root.lastPathComponent == "ai.cruxwing.desktop")
+        #expect(CruxwingApplicationSupport.sessionsDirectory(under: root)
             .deletingLastPathComponent() == root)
-        #expect(OrakulApplicationSupport.telegramArchiveURL(under: root)
+        #expect(CruxwingApplicationSupport.telegramArchiveURL(under: root)
             .deletingLastPathComponent().deletingLastPathComponent() == root)
-        #expect(OrakulApplicationSupport.teamWatchAuditLogURL(under: root)
+        #expect(CruxwingApplicationSupport.teamWatchAuditLogURL(under: root)
             .deletingLastPathComponent() == root)
     }
 
@@ -116,11 +122,16 @@ struct StorageIdentityTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("Sources/MeetGPT", isDirectory: true)
-        let helperName = "OrakulApplicationSupport.swift"
+        let helperName = "CruxwingApplicationSupport.swift"
+        // Directories belonging to the commercial builds this edition was forked
+        // from. Our own name is not on the list: before 2026-09-09 the product
+        // was orakul and "Cruxwing" was the foreign one, so the rename would
+        // otherwise make every legitimate path an offender.
         let forbiddenPathFragments = [
             "appendingPathComponent(\"MeetGPT",
-            "appendingPathComponent(\"Cruxwing",
-            "appendingPathComponent(\"cruxwing",
+            "appendingPathComponent(\"meetgpt",
+            "appendingPathComponent(\"Wheespr",
+            "appendingPathComponent(\"wheespr",
         ]
         var offenders: [String] = []
 
@@ -140,7 +151,7 @@ struct StorageIdentityTests {
 
             if file.lastPathComponent != helperName,
                code.contains(".applicationSupportDirectory") {
-                offenders.append("\(relative): bypasses OrakulApplicationSupport")
+                offenders.append("\(relative): bypasses CruxwingApplicationSupport")
             }
             for fragment in forbiddenPathFragments where code.contains(fragment) {
                 offenders.append("\(relative): contains \(fragment)")
@@ -148,6 +159,6 @@ struct StorageIdentityTests {
         }
 
         #expect(offenders.isEmpty,
-                "shared legacy storage can mix Orakul and Cruxwing data: \(offenders)")
+                "shared legacy storage can mix Cruxwing and the commercial builds' data: \(offenders)")
     }
 }
