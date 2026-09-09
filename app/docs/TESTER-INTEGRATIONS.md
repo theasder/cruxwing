@@ -80,112 +80,7 @@ an artifact in a disposable checkout and then delete the checkout together with
 
 WEEEK, YouGile, Yandex Tracker, Pachca and Telegram do not read keys from `.env`.
 They cannot be "baked" into a shared build in advance: each tester connects their
-own test account through **Настройки → Рабочие приложения**.
-
-## WEEEK
-
-### Access
-
-1. Create a separate test user or workspace with no production data.
-2. In the WEEEK workspace settings open the API section and issue an access token.
-   The public API performs requests on behalf of the token's creator; no separate
-   OAuth redirect or scopes are used for this token.
-3. To check writing, find the **numeric** ID of the test project. If the project
-   field is left empty, the integration connects read-only.
-
-The official contract: [WEEEK Public API V1](https://developers.weeek.net/api/task).
-
-### Connecting and the smoke test
-
-1. Open **Настройки → Рабочие приложения → Российские трекеры → WEEEK**.
-2. Paste the access token; for a full run add the numeric project ID and save.
-3. Create a task in WEEEK with a unique marker, for example
-   `ORAKUL-QA-WEEEK-<date>`, and confirm that a question about it finds the task.
-4. In the confirmed "file a task" scenario create a second test task and check that
-   it landed in exactly the specified project. A write must never happen without a
-   human confirmation.
-
-Limitation: the application returns the task's key and title; WEEEK does not
-currently give this connector a reliable permalink in the response.
-
-## YouGile
-
-### Access
-
-1. In YouGile's official interactive documentation create an API key through
-   `POST /api-v2/auth/keys`. Issuing a key on YouGile's side requires a login,
-   password and companyId.
-2. Only the **issued API key** is entered into orakul. The login and password must
-   not be carried into the application, into `.env`, or into this document.
-3. To check writing, copy the ID of a test column. An empty column means a
-   read-only connection.
-
-The official entry points: [YouGile REST API v2](https://ru.yougile.com/api-v2)
-and the [machine-readable schema](https://ru.yougile.com/api-json).
-
-### Connecting and the smoke test
-
-1. Open **Настройки → Рабочие приложения → Российские трекеры → YouGile**.
-2. Paste the API key; for a full run add the test column ID.
-3. Check search against a unique existing task.
-4. After an explicit confirmation, create a test task and check it in the intended
-   column.
-
-Limitation: search uses the current `GET /api-v2/task-list`; a link to a created
-task is not invented if the API did not return one.
-
-## Yandex Tracker
-
-### Access
-
-1. Create a test application in Yandex OAuth.
-2. `tracker:read` is enough for search. A full creation test needs `tracker:write`
-   and the user's real rights to create tasks in the chosen queue. For a test
-   application it is acceptable to grant both, but not rights to production queues.
-3. Issue an OAuth token from the test user.
-4. Copy the organisation ID from **Администрирование → Организации**. A numeric ID
-   belongs to Yandex 360; a Cloud Organization usually uses a string ID, for which
-   the application selects `X-Cloud-Org-ID` itself.
-5. For writing, prepare a test queue key, for example `QA`. An empty queue field
-   leaves the integration read-only.
-
-The official instructions and permission names:
-[Access to the Yandex Tracker API](https://yandex.ru/support/tracker/ru/api-ref/access).
-
-### Connecting and the smoke test
-
-1. Open **Настройки → Рабочие приложения → Российские трекеры → Яндекс Трекер**.
-2. Paste the OAuth token, the organisation ID and, for writing, the queue key.
-3. Find a task by a unique title.
-4. After an explicit confirmation, create a test task; check the key of the form
-   `QA-…` and that the link opens.
-
-Limitation: the current form accepts an OAuth token specifically. A Yandex Cloud
-IAM token has a different authorization header and must not be pasted into this
-field.
-
-## Pachca
-
-### Access
-
-1. In Pachca open **Автоматизации → API** and create a separate personal token for
-   the tester.
-2. Grant exactly the `search:messages` scope. This connector needs no other
-   permissions, including sending and chat management.
-
-The official pages: [authorization](https://dev.pachca.com/api/authorization)
-and [message search](https://dev.pachca.com/api/search/list-messages).
-
-### Connecting and the smoke test
-
-1. Open **Настройки → Рабочие приложения → Рабочие мессенджеры → Пачка**.
-2. Paste the personal token and save.
-3. Write a message in a test chat with a unique marker
-   `ORAKUL-QA-PACHCA-<date>` and confirm that a question of the form "did we
-   discuss …" returns it as a source.
-
-Limitation: the integration only reads full-text search results across the chats
-the token's owner can see. It does not send or modify messages.
+own test account through **Settings → Work applications**.
 
 ## Telegram — supergroups
 
@@ -206,10 +101,10 @@ no redirect. The contract: [Telegram Bot API](https://core.telegram.org/bots/api
 
 ### Connecting and the smoke test
 
-1. Open **Настройки → Рабочие приложения → Рабочие мессенджеры → Telegram —
-   супергруппы**.
+1. Open **Settings → Work applications → Work messengers → Telegram —
+   supergroups**.
 2. Paste the bot token and the allowed supergroup IDs separated by commas, then
-   press **Проверить и сохранить**. The check rejects a wrong token, a webhook
+   press **Check and save**. The check rejects a wrong token, a webhook
    already in use, an unknown chat, and a bot that cannot see messages because of
    Privacy Mode.
 3. After connecting, send a new text message with a unique marker to an allowed
@@ -231,7 +126,7 @@ The limitations are substantial:
 The token and the allowlist live in the Keychain. The local archive is in the
 application's Application Support directory
 (`ai.orakul.desktop/Telegram/messages.json`) and does not contain the token. The
-**Отключить** button stops polling, deletes the Keychain entries and erases that
+**Disconnect** button stops polling, deletes the Keychain entries and erases that
 archive. The former product's `MeetGPT` directory is not read or imported
 automatically.
 
@@ -256,8 +151,8 @@ The official contract:
 
 ### Connecting and the smoke test
 
-1. Open **Настройки → Рабочие приложения → Рабочие приложения → Asana** and press
-   **Подключить**.
+1. Open **Settings → Work applications → Work applications → Asana** and press
+   **Connect**.
 2. In the browser choose the test workspace and confirm access. The user's OAuth
    token is saved in the Keychain under the versioned namespace `asana-v2`; the
    client secret is not carried there.
@@ -289,8 +184,8 @@ substitute an invented REST contract for it.
    application raises a local callback of the form
    `http://127.0.0.1:<random port 49500–64500>/callback` and uses PKCE.
 
-Before connecting, enable only the switches you need under **Настройки → Рабочие
-приложения → Google**. A full run needs:
+Before connecting, enable only the switches you need under **Settings → Work
+applications → Google**. A full run needs:
 
 | Service | Requested OAuth scopes | The actual boundary |
 |---|---|---|
@@ -300,13 +195,13 @@ Before connecting, enable only the switches you need under **Настройки 
 
 `drive.readonly` and `drive.metadata.readonly` are not requested. There is no
 global search or enumeration of files on Drive. After changing the switches, or
-after updating an old build, press **Переподключить**, otherwise the old refresh
+after updating an old build, press **Reconnect**, otherwise the old refresh
 token will not receive the new permissions.
 
 ### Sheets smoke test
 
 1. Connect Google in the browser.
-2. In the side panel choose **Контекст → Добавить → Google Таблица…** and paste the
+2. In the side panel choose **Context → Add → Google Sheet…** and paste the
    link to a test spreadsheet.
 3. Check the title and the values from the first sheet in the range `A1:Z1000`.
 4. Get an answer containing a Markdown table, confirm the export to a new Google
@@ -315,7 +210,7 @@ token will not receive the new permissions.
 
 ### Slides smoke test
 
-1. Choose **Контекст → Добавить → Google Презентация…** and paste an explicit
+1. Choose **Context → Add → Google Slides…** and paste an explicit
    `/presentation/d/<id>/…` link.
 2. Check slide boundaries, visible text, tables and speaker notes.
 
@@ -326,7 +221,7 @@ textual representation, and writing into a presentation are not implemented.
 
 1. Create a synthetic form and a few synthetic responses. Do not use real
    questionnaires or real feedback on the first run.
-2. Choose **Контекст → Добавить → Google Форма + ответы…** and paste an editor link
+2. Choose **Context → Add → Google Form + responses…** and paste an editor link
    of the form `/forms/d/<formId>/edit`.
 3. Check question titles, answers and submission times. The service field
    `respondentEmail` must be removed before the model context; an email remains
@@ -404,7 +299,7 @@ point there is nowhere — and no need — to enter a TrueConf server token in o
 
 ## Revocation and cleanup after the test
 
-First press **Отключить** on each integration in orakul. That deletes the local
+First press **Disconnect** on each integration in orakul. That deletes the local
 Keychain entries; for Google a best-effort revocation of the refresh token is
 additionally performed, and for Telegram the archive is erased. Then finish the
 cleanup at the vendor:

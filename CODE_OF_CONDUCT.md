@@ -20,13 +20,13 @@ and in the pull request form. If your pull request is rejected under a rule that
 not there, that is our mistake: the rule has either to be written down or not
 applied.
 
-**A decision can be appealed.** Reply in the same discussion with the words "прошу
-пересмотреть" ("I ask for a review"). Another person reviews it, if there is one;
+**A decision can be appealed.** Reply in the same discussion with the words "I ask
+for a review". Another person reviews it, if there is one;
 if there is a single maintainer, they are obliged to answer the substance of the
 argument rather than repeat the earlier decision.
 
-**Language does not affect the decision.** Russian, English — we accept both and
-turn nothing away over language. Awkward grammar is no reason for rejection; a
+**Language does not affect the decision.** The project works in English, and we
+turn nobody away over how they write it. Awkward grammar is no reason for rejection; a
 question that is unclear in substance is a reason to ask again, not to close.
 
 **Level does not affect tone.** A beginner's question is no worse than a

@@ -77,7 +77,7 @@ distinguish in the first version of this document:
 
 | File | Was | Became |
 |---|---|---|
-| `Sources/orakul/main.swift` | the `спросить`/`ask` command in full | removed, brackets rebalanced |
+| `Sources/orakul/main.swift` | the `ask` command in full | removed, brackets rebalanced |
 | `CommandLineApp.swift` | the help text, the service list, three connector environment variables | removed; `ORAKUL_ENGINE` kept — that one is transcription |
 | `LexiconPack.swift` | a comment referring to `ManifestConnector` | rewritten without the type name |
 | `InvisibleText.swift` | a comment referring to `VendorText` | the same |
@@ -119,7 +119,7 @@ Mac.
 - `swift build --target OrakulCore` — **builds**, 18 files.
 - `swift build` — **builds in full**, including the `orakul` executable.
 - `swift test` — **300 tests pass**.
-- The binary runs and prints a trimmed help text: no `спросить` command, no
+- The binary runs and prints a trimmed help text: no `ask` command, no
   connector environment variables, `ORAKUL_ENGINE` in place.
 
 **Five breakages that only a real run found, and not one of which was caught by the
@@ -135,13 +135,13 @@ content checks:**
 3. **The catalogue's locale** was checked as `ru-RU`. That is a fact about a Russian
    product, not an invariant; the expectation in the test is translated to `en-US`,
    with an anchor so the edit fails if the test is rewritten.
-4. **The command list and the help text drifted apart.** I removed `спросить` from
+4. **The command list and the help text drifted apart.** I removed `ask` from
    the help but not from the command array, and the test that holds them consistent
    failed — rightly: a command the help says nothing about is a trap.
 5. **`ReadmeQuickstartTests` reads the repository's README** and checks CLI
    behaviour against it. That contract belongs to the full product's Russian README;
    in the open edition the README is different, so the suite is excluded. Plus one
-   row of a parameterised test that demanded a hint for `спросить` — the row was
+   row of a parameterised test that demanded a hint for `ask` — the row was
    removed, not the test.
 
 ## What is still unverified and needs a Mac
@@ -155,11 +155,12 @@ been built by nobody**.
 
 Both have to be resolved before publication, because both hit the first impression.
 
-- **The interface speaks Russian.** The first line of help is "orakul — поиск по
-  своим звонкам, на русском и без сети". The README is English, the product on
-  launch is Russian. For the shop window we are heading to, that contradiction is
-  visible in ten seconds. Translating the user-facing strings is separate work and
-  not small: those same 300 tests pin the Russian wording.
+- ~~**The interface speaks Russian.**~~ **Done 9 September.** The README was
+  English while the product launched in Russian, and that contradiction was
+  visible in ten seconds. The user-facing strings are now English across the
+  application and the command line; the language engine underneath — stemming,
+  lexicon, stop words, the injection phrases the guards match on — stays Russian,
+  because it reads Russian speech.
 - ~~The binary is called `orakul` while the brand is Cruxwing.~~ **Done 28 August.**
 
 ## The rename to Cruxwing
@@ -172,8 +173,7 @@ What changes: the package `Orakul` → `Cruxwing`, the targets `OrakulCore` →
 `CruxwingCore` and `OrakulApp` → `CruxwingApp`, the executable `orakul` →
 `cruxwing`, the test target, directory and file names, every `import`, the
 environment variables `ORAKUL_*` → `CRUXWING_*`, the bundle identifier
-`ai.orakul.desktop` → `ai.cruxwing.desktop`, the user-facing strings and "Оракул"
-in the copy.
+`ai.orakul.desktop` → `ai.cruxwing.desktop`, and the product name in the copy.
 
 Two details this breaks on if done carelessly:
 

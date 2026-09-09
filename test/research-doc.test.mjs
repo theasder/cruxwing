@@ -299,7 +299,7 @@ describe('RESEARCH-AND-PLAN', () => {
     const section = doc.slice(doc.indexOf('One shape of error recurs'));
     assert.ok(section.length > 400, 'the recurring-defect section is missing or a stub');
 
-    for (const seen of ['Удалено', '502', 'unknown', 'function words']) {
+    for (const seen of ['Deleted', '502', 'unknown', 'function words']) {
       assert.ok(section.includes(seen),
         `the section no longer cites the ${seen} case`);
     }

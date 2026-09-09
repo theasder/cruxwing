@@ -358,9 +358,10 @@ clear task, not for code.
   **The declared-but-missing one is fixed — 2026-08-18.** `oshibka.yml` carried
   `labels: ["ошибка"]` against a repository that only had `bug`. GitHub drops an
   unknown label silently, so every bug report arrived unlabelled and the form
-  looked like it had worked. The label now exists (`gh label create "ошибка"`),
-  matching the two Russian labels already there rather than switching the form
-  to English.
+  looked like it had worked. It was fixed then by creating the label to match the
+  Russian ones already there; on 2026-09-09 it was fixed the other way, and the
+  form now declares `bug`. The failure mode is what matters, not which side the
+  fix landed on — and the second time round the snapshot caught it immediately.
 
   The interesting part is not the label but that nothing could have caught it.
   Silence is the whole failure mode: no error, no rejected submission, just a
@@ -461,7 +462,7 @@ Windows writes CP1251, and the whole point of §6.1 is that Windows is where the
 users are.
 
 **Then the program itself was run, and that found what no test could
-(2026-08-18).** `orakul записать` on Linux printed «Записываю 5 с. Говорите…»
+(2026-08-18).** `orakul record` on Linux printed «Записываю 5 с. Говорите…»
 and only afterwards admitted recording does not exist on that system. Every test
 was green: the function behaved exactly as designed, while the program invited
 someone to speak into a microphone that cannot be there — the defect class of
@@ -824,7 +825,7 @@ transcripts), and three of its fields exist for honesty rather than parsing:
   which means it cannot be disputed either.
 
 **Checked before use:** `bash scripts/corpus-check.sh <folder>` (or
-`orakul корпус <folder>`) parses the manifest, verifies every named file
+`orakul corpus <folder>`) parses the manifest, verifies every named file
 exists, refuses duplicate ids, and prints the per-genre counts. A missing file
 does not fail a measurement — it silently shrinks the corpus, and the average is
 then computed over the remainder and looks convincing.

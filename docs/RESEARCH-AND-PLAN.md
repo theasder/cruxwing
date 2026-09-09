@@ -419,7 +419,7 @@ the shape is recognised and there are zero rows; `{"detail": "…"}` does not. T
 difference decides whether a person files a second task on top of an existing one.
 
 **6. Read leniently, write strictly.** In search results a task with no title is
-shown as "Без названия" — one malformed record is not worth the whole result set.
+shown as "Untitled" — one malformed record is not worth the whole result set.
 On creation it is the opposite: a response with no task key is an error, not a
 success. Saying "the task was filed" when it was not is the worst thing a connector
 can do.
@@ -560,8 +560,8 @@ Cruxwing removed key entry when the server gateway appeared: the keys moved to t
 server and `Secrets` became empty. orakul inherited that code without the gateway,
 that is, the worse half of the decision.
 
-Hence `ProviderKeyStore`: the key is entered under "Настройки → ИИ → Ключи
-провайдеров", lives in the Keychain, and takes precedence over anything baked in at
+Hence `ProviderKeyStore`: the key is entered under "Settings → AI → Provider
+keys", lives in the Keychain, and takes precedence over anything baked in at
 build time. The order is deliberate — the reverse would mean that a key from
 somebody else's `.env`, accidentally caught in a build, silently overrides the one a
 person has just typed and can see on screen.
@@ -599,14 +599,14 @@ like working operation:
 
 | what the person saw | what actually happened |
 |---|---|
-| "В сохранённых звонках об этом не говорили" | the archive is empty, there are no calls at all |
+| "The saved calls did not discuss this. I will not invent an answer." | the archive is empty, there are no calls at all |
 | the same | some of the archive files would not open and were not searched |
 | the same | the question is all function words, search never ran |
-| "Удалено: <identifier>" | no such meeting existed |
+| "Deleted: <identifier>" | no such meeting existed |
 | ten tasks from the tracker | there are forty-seven; the first ten were shown |
-| "Трекер ответил непонятным образом" | the server answered a clear 502 |
+| "The tracker answered in a way we could not read" | the server answered a clear 502 |
 | `[#314, unknown]` | the service reported no state; it was invented |
-| "В сохранённых звонках об этом не говорили" | the question has a one-letter typo; §6.8 |
+| "The saved calls did not discuss this. I will not invent an answer." | the question has a one-letter typo; §6.8 |
 
 The eighth case is the same sentence for the fourth time, and that is worth saying
 plainly: of eight cases, four landed on a single message. A confident sentence
@@ -703,7 +703,7 @@ What was deleted:
 - the buttons' `tier` field — the place where a paid tier grows back;
 - `PromptCatalog.Tier`, `available(for:)`, `unavailabilityReason(...)` — the gating
   mechanism, which now has nothing left to gate;
-- the "Тарифы" section on the page.
+- the pricing section on the page.
 
 The metric is unchanged: stars and installs. It became more honest — in a repository
 with nothing to sell, the README is the entire marketing.
@@ -734,7 +734,7 @@ Hence a rule, not a one-off fix:
    function precisely so it could be checked against all inputs rather than only the
    one the developer's machine was built with.
 3. Everything requiring a server is gated on `backendBaseURL.isEmpty`: sign-in (four
-   places), the "Аккаунт" settings section, the "Проверить в вебе" button, the
+   places), the "Account" settings section, the "Check on the web" button, the
    credits rail. `NoBackendPromisesTests` checks the screen's **rendering**, not the
    presence of a line in the source.
 
@@ -870,8 +870,8 @@ endings. The class of nouns ending in "-ние" drifted apart entirely:
 | решение | решению | `решен` | `решени` |
 
 The nominative lost "ие" entirely, the oblique cases only the last letter. Two
-different stems for one word — that is, an honest "в сохранённых звонках об этом не
-говорили" about something that was in fact discussed. The class is ordinary work
+different stems for one word — that is, an honest "the saved calls did not
+discuss this" about something that was in fact discussed. The class is ordinary work
 vocabulary: развёртывание, обновление, подключение, решение, тестирование,
 согласование, требование. Adjectives drifted the same way in the instrumental:
 "годовой" → `годов`, "годовым" → unchanged.
