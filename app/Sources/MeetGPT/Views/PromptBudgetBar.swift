@@ -131,7 +131,7 @@ struct PromptBudgetBar: View {
                 id: "mcp:\(server.id)",
                 name: server.id == "atlassian" ? "Atlassian" : server.name,
                 symbol: server.symbol,
-                detail: server.id == "atlassian" ? "Jira и Confluence" : nil
+                detail: server.id == "atlassian" ? "Jira and Confluence" : nil
             )
         }
 
@@ -169,7 +169,7 @@ struct PromptBudgetBar: View {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(IconButtonStyle(size: 20))
-                    .accessibilityLabel("Скрыть уведомление о выходе")
+                    .accessibilityLabel("Hide the sign-out notice")
                 }
                 .padding(Space.s)
                 .background(Theme.danger.opacity(0.08),
@@ -179,7 +179,7 @@ struct PromptBudgetBar: View {
                 HStack(spacing: Space.s) {
                     Image(systemName: "person.crop.circle.badge.questionmark")
                         .foregroundStyle(Theme.accent)
-                    Text("Войдите, чтобы получить кредиты и синхронизацию.")
+                    Text("Sign in for credits and sync.")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkSecondary)
                     Spacer(minLength: 0)
@@ -253,7 +253,7 @@ struct PromptBudgetBar: View {
     private func appBadges(_ visible: [ConnectedAppIdentity],
                            hidden: [ConnectedAppIdentity]) -> some View {
         if visible.isEmpty {
-            Label("Приложения не подключены", systemImage: "app.dashed")
+            Label("No applications connected", systemImage: "app.dashed")
                 .font(Typo.caption.weight(.medium))
                 .foregroundStyle(Theme.inkTertiary)
                 .fixedSize()
@@ -308,16 +308,16 @@ private struct ConnectedAppBadge: View {
         }
         .buttonStyle(.plain)
         .help(isMuted
-            ? "\(app.name) подключено, но не используется. Нажмите, чтобы вернуть в работу."
-            : ["\(app.name) подключено — нажмите, чтобы пропустить на этом звонке", app.detail]
+            ? "\(app.name) is connected but unused. Click to bring it back into play."
+            : ["\(app.name) is connected — click to skip it on this call", app.detail]
                 .compactMap { $0 }
                 .joined(separator: " · "))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(["\(app.name), connected", app.detail]
             .compactMap { $0 }
             .joined(separator: ", "))
-        .accessibilityValue(isMuted ? "Не используется" : "In use")
-        .accessibilityHint(isMuted ? "Снова использовать это приложение" : "Пропустить это приложение")
+        .accessibilityValue(isMuted ? "Unused" : "In use")
+        .accessibilityHint(isMuted ? "Use this application again" : "Skip this application")
         .accessibilityIdentifier("apps.badge.\(app.id)")
     }
 }
@@ -342,8 +342,8 @@ private struct ConnectedAppsOverflowBadge: View {
             // он вырезает \(...) до первой закрывающей скобки, и хвост
             // «.joined(separator:» остаётся в строке как латиница. Заодно
             // строка стала читаемой.
-            .help("Ещё подключены: \(names)")
-            .accessibilityLabel("ещё подключено приложений: \(apps.count) — \(names)")
+            .help("Also connected: \(names)")
+            .accessibilityLabel("\(apps.count) more applications connected — \(names)")
     }
 }
 
@@ -373,16 +373,16 @@ private struct ConnectedAppsBudgetToggle: View {
             .opacity(enabled ? 1 : 0.5)
             .help(enabled
                 ? (isOn
-                    ? "Приостановить обращения к подключённым приложениям. Сами подключения останутся."
-                    : "Вернуть контекст из подключённых приложений. Пока пауза, подключения не разрывались.")
-                : "Сначала подключите приложение")
-            .accessibilityLabel("Использовать рабочие приложения в промптах")
+                    ? "Pause requests to the connected applications. The connections themselves stay."
+                    : "Bring back context from the connected applications. Nothing was disconnected during the pause.")
+                : "Connect an application first")
+            .accessibilityLabel("Use work applications in prompts")
             .accessibilityValue(accessibilityValue)
     }
 
     private var label: String {
-        guard enabled else { return "Приложения недоступны" }
-        return isOn ? "Apps on" : "Приложения на паузе"
+        guard enabled else { return "Applications unavailable" }
+        return isOn ? "Apps on" : "Applications paused"
     }
 
     private var labelColor: Color {
@@ -391,8 +391,8 @@ private struct ConnectedAppsBudgetToggle: View {
     }
 
     private var accessibilityValue: String {
-        guard enabled else { return "Недоступно: ни одно приложение не подключено" }
-        return (isOn ? "On" : "Off") + "; подключения остаются"
+        guard enabled else { return "Unavailable: no application is connected" }
+        return (isOn ? "On" : "Off") + "; the connections stay"
     }
 }
 
@@ -411,7 +411,7 @@ private struct AddAppsButton: View {
                 AddAppsLabel()
             }
             .buttonStyle(.plain)
-            .help("Открыть «Настройки → Подключённые приложения»")
+            .help("Open «Settings → Connected apps»")
         }
     }
 }
@@ -429,7 +429,7 @@ private struct ModernAddAppsButton: View {
             AddAppsLabel()
         }
         .buttonStyle(.plain)
-        .help("Открыть «Настройки → Подключённые приложения»")
+        .help("Open «Settings → Connected apps»")
     }
 }
 
@@ -438,7 +438,7 @@ private struct AddAppsLabel: View {
         HStack(spacing: 4) {
             Image(systemName: "plus")
                 .font(.system(size: 9, weight: .bold))
-            Text("Добавить приложения")
+            Text("Add applications")
                 .font(Typo.caption.weight(.medium))
         }
         .foregroundStyle(Theme.inkSecondary)
@@ -482,9 +482,9 @@ enum CreditBadge: Equatable {
     /// number, the claim degrades to the shape that is still true rather than
     /// inventing one.
     static func trialText(_ remaining: Int, monthly: Int?, compact: Bool) -> String {
-        if compact { return "\(remaining) кр · регистрация" }
-        let offer = monthly.map { "регистрация — \($0) в месяц" } ?? "регистрация — больше каждый месяц"
-        return "\(remaining) кредитов · \(offer)"
+        if compact { return "\(remaining) cr · sign up" }
+        let offer = monthly.map { "sign up — \($0) a month" } ?? "sign up — more every month"
+        return "\(remaining) credits · \(offer)"
     }
 
     /// Both states name something the user can do about them.
@@ -496,13 +496,13 @@ enum CreditBadge: Equatable {
     func label(compact: Bool) -> String {
         switch self {
         case .notApplicable: return ""
-        case .loading: return compact ? "· кр…" : "· кредиты загружаются"
-        case .remaining(let value): return compact ? "· \(value) кр" : "· осталось \(value) кредитов"
+        case .loading: return compact ? "· cr…" : "· credits loading"
+        case .remaining(let value): return compact ? "· \(value) cr" : "· \(value) credits left"
         case .trial(let value, let monthly):
             return "· " + Self.trialText(value, monthly: monthly, compact: compact)
-        case .stale: return compact ? "· кр устар." : "· баланс проверялся"
-        case .signedOut: return compact ? "· вход" : "· войдите — кредиты бесплатно"
-        case .unavailable: return compact ? "· кр —" : "· кредиты недоступны"
+        case .stale: return compact ? "· cr stale" : "· balance last checked"
+        case .signedOut: return compact ? "· sign in" : "· sign in — credits are free"
+        case .unavailable: return compact ? "· cr —" : "· credits unavailable"
         }
     }
 
@@ -511,8 +511,8 @@ enum CreditBadge: Equatable {
     func leadingLabel(compact: Bool) -> String {
         switch self {
         case .notApplicable: return ""
-        case .loading: return compact ? "кр…" : "кредиты загружаются…"
-        case .remaining(let value): return compact ? "\(value) кр" : "осталось \(value) кредитов"
+        case .loading: return compact ? "cr…" : "credits loading…"
+        case .remaining(let value): return compact ? "\(value) cr" : "\(value) credits left"
         case .trial(let value, let monthly):
             return Self.trialText(value, monthly: monthly, compact: compact)
         case .stale: return compact ? "cr stale" : "credits: last checked"
@@ -526,20 +526,20 @@ enum CreditBadge: Equatable {
     var help: String {
         switch self {
         case .notApplicable: return ""
-        case .loading:       return "Проверяю баланс…"
-        case .remaining:     return "Остаток на счёте провайдера за период."
+        case .loading:       return "Checking the balance…"
+        case .remaining:     return "The balance on the provider's account for the period."
         case .trial(_, let monthly):
             // Says the quiet part: these particular credits are one-off.
-            let offer = monthly.map { "\($0) единиц каждый месяц" }
-                ?? "остаток, который восполняется каждый месяц"
-            return "Стартовый остаток, аккаунт не нужен. Он не восполняется. "
-                 + "Заведите аккаунт в «Настройки ▸ Аккаунт» — тогда будет \(offer)."
-        case .stale:         return "Показан последний известный баланс, идёт обновление."
+            let offer = monthly.map { "\($0) units every month" }
+                ?? "a balance that refills every month"
+            return "A starting balance, no account needed. It does not refill. "
+                 + "Create an account in «Settings ▸ Account» and you get \(offer)."
+        case .stale:         return "Showing the last known balance while it refreshes."
         case .signedOut:
-            return "Подключённые приложения входят отдельно от учётной записи orakul. "
-                 + "Войдите в «Настройки ▸ Аккаунт», чтобы пользоваться моделями без своих ключей."
+            return "Connected applications sign in separately from your orakul account. "
+                 + "Sign in under «Settings ▸ Account» to use models without your own keys."
         case .unavailable:
-            return "Не дозвонились до сервиса оплаты. На сам остаток это не влияет."
+            return "Could not reach the billing service. That does not affect the balance itself."
         }
     }
 }
@@ -618,8 +618,8 @@ struct PromptBudgetControl: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .help("Показать, из чего сейчас складывается запрос")
-            .accessibilityLabel("Бюджет промпта")
+            .help("Show what the request is made of right now")
+            .accessibilityLabel("Prompt budget")
             .accessibilityValue(accessibilityValue)
             .popover(isPresented: $showDetails, arrowEdge: .bottom) {
                 PromptBudgetDetails(
@@ -653,27 +653,27 @@ struct PromptBudgetControl: View {
         // Mirror the visual order: credits lead when they exist.
         switch creditBadge {
         case .notApplicable: break
-        case .loading: parts.append("баланс кредитов загружается")
-        case .remaining(let value): parts.append("осталось \(value) кредитов на вычисления")
+        case .loading: parts.append("the credit balance is loading")
+        case .remaining(let value): parts.append("\(value) compute credits left")
         case .trial(let value, let monthly):
-            parts.append("осталось \(value) бесплатных кредитов, учётная запись не нужна")
-            parts.append(monthly.map { "зарегистрируйтесь — \($0) каждый месяц" }
-                         ?? "зарегистрируйтесь — будет месячный запас")
-        case .stale: parts.append("баланс кредитов давно не проверялся; откройте подробности — там прошлое значение")
-        case .signedOut: parts.append("вы не вошли; войдите — кредиты бесплатно")
-        case .unavailable: parts.append("баланс кредитов недоступен")
+            parts.append("\(value) free credits left, no account needed")
+            parts.append(monthly.map { "sign up — \($0) every month" }
+                         ?? "sign up for a monthly allowance")
+        case .stale: parts.append("the credit balance has not been checked in a while; open the details for the previous value")
+        case .signedOut: parts.append("you are not signed in; sign in — credits are free")
+        case .unavailable: parts.append("the credit balance is unavailable")
         }
         if let predictedCredits {
             let qualifier: String
             switch costSeverity {
             case .routine: qualifier = ""
-            case .notable: qualifier = ", это заметная доля остатка"
-            case .unaffordable: qualifier = ", это больше, чем остаток"
+            case .notable: qualifier = ", a noticeable share of the balance"
+            case .unaffordable: qualifier = ", more than the balance"
             }
-            parts.append("этот запрос оценивается примерно в \(predictedCredits) кредитов\(qualifier)")
+            parts.append("this request is estimated at about \(predictedCredits) credits\(qualifier)")
         }
-        parts.append("сейчас на входе примерно \(TokenEstimate.label(estimate.totalTokens)) токенов")
-        parts.append("Нажмите, чтобы раскрыть")
+        parts.append("about \(TokenEstimate.label(estimate.totalTokens)) input tokens right now")
+        parts.append("Click to expand")
         return parts.joined(separator: ", ")
     }
 }
@@ -743,10 +743,10 @@ struct BudgetSummary: View {
     private func creditSpendStatus(compact: Bool) -> some View {
         Group {
             if let predictedCredits {
-                Text(compact ? "· ~\(predictedCredits) кр" : "· ~\(predictedCredits) кредитов на этот запрос")
+                Text(compact ? "· ~\(predictedCredits) cr" : "· ~\(predictedCredits) credits for this request")
                     .foregroundStyle(severityColor)
             } else {
-                Text(compact ? "· база" : "· базовая ставка за вход")
+                Text(compact ? "· base" : "· base input rate")
                     .foregroundStyle(Theme.accentText)
             }
         }
@@ -766,8 +766,8 @@ struct BudgetSummary: View {
     private func totalLabel(_ style: TotalStyle) -> some View {
         let value: String
         switch style {
-        case .long: value = "Сейчас на входе ~\(TokenEstimate.label(estimate.totalTokens))"
-        case .short: value = "~\(TokenEstimate.label(estimate.totalTokens)) на входе"
+        case .long: value = "~\(TokenEstimate.label(estimate.totalTokens)) on the input now"
+        case .short: value = "~\(TokenEstimate.label(estimate.totalTokens)) on the input"
         case .compact: value = "~\(TokenEstimate.label(estimate.totalTokens))"
         }
         return Text(value)
@@ -788,14 +788,14 @@ struct BudgetSummary: View {
         return Group {
             if overflow > 0 {
                 Text(compact
-                     ? "· +~\(TokenEstimate.label(overflow)) сверх окна"
-                     : "· +~\(TokenEstimate.label(overflow)) сверх окна модели")
+                     ? "· +~\(TokenEstimate.label(overflow)) over the window"
+                     : "· +~\(TokenEstimate.label(overflow)) over the model's window")
                     .foregroundStyle(Theme.danger)
             } else if let percentage {
-                Text(compact ? "· ~\(percentage)% окна" : "· ~\(percentage)% окна модели")
+                Text(compact ? "· ~\(percentage)% of the window" : "· ~\(percentage)% of the model's window")
                     .foregroundStyle(percentage >= 80 ? Theme.amber : Theme.inkTertiary)
             } else {
-                Text(compact ? "· размер" : "· приблизительный размер контекста")
+                Text(compact ? "· size" : "· approximate context size")
                     .foregroundStyle(Theme.inkTertiary)
             }
         }
@@ -899,7 +899,7 @@ struct PromptBudgetDetails: View {
                 // has no Orakul balance or plan.
                 VStack(alignment: .leading, spacing: Space.xs) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text("Кредиты")
+                        Text("Credits")
                             .font(Typo.headline)
                             .foregroundStyle(Theme.ink)
                         Spacer(minLength: Space.s)
@@ -922,10 +922,10 @@ struct PromptBudgetDetails: View {
                 managedCreditSection
             } else {
                 VStack(alignment: .leading, spacing: Space.xs) {
-                    Text("Контекст запроса")
+                    Text("Request context")
                         .font(Typo.headline)
                         .foregroundStyle(Theme.ink)
-                    Text("Orakul не продаёт кредиты и не ограничивает запросы. Ключ и оплату выбранного AI-провайдера контролируете вы.")
+                    Text("Orakul does not sell credits and does not limit requests. You control the key and the billing of the AI provider you chose.")
                         .font(Typo.caption)
                         .foregroundStyle(Theme.inkTertiary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -936,11 +936,11 @@ struct PromptBudgetDetails: View {
 
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text(Config.llmViaBackend
-                     ? "Из чего складывается цена промпта"
-                     : "Что занимает контекст запроса")
+                     ? "What the prompt's price is made of"
+                     : "What is taking up the request context")
                     .font(Typo.bodyStrong)
                     .foregroundStyle(Theme.inkSecondary)
-                Text("Пока примерно \(TokenEstimate.label(estimate.totalTokens)) входных токенов")
+                Text("About \(TokenEstimate.label(estimate.totalTokens)) input tokens so far")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkTertiary)
                     .monospacedDigit()
@@ -952,24 +952,24 @@ struct PromptBudgetDetails: View {
             VStack(spacing: Space.s) {
                 BreakdownRow(label: "Transcript", tokens: estimate.transcriptTokens,
                              detail: nil, color: Theme.accent)
-                BreakdownRow(label: "Приложенный контекст", tokens: estimate.contextTokens,
+                BreakdownRow(label: "Attached context", tokens: estimate.contextTokens,
                              detail: nil, color: Theme.amber)
                 BreakdownRow(
-                    label: "Подключённые приложения",
+                    label: "Connected applications",
                     tokens: connectedAppsTokenPotential,
-                    detail: connectedAppsEnabled ? "верхняя граница" : "paused",
+                    detail: connectedAppsEnabled ? "upper bound" : "paused",
                     color: Theme.speakerYou,
                     excluded: !connectedAppsEnabled
                 )
                 if otherSourceTokens > 0 {
-                    BreakdownRow(label: "Другие источники", tokens: otherSourceTokens,
+                    BreakdownRow(label: "Other sources", tokens: otherSourceTokens,
                                  detail: nil, color: Theme.speakerYou)
                 }
-                BreakdownRow(label: "Общие инструкции", tokens: estimate.instructionsTokens,
-                             detail: "кнопка добавляет ещё", color: Theme.inkTertiary)
+                BreakdownRow(label: "Shared instructions", tokens: estimate.instructionsTokens,
+                             detail: "the button adds more", color: Theme.inkTertiary)
             }
 
-            Text("Оценка неполная: она не учитывает сам запрос и инструкции, которые добавляет нажатая кнопка. Настоящее число токенов зависит ещё от языка и выбранной модели, а подтянутый контекст приложений может оказаться меньше.")
+            Text("The estimate is incomplete: it leaves out the request itself and the instructions the pressed button adds. The real token count also depends on the language and the chosen model, and the context pulled from applications may turn out smaller.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -991,8 +991,8 @@ struct PromptBudgetDetails: View {
             remainingCredits: max(0, usage.remaining.computeCredits),
             perPrompt: predictedCredits) {
             parts.append(prompts == 1
-                ? "ещё примерно один запрос такого размера"
-                : "ещё примерно \(prompts) запросов такого размера")
+                ? "about one more request of this size"
+                : "about \(prompts) more requests of this size")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -1004,19 +1004,19 @@ struct PromptBudgetDetails: View {
             HStack(spacing: Space.s) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Загружаю баланс кредитов…")
+                Text("Loading the credit balance…")
                     .font(Typo.caption)
                     .foregroundStyle(Theme.inkSecondary)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Загружаю баланс кредитов")
+            .accessibilityLabel("Loading the credit balance")
         case .fresh, .stale:
             if let usage = creditUsage {
                 let allowance = max(usage.allowances.computeCredits, 1)
                 let remaining = max(0, usage.remaining.computeCredits)
                 VStack(alignment: .leading, spacing: Space.xs) {
                     HStack {
-                        Text("Кредиты")
+                        Text("Credits")
                             .font(Typo.caption.weight(.semibold))
                             .foregroundStyle(Theme.inkSecondary)
                         Spacer()
@@ -1038,7 +1038,7 @@ struct PromptBudgetDetails: View {
             unavailableCreditRow
         }
 
-        Text("Стоимость запроса у провайдера складывается из базовой ставки модели и надбавок за длинный вход и длинный ответ. Точную сумму считает сам провайдер.")
+        Text("A request's cost at the provider is the model's base rate plus surcharges for a long input and a long answer. The provider computes the exact amount itself.")
             .font(Typo.caption)
             .foregroundStyle(Theme.inkTertiary)
             .fixedSize(horizontal: false, vertical: true)
@@ -1052,25 +1052,25 @@ struct PromptBudgetDetails: View {
         HStack(spacing: Space.s) {
             Image(systemName: "person.crop.circle.badge.questionmark")
                 .foregroundStyle(Theme.accent)
-            Text("Войдите в orakul, чтобы пользоваться моделями без своих ключей. Подключённые приложения входят отдельно и остаются подключёнными в любом случае.")
+            Text("Sign in to orakul to use models without your own keys. Connected applications sign in separately and stay connected either way.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Вы не вошли. Войдите в orakul, чтобы видеть кредиты.")
+        .accessibilityLabel("You are not signed in. Sign in to orakul to see credits.")
     }
 
     private var unavailableCreditRow: some View {
         HStack(spacing: Space.s) {
             Image(systemName: "creditcard")
                 .foregroundStyle(Theme.inkTertiary)
-            Text("Не дозвонились до сервиса оплаты, поэтому баланс не показан. На сам баланс это не влияет.")
+            Text("Could not reach the billing service, so no balance is shown. That does not affect the balance itself.")
                 .font(Typo.caption)
                 .foregroundStyle(Theme.inkSecondary)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Баланс кредитов недоступен")
+        .accessibilityLabel("Credit balance unavailable")
     }
 }
 

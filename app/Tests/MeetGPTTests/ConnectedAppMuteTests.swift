@@ -177,9 +177,9 @@ struct SignedOutCreditLabelTests {
         // "sign in" — CreditBadgeStateTests requires both forms to name the
         // action, and a compact badge has no room for the reason as well.
         let label = CreditBadge.signedOut.label(compact: false)
-        #expect(label.contains("кредиты бесплатно"))
+        #expect(label.contains("credits are free"))
         #expect(!label.contains("посмотреть кредиты"))
-        #expect(CreditBadge.signedOut.label(compact: true).contains("вход"))
+        #expect(CreditBadge.signedOut.label(compact: true).contains("sign in"))
     }
 
     @Test("a real balance still reads as a number")
@@ -214,7 +214,7 @@ struct TrialCreditBadgeTests {
         #expect(label.contains("12"))
         // The number comes before the ask, in both label forms.
         let credits = try! #require(label.range(of: "12"))
-        let signUp = try! #require(label.range(of: "регистрация"))
+        let signUp = try! #require(label.range(of: "sign up"))
         #expect(credits.lowerBound < signUp.lowerBound)
     }
 
@@ -224,7 +224,7 @@ struct TrialCreditBadgeTests {
         // it is three credits EVERY MONTH versus never again.
         let label = CreditBadge.trial(remaining: 12, monthly: 15).label(compact: false)
         #expect(label.contains("15"))
-        #expect(label.contains("в месяц"))
+        #expect(label.contains("a month"))
     }
 
     @Test("an unknown monthly allowance degrades instead of inventing one")
@@ -233,7 +233,7 @@ struct TrialCreditBadgeTests {
         // would eventually promise something the backend will not deliver.
         let label = CreditBadge.trial(remaining: 12, monthly: nil).label(compact: false)
         #expect(label.contains("12"))
-        #expect(label.contains("каждый месяц"))
+        #expect(label.contains("every month"))
         #expect(!label.contains("15"))
     }
 
@@ -241,7 +241,7 @@ struct TrialCreditBadgeTests {
     func compactKeepsBoth() {
         let label = CreditBadge.trial(remaining: 12, monthly: 15).label(compact: true)
         #expect(label.contains("12"))
-        #expect(label.contains("регистрация"))
+        #expect(label.contains("sign up"))
     }
 
     @Test("a trial never renders as the signed-out prompt")
@@ -257,8 +257,8 @@ struct TrialCreditBadgeTests {
     func helpNamesTheCatch() {
         // The one thing a balance alone never says.
         let help = CreditBadge.trial(remaining: 12, monthly: 15).help.lowercased()
-        #expect(help.contains("не восполняется"))
-        #expect(help.contains("аккаунт не нужен"))
+        #expect(help.contains("does not refill"))
+        #expect(help.contains("no account needed"))
     }
 
     @Test("a trial is actionable, like signed-out and unlike a broken balance")

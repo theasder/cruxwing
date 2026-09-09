@@ -157,9 +157,9 @@ test('direct BYOK has no inherited Orakul credit or monthly research limit', () 
   }
   assert.match(appState, /UsageLimitPolicy\.remaining\([\s\S]{0,180}Config\.managedUsageLimitsEnabled/,
     'automatic co-pilot can regain an inherited monthly cutoff in direct mode');
-  assert.match(brainstorm, /Config\.managedUsageLimitsEnabled[\s\S]{0,260}лимита Orakul нет/,
+  assert.match(brainstorm, /Config\.managedUsageLimitsEnabled[\s\S]{0,260}no Orakul limit/,
     'the reachable research UI still presents a managed-plan allowance to BYOK users');
-  assert.match(budget, /if Config\.llmViaBackend[\s\S]{0,1800}Orakul не продаёт кредиты и не ограничивает запросы/,
+  assert.match(budget, /if Config\.llmViaBackend[\s\S]{0,1800}Orakul does not sell credits and does not limit requests/,
     'the direct-provider prompt details are still framed as an Orakul credit product');
   assert.match(budget,
     /private func directContextStatus[\s\S]{0,420}Config\.selectedRequestModel\.contextTokens/,

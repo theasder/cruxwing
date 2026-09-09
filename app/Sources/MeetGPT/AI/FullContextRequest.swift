@@ -76,8 +76,8 @@ enum FullContextRequest {
             guard active else { return "" }
             let thousands = limitChars / 1_000
             return truncated
-                ? "Весь контекст · примерно \(estimatedInputTokens) входных токенов · отправляю последние \(thousands) тыс. знаков"
-                : "Весь контекст · примерно \(estimatedInputTokens) входных токенов · отправляю всё"
+                ? "Full context · about \(estimatedInputTokens) input tokens · sending the last \(thousands)k characters"
+                : "Full context · about \(estimatedInputTokens) input tokens · sending everything"
         }
     }
 

@@ -131,8 +131,8 @@ struct FullContextRequestTests {
     func summaryNamesProviderInput() {
         let quote = FullContextRequest.quote(model: model("gemini-3.1-pro-preview"),
                                              requested: true, inputChars: 40_000)
-        #expect(quote.summary.contains("токенов"))
-        #expect(quote.summary.contains("Весь контекст"))
+        #expect(quote.summary.contains("input tokens"))
+        #expect(quote.summary.contains("Full context"))
         #expect(!quote.summary.lowercased().contains("credit"))
     }
 
@@ -142,8 +142,8 @@ struct FullContextRequestTests {
         let limit = FullContextRequest.maximumInputChars(for: target)
         let quote = FullContextRequest.quote(model: target, requested: true,
                                              inputChars: limit * 2)
-        #expect(quote.summary.contains("последние"))
-        #expect(!quote.summary.contains("отправляю всё"))
+        #expect(quote.summary.contains("sending the last"))
+        #expect(!quote.summary.contains("sending everything"))
     }
 
     @Test("nothing is shown when the mode is off")

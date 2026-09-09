@@ -38,7 +38,7 @@ struct RenderedRussianTests {
         .general: 3, .transcription: 4, .connectedApps: 17,
     ]
     static let firstRunRussian = 0
-    static let mainWindowRussian = 328
+    static let mainWindowRussian = 279
     static let keysAndTrackersRussian = 0
 
     private func expectRussianCount(_ left: [String], _ pinned: Int, _ what: String) {

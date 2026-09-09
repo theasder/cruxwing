@@ -67,7 +67,7 @@ struct PromptBudgetBarViewTests {
 
         #expect(throws: Never.self) { try view.inspect().find(text: "Notion") }
         #expect(throws: Never.self) { try view.inspect().find(text: "Linear") }
-        #expect(throws: Never.self) { try view.inspect().find(text: "Добавить приложения") }
+        #expect(throws: Never.self) { try view.inspect().find(text: "Add applications") }
         #expect(throws: (any Error).self) { try view.inspect().find(text: "Work apps") }
         #expect(throws: (any Error).self) { try view.inspect().find(text: "Team chat") }
         #expect(throws: (any Error).self) { try view.inspect().find(text: "Decisions") }
@@ -79,8 +79,8 @@ struct PromptBudgetBarViewTests {
         let mcp = MCPConnectionManager(tokenStore: InMemoryKeychain())
         let inspected = try bar(state: state, mcp: mcp).inspect()
 
-        #expect(throws: Never.self) { try inspected.find(text: "Приложения не подключены") }
-        #expect(throws: Never.self) { try inspected.find(text: "Добавить приложения") }
+        #expect(throws: Never.self) { try inspected.find(text: "No applications connected") }
+        #expect(throws: Never.self) { try inspected.find(text: "Add applications") }
         let toggle = try inspected.find(ViewType.Toggle.self)
         #expect(toggle.isDisabled())
         #expect(try toggle.isOn() == false)
@@ -168,7 +168,7 @@ struct PromptBudgetBarViewTests {
         let state = freshState()
         state.selectedSettingsTab = .general
         let mcp = MCPConnectionManager(tokenStore: InMemoryKeychain())
-        let button = try bar(state: state, mcp: mcp).inspect().find(button: "Добавить приложения")
+        let button = try bar(state: state, mcp: mcp).inspect().find(button: "Add applications")
 
         try button.tap()
 
@@ -197,15 +197,15 @@ struct PromptBudgetBarViewTests {
         } else {
             // Direct-key/dev: the token estimate is the only honest number.
             let estimate = try inspected.find(textWhere: { string, _ in
-                string.contains("на входе") && string.contains("~")
+                string.contains("on the input") && string.contains("~")
             })
             #expect(try estimate.string().contains("~"))
-            #expect(try estimate.string().contains("Сейчас на входе"))
+            #expect(try estimate.string().contains("on the input now"))
         }
 
         // The disclosure control is mode-independent.
         #expect(throws: Never.self) {
-            try inspected.find(viewWithAccessibilityLabel: "Бюджет промпта")
+            try inspected.find(viewWithAccessibilityLabel: "Prompt budget")
         }
     }
 
@@ -241,9 +241,9 @@ struct PromptBudgetBarViewTests {
 
     @Test("every compact credit state has an explicit label")
     func compactCreditLabels() {
-        #expect(CreditBadge.loading.label(compact: true) == "· кр…")
-        #expect(CreditBadge.remaining(42).label(compact: true) == "· 42 кр")
-        #expect(CreditBadge.stale.label(compact: true) == "· кр устар.")
-        #expect(CreditBadge.unavailable.label(compact: true) == "· кр —")
+        #expect(CreditBadge.loading.label(compact: true) == "· cr…")
+        #expect(CreditBadge.remaining(42).label(compact: true) == "· 42 cr")
+        #expect(CreditBadge.stale.label(compact: true) == "· cr stale")
+        #expect(CreditBadge.unavailable.label(compact: true) == "· cr —")
     }
 }

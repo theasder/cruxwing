@@ -24,7 +24,7 @@ struct CreditBadgeStateTests {
             #expect(signedOut != unavailable, "compact=\(compact)")
             // Проверяется НАЗВАНО ЛИ ДЕЙСТВИЕ, а не одно слово: в короткой форме
             // это «вход», в полной — «войдите», и обе называют то же самое.
-            #expect(signedOut.contains("вход") || signedOut.contains("войдите"),
+            #expect(signedOut.contains("sign in") || signedOut.contains("sign up"),
                     "compact=\(compact): \(signedOut)")
         }
     }
@@ -37,14 +37,14 @@ struct CreditBadgeStateTests {
         let signedOut = CreditBadge.signedOut.help.lowercased()
         // Текст переведён на русский; проверяется то же, что и раньше —
         // названо действие, а не состояние.
-        #expect(signedOut.contains("войдите"))
+        #expect(signedOut.contains("sign in"))
         // The specific confusion to pre-empt: connected apps are a separate
         // sign-in, which is why the workspace looked authenticated.
-        #expect(signedOut.contains("подключённые приложения входят отдельно"))
+        #expect(signedOut.contains("connected applications sign in separately"))
 
         // A billing outage must not read as "you have no credits".
         let unavailable = CreditBadge.unavailable.help.lowercased()
-        #expect(unavailable.contains("не дозвонились") || unavailable.contains("не влияет"))
+        #expect(unavailable.contains("could not reach") || unavailable.contains("does not affect"))
     }
 
     @Test("no balance state ever renders as a credit count")
@@ -53,11 +53,11 @@ struct CreditBadgeStateTests {
             for compact in [true, false] {
                 let text = badge.label(compact: compact)
                 #expect(!text.contains("0 cr"), "\(badge) rendered a zero balance: \(text)")
-                #expect(!text.contains("0 кредитов"), "\(badge) rendered a zero balance: \(text)")
+                #expect(!text.contains("0 credits"), "\(badge) rendered a zero balance: \(text)")
             }
         }
         // A real zero IS shown as a number — that is a balance, not an error.
-        #expect(CreditBadge.remaining(0).label(compact: false).contains("0 кредитов"))
+        #expect(CreditBadge.remaining(0).label(compact: false).contains("0 credits"))
     }
 
     @Test("every state has a distinct compact and full label")

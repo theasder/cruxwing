@@ -129,8 +129,8 @@ struct NoBackendPromisesTests {
             .environmentObject(manager)
             .inspect()
 
-        for phrase in ["Войдите, чтобы получить кредиты и синхронизацию.",
-                       "Загружаю баланс кредитов…"] {
+        for phrase in ["Sign in for credits and sync.",
+                       "Loading the credit balance…"] {
             #expect(throws: (any Error).self, "на экране кредиты: \(phrase)") {
                 try rendered.find(text: phrase)
             }
