@@ -149,11 +149,11 @@ themselves in Settings → AI after installing.
 Once a dedicated tap exists, installation will be able to look like one command:
 
 ```bash
-brew install --cask theasder/orakul/orakul
+brew install --cask theasder/cruxwing/cruxwing
 ```
 
-The tap (`theasder/homebrew-orakul`) **does not exist yet**. It also needs the
-correct public repository identity and a fresh release first: the cask template
+The tap (`theasder/homebrew-cruxwing`) **does not exist yet** — checked
+2026-09-09 with `gh repo view`. It needs a fresh release first: the cask template
 itself already builds from the repository, and `bash scripts/refresh-cask.sh`
 computes the sums over both images and prints the finished file. Cruxwing is not
 submitted to the main `homebrew-cask`: they require the project to be well known,

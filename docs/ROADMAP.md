@@ -24,9 +24,9 @@ State: v1, 2026-08-17.
 
 | What | Value | Measured by |
 |---|---|---|
-| Public since | 2026-08-13 | `gh repo view theasder/orakul --json createdAt` |
+| Public since | 2026-08-13 | `gh repo view theasder/cruxwing --json createdAt` |
 | Stars and forks | 0 and 0 | same |
-| Open issues | 3, all «needs access» and «good first issue» | `gh issue list` |
+| Open issues | 1, «good first issue» | `gh issue list` |
 | Discussions | off | `hasDiscussionsEnabled: false` |
 | Page | As of 2026-08-17 it served «orakul.ai — звонок, который можно спросить» | historical `curl` |
 | Page and doc checks | `npm test`; the runner reports the current total | root CI |
@@ -315,7 +315,7 @@ words[^cask], and with zero stars there is nothing to argue. An own tap sets no
 such condition:
 
 ```
-brew install --cask theasder/orakul/orakul
+brew install --cask theasder/cruxwing/cruxwing
 ```
 
 **Done:** `packaging/homebrew/orakul.rb.template` plus `scripts/refresh-cask.sh`,
@@ -2495,8 +2495,8 @@ with nothing to sell, README is the whole marketing.
 
 | What we count | With what |
 |---|---|
-| Stars and forks | `gh repo view theasder/orakul --json stargazerCount,forkCount` |
-| Installs | the sum of `assets[].download_count` in `gh api repos/theasder/orakul/releases` |
+| Stars and forks | `gh repo view theasder/cruxwing --json stargazerCount,forkCount` |
+| Installs | the sum of `assets[].download_count` in `gh api repos/theasder/cruxwing/releases` |
 | Connectors | from code, not from the page: `RussianTrackers.Service` and neighbouring types — the same way the census check does it |
 | Time to the first answer on an issue | by hand while they are countable; otherwise it is a metric for its own sake |
 

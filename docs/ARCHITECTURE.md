@@ -216,8 +216,7 @@ configuration guards around them.
 
 A public release requires all of the following, in addition to normal tests:
 
-1. restore the canonical `theasder/orakul` repository instead of the current
-   redirect, enable and verify Private Vulnerability Reporting, and protect
+1. enable and verify Private Vulnerability Reporting, and protect
    `main`, release tags, Code Owner review, and the `release` Environment;
 2. review a clean commit, scan the complete reachable Git history and current
    inputs for secrets, and verify licenses, notices, the skill allowlist, SBOM,
