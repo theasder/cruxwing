@@ -1,11 +1,11 @@
 # How things are done here
 
 This file is not about politeness in general. It is about the thing that drives
-Russian-speaking developers off question-and-answer sites: a decision is made and
-the reason is never given. A question is closed as a duplicate with no link to the
-original, an edit is reverted without cause, a person is blocked and there is
-nowhere to appeal. What follows are the rules that stand in the way of that — and
-the obligations they impose fall first on us, not on the newcomer.
+people off question-and-answer sites: a decision is made and the reason is never
+given. A question is closed as a duplicate with no link to the original, an edit
+is reverted without cause, a person is blocked and there is nowhere to appeal.
+What follows are the rules that stand in the way of that — and the obligations
+they impose fall first on us, not on the newcomer.
 
 ## What we promise
 
@@ -25,9 +25,10 @@ for a review". Another person reviews it, if there is one;
 if there is a single maintainer, they are obliged to answer the substance of the
 argument rather than repeat the earlier decision.
 
-**Language does not affect the decision.** The project works in English, and we
-turn nobody away over how they write it. Awkward grammar is no reason for rejection; a
-question that is unclear in substance is a reason to ask again, not to close.
+**Language does not affect the decision.** The project works in English, and most
+of the people writing here do not have it as a first language. Awkward grammar is
+no reason for rejection; a question that is unclear in substance is a reason to
+ask again, not to close.
 
 **Level does not affect tone.** A beginner's question is no worse than a
 long-timer's. "Google it", "read the documentation" and "it is obvious" are not
